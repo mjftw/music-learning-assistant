@@ -6,6 +6,6 @@
 - [Music Learning Assistant — product intent](intent-product.md) — Intent · resolved — Helps to learn music on an instrument
 - [OKF artefact types](okf.md) — Guide — The frontmatter every artefact in this repository carries, and what each field means here.
 - [Music Learning Assistant](product.md) — Product Brief · approved — Helps to learn music on an instrument
-- [Roadmap — vertical slices](roadmap.md) — Roadmap · draft — The vertical slices of this project, in build order, with status.
+- [Roadmap — vertical slices](roadmap.md) — Roadmap · approved — The vertical slices of this project, in build order, with status.
 - [Spec-driven development guide](sdd-guide.md) — Guide — How this repository's agent-led workflow works, phase by phase, and why it is shaped this way.
 - [adr/](adr/index.md)

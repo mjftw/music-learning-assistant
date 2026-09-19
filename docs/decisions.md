@@ -37,3 +37,6 @@ tags: [sdd, decisions]
 2026-09-19 · constitution · Article V: live feedback carries a numbered latency budget with a measured test; late feedback is suppressed, not shown · the riskiest unknown made non-negotiable — late feedback throws off practice
 2026-09-19 · constitution · Article VI: the practice view never demands interaction mid-sequence, never interrupts, never gamifies · the abandonment condition made enforceable at review
 2026-09-19 · constitution · Article VII: no third-party subscriptions, accounts or services at runtime; architecture (incl. client-server) stays open · self-sufficient to run, but plan decides the shape
+2026-09-19 · init · Roadmap: 001 the-circle, 002 hear-the-scale, 003 the-drone, 004 hear-me, 005 learner-leads, 006 temperament, 007 teach-me · each slice thin and useful alone; 001 replaces the paper circle before any sound exists
+2026-09-19 · init · 004 hear-me built early despite only being needed by 005 · riskiest unknown (live pitch, latency budget) de-risked while paying its way as a tuner
+2026-09-19 · init · Cut line below 005 · tool-leads + learner-leads + tuner is the product; temperament and tooltips are enrichment
