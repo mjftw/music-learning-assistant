@@ -1,7 +1,11 @@
 /// <reference types="vite/client" />
 import { z } from "zod";
 import type { Note } from "../domain/notes";
-import { parseNoteString, pitchPosition } from "../domain/notes";
+import {
+  NOTE_STRING_PATTERN,
+  parseNoteString,
+  pitchPosition,
+} from "../domain/notes";
 
 export type VariantId = string & { readonly __brand: "VariantId" };
 
@@ -33,8 +37,6 @@ export interface Catalogue {
   readonly instruments: readonly Instrument[];
   readonly notices: readonly CatalogueNotice[];
 }
-
-const NOTE_STRING_PATTERN = /^([A-G])(#|b)?([0-8])$/;
 
 const noteStringSchema = z
   .string()

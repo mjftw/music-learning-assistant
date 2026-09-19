@@ -95,10 +95,12 @@ export function App(props: {
     selectionStore.save(toSave);
   }, [selection, selectionStore]);
 
-  const variant =
-    findVariantById(catalogue, selection.variantId) ??
-    findVariantById(catalogue, DEFAULT_VARIANT_ID);
-  const key = findKeyById(selection.keyId) ?? findKeyById(DEFAULT_KEY_ID);
+  // initialSelection already resolved variantId/keyId to values that exist
+  // in this catalogue/circle before this state was set (falling back to the
+  // default when they didn't), so these always resolve; no further fallback
+  // is needed here.
+  const variant = findVariantById(catalogue, selection.variantId);
+  const key = findKeyById(selection.keyId);
   const view =
     key === undefined || variant === undefined
       ? undefined

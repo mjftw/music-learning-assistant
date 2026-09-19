@@ -69,3 +69,25 @@ test("theory.circle-of-fifths/REQ-008/S3 — corrupt storage falls back to the d
   );
   expect(screen.getByTestId("current-key").textContent).toBe("C major");
 });
+
+test("theory.circle-of-fifths/REQ-008/S3 — stored selection naming an unknown variant falls back to default", () => {
+  localStorage.setItem(
+    storageKey,
+    JSON.stringify({
+      schemaVersion: 1,
+      variantId: "ocarina-soprano-g",
+      keyId: "G-major",
+      noteNamesVisible: true,
+    }),
+  );
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+    />,
+  );
+  expect(screen.getByTestId("current-key").textContent).toBe("C major");
+  expect(screen.getByTestId("current-variant").textContent).toBe(
+    "Flute — Concert",
+  );
+});

@@ -58,3 +58,81 @@ One line each, newest last.
 
 ## T010 (2026-09-19)
 - PASS/PASS round 1, no findings. findVariantById extracted to src/ui/catalogue-lookup.ts (authorized). Article VI spot-checked across the whole mounted App: nothing interruptive.
+
+## T011 (2026-09-19)
+- Edge case swept: extended `selection-persistence.test.tsx` with
+  `theory.circle-of-fifths/REQ-008/S3 — stored selection naming an unknown
+  variant falls back to default`. GREEN on the first run — T007's
+  `initialSelection` already treats an unresolvable stored `variantId` (or
+  `keyId`) the same as unreadable storage, falling back to the default. No
+  `App.tsx` behaviour change needed for this case.
+- Four minor review findings closed (controller-authorized):
+  1. Shared jsdom canvas stub moved from the two UI test files that had it
+     (`names-toggle.test.tsx`, `selector-and-notices.test.tsx`) into a single
+     `tests/setup.ts`, wired via `vite.config.ts`'s `test.setupFiles`. The
+     jsdom "not implemented" canvas noise no longer appears in `pnpm check`
+     output for any UI test file.
+  2. `App.tsx`'s render-time `??` fallback that re-resolved
+     `DEFAULT_VARIANT_ID`/`DEFAULT_KEY_ID` was removed: `initialSelection`
+     already guarantees `selection.variantId`/`selection.keyId` resolve in
+     the current catalogue/circle before that state is ever set (falling
+     back to the default itself when they don't), so the fallback was dead
+     code. Left a comment explaining why the plain lookups are always safe.
+  3. `NOTE_STRING_PATTERN` is now exported once from
+     `src/theory/domain/notes.ts` (already home to `parseNoteString`) and
+     imported by `src/theory/instruments/catalogue.ts`'s Zod schema,
+     replacing the duplicated regex literal.
+  4. `KeyViewStave.tsx`'s `as CSSProperties` cast for `STYLE_TOKENS` now
+     carries a comment: React's `CSSProperties` type doesn't model custom
+     properties (`--*` keys) at all, so there is no type for this shape, but
+     the browser accepts custom properties on any element's inline `style`
+     regardless — the cast is safe because the value itself is a valid style
+     object at runtime, just not one TypeScript can name.
+- `pnpm build` produced a `dist/` bundle (`dist/index.html`,
+  `dist/assets/index-*.js`) with no errors (one non-blocking Vite warning
+  about chunk size, unrelated to correctness). Phone legibility: not yet
+  checked on phone — user to observe during acceptance.
+- `./scripts/check-contexts.sh` — no violations. `./scripts/check-scenarios.sh
+  --change changes/001-the-circle` — all 21 scenarios cited, no gaps.
+
+### Acceptance walk-through (for the user's sign-off)
+
+1. Run `pnpm dev`, open the app in a browser.
+2. Select instrument variant **Flute — Concert**.
+3. Select **G major** on the circle.
+   - Expect: stave signature is one sharp (F♯).
+   - Expect: notes run C4 up to C7.
+   - Expect: every G is emphasised (root highlight).
+   - Expect: F♯ is highlighted as the new accidental.
+   - Expect: the relative-key label reads "Relative minor: E minor".
+4. Toggle note names off.
+   - Expect: the same notes remain on the stave with no names shown.
+5. Switch the variant from **Ocarina Alto C** to **Ocarina Bass C** (with a
+   key selected on the circle).
+   - Expect: every displayed note moves down exactly one octave.
+6. The user signs off; their verdict is recorded here verbatim.
+
+**User verdict:** _pending_
+
+### `pnpm check` output (T011)
+
+```
+> music-learning-assistant@0.0.0 check /home/merlin/projects/music-learning-assistant
+> prettier --check . && eslint . && tsc --noEmit && vitest run
+
+Checking formatting...
+All matched files use Prettier code style!
+
+ RUN  v5.0.1 /home/merlin/projects/music-learning-assistant
+
+
+ Test Files  11 passed (11)
+      Tests  28 passed (28)
+   Start at  21:26:55
+   Duration  1.43s (environment 63%, import 19%, tests 11%, transform 5%, setup 1%, worker 1%)
+```
+
+## T011 (2026-09-19)
+- PASS/PASS. 21/21 scenarios covered, 28 tests green, boundaries respected, dist/ builds.
+- All four accumulated review minors fixed (shared canvas stub, unreachable fallback removed, regex single-sourced, cast comment).
+- Remaining open item: user's acceptance walk-through + phone legibility observation (see Acceptance section above; verdict pending).

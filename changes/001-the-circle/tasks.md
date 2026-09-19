@@ -18,7 +18,7 @@ verified:
     at: 2026-09-19T18:49:04Z
 sdd_id: 001-the-circle
 sdd_context: theory
-sdd_phase: approved
+sdd_phase: complete
 ---
 
 # Tasks: The circle
@@ -601,7 +601,7 @@ _Demonstrable: the acceptance walk-through in a browser._
 
 ### T011 · — · Edge-case sweep, context check, acceptance hand-off
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: `tests/ui/scenarios/selection-persistence.test.tsx` (extend)

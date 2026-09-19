@@ -37,7 +37,9 @@ export function pitchPosition(note: Note): number {
   );
 }
 
-const NOTE_STRING_PATTERN = /^([A-G])(#|b)?([0-8])$/;
+// Shared with the instrument catalogue's Zod schema (instruments/catalogue.ts)
+// so the note-string format is defined once.
+export const NOTE_STRING_PATTERN = /^([A-G])(#|b)?([0-8])$/;
 
 const ACCIDENTAL_SYMBOL: Record<string, Accidental> = {
   "#": "sharp",

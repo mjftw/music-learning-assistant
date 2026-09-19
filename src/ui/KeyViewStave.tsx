@@ -119,6 +119,10 @@ function renderStave(container: HTMLDivElement, view: KeyView): void {
 // Defines the two styling tokens the spec names as CSS custom properties on
 // the stave's wrapper, so every VexFlow-drawn SVG element beneath it (and
 // any consumer's override further up the DOM) can reference them by name.
+// Unchecked cast: React's `CSSProperties` type does not model custom
+// properties (any key starting with `--`) at all, so TypeScript has no type
+// for this shape; the browser accepts custom properties on any element's
+// inline `style` regardless, so the value itself is valid at runtime.
 const STYLE_TOKENS = {
   "--root-emphasis": ROOT_EMPHASIS_DEFAULT,
   "--new-accidental": NEW_ACCIDENTAL_DEFAULT,
