@@ -701,7 +701,7 @@ _Demonstrable: the acceptance walk-through in a browser._
 
 ### T013 · theory.circle-of-fifths/REQ-005 · The range property enumerates every key × variant (W2)
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: `tests/theory/invariants/range-safety.test.ts` (rewrite the sampling into enumeration)

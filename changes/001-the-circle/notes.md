@@ -139,3 +139,7 @@ All matched files use Prettier code style!
 
 ## T012 (2026-09-19)
 - W1 fixed: octave loop widened ±1; reviewer proved the regression is genuine (reverted fix → exact RED) and argued sufficiency (accidental offset ≤ ±1 semitone ⇒ octave skew ≤ 1). PASS/PASS.
+
+## T013 (2026-09-19)
+- W2 fixed: range property now enumerates all 90 key×variant pairs (30 keys × 3 variants), pairsChecked asserted. PASS/PASS.
+- fast-check now unused anywhere; dependency left in package.json (out of task scope) — candidate removal at finish.
