@@ -50,3 +50,4 @@ tags: [sdd, decisions]
 2026-09-19 · 001-the-circle · Remember last selection locally; first run C major on flute; nothing else stored · resume where left off, nothing personal
 2026-09-19 · 001-the-circle · Invalid variant file skipped with visible non-interrupting notice · a broken file never takes the tool down
 2026-09-19 · 001-the-circle · Acceptance: G major on flute (F♯ new vs C major, E minor relative) + Alto→Bass octave shift; property tests for adjacency and range safety · user sign-off on laptop
+2026-09-19 · init · Capabilities: 001 creates theory.circle-of-fifths + theory.instruments; 002 creates practice.session (005, 006 modify it); 003 practice.drone; 004 listening.pitch-detection; 006 theory.temperament; 007 theory.explanations · instruments evolve separately from the circle; learner-leads is a mode of the session, not a parallel capability
