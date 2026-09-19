@@ -24,11 +24,13 @@ The policy — which passes, severities, thresholds, exclusions — is
 
 Your job in the main session:
 
-1. Spawn `reviewer` (Agent tool, `subagent_type: reviewer`) with the slice
-   path and the instruction to apply `REVIEW.md`, run
-   `./scripts/check-scenarios.sh specs/<slice>` and
+1. Spawn `reviewer` (Agent tool, `subagent_type: reviewer`) with the change
+   path and the instruction to apply `REVIEW.md`, audit against the target
+   state under `.sdd/target/<change>/` (build it with
+   `./scripts/merge_delta.py preview changes/<change>`), run
+   `./scripts/check-scenarios.sh --change changes/<change>` and
    `./scripts/check-contexts.sh`, and write its report to
-   `.sdd/reports/<slice>/converge.md`.
+   `.sdd/reports/<change>/converge.md`.
 2. Receive the report. Do not edit it, soften it, or "fix a couple of things
    first".
 3. Act on the verdict (below).
@@ -85,7 +87,7 @@ Converged  |  Not converged — N critical, M warning
   `sdd-engineering` › Refine. Report `Not converged`. Hand back to
   `sdd-implement`. Repeat the cycle until clean.
 - **Info only, or clean:** report `Converged`. Run
-  `./scripts/approve.sh specs/<slice>/spec.md implemented`, set the slice's
+  `./scripts/approve.sh changes/<change>/spec.md implemented`, set the change's
   `docs/roadmap.md` status to `converged`, `./scripts/index.sh`, then hand to
   `sdd-finish`.
 

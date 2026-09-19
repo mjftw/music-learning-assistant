@@ -2,14 +2,18 @@
 # Build the self-contained brief for one task, so the implementer never reads
 # the whole plan and the controller never pastes exact values by hand.
 #
-#   ./scripts/task-brief.sh specs/001-slug T011
+#   ./scripts/task-brief.sh changes/001-slug T011
 #   → .sdd/briefs/001-slug/T011.md   (path printed)
+#
+# Requirements are taken from the TARGET state (living specs with this
+# change's delta applied, via merge_delta.py preview), so the implementer sees
+# what the capability must do after the change, not the delta alone.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-SLICE="${1:?usage: task-brief.sh specs/NNN-slug T0NN}"
+SLICE="${1:?usage: task-brief.sh changes/NNN-slug T0NN}"
 SLICE="${SLICE%/}"
-TID="${2:?usage: task-brief.sh specs/NNN-slug T0NN}"
+TID="${2:?usage: task-brief.sh changes/NNN-slug T0NN}"
 NAME=$(basename "$SLICE")
 OUT=".sdd/briefs/${NAME}/${TID}.md"
 mkdir -p "$(dirname "$OUT")"
@@ -28,6 +32,13 @@ h2() { # file "## Heading"
     p { print }' "$1"
 }
 
+TARGET=".sdd/target/$NAME"
+./scripts/merge_delta.py preview "$SLICE" >/dev/null || { echo "error: could not build target state for $SLICE" >&2; exit 1; }
+
+N=$(grep -cE "^### $TID " "$SLICE/tasks.md" || true)
+if [[ "$N" -gt 1 ]]; then
+  echo "error: $TID appears $N times in $SLICE/tasks.md; fix the duplicate before briefing" >&2; exit 1
+fi
 TASK=$(section "$SLICE/tasks.md" "### $TID ")
 if [[ -z "$TASK" ]]; then
   echo "error: no task '$TID' in $SLICE/tasks.md" >&2; exit 1
@@ -43,10 +54,10 @@ STALE=$(date -u -d '+7 days' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v+7d +%
   echo "description: Everything needed to implement $TID, and nothing else."
   echo "resource: /$OUT"
   echo "status: draft"
-  echo "tags: [sdd, brief, \"slice:$NAME\"]"
+  echo "tags: [sdd, brief, \"change:$NAME\"]"
   echo "sources:"
   echo "  - resource: /$SLICE/tasks.md"
-  echo "  - resource: /$SLICE/spec.md"
+  echo "  - resource: /$SLICE/proposal.md"
   echo "  - resource: /$SLICE/plan.md"
   echo "  - resource: /docs/engineering.md"
   echo "generated:"
@@ -65,10 +76,17 @@ STALE=$(date -u -d '+7 days' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v+7d +%
   echo "## Task (verbatim from tasks.md)"; echo
   printf '%s\n' "$TASK"
   echo
-  echo "## Requirements cited (verbatim from spec.md)"
-  for r in $(printf '%s\n' "$TASK" | head -1 | grep -oE 'REQ-[0-9]+' | sort -u); do
-    echo; section "$SLICE/spec.md" "### $r"
+  echo "## Requirements cited (verbatim from the target state of the capability)"
+  # task heading cites qualified ids: <context>.<capability>/REQ-NNN
+  for qr in $(printf '%s\n' "$TASK" | head -1 | grep -oE '[a-z0-9-]+\.[a-z0-9-]+/REQ-[0-9]+' | sort -u); do
+    cc="${qr%%/*}"; r="${qr##*/}"; ctx="${cc%%.*}"; cap="${cc##*.}"
+    tf="$TARGET/$ctx/$cap.md"
+    echo; echo "**$qr** (from \`specs/$ctx/$cap.md\` after this change):"; echo
+    if [[ -f "$tf" ]]; then section "$tf" "### $r"; else echo "_target spec $tf not found_"; fi
   done
+  echo
+  echo "## The delta this change makes (what is new or different)"
+  for d in "$SLICE"/delta/*/*.md; do [[ -f "$d" ]] && { echo; echo "### $(basename "$(dirname "$d")").$(basename "$d" .md)"; sed '1,/^---$/{/^---$/!d}' "$d" | sed '1,/^---$/d'; }; done
   echo
   echo "## From plan.md"
   for h in "## Interfaces" "## Data model" "## Structure" "## Test strategy"; do

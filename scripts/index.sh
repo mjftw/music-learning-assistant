@@ -31,9 +31,16 @@ gen() { # dir title
   echo "wrote $out"
 }
 
-for s in specs/[0-9][0-9][0-9]-*/; do
-  [[ -d "$s" ]] && gen "${s%/}" "Slice $(basename "$s")"
+# living specs: one index per context, one for specs/
+for c in specs/*/; do
+  [[ -d "$c" ]] && gen "${c%/}" "Capabilities: $(basename "$c")"
 done
+gen specs "Current specifications, by bounded context"
+# changes: one index per change, one for archive, one for changes/
+for ch in changes/[0-9][0-9][0-9]-*/ changes/archive/[0-9][0-9][0-9]-*/; do
+  [[ -d "$ch" ]] && gen "${ch%/}" "Change $(basename "$ch")"
+done
+[[ -d changes/archive ]] && gen changes/archive "Shipped changes"
+[[ -d changes ]] && gen changes "Changes in flight"
 [[ -d docs/adr ]] && gen docs/adr "Architecture Decision Records"
 gen docs "Project documents"
-gen specs "Slices"

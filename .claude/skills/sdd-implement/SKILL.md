@@ -18,12 +18,13 @@ read the rest.
 
 ## Before starting
 
-1. Confirm `spec.md`, `plan.md`, `tasks.md` all have `sdd_phase: approved`.
-   Then `./scripts/fm.py set specs/<slice>/tasks.md sdd_phase in-progress`.
+1. Confirm `proposal.md`, `plan.md`, `tasks.md` all have
+   `sdd_phase: approved`.
+   Then `./scripts/fm.py set changes/<change>/tasks.md sdd_phase in-progress`.
 2. Read `docs/decisions.md`. Read `docs/engineering.md` §13 for the branch and
    commit conventions.
-3. If the user wants isolation, create a worktree for the slice
-   (`git worktree add ../<repo>-<slice> <branch>`) and work there.
+3. If the user wants isolation, create a worktree for the change
+   (`git worktree add ../<repo>-<change> <branch>`) and work there.
 4. Find the first task with `**Status:** todo`. If resuming, say the last
    `done` and the next `todo` in one line.
 
@@ -31,11 +32,11 @@ read the rest.
 
 1. **Announce** the task ID in one line.
 2. **Brief.** `BASE=$(git rev-parse HEAD)`; then
-   `./scripts/task-brief.sh specs/<slice> T0NN` → brief path. Read the brief's
+   `./scripts/task-brief.sh changes/<change> T0NN` → brief path. Read the brief's
    task block once (only that) and note anything the brief cannot know: an
    interface decision from an earlier task, an ambiguity you have already
    resolved with the user, the commit message to use, and the report path
-   `.sdd/reports/<slice>/T0NN.md`. **Never paste exact values into the
+   `.sdd/reports/<change>/T0NN.md`. **Never paste exact values into the
    dispatch** — they live in the brief; the dispatch points at it.
 3. **Dispatch** the `implementer` (Agent tool, `subagent_type: implementer`)
    with: one line of scene-setting, the brief path ("read this first — it is
@@ -53,7 +54,7 @@ read the rest.
 5. **Verify independently.** Run the task's Verify line and the `check`
    command yourself. Do not accept the pasted output. Disagreement → treat as
    a failed review with your own finding.
-6. **Package.** `./scripts/review-package.sh specs/<slice> T0NN $BASE` → diff
+6. **Package.** `./scripts/review-package.sh changes/<change> T0NN $BASE` → diff
    path. (`$BASE` from step 2; never `HEAD~1`.)
 7. **Review.** Dispatch `task-reviewer` (Agent tool,
    `subagent_type: task-reviewer`) with the brief path, the report path, the
@@ -74,7 +75,7 @@ read the rest.
 10. **Commit** if the implementer did not. Message:
     `<type>(<scope>): <outcome> (<REQ-ids>)`.
 11. Next task. `[P]` tasks may run as parallel implementers in separate
-    worktrees if the user has approved that for this slice; review each
+    worktrees if the user has approved that for this change; review each
     separately; merge in task order.
 
 `Trivial`-class tasks: dispatch the implementer with the model overridden to
@@ -112,6 +113,6 @@ requirement turns out to be wrong, or a risk from the plan has materialised.
 
 ## When every task is done
 
-`./scripts/fm.py set specs/<slice>/tasks.md sdd_phase complete`. Do not declare
-victory. Hand to `sdd-converge` — the slice-level audit is by a reviewer that
+`./scripts/fm.py set changes/<change>/tasks.md sdd_phase complete`. Do not declare
+victory. Hand to `sdd-converge` — the change-level audit is by a reviewer that
 saw none of this.

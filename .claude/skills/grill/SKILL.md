@@ -50,8 +50,11 @@ skipping it.
 **Purpose** — What breaks if we do not build this? Who complains today? What do
 they do instead right now? How will we know it worked?
 
-**Context** — Which bounded context in `docs/domain.md` owns this? Read the
-map first; recommend one. If the honest answer is "two", say so: it is
+**Context and capability** — Which bounded context in `docs/domain.md` owns
+this, and which capability under `specs/<context>/`? Read the living spec
+first: half the questions below may already be answered by what is true
+today, and a change to existing behaviour must be framed as what it
+*modifies* or *removes*, not as a fresh feature. Recommend a context. If the honest answer is "two", say so: it is
 either two slices or an integration slice whose only job is the event or
 interface between them — ask which. Which nouns from the context's Owns
 column does this touch? Which events does it emit or consume? Which
@@ -97,7 +100,7 @@ Every answer the user gives is the most expensive thing in this repository to
 obtain. It is recorded as you go, not reconstructed at the end.
 
 Before the first question, for a slice, create it if it does not exist
-(`./scripts/new-feature.sh <slug>`) and open `specs/NNN-slug/intent.md`. For
+(`./scripts/new-change.sh <slug>`) and open `changes/NNN-slug/intent.md`. For
 the product, copy `templates/intent-template.md` to `docs/intent-product.md`
 and set its `resource` and `title` (see "Product-level grilling" below). As
 each question resolves, append to `## Interview record` in the template's
@@ -105,7 +108,7 @@ each question resolves, append to `## Interview record` in the template's
 outcome`, `## Affected users and systems`, `## Constraints` in the user's
 words as they emerge. Set `title`, `description`, and `generated.by` /
 `generated.at` with `./scripts/fm.py set`. Set `sdd_context` on `intent.md`
-once the context is decided — `new-feature.sh` cannot know it.
+once the context is decided — `new-change.sh` cannot know it.
 
 ## Product-level grilling
 
@@ -161,11 +164,11 @@ When the tree is resolved:
 1. Fill `## Resolved`, `## Assumptions carried`, `## Still open`,
    `## Riskiest unknown`.
 2. Show those four sections to the user. When they confirm the record is
-   right: `./scripts/approve.sh specs/NNN-slug/intent.md resolved`, then
+   right: `./scripts/approve.sh changes/NNN-slug/intent.md resolved`, then
    `./scripts/index.sh`.
 3. Append every `decided` item to `docs/decisions.md` as
    `<date> · NNN-slug · <decision> · <why>`.
-4. Add the slice to `docs/roadmap.md` if it is not there; set its row's status
+4. Add the change to `docs/roadmap.md` if it is not there; set its row's status
    to `grilling` (`sdd-specify` moves it on).
 5. Commit: `docs(intent): NNN-slug`.
 6. Ask whether to proceed to `sdd-specify`.

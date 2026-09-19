@@ -73,7 +73,9 @@ THE SYSTEM SHALL validate them and return a signed session token
 ```
 
 IDs never change once the spec is approved. A withdrawn requirement is struck
-through in place, never deleted or renumbered.
+through in place, never deleted or renumbered. In this repository IDs are
+qualified when cited from outside the spec: `<context>.<capability>/REQ-004`,
+scenario `<context>.<capability>/REQ-004/S2`.
 
 ## Fixing bad requirements
 

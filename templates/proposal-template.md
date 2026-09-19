@@ -1,12 +1,12 @@
 ---
-type: Specification
+type: Change Proposal
 title: <Feature name>
 description: <one sentence — what is true once this slice is done>
-resource: /specs/NNN-slug/spec.md
+resource: /changes/NNN-slug/proposal.md
 status: draft
-tags: [sdd, specification, "slice:NNN-slug"]
+tags: [sdd, proposal, "change:NNN-slug"]
 sources:
-  - resource: /specs/NNN-slug/intent.md
+  - resource: /changes/NNN-slug/intent.md
   - resource: /docs/product.md
   - resource: /memory/constitution.md
 generated:
@@ -15,14 +15,15 @@ generated:
 verified: []
 sdd_id: NNN-slug
 sdd_context: <context>
-sdd_phase: draft          # draft | in-review | approved | implemented | superseded
+sdd_phase: draft          # draft | in-review | approved | merged
 sdd_constitution: 0.1.0
 ---
 
-# Spec: <Feature name>
+# Proposal: <Change name>
 
-> **WHAT and WHY only.** No library names, no schema, no file paths, no API
-> shapes. If it answers "how", it belongs in `plan.md`.
+> **WHAT and WHY only.** No library names, no schema, no file paths. The
+> requirements themselves are in `delta/`; this document says why the change
+> exists, what it touches, and what is out of scope.
 
 ## Problem
 
@@ -69,44 +70,26 @@ whether it happened. One paragraph.>
 - **Invariants this slice must preserve:** <from the map; each becomes a REQ below>
 - **New invariants this slice introduces:** <each becomes a REQ and a row in the map>
 
-## Requirements
+## Changes
 
-> EARS notation. `SHALL` only. Each has an ID that never changes once approved;
-> a withdrawn requirement is struck through, not deleted or renumbered.
-> Patterns: ubiquitous · event-driven (`WHEN`) · state-driven (`WHILE`) ·
-> unwanted (`IF … THEN`) · optional (`WHERE`). See the `ears` skill.
+> Requirements live in the delta files, not here. One row per capability this
+> change touches. `sdd-specify` writes the deltas from the intent; this table
+> is the map.
 
-### REQ-001: <short name>
+| Capability | Delta file | Adds | Modifies | Removes | Why |
+|---|---|---|---|---|---|
+| `<context>.<capability>` | `delta/<context>/<capability>.md` | | | | |
 
-THE SYSTEM SHALL <observable behaviour>
+## Affects
 
-**Scenarios** — Given / When / Then, real values, observable from outside the
-context. One per acceptance path, including the failure paths.
+> Living documents this change modifies, other than the capability specs.
+> Each is a gated re-approval at `sdd-finish`, never a silent edit.
 
-- **REQ-001/S1 — <scenario name>**
-  Given <starting state, concrete>
-  When <the trigger, concrete>
-  Then <the observable outcome, with the actual values>
-- **REQ-001/S2 — <failure scenario name>**
-  Given <state>
-  When <trigger that should be rejected>
-  Then <the rejection, exactly as the user sees it>
-
-**Traces to:** <task IDs, filled in by /sdd-tasks>
-
-### REQ-002: <short name>
-
-WHEN <trigger>
-THE SYSTEM SHALL <response>
-
-**Scenarios**
-
-- **REQ-002/S1 — <name>**
-  Given
-  When
-  Then
-
-**Traces to:**
+| Document | Change | Approved at finish? |
+|---|---|---|
+| `docs/domain.md` | <new context / event / invariant, or "none"> | |
+| `docs/glossary.md` | <new or changed terms, or "none"> | |
+| `docs/product.md` | <scope or constraint change, or "none"> | |
 
 ## Non-functional requirements
 

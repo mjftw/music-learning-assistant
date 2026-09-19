@@ -34,8 +34,11 @@ If 4 conflicts with 1–3, stop and say so. Do not pick silently.
   them, the invariants. A slice belongs to one. Code never crosses a context
   except through `published/`.
 - `docs/decisions.md` — every decision the user has made. Never re-ask one.
-- `specs/NNN-slug/` — per slice: `intent.md`, `spec.md`, `plan.md`, `tasks.md`,
-  `notes.md`.
+- `specs/<context>/<capability>.md` — **what the system does now.** One living
+  spec per capability. Read it before touching that capability. Never edit it;
+  it is merged from deltas at `sdd-finish`.
+- `changes/NNN-slug/` — a change in flight: `intent.md`, `proposal.md`,
+  `delta/`, `plan.md`, `tasks.md`, `notes.md`. `changes/archive/` — shipped.
 - `REVIEW.md` — the review policy. `docs/adr/` — decision records.
 - `index.md` in any directory — read it first; it lists what is there by type
   and phase. `log.md` — what was approved when.
@@ -98,7 +101,10 @@ Run `check` before calling any task done, and paste the output.
   events. `scripts/check-contexts.sh` fails otherwise.
 - Write a test that reaches inside the context. Tests go through the published
   interface (`bdd` skill).
-- Rewrite an approved spec in place; propose a delta.
+- Edit anything under `specs/`. Write a delta under `changes/<id>/delta/`;
+  `merge_delta.py` is the only writer.
+- Rewrite an approved proposal or delta in place after approval; open a new
+  change.
 - Invent a requirement, a command, or a convention. Ask.
 - Add a feature, abstraction, or dependency the spec and plan do not name.
 - Claim a test passes without having run it.

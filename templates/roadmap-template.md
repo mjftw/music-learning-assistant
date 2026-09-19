@@ -16,20 +16,22 @@ verified: []
 sdd_phase: draft          # draft | approved
 ---
 
-# Roadmap — vertical slices
+# Roadmap — changes
 
-> Each slice is thin, end-to-end, and demonstrably useful on its own. Slices
+> Each change is a thin vertical slice: end-to-end and demonstrably useful on
+> its own. Changes
 > are not layers ("database", "API", "UI"); they are outcomes ("a reading can
 > be recorded and seen"). Order is the build order. Status is the single place
 > to look for where the project is.
 >
 > Statuses: `proposed` → `grilling` → `specified` → `planned` → `building` →
-> `converged` → `shipped` · `deferred` · `dropped`
+> `converged` → `shipped` · `deferred` · `dropped`. A shipped change moves to
+> the table at the bottom so this one stays short.
 
-| # | Slice | Context | Outcome (one line) | Depends on | Status | Spec |
-|---|---|---|---|---|---|---|
-| 1 | | `<ctx>` | | — | proposed | |
-| 2 | | `<ctx>` | | 1 | proposed | |
+| # | Change | Context | Capability (creates / modifies) | Outcome (one line) | Depends on | Status | Dir |
+|---|---|---|---|---|---|---|---|
+| 1 | | `<ctx>` | `<ctx>.<cap>` (creates) | | — | proposed | |
+| 2 | | `<ctx>` | `<ctx>.<cap>` (modifies) | | 1 | proposed | |
 
 ## Why this order
 
@@ -42,3 +44,8 @@ sdd_phase: draft          # draft | approved
 ## Deferred
 
 - <slice> — <why not now>
+
+## Shipped
+
+| # | Change | Capability | Version after | Shipped |
+|---|---|---|---|---|

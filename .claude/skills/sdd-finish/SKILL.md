@@ -1,42 +1,75 @@
 ---
 type: Skill
 name: sdd-finish
-description: Close out a converged slice — choose merge, pull request, keep the branch, or discard; attach the convergence report; update roadmap status to shipped; clean up worktrees. Use after sdd-converge reports Converged, or when the user says "finish", "ship it", "open the PR", "merge this", "we're done with this slice". Adapted from obra/superpowers finishing-a-development-branch (MIT).
+description: Close out a converged change — merge its deltas into the living specs, re-approve any affected living docs, archive the change, choose merge / pull request / keep, update the roadmap. Use after sdd-converge reports Converged, or when the user says "finish", "ship it", "open the PR", "merge this", "we're done with this change". Adapted from obra/superpowers finishing-a-development-branch (MIT).
 ---
 
 # Finish
 
-Runs only after `sdd-converge` has reported **Converged** for the slice. If it
+Runs only after `sdd-converge` has reported **Converged** for the change. If it
 has not, stop and say so.
 
-## Confirm the state
+## 1. Confirm the state
 
-1. `git status` clean; every task `**Status:** done`; `tasks.md`
-   `sdd_phase: complete`; `spec.md` `sdd_phase: implemented`; the convergence
-   report at `.sdd/reports/<slice>/converge.md`.
-2. `check` command green, run now, output shown.
-3. `./scripts/check-specs.sh` clean for this slice.
+- `git status` clean; every task `**Status:** done`; `tasks.md`
+  `sdd_phase: complete`; the convergence report at
+  `.sdd/reports/<change>/converge.md`.
+- `check` command green, run now, output shown.
+- `./scripts/check-scenarios.sh --change changes/<id>` clean: every ADDED and
+  MODIFIED scenario has a test; nothing cites a REMOVED one.
+- `./scripts/check-specs.sh` clean for this change.
 
-## Ask — one question, four options, recommended first
+## 2. Merge the deltas into the living specs
 
-Per `docs/engineering.md` §13, recommend the one it names. Options:
+This is the moment the current truth changes. It is the user's decision, made
+when they approved the proposal; you are executing it.
 
-- **Open a pull request (Recommended when a remote exists)** — push the
-  branch; PR title `<slice>: <spec title>`; body = the spec's Outcome, the
-  requirement list with ✅, the convergence report, the notes fold-back
-  (ADRs proposed, amendments made). `git push` is denied to agents in
-  `.claude/settings.json`; ask the user to push, or give the exact commands.
+1. `mkdir -p .sdd && touch .sdd/unlock-specs`
+2. `./scripts/merge_delta.py apply changes/<id>` — for each capability this
+   creates or updates `specs/<context>/<capability>.md`, bumps its version,
+   appends the change to its sources and History.
+3. For each capability touched:
+   `./scripts/approve.sh specs/<context>/<capability>.md current` — the
+   living spec now carries the user's verification for this change.
+4. `rm -f .sdd/unlock-specs`
+5. `./scripts/check-scenarios.sh` (no arguments) — the standing invariant over
+   the living specs must be clean. If it is not, stop: something the reviewer
+   missed is now in the truth. Report it before going on.
+
+## 3. Apply the Affects
+
+For each row in `proposal.md › Affects` that is not "none": propose the exact
+edit to `docs/domain.md` / `docs/glossary.md` / `docs/product.md`, show the
+diff, `AskUserQuestion` *Apply* / *Skip*. On apply: make the edit,
+`./scripts/approve.sh <doc> approved`, bump `sdd_version` on `domain.md` if
+it has one. Never silently.
+
+## 4. Archive the change
+
+- `./scripts/fm.py set changes/<id>/proposal.md sdd_phase merged`
+- `git mv changes/<id> changes/archive/<id>`
+- `docs/roadmap.md`: move the change's row from the active table to the
+  `## Shipped` table, status `shipped`.
+- `./scripts/index.sh`
+- Commit: `feat(<id>): merge into specs — <capabilities> (<summary>)`
+
+## 5. Ask — one question, four options, recommended first
+
+Per `docs/engineering.md` §13, recommend the one it names:
+
+- **Open a pull request (Recommended when a remote exists)** — PR title
+  `<id>: <proposal title>`; body = the proposal's Outcome, each capability's
+  delta summary (+adds ~modifies -removes), the convergence report, ADRs
+  proposed. `git push` is denied to agents; give the user the exact commands.
 - **Merge locally** — `git checkout main && git merge --squash <branch>` (or
-  `--no-ff` per §13), commit with the slice summary, delete the branch.
-- **Keep the branch** — nothing merged; say why (waiting on another slice, on
-  a decision). Record it in the slice's `docs/roadmap.md` row.
+  `--no-ff` per §13), delete the branch.
+- **Keep the branch** — say why; note it in the roadmap row.
 - **Discard** — only if the user says so explicitly, twice. Never recommend.
 
-## After
+## 6. After
 
-- `docs/roadmap.md`: slice status `shipped` (or `converged` if kept).
-- `./scripts/index.sh`, and commit the roadmap change.
-- Worktree, if used: `git worktree remove ../<repo>-<slice>`.
-- `.sdd/briefs/<slice>`, `.sdd/reviews/<slice>`: delete.
-- Say in three lines: what shipped, what the next slice on the roadmap is,
-  and any open item carried forward. Offer `grill` for the next slice.
+- Worktree, if used: `git worktree remove ../<repo>-<id>`.
+- `.sdd/briefs/<id>`, `.sdd/reviews/<id>`, `.sdd/target/<id>`: delete.
+- Say in four lines: which capabilities changed and to what version, what
+  shipped, the next change on the roadmap, any open item carried forward.
+  Offer `grill` for the next change.

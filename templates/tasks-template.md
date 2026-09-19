@@ -2,12 +2,12 @@
 type: Task List
 title: <Feature name> — tasks
 description: <one sentence — N tasks across M phases>
-resource: /specs/NNN-slug/tasks.md
+resource: /changes/NNN-slug/tasks.md
 status: draft
-tags: [sdd, tasks, "slice:NNN-slug"]
+tags: [sdd, tasks, "change:NNN-slug"]
 sources:
-  - resource: /specs/NNN-slug/plan.md
-  - resource: /specs/NNN-slug/spec.md
+  - resource: /changes/NNN-slug/plan.md
+  - resource: /changes/NNN-slug/proposal.md
 generated:
   by: claude-code/unknown
   at: YYYY-MM-DDTHH:MM:SSZ
@@ -34,6 +34,9 @@ sdd_phase: draft          # draft | approved | in-progress | complete
 >
 > Every RED step names the scenario ID it proves. A task with no scenario is
 > Foundations or Hardening.
+>
+> Requirement and scenario IDs are qualified: `<context>.<capability>/REQ-NNN`.
+> The brief pulls each cited requirement from the target state.
 
 ## Phase 1 — Foundations
 
@@ -53,7 +56,7 @@ _Nothing user-visible. Scaffolding, types, schema, test harness._
 - Produces: `def name(arg: Type) -> Return` — <one line on semantics>
 
 **Steps**
-- [ ] 1. RED — scenario REQ-00X/S1: write the failing test, named after the scenario, through the published interface (the actual test code):
+- [ ] 1. RED — scenario <context>.<capability>/REQ-00X/S1: write the failing test, named after the scenario, through the published interface (the actual test code):
   ```
   <test code>
   ```
@@ -68,7 +71,7 @@ _Nothing user-visible. Scaffolding, types, schema, test harness._
 
 _Ends with something demonstrable against a requirement._
 
-### T010 · REQ-001 · <one outcome>
+### T010 · <context>.<capability>/REQ-001 · <one outcome>
 
 **Status:** todo
 

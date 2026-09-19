@@ -2,11 +2,11 @@
 type: Implementation Plan
 title: <Feature name> — plan
 description: <one sentence — the approach>
-resource: /specs/NNN-slug/plan.md
+resource: /changes/NNN-slug/plan.md
 status: draft
-tags: [sdd, plan, "slice:NNN-slug"]
+tags: [sdd, plan, "change:NNN-slug"]
 sources:
-  - resource: /specs/NNN-slug/spec.md
+  - resource: /changes/NNN-slug/proposal.md
   - resource: /docs/engineering.md
   - resource: /memory/constitution.md
 generated:
@@ -120,7 +120,7 @@ tests/<context>/
 
 | Requirement | Where it is satisfied | How it is verified |
 |---|---|---|
-| REQ-001 | | |
+| <context>.<capability>/REQ-001 | | |
 
 ## Test strategy
 
