@@ -53,3 +53,4 @@ tags: [sdd, decisions]
 2026-09-19 · init · Capabilities: 001 creates theory.circle-of-fifths + theory.instruments; 002 creates practice.session (005, 006 modify it); 003 practice.drone; 004 listening.pitch-detection; 006 theory.temperament; 007 theory.explanations · instruments evolve separately from the circle; learner-leads is a mode of the session, not a parallel capability
 2026-09-19 · 001-the-circle · Circle drawn with C at the top, fifths clockwise; flute's variant named Concert · paper-circle convention; user approved at proposal gate
 2026-09-19 · 001-the-circle · Treble clef for all v1 variants, Bass C ocarina uses ledger lines · all three ranges near treble; a second clef is complexity the slice does not need
+2026-09-19 · engineering · preferences v1.0.0 ratified · all defaults; TypeScript then Rust; schema-loaded typed config; standard toolchains (pnpm/Prettier/ESLint/tsc-strict/Vitest, cargo suite); names say what they are
