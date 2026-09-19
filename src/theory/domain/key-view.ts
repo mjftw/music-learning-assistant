@@ -29,8 +29,8 @@ export function keyView(key: Key, variant: Variant): KeyView {
 
   const notes: KeyViewNote[] = [];
   for (
-    let octave = variant.range.lowest.octave;
-    octave <= variant.range.highest.octave;
+    let octave = variant.range.lowest.octave - 1;
+    octave <= variant.range.highest.octave + 1;
     octave += 1
   ) {
     for (const pitchClass of scale) {

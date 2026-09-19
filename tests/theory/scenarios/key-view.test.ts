@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { builtInCatalogue, keyView } from "../../../src/theory/published";
+import type { Variant, VariantId } from "../../../src/theory/published";
 const variants = () =>
   builtInCatalogue().instruments.flatMap((instrument) => instrument.variants);
 const byId = (id: string) =>
@@ -99,4 +100,42 @@ test("theory.circle-of-fifths/REQ-002/S2 — Gb major spells flat, F# major spel
   expect(sharps.notes.every((entry) => entry.note.accidental !== "flat")).toBe(
     true,
   );
+});
+test("theory.circle-of-fifths/REQ-003 — a range boundary spelled across an octave edge still yields every in-range note (W1 regression)", () => {
+  const cFlatBottom: Variant = {
+    instrumentId: "test",
+    instrumentName: "Test",
+    variantId: "test-cflat" as VariantId,
+    variantName: "C flat bottom",
+    range: {
+      lowest: { letter: "C", accidental: "flat", octave: 4 },
+      highest: { letter: "C", accidental: "natural", octave: 5 },
+    },
+  };
+  const gMajorNotes = keyView(
+    { tonic: { letter: "G", accidental: "natural" }, mode: "major" },
+    cFlatBottom,
+  ).notes.map(
+    (entry) =>
+      `${entry.note.letter}${entry.note.accidental}${entry.note.octave}`,
+  );
+  expect(gMajorNotes[0]).toBe("Bnatural3");
+  const bSharpTop: Variant = {
+    instrumentId: "test",
+    instrumentName: "Test",
+    variantId: "test-bsharp" as VariantId,
+    variantName: "B sharp top",
+    range: {
+      lowest: { letter: "C", accidental: "natural", octave: 4 },
+      highest: { letter: "B", accidental: "sharp", octave: 6 },
+    },
+  };
+  const cFlatMajorNotes = keyView(
+    { tonic: { letter: "C", accidental: "flat" }, mode: "major" },
+    bSharpTop,
+  ).notes.map(
+    (entry) =>
+      `${entry.note.letter}${entry.note.accidental}${entry.note.octave}`,
+  );
+  expect(cFlatMajorNotes[cFlatMajorNotes.length - 1]).toBe("Cflat7");
 });

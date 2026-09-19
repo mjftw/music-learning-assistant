@@ -136,3 +136,6 @@ All matched files use Prettier code style!
 - PASS/PASS. 21/21 scenarios covered, 28 tests green, boundaries respected, dist/ builds.
 - All four accumulated review minors fixed (shared canvas stub, unreachable fallback removed, regex single-sourced, cast comment).
 - Remaining open item: user's acceptance walk-through + phone legibility observation (see Acceptance section above; verdict pending).
+
+## T012 (2026-09-19)
+- W1 fixed: octave loop widened ±1; reviewer proved the regression is genuine (reverted fix → exact RED) and argued sufficiency (accidental offset ≤ ±1 semitone ⇒ octave skew ≤ 1). PASS/PASS.

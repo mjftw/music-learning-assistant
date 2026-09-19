@@ -669,7 +669,7 @@ _Demonstrable: the acceptance walk-through in a browser._
 
 ### T012 · theory.circle-of-fifths/REQ-003 · Octave-edge range boundaries never drop an in-range note (W1)
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/theory/domain/key-view.ts`
