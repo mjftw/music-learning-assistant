@@ -2,16 +2,16 @@
 type: Implementation Plan
 title: <Feature name> — plan
 description: <one sentence — the approach>
-resource: /specs/001-the-circle/plan.md
+resource: /changes/001-the-circle/plan.md
 status: draft
-tags: [sdd, plan, "slice:001-the-circle"]
+tags: [sdd, plan, "change:001-the-circle"]
 sources:
-  - resource: /specs/001-the-circle/spec.md
+  - resource: /changes/001-the-circle/proposal.md
   - resource: /docs/engineering.md
   - resource: /memory/constitution.md
 generated:
   by: claude-code/unknown
-  at: 2026-09-19T15:51:09Z
+  at: 2026-09-19T16:20:53Z
 verified: []
 sdd_id: 001-the-circle
 sdd_context: <context>
@@ -120,7 +120,7 @@ tests/<context>/
 
 | Requirement | Where it is satisfied | How it is verified |
 |---|---|---|
-| REQ-001 | | |
+| <context>.<capability>/REQ-001 | | |
 
 ## Test strategy
 

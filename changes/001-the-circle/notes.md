@@ -2,9 +2,9 @@
 type: Implementation Notes
 title: 001-the-circle — notes
 description: Decisions taken during implementation that the plan did not cover.
-resource: /specs/001-the-circle/notes.md
+resource: /changes/001-the-circle/notes.md
 status: draft
-tags: [sdd, notes, "slice:001-the-circle"]
+tags: [sdd, notes, "change:001-the-circle"]
 sdd_id: 001-the-circle
 ---
 

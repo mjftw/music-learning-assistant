@@ -2,9 +2,9 @@
 type: Intent
 title: The circle — intent
 description: An interactive circle of fifths that replaces the paper one on the music stand.
-resource: /specs/001-the-circle/intent.md
+resource: /changes/001-the-circle/intent.md
 status: stable
-tags: [sdd, intent, "slice:001-the-circle"]
+tags: [sdd, intent, "change:001-the-circle"]
 sources:
   - resource: conversation:2026-09-19
   - resource: /docs/product.md
