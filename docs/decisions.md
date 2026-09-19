@@ -30,3 +30,7 @@ tags: [sdd, decisions]
 2026-09-19 · init · Abandonment condition: too complicated or too distracting during practice · the instrument is the focus, the app is an aid
 2026-09-19 · init · Live pitch feedback must be immediate or it is not worth having · late feedback throws off practice entirely
 2026-09-19 · init · Per-instrument fingerings deferred to a later feature · useful in time, not needed now
+2026-09-19 · init · Three bounded contexts: theory (timeless music facts), practice (session in motion), listening (pitch detection) · listening isolated because it is the riskiest part; theory never changes mid-session
+2026-09-19 · init · Listening reports raw PitchDetected only; practice judges sharp/flat/nailed against the target · the pitch engine can be swapped or tuned without touching practice rules
+2026-09-19 · init · Note and detected pitch are deliberately different words · a note is a theory position; what the learner produces is a frequency near or far from one
+2026-09-19 · init · Shared vocabulary limited to Note, Instrument, Cents · each shared word is coupling; the list stays short
