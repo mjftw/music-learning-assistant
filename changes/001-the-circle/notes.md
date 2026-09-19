@@ -36,3 +36,7 @@ One line each, newest last.
 ## T005 (2026-09-19)
 - PASS/PASS round 1. parseNoteString extracted to notes.ts (pre-authorized), genuine single definition.
 - Minor open: NOTE_STRING_PATTERN regex literal duplicated between notes.ts and catalogue.ts Zod validator — fold into T011 hardening.
+
+## T006 (2026-09-19)
+- PASS/PASS round 1. Reviewer re-derived the acceptance arithmetic by hand (G major/flute 22 notes, octave shift, E minor from C4) — all match.
+- fast-check resolved at v3 (plan said 4.x); same API for our calls. Note for converge alongside the other version drifts.

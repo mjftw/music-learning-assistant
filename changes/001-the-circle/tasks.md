@@ -313,7 +313,7 @@ _Demonstrable: `keyView(G major, flute)` returns the acceptance values._
 
 ### T006 · theory.circle-of-fifths/REQ-003, REQ-005; theory.circle-of-fifths/REQ-001 (S2), REQ-002 (S2) · The key view
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/theory/domain/key-view.ts`
