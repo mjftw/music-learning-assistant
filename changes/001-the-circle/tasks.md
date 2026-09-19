@@ -61,7 +61,7 @@ _Nothing user-visible. Scaffolding, types, test harness._
 
 ### T002 · — · Theory primitives: notes, keys, scale spelling
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/theory/domain/notes.ts`, `src/theory/domain/keys.ts`

@@ -19,3 +19,7 @@ One line each, newest last.
 - Stray scaffold files (root index.html, public/*, stale package.json pins) had been swept into docs commit c9acb96; removed by T001 as layout violations.
 - .prettierignore excludes the docs tree (52 pre-existing files would fail prettier --check otherwise) — necessary, scoped.
 - Reviewer: SPEC PASS / QUALITY PASS, 3 minor findings, none open.
+
+## T002 (2026-09-19)
+- pitchPosition uses the MIDI convention (C4=60): the task prose said "C0 = 0" but the test's 66/96 values are authoritative; code comments state the actual convention.
+- Review round 1: QUALITY FAIL on duplicated lookup tables; fixed by exporting from notes.ts. Round 2: SPEC PASS / QUALITY PASS.
