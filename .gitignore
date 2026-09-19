@@ -24,3 +24,5 @@ Thumbs.db
 
 # Add language-specific ignores during the first /sdd-plan
 __pycache__/
+node_modules/
+dist/

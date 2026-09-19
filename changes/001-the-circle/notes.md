@@ -13,3 +13,9 @@ sdd_id: 001-the-circle
 Decisions taken during implementation that the plan did not cover, and why.
 One line each, newest last.
 
+
+## T001 (2026-09-19)
+- Toolchain resolved newer than the plan's approximations: Vite 8.3.0, Vitest 5.0.1 (plan said 7.x / 3.x). Green; note for converge — plan versions are stale, reasoning unchanged.
+- Stray scaffold files (root index.html, public/*, stale package.json pins) had been swept into docs commit c9acb96; removed by T001 as layout violations.
+- .prettierignore excludes the docs tree (52 pre-existing files would fail prettier --check otherwise) — necessary, scoped.
+- Reviewer: SPEC PASS / QUALITY PASS, 3 minor findings, none open.

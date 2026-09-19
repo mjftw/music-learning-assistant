@@ -1,0 +1,13 @@
+docs/
+changes/
+specs/
+templates/
+memory/
+README.md
+AGENTS.md
+.sdd/
+.claude/
+index.md
+log.md
+REVIEW.md
+pnpm-lock.yaml

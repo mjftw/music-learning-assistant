@@ -39,7 +39,7 @@ _Nothing user-visible. Scaffolding, types, test harness._
 
 ### T001 · — · Vite + React + TS-strict scaffold with one green `pnpm check`
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `tsconfig.json`, `eslint.config.js`, `.prettierrc.json`, `src/ui/index.html`, `src/ui/main.tsx`, `src/ui/App.tsx`, `src/theory/published/index.ts`, `tests/theory/scenarios/.gitkeep`, `tests/theory/invariants/.gitkeep`, `tests/ui/scenarios/.gitkeep`

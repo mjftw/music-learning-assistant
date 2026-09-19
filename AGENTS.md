@@ -48,10 +48,6 @@ If 4 conflicts with 1–3, stop and say so. Do not pick silently.
 
 ## Commands
 
-<!-- FILL THIS IN during the first /sdd-plan. Exact commands with flags. Prefer
-     one command that runs everything ("make check"). Until filled, say you do
-     not know the command; do not guess one. -->
-
 ```bash
 # install:
 pnpm install
@@ -66,8 +62,19 @@ pnpm vitest run <path/to/file.test.ts>
 Healthy output looks like:
 
 ```
-<!-- paste the last ~5 lines of a passing `check` run here once the scaffold
-     task has produced the first green run; do not guess it -->
+> music-learning-assistant@0.0.0 check /home/merlin/projects/music-learning-assistant
+> prettier --check . && eslint . && tsc --noEmit && vitest run
+
+Checking formatting...
+All matched files use Prettier code style!
+
+ RUN  v5.0.1 /home/merlin/projects/music-learning-assistant
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  20:03:04
+   Duration  531ms (environment 60%, import 20%, tests 10%, transform 9%, worker 1%)
 ```
 
 Run `check` before calling any task done, and paste the output.
