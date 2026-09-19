@@ -14,6 +14,8 @@ generated:
 verified:
   - by: human:merlin-webster
     at: 2026-09-19T18:38:59Z
+  - by: human:merlin-webster
+    at: 2026-09-19T18:49:04Z
 sdd_id: 001-the-circle
 sdd_context: theory
 sdd_phase: approved
@@ -40,7 +42,7 @@ _Nothing user-visible. Scaffolding, types, test harness._
 **Status:** todo
 
 **Files**
-- Create: `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `tsconfig.json`, `eslint.config.js`, `.prettierrc.json`, `index.html`, `src/main.tsx`, `src/ui/App.tsx`, `src/theory/published/index.ts`, `tests/theory/scenarios/.gitkeep`, `tests/theory/invariants/.gitkeep`, `tests/ui/scenarios/.gitkeep`
+- Create: `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `tsconfig.json`, `eslint.config.js`, `.prettierrc.json`, `src/ui/index.html`, `src/ui/main.tsx`, `src/ui/App.tsx`, `src/theory/published/index.ts`, `tests/theory/scenarios/.gitkeep`, `tests/theory/invariants/.gitkeep`, `tests/ui/scenarios/.gitkeep`
 - Modify: `AGENTS.md` (paste healthy `check` output), `.gitignore` (`node_modules/`, `dist/`)
 
 **Interfaces**
@@ -49,7 +51,7 @@ _Nothing user-visible. Scaffolding, types, test harness._
 
 **Steps**
 - [ ] 1. `pnpm create vite . --template react-ts`, then `pnpm add zod vexflow` and `pnpm add -D vitest @vitest/coverage-v8 jsdom @testing-library/react @testing-library/user-event fast-check prettier eslint typescript-eslint @types/node`
-- [ ] 2. `tsconfig.json`: `"strict": true`, `"noUncheckedIndexedAccess": true`, `"exactOptionalPropertyTypes": true`, target ES2022; `vite.config.ts`: add `test: { environment: 'jsdom', include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'] }` (use `defineConfig` from `vitest/config`)
+- [ ] 2. `tsconfig.json`: `"strict": true`, `"noUncheckedIndexedAccess": true`, `"exactOptionalPropertyTypes": true`, target ES2022; `vite.config.ts` (use `defineConfig` from `vitest/config`): `root: 'src/ui'`, `build: { outDir: '../../dist', emptyOutDir: true }`, and `test: { environment: 'jsdom', dir: '.', include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'] }` with the test dir resolving to the repo root (set `test.root` or run vitest from the repo root so `tests/` is found). No code file sits at the repo root or loose in `src/` — the app entry is `src/ui/index.html` + `src/ui/main.tsx`; only tooling manifests stay at the root
 - [ ] 3. `package.json` scripts: `"dev": "vite"`, `"build": "tsc --noEmit && vite build"`, `"check": "prettier --check . && eslint . && tsc --noEmit && vitest run"`, `"test": "vitest run"`; flat `eslint.config.js` with `typescript-eslint` recommended-type-checked
 - [ ] 4. Strip the Vite demo (logos, counter, CSS modules demo) to the placeholder `App` above; create empty `src/theory/published/index.ts` (`export {}`) and one smoke test `tests/ui/scenarios/app.smoke.test.tsx` asserting the heading renders
 - [ ] 5. Run `pnpm check` — expect all four stages green, `1 passed` test
@@ -402,7 +404,7 @@ _Demonstrable: the acceptance walk-through in a browser._
 
 **Files**
 - Create: `src/ui/selection-store.ts`
-- Modify: `src/ui/App.tsx` (replace the T001 placeholder), `src/main.tsx`
+- Modify: `src/ui/App.tsx` (replace the T001 placeholder), `src/ui/main.tsx`
 - Test: `tests/ui/scenarios/selection-persistence.test.tsx` (delete `tests/ui/scenarios/app.smoke.test.tsx`)
 
 **Interfaces**

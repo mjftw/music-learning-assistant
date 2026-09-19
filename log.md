@@ -5,6 +5,8 @@ Chronological history of this bundle. Newest date first.
 ## 2026-09-19
 
 - Task List `changes/001-the-circle/tasks.md` → approved (human:merlin-webster)
+- Implementation Plan `changes/001-the-circle/plan.md` → approved (human:merlin-webster)
+- Task List `changes/001-the-circle/tasks.md` → approved (human:merlin-webster)
 - Spec Delta `changes/001-the-circle/delta/theory/circle-of-fifths.md` → approved (human:merlin-webster)
 - Implementation Plan `changes/001-the-circle/plan.md` → approved (human:merlin-webster)
 - Engineering Preferences `docs/engineering.md` → approved (human:merlin-webster)

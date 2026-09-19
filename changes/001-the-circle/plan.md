@@ -15,6 +15,8 @@ generated:
 verified:
   - by: human:merlin-webster
     at: 2026-09-19T17:55:18Z
+  - by: human:merlin-webster
+    at: 2026-09-19T18:49:04Z
 sdd_id: 001-the-circle
 sdd_context: theory
 sdd_phase: approved
@@ -171,6 +173,8 @@ src/theory/
   instruments/catalogue.ts  ← Zod schema, parse to Variant, notices
   instruments/data/*.json   ← flute-concert, ocarina-alto-c, ocarina-bass-c
 src/ui/
+  index.html                ← app entry (Vite `root: 'src/ui'`; build.outDir dist/ at repo top)
+  main.tsx                  ← mounts App with builtInCatalogue() + localStorage store
   App.tsx                   ← selection state, wiring
   CircleOfFifths.tsx        ← hand-drawn SVG wedges
   KeyViewStave.tsx          ← VexFlow rendering, names toggle
@@ -183,6 +187,12 @@ tests/theory/
 tests/ui/
   scenarios/*.test.tsx      ← toggle, persistence, notice behaviour
 ```
+
+No code file lives at the repo root or loose in `src/`: all code sits inside
+a named directory under `src/` (decision 2026-09-19). Tooling manifests
+(`package.json`, lockfile, `tsconfig.json`, `vite.config.ts`, ESLint/Prettier
+configs) stay at the repo root — they configure the whole repo and
+`pnpm check` runs from there.
 
 ## Requirement → design mapping
 
