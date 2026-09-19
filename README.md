@@ -11,4 +11,8 @@ status in [`docs/roadmap.md`](docs/roadmap.md); every decision made in
 
 ## Getting started
 
-<!-- filled during the first /sdd-plan: install, run, test, in three lines -->
+```bash
+pnpm install         # install dependencies
+pnpm dev             # run the app — open the printed URL (add --host to reach it from your phone)
+pnpm check           # everything: format check, lint, typecheck, tests
+```
