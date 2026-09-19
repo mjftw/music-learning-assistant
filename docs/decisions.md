@@ -34,3 +34,6 @@ tags: [sdd, decisions]
 2026-09-19 · init · Listening reports raw PitchDetected only; practice judges sharp/flat/nailed against the target · the pitch engine can be swapped or tuned without touching practice rules
 2026-09-19 · init · Note and detected pitch are deliberately different words · a note is a theory position; what the learner produces is a frequency near or far from one
 2026-09-19 · init · Shared vocabulary limited to Note, Instrument, Cents · each shared word is coupling; the list stays short
+2026-09-19 · constitution · Article V: live feedback carries a numbered latency budget with a measured test; late feedback is suppressed, not shown · the riskiest unknown made non-negotiable — late feedback throws off practice
+2026-09-19 · constitution · Article VI: the practice view never demands interaction mid-sequence, never interrupts, never gamifies · the abandonment condition made enforceable at review
+2026-09-19 · constitution · Article VII: no third-party subscriptions, accounts or services at runtime; architecture (incl. client-server) stays open · self-sufficient to run, but plan decides the shape
