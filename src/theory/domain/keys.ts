@@ -1,7 +1,7 @@
 import {
   ACCIDENTAL_OFFSET,
   LETTER_SEMITONE,
-  type Accidental,
+  accidentalForTarget,
   type NoteLetter,
   type PitchClass,
 } from "./notes";
@@ -37,20 +37,6 @@ function basePitchClassSemitone(pitchClass: PitchClass): number {
   return (
     LETTER_SEMITONE[pitchClass.letter] +
     ACCIDENTAL_OFFSET[pitchClass.accidental]
-  );
-}
-
-function accidentalForTarget(
-  letter: NoteLetter,
-  targetSemitone: number,
-): Accidental {
-  const letterSemitone = LETTER_SEMITONE[letter];
-  const diff = (((targetSemitone - letterSemitone) % 12) + 12) % 12;
-  if (diff === 0) return "natural";
-  if (diff === 1) return "sharp";
-  if (diff === 11) return "flat";
-  throw new Error(
-    `cannot spell letter ${letter} to reach semitone ${targetSemitone} with a single accidental`,
   );
 }
 

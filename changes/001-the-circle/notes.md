@@ -27,3 +27,8 @@ One line each, newest last.
 ## T003 (2026-09-19)
 - SPEC PASS / QUALITY PASS first round. Reviewer probe confirmed enharmonic relatives spell correctly (G♭→E♭ minor, C♯→A♯ minor) with no special-casing.
 - Minor: straight vs curly apostrophes in test names; cosmetic.
+
+## T004 (2026-09-19)
+- Round 1: QUALITY FAIL — accidentalForTarget duplicated between keys.ts and circle.ts; extracted to notes.ts (internal export). Round 2: PASS/PASS.
+- Recurring bug class for briefs: implementers duplicate a helper rather than touch a file outside the Files list. Future briefs should authorize extractions within the context up front.
+- Reviewer hand-verified the 12 spellings, ring alignment, and that the adjacency property is non-vacuous at the enharmonic positions.

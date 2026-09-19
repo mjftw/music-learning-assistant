@@ -175,7 +175,7 @@ _Demonstrable: `circleOfFifths()` answers every circle question in the spec._
 
 ### T004 · theory.circle-of-fifths/REQ-001, REQ-002, REQ-006 · The circle itself
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/theory/domain/circle.ts`

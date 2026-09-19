@@ -36,3 +36,20 @@ export function pitchPosition(note: Note): number {
     ACCIDENTAL_OFFSET[note.accidental]
   );
 }
+
+// Internal helper shared by keys.ts and circle.ts — not part of the
+// published surface. Finds the single accidental that spells `letter` at
+// `targetSemitone` (0-11), or throws if no natural/sharp/flat reaches it.
+export function accidentalForTarget(
+  letter: NoteLetter,
+  targetSemitone: number,
+): Accidental {
+  const letterSemitone = LETTER_SEMITONE[letter];
+  const diff = (((targetSemitone - letterSemitone) % 12) + 12) % 12;
+  if (diff === 0) return "natural";
+  if (diff === 1) return "sharp";
+  if (diff === 11) return "flat";
+  throw new Error(
+    `cannot spell letter ${letter} to reach semitone ${targetSemitone} with a single accidental`,
+  );
+}
