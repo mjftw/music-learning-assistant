@@ -54,3 +54,6 @@ tags: [sdd, decisions]
 2026-09-19 · 001-the-circle · Circle drawn with C at the top, fifths clockwise; flute's variant named Concert · paper-circle convention; user approved at proposal gate
 2026-09-19 · 001-the-circle · Treble clef for all v1 variants, Bass C ocarina uses ledger lines · all three ranges near treble; a second clef is complexity the slice does not need
 2026-09-19 · engineering · preferences v1.0.0 ratified · all defaults; TypeScript then Rust; schema-loaded typed config; standard toolchains (pnpm/Prettier/ESLint/tsc-strict/Vitest, cargo suite); names say what they are
+2026-09-19 · 001-the-circle · Stack: TypeScript SPA (Vite, React 19, VexFlow, Zod, localStorage-behind-port); static build, no runtime services · driven by two-device constraint, Article VII, engineering §1; native app, Rust/WASM core, Svelte, state libs rejected in plan
+2026-09-19 · 001-the-circle · ADR 0001: language boundary follows the context boundary — Rust owns listening (WASM, from 004); TS owns theory, practice, UI; PitchDetected is the seam · prevents split brain structurally; no context is ever bilingual
+2026-09-19 · 001-the-circle · Rust deferred to 004, not used for 001–003 · user weighed Rust-brain options and chose TS-now; theory logic is trivial compute feeding the view

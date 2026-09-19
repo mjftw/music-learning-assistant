@@ -54,33 +54,47 @@ If 4 conflicts with 1–3, stop and say so. Do not pick silently.
 
 ```bash
 # install:
+pnpm install
 # run (dev):
+pnpm dev
 # check (all — test + lint + typecheck, one command):
+pnpm check
 # test (one file):
+pnpm vitest run <path/to/file.test.ts>
 ```
 
 Healthy output looks like:
 
 ```
-<!-- paste the last ~5 lines of a passing `check` run here -->
+<!-- paste the last ~5 lines of a passing `check` run here once the scaffold
+     task has produced the first green run; do not guess it -->
 ```
 
 Run `check` before calling any task done, and paste the output.
 
 ## Conventions
 
-<!-- FILL THIS IN during the first /sdd-plan. Only things a good developer could
-     not infer from the code. -->
-
-- Runtime / language:
-- Package manager (only this one):
-- Test framework and where tests live:
+- Runtime / language: TypeScript (strict), browser SPA built with Vite.
+  Rust arrives at change 004, scoped to `src/listening/` (ADR 0001).
+- Package manager (only this one): pnpm.
+- Test framework and where tests live: Vitest (+ fast-check, Testing
+  Library); `tests/<context>/scenarios/` one test per spec scenario named by
+  its full ID, `tests/<context>/invariants/` for property tests,
+  `tests/ui/scenarios/` for view-observable scenarios.
 - Commits: Conventional Commits citing the requirement — `feat(auth): rate-limit login (REQ-004)`.
 
 ## Architecture
 
-<!-- FILL THIS IN during the first /sdd-plan, kept current by later plans. Five
-     to ten lines: the shape, the boundaries, where a new thing goes. -->
+A static single-page web app; no server, no runtime services (Article VII).
+Three bounded contexts (docs/domain.md): `src/theory/` (pure functions —
+notes, keys, circle, catalogue), `src/practice/` (sessions; from change 002),
+`src/listening/` (pitch detection; Rust→WASM from change 004, ADR 0001).
+`src/ui/` is the view layer over the contexts, not a context itself. Each
+context exposes `published/` and nothing else crosses its boundary
+(scripts/check-contexts.sh). Data files (instrument variants) and stored
+state are Zod-parsed into typed values at the edge; domain code never
+re-validates. New domain logic goes in its context's `domain/`; new IO goes
+behind a port with the adapter at the edge.
 
 ## Things agents get wrong here
 
