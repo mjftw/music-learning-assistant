@@ -460,7 +460,7 @@ _Demonstrable: the acceptance walk-through in a browser._
 
 ### T008 · theory.circle-of-fifths/REQ-001 · The circle rendered and clickable
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/CircleOfFifths.tsx`

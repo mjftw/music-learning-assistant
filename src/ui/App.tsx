@@ -2,22 +2,19 @@ import { useEffect, useState, type JSX } from "react";
 import {
   circleOfFifths,
   keyId as keyIdOf,
-  type Accidental,
+  keyView,
   type Catalogue,
   type Key,
+  type Signature,
   type Variant,
 } from "../theory/published";
+import { CircleOfFifths } from "./CircleOfFifths";
+import { keyLabel, pitchClassLabel } from "./key-label";
 import type { SelectionStore, StoredSelection } from "./selection-store";
 
 const DEFAULT_VARIANT_ID = "flute-concert";
 const DEFAULT_KEY_ID = "C-major";
 const DEFAULT_NOTE_NAMES_VISIBLE = true;
-
-const ACCIDENTAL_SYMBOL: Record<Accidental, string> = {
-  flat: "♭",
-  natural: "",
-  sharp: "♯",
-};
 
 function findKeyById(keyId: string): Key | undefined {
   for (const position of circleOfFifths()) {
@@ -40,13 +37,21 @@ function findVariantById(
   return undefined;
 }
 
-function keyLabel(key: Key): string {
-  const modeLabel = key.mode === "major" ? "major" : "minor";
-  return `${key.tonic.letter}${ACCIDENTAL_SYMBOL[key.tonic.accidental]} ${modeLabel}`;
-}
-
 function variantLabel(variant: Variant): string {
   return `${variant.instrumentName} — ${variant.variantName}`;
+}
+
+function relativeKeyLabel(key: Key, relative: Key): string {
+  const relativeModeLabel = key.mode === "major" ? "minor" : "major";
+  return `Relative ${relativeModeLabel}: ${keyLabel(relative)}`;
+}
+
+function signatureSummary(signature: Signature): string {
+  if (signature.kind === "none") return "no accidentals";
+  const singularKind = signature.kind === "sharps" ? "sharp" : "flat";
+  const kindLabel = signature.count === 1 ? singularKind : signature.kind;
+  const accidentalsLabel = signature.accidentals.map(pitchClassLabel).join(" ");
+  return `${signature.count} ${kindLabel} (${accidentalsLabel})`;
 }
 
 interface Selection {
@@ -102,6 +107,10 @@ export function App(props: {
     findVariantById(catalogue, selection.variantId) ??
     findVariantById(catalogue, DEFAULT_VARIANT_ID);
   const key = findKeyById(selection.keyId) ?? findKeyById(DEFAULT_KEY_ID);
+  const view =
+    key === undefined || variant === undefined
+      ? undefined
+      : keyView(key, variant);
 
   return (
     <div>
@@ -109,6 +118,23 @@ export function App(props: {
       <p data-testid="current-variant">
         {variant === undefined ? "" : variantLabel(variant)}
       </p>
+      <p data-testid="relative-key">
+        {key === undefined || view === undefined
+          ? ""
+          : relativeKeyLabel(key, view.relative)}
+      </p>
+      <p data-testid="signature-summary">
+        {view === undefined ? "" : signatureSummary(view.signature)}
+      </p>
+      <CircleOfFifths
+        selectedKeyId={selection.keyId}
+        onSelect={(selectedKey) =>
+          setSelection((current) => ({
+            ...current,
+            keyId: keyIdOf(selectedKey),
+          }))
+        }
+      />
       <button
         type="button"
         role="switch"

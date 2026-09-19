@@ -44,3 +44,8 @@ One line each, newest last.
 ## T007 (2026-09-19)
 - PASS/PASS round 1. Two disclosed test deviations (cleanup registration, aria-checked assertion) — intent preserved, jest-dom absent by design.
 - Minor: App.tsx render-time ?? fallback duplicates init-time validation; unreachable. Candidate cleanup in T011.
+
+## T008 (2026-09-19)
+- PASS/PASS round 1. Reviewer probe: 15 major + 15 minor accessible buttons (12 positions + 3 enharmonic doublings per ring).
+- key-label helper extracted to src/ui/key-label.ts (pre-authorized).
+- Minor (pre-existing from T007): initialSelection computes variant/key only for existence checks. Candidate cleanup in T011.
