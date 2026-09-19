@@ -1,7 +1,7 @@
 ---
 okf_version: "0.2"
 ---
-# <PROJECT NAME> — knowledge bundle
+# Music Learning Assistant — knowledge bundle
 
 Every markdown artefact in this repository carries OKF frontmatter: a `type`,
 `sources` for provenance, `generated` for who drafted it, and `verified` for
