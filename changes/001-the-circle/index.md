@@ -3,5 +3,5 @@
 - [The circle — intent](intent.md) — Intent · resolved — An interactive circle of fifths that replaces the paper one on the music stand.
 - [001-the-circle — notes](notes.md) — Implementation Notes — Decisions taken during implementation that the plan did not cover.
 - [<Feature name> — plan](plan.md) — Implementation Plan · draft — <one sentence — the approach>
-- [<Feature name>](proposal.md) — Change Proposal · draft — <one sentence — what is true once this slice is done>
+- [The circle](proposal.md) — Change Proposal · approved — An interactive circle of fifths, instrument-aware, replaces the paper one on the music stand.
 - [<Feature name> — tasks](tasks.md) — Task List · draft — <one sentence — N tasks across M phases>
