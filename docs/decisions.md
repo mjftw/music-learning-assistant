@@ -16,3 +16,17 @@ tags: [sdd, decisions]
 >
 > Format: `YYYY-MM-DD · <where: init | constitution | engineering | NNN-slug> · <decision> · <why, one line>`
 
+2026-09-19 · init · The product is a play-along theory-practice companion for scales, arpeggios and drones · self-taught, theory learned on the instrument not on paper
+2026-09-19 · init · Instrument-agnostic and range-aware: selectable instrument constrains the playable range · plays flute and ocarina (smaller range), guitar possibly later; never ask for an unplayable note
+2026-09-19 · init · Oriented around the circle of fifths as well as the stave · the circle is how the user learns — connections and heuristics over rote
+2026-09-19 · init · Two modes: tool leads (plays, learner follows) and learner leads (tool shows note, listens, advances when nailed) · matches how practice actually flows
+2026-09-19 · init · Traversal options: 1 or 2 octaves, up/down, scales and arpeggios · stated directly
+2026-09-19 · init · Wanted beyond core: just vs equal temperament choice, theory tooltips, drone notes/scales · temperament and drone serve wind pitching and string tuning
+2026-09-19 · init · Not gamified, no sheet-music/song playing, no progress tracking, no curriculum · user hates gamified apps; learning at own pace; sheet music stays outside the tool
+2026-09-19 · init · Built for one user; others incidental · personal tool, no design effort for other people's needs
+2026-09-19 · init · Runs on a laptop at least; phone on a music stand is the preferred practice interface; home use only · performance on laptop; practising happens at home
+2026-09-19 · init · v1 core: pick a scale from the circle, choose traversal, tool plays, learner plays along · smallest useful thing; listening, drone, temperament, tooltips cut first
+2026-09-19 · init · Success: a real practice session with it beats one without, enough to reach for it again unprompted · observable from the user's own behaviour
+2026-09-19 · init · Abandonment condition: too complicated or too distracting during practice · the instrument is the focus, the app is an aid
+2026-09-19 · init · Live pitch feedback must be immediate or it is not worth having · late feedback throws off practice entirely
+2026-09-19 · init · Per-instrument fingerings deferred to a later feature · useful in time, not needed now
