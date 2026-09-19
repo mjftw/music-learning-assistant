@@ -14,6 +14,8 @@ generated:
 verified:
   - by: human:merlin-webster
     at: 2026-09-19T16:28:20Z
+  - by: human:merlin-webster
+    at: 2026-09-19T18:31:11Z
 sdd_id: 001-the-circle
 sdd_context: theory
 sdd_capability: circle-of-fifths
@@ -77,7 +79,7 @@ relative key named
 - **REQ-003/S1 — G major on the flute (acceptance)**
   Given the selected variant is flute Concert (C4–C7)
   When G major is selected
-  Then the stave carries a one-sharp signature (F♯), the notes run from D4
+  Then the stave carries a one-sharp signature (F♯), the notes run from C4
   up to C7 using only G-major notes, every G is emphasised, and E minor is
   named as the relative minor
 - **REQ-003/S2 — the display follows the variant's range**
