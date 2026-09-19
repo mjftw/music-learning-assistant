@@ -146,3 +146,9 @@ All matched files use Prettier code style!
 
 ## T014 (2026-09-19)
 - W3 fixed: styling inputs tested — 3 root-emphasis + 3 new-accidental groups asserted for G major and B♭ major; reviewer independently reproduced the SVG probe and confirmed the counts count notes, not paths. PASS/PASS.
+
+## Converge re-run (2026-09-19)
+- Verdict: Converged — 0 critical, 0 warning (re-run block in .sdd/reports/001-the-circle/converge.md).
+- W1/W2/W3 all verified closed against the code; reviewer's independent C-major probe: 4 root-emphasis, 0 new-accidental groups.
+- Info for finish: fast-check + @vitest/coverage-v8 now unused; plan text still says fast-check in 7 places (tests are stronger — enumeration); stave-styling test asserts counts not identities (token swap would pass; low value); in-place delta amendment vs AGENTS.md "never rewrite approved" tension — user approved by name, propose an AGENTS.md clarification line at finish.
+- Still pending: user acceptance walk-through (blocks shipping, not convergence).
