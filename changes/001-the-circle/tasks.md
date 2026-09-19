@@ -244,7 +244,7 @@ _Demonstrable: `keyView(G major, flute)` returns the acceptance values._
 
 ### T005 [P] · theory.instruments/REQ-001, REQ-002, REQ-003 · The catalogue from data files
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/theory/instruments/catalogue.ts`, `src/theory/instruments/data/flute-concert.json`, `src/theory/instruments/data/ocarina-alto-c.json`, `src/theory/instruments/data/ocarina-bass-c.json`

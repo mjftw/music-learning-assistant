@@ -1,0 +1,7 @@
+{
+  "instrumentId": "ocarina",
+  "instrumentName": "Ocarina",
+  "variantId": "ocarina-bass-c",
+  "variantName": "Bass C",
+  "range": { "lowest": "A3", "highest": "F5" }
+}

@@ -32,3 +32,7 @@ One line each, newest last.
 - Round 1: QUALITY FAIL — accidentalForTarget duplicated between keys.ts and circle.ts; extracted to notes.ts (internal export). Round 2: PASS/PASS.
 - Recurring bug class for briefs: implementers duplicate a helper rather than touch a file outside the Files list. Future briefs should authorize extractions within the context up front.
 - Reviewer hand-verified the 12 spellings, ring alignment, and that the adjacency property is non-vacuous at the enharmonic positions.
+
+## T005 (2026-09-19)
+- PASS/PASS round 1. parseNoteString extracted to notes.ts (pre-authorized), genuine single definition.
+- Minor open: NOTE_STRING_PATTERN regex literal duplicated between notes.ts and catalogue.ts Zod validator — fold into T011 hardening.

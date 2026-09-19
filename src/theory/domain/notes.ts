@@ -37,6 +37,32 @@ export function pitchPosition(note: Note): number {
   );
 }
 
+const NOTE_STRING_PATTERN = /^([A-G])(#|b)?([0-8])$/;
+
+const ACCIDENTAL_SYMBOL: Record<string, Accidental> = {
+  "#": "sharp",
+  b: "flat",
+};
+
+// Parses note strings like "A4", "F#5", "Bb3" (letter, optional accidental,
+// octave) into a Note. Shared by any code that reads notes from text —
+// currently the instrument catalogue's data files.
+export function parseNoteString(input: string): Note | null {
+  const match = NOTE_STRING_PATTERN.exec(input);
+  if (match === null) return null;
+  const [, letter, accidentalSymbol, octaveDigits] = match;
+  if (letter === undefined || octaveDigits === undefined) return null;
+  const accidental: Accidental =
+    accidentalSymbol === undefined
+      ? "natural"
+      : ACCIDENTAL_SYMBOL[accidentalSymbol]!;
+  return {
+    letter: letter as NoteLetter,
+    accidental,
+    octave: Number.parseInt(octaveDigits, 10),
+  };
+}
+
 // Internal helper shared by keys.ts and circle.ts — not part of the
 // published surface. Finds the single accidental that spells `letter` at
 // `targetSemitone` (0-11), or throws if no natural/sharp/flat reaches it.

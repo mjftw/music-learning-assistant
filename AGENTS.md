@@ -109,7 +109,9 @@ behind a port with the adapter at the edge.
      line here so it does not recur. Newest last. Prune when the code makes a
      line impossible. -->
 
--
+- Duplicating a private helper instead of extracting it, because the natural
+  home file isn't in the task's Files list. Extract within the same context
+  and say so in the report; don't copy-paste (failed T002 and T004 reviews).
 
 ## Never
 

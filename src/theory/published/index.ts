@@ -6,3 +6,12 @@ export type { Signature, SignatureKind } from "../domain/signatures";
 export { newAccidentalOf, relativeOf, signatureOf } from "../domain/signatures";
 export type { CirclePosition } from "../domain/circle";
 export { circleOfFifths } from "../domain/circle";
+export type {
+  Catalogue,
+  CatalogueNotice,
+  Instrument,
+  NoteRange,
+  Variant,
+  VariantId,
+} from "../instruments/catalogue";
+export { builtInCatalogue, loadCatalogue } from "../instruments/catalogue";

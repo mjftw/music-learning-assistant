@@ -1,0 +1,7 @@
+{
+  "instrumentId": "ocarina",
+  "instrumentName": "Ocarina",
+  "variantId": "ocarina-alto-c",
+  "variantName": "Alto C",
+  "range": { "lowest": "A4", "highest": "F6" }
+}
