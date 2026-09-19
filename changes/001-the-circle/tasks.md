@@ -18,7 +18,7 @@ verified:
     at: 2026-09-19T18:49:04Z
 sdd_id: 001-the-circle
 sdd_context: theory
-sdd_phase: complete
+sdd_phase: in-progress
 ---
 
 # Tasks: The circle
@@ -631,9 +631,9 @@ _Demonstrable: the acceptance walk-through in a browser._
 |---|---|---|
 | theory.circle-of-fifths/REQ-001 | T004 (S1), T006 (S2 values), T008 (S2 interaction) | ✅ |
 | theory.circle-of-fifths/REQ-002 | T004 (S1), T006 (S2) | ✅ |
-| theory.circle-of-fifths/REQ-003 | T006 (S1, S2), T009 (render) | ✅ |
-| theory.circle-of-fifths/REQ-004 | T003 (S1, S2, S3) | ✅ |
-| theory.circle-of-fifths/REQ-005 | T006 (S1 property) | ✅ |
+| theory.circle-of-fifths/REQ-003 | T006 (S1, S2), T009 (render), T012 (octave-edge), T014 (styling) | ✅ |
+| theory.circle-of-fifths/REQ-004 | T003 (S1, S2, S3), T014 (styling) | ✅ |
+| theory.circle-of-fifths/REQ-005 | T006 (S1 property), T013 (enumeration) | ✅ |
 | theory.circle-of-fifths/REQ-006 | T004 (S1 property) | ✅ |
 | theory.circle-of-fifths/REQ-007 | T009 (S1, S2) | ✅ |
 | theory.circle-of-fifths/REQ-008 | T007 (S1, S2, S3), T011 (S3 sub-case) | ✅ |
@@ -664,3 +664,71 @@ _Demonstrable: the acceptance walk-through in a browser._
   legibility a discovery item; this change records, the next one acts.
 - Circle wedge visual polish (colour by key distance etc.) — not named by any
   requirement; would be scope creep here.
+
+## Phase 6 — Convergence findings (2026-09-19 audit)
+
+### T012 · theory.circle-of-fifths/REQ-003 · Octave-edge range boundaries never drop an in-range note (W1)
+
+**Status:** todo
+
+**Files**
+- Modify: `src/theory/domain/key-view.ts`
+- Test: `tests/theory/scenarios/key-view.test.ts` (extend)
+
+**Interfaces**
+- Consumes: `keyView(key: Key, variant: Variant): KeyView` (unchanged signature); `Variant` from `src/theory/published`
+- Produces: same signature; behaviour fix only
+
+**Steps**
+- [ ] 1. RED — regression for the audit's repro, in `tests/theory/scenarios/key-view.test.ts` (construct the Variant inline; the catalogue is not involved):
+  ```ts
+  test('theory.circle-of-fifths/REQ-003 — a range boundary spelled across an octave edge still yields every in-range note (W1 regression)', () => {
+    const cFlatBottom = { instrumentId: 'test', instrumentName: 'Test', variantId: 'test-cflat' as VariantId, variantName: 'C flat bottom', range: { lowest: { letter: 'C', accidental: 'flat', octave: 4 }, highest: { letter: 'C', accidental: 'natural', octave: 5 } } }
+    const gMajorNotes = keyView({ tonic: { letter: 'G', accidental: 'natural' }, mode: 'major' }, cFlatBottom).notes.map((entry) => `${entry.note.letter}${entry.note.accidental}${entry.note.octave}`)
+    expect(gMajorNotes[0]).toBe('Bnatural3')
+    const bSharpTop = { instrumentId: 'test', instrumentName: 'Test', variantId: 'test-bsharp' as VariantId, variantName: 'B sharp top', range: { lowest: { letter: 'C', accidental: 'natural', octave: 4 }, highest: { letter: 'B', accidental: 'sharp', octave: 6 } } }
+    const cFlatMajorNotes = keyView({ tonic: { letter: 'C', accidental: 'flat' }, mode: 'major' }, bSharpTop).notes.map((entry) => `${entry.note.letter}${entry.note.accidental}${entry.note.octave}`)
+    expect(cFlatMajorNotes[cFlatMajorNotes.length - 1]).toBe('Cflat7')
+  })
+  ```
+  (import `VariantId` type from `../../../src/theory/published`; adjust type imports as needed)
+- [ ] 2. Run `pnpm vitest run tests/theory/scenarios/key-view.test.ts` — expect FAIL: first note is `Cnatural4` (B3 missing) / last note is `Bflat6` (C♭7 missing)
+- [ ] 3. GREEN — in `src/theory/domain/key-view.ts`, widen the candidate octave loop by one on each side (`range.lowest.octave - 1` to `range.highest.octave + 1`); the existing `pitchPosition` filter keeps correctness
+- [ ] 4. Run the same command — expect PASS. Run `pnpm vitest run tests/theory/invariants/range-safety.test.ts` — still green. `pnpm check` — green
+- [ ] 5. REFACTOR — none
+
+**Verify** — `pnpm vitest run tests/theory/scenarios/key-view.test.ts tests/theory/invariants/range-safety.test.ts` → all pass; `pnpm check` → exit 0
+
+### T013 · theory.circle-of-fifths/REQ-005 · The range property enumerates every key × variant (W2)
+
+**Status:** todo
+
+**Files**
+- Test: `tests/theory/invariants/range-safety.test.ts` (rewrite the sampling into enumeration)
+
+**Interfaces**
+- Consumes: `circleOfFifths`, `builtInCatalogue`, `keyView`, `pitchPosition` from `src/theory/published`
+
+**Steps**
+- [ ] 1. RED→GREEN (strengthening an existing green test): replace the `fc.assert`/`fc.constantFrom`/`numRuns` body with full enumeration — for every key drawn from `circleOfFifths()` (all `majors` and all `minors`, 30 keys) and every catalogued variant, assert every `keyView(key, variant).notes` entry lies within `[pitchPosition(range.lowest), pitchPosition(range.highest)]`. Keep the test name `theory.circle-of-fifths/REQ-005/S1 — no displayed note ever leaves the range`. Drop the `fast-check` import if nothing else uses it in the file.
+- [ ] 2. Temporarily assert the enumeration count (`expect(checked).toBe(30 * 3 * something)` is NOT required — instead log-free sanity: `expect(pairsChecked).toBe(90)`), keep that assertion in the final test
+- [ ] 3. Run `pnpm vitest run tests/theory/invariants/range-safety.test.ts` — PASS with `pairsChecked` = 90. `pnpm check` — green
+
+**Verify** — `pnpm vitest run tests/theory/invariants/range-safety.test.ts` → 1 passed, enumerating 90 pairs; `pnpm check` → exit 0
+
+### T014 · theory.circle-of-fifths/REQ-003, REQ-004 · Styling inputs are tested: root emphasis and new-accidental highlight (W3)
+
+**Status:** todo
+
+**Files**
+- Test: `tests/ui/scenarios/stave-styling.test.tsx` (new)
+
+**Interfaces**
+- Consumes: `App` (`src/ui/App`), `localStorageSelectionStore` (`src/ui/selection-store`), `builtInCatalogue` (`src/theory/published`)
+
+**Steps**
+- [ ] 1. RED — in `tests/ui/scenarios/stave-styling.test.tsx` (afterEach(cleanup), ../../../ depth, no jest-dom): render App (localStorage cleared), click `G major`, query the stave wrapper's emitted SVG and assert: exactly 3 notehead elements carry fill `var(--root-emphasis)` (the three Gs), exactly 3 carry `var(--new-accidental)` (the three F♯s), and no other note carries either token; then click `B♭ major` and assert the highlight moves to the E♭s (fill `var(--new-accidental)` count 3 on flute C4–C7: E♭4, E♭5, E♭6) and roots to the B♭s (B♭4, B♭5, B♭6 → 3). Selector: `container.querySelectorAll('[data-testid="stave"] svg [fill="var(--root-emphasis)"]')` and equivalent — group per notehead if VexFlow emits multiple elements per note (count distinct note groups, not raw path elements; the T009 headless probe in .sdd/reports/001-the-circle/T009.md shows the emitted shape).
+- [ ] 2. Run `pnpm vitest run tests/ui/scenarios/stave-styling.test.tsx` — expect FAIL only if the styling is wrong; if it passes immediately, verify the RED is honest by temporarily inverting one expected count (then restore) and noting that in the report
+- [ ] 3. `pnpm check` — green
+
+**Verify** — `pnpm vitest run tests/ui/scenarios/stave-styling.test.tsx` → 1 passed (or 2 if split per key); `pnpm check` → exit 0

@@ -16,6 +16,8 @@ verified:
     at: 2026-09-19T16:28:20Z
   - by: human:merlin-webster
     at: 2026-09-19T18:31:11Z
+  - by: human:merlin-webster
+    at: 2026-09-19T21:41:09Z
 sdd_id: 001-the-circle
 sdd_context: theory
 sdd_capability: circle-of-fifths
@@ -115,8 +117,8 @@ range
 
 **Scenarios**
 - **REQ-005/S1 — property over every key and variant**
-  Given each of the 15 selectable major spellings and 12 minor keys, on each
-  catalogued variant
+  Given each of the 15 selectable major spellings and their 15 relative
+  minor spellings, on each catalogued variant
   When its key view is displayed
   Then every displayed note lies within that variant's range
 
