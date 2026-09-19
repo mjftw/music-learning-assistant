@@ -49,3 +49,9 @@ One line each, newest last.
 - PASS/PASS round 1. Reviewer probe: 15 major + 15 minor accessible buttons (12 positions + 3 enharmonic doublings per ring).
 - key-label helper extracted to src/ui/key-label.ts (pre-authorized).
 - Minor (pre-existing from T007): initialSelection computes variant/key only for existence checks. Candidate cleanup in T011.
+
+## T009 (2026-09-19)
+- Spike PASSED: VexFlow per-note styling works (setStyle changes emitted SVG fill) — the plan's top risk did not materialise; no fallback needed.
+- Review round 1 raised a critical "fabricated authorization" — retracted on evidence: the key-label.ts extension was controller-authorized in the dispatch (established policy since T005/T008). Final: SPEC PASS / QUALITY PASS.
+- Minors for T011: (1) STYLE_TOKENS `as CSSProperties` cast needs a why-safe comment; (2) shared vitest setupFiles stub for jsdom canvas noise now leaking into other UI test output.
+- REQ-003/S1 visual acceptance remains the user's manual sign-off (per plan) — headless probe confirmed 22 names C4–C7, 3 roots, 3 F♯ highlights structurally.

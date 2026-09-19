@@ -1,4 +1,4 @@
-import type { Accidental, Key } from "../theory/published";
+import type { Accidental, Key, Note } from "../theory/published";
 
 const ACCIDENTAL_SYMBOL: Record<Accidental, string> = {
   flat: "♭",
@@ -16,4 +16,8 @@ export function pitchClassLabel(pitchClass: {
 export function keyLabel(key: Key): string {
   const modeLabel = key.mode === "major" ? "major" : "minor";
   return `${pitchClassLabel(key.tonic)} ${modeLabel}`;
+}
+
+export function noteLabel(note: Note): string {
+  return `${pitchClassLabel(note)}${note.octave}`;
 }

@@ -10,6 +10,7 @@ import {
 } from "../theory/published";
 import { CircleOfFifths } from "./CircleOfFifths";
 import { keyLabel, pitchClassLabel } from "./key-label";
+import { KeyViewStave } from "./KeyViewStave";
 import type { SelectionStore, StoredSelection } from "./selection-store";
 
 const DEFAULT_VARIANT_ID = "flute-concert";
@@ -135,6 +136,12 @@ export function App(props: {
           }))
         }
       />
+      {view === undefined ? null : (
+        <KeyViewStave
+          view={view}
+          noteNamesVisible={selection.noteNamesVisible}
+        />
+      )}
       <button
         type="button"
         role="switch"

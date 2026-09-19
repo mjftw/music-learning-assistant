@@ -498,7 +498,7 @@ _Demonstrable: the acceptance walk-through in a browser._
 
 ### T009 · theory.circle-of-fifths/REQ-003 (render), REQ-007 · The stave and the names toggle
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/KeyViewStave.tsx`
