@@ -14,6 +14,8 @@ generated:
 verified:
   - by: human:merlin-webster
     at: 2026-09-19T15:37:24Z
+  - by: human:merlin-webster
+    at: 2026-09-19T15:48:38Z
 sdd_phase: approved
 ---
 
@@ -33,7 +35,7 @@ sdd_phase: approved
 | Context | Owns (the nouns) | Responsible for (the verbs) | Not responsible for | Code root |
 |---|---|---|---|---|
 | `theory` | Note, Instrument (name + playable range), Key, Scale, Arpeggio, Interval, Circle of Fifths, Temperament (just/equal), NoteSequence | Answering timeless questions: the notes of a scale/arpeggio in a key, a traversal (1–2 octaves, up/down) fitted to an instrument's range, a note's pitch under a temperament, neighbouring keys on the circle | Anything that changes during a session; sound; the microphone | `src/theory/` |
-| `practice` | Session, Mode (tool-leads / learner-leads), Traversal choice, Target note, Tempo, Drone, Judgement (sharp/flat/nailed, in cents) | Running a session: sounding notes and the drone, holding the current target, consuming detected pitch and judging it against the target, advancing through the sequence | Music-theory facts; how pitch is detected | `src/practice/` |
+| `practice` | Session, Mode (tool-leads / learner-leads), Traversal choice, Target note, Tempo, Drone, Judgement (sharp / flat / in tune, in cents) | Running a session: sounding notes and the drone, holding the current target, consuming detected pitch and judging it against the target, advancing through the sequence | Music-theory facts; how pitch is detected | `src/practice/` |
 | `listening` | Detected pitch (frequency, confidence, time) | Capturing the instrument through the microphone and publishing what pitch was heard, fast | Knowing the target note; judging sharp/flat; theory | `src/listening/` |
 
 The UI (circle-of-fifths display, stave, tooltips) is the interface over all
@@ -59,7 +61,7 @@ three contexts, not a context of its own.
 |---|---|---|---|---|
 | `PitchDetected` | `listening` | `practice` | frequency (Hz), confidence, timestamp | `src/listening/published/pitch-detected.schema` |
 | `TargetAdvanced` | `practice` | UI | new target note, position in sequence | `src/practice/published/target-advanced.schema` |
-| `NoteJudged` | `practice` | UI | target note, offset in cents, verdict (sharp/flat/nailed) | `src/practice/published/note-judged.schema` |
+| `NoteJudged` | `practice` | UI | target note, offset in cents, verdict (sharp / flat / in tune) | `src/practice/published/note-judged.schema` |
 
 ## Invariants
 
@@ -73,7 +75,7 @@ three contexts, not a context of its own.
 | `theory` | A generated NoteSequence never contains a note outside the selected Instrument's range. | NoteSequence |
 | `theory` | Neighbouring keys on the Circle of Fifths differ by exactly one accidental. | Circle of Fifths |
 | `practice` | The current target note is always a member of the active sequence. | Session |
-| `practice` | In learner-leads mode, the target never advances unless the note was held correct for the required duration. | Session |
+| `practice` | In learner-leads mode, the target never advances unless the note was held in tune for the required duration. | Session |
 | `listening` | A PitchDetected fact always carries a positive frequency and a confidence. | Detected pitch |
 | `listening` | Pitch feedback is emitted within a bound that feels instant, or not at all — silence beats late feedback. | Detected pitch |
 

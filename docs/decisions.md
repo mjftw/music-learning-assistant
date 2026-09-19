@@ -40,3 +40,4 @@ tags: [sdd, decisions]
 2026-09-19 · init · Roadmap: 001 the-circle, 002 hear-the-scale, 003 the-drone, 004 hear-me, 005 learner-leads, 006 temperament, 007 teach-me · each slice thin and useful alone; 001 replaces the paper circle before any sound exists
 2026-09-19 · init · 004 hear-me built early despite only being needed by 005 · riskiest unknown (live pitch, latency budget) de-risked while paying its way as a tuner
 2026-09-19 · init · Cut line below 005 · tool-leads + learner-leads + tuner is the product; temperament and tooltips are enrichment
+2026-09-19 · init · Vocabulary: "in tune" (close enough to the target pitch) and "held" (sustained in tune for the required duration) replace "nailed" · too colloquial for specs and code
