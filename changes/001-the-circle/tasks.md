@@ -126,7 +126,7 @@ _Demonstrable: `circleOfFifths()` answers every circle question in the spec._
 
 ### T003 · theory.circle-of-fifths/REQ-004 · Signatures, relatives, and the new accidental
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/theory/domain/signatures.ts`

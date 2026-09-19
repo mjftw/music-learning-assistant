@@ -23,3 +23,7 @@ One line each, newest last.
 ## T002 (2026-09-19)
 - pitchPosition uses the MIDI convention (C4=60): the task prose said "C0 = 0" but the test's 66/96 values are authoritative; code comments state the actual convention.
 - Review round 1: QUALITY FAIL on duplicated lookup tables; fixed by exporting from notes.ts. Round 2: SPEC PASS / QUALITY PASS.
+
+## T003 (2026-09-19)
+- SPEC PASS / QUALITY PASS first round. Reviewer probe confirmed enharmonic relatives spell correctly (G♭→E♭ minor, C♯→A♯ minor) with no special-casing.
+- Minor: straight vs curly apostrophes in test names; cosmetic.
