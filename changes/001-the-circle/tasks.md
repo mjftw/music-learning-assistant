@@ -18,7 +18,7 @@ verified:
     at: 2026-09-19T18:49:04Z
 sdd_id: 001-the-circle
 sdd_context: theory
-sdd_phase: in-progress
+sdd_phase: complete
 ---
 
 # Tasks: The circle
@@ -718,7 +718,7 @@ _Demonstrable: the acceptance walk-through in a browser._
 
 ### T014 · theory.circle-of-fifths/REQ-003, REQ-004 · Styling inputs are tested: root emphasis and new-accidental highlight (W3)
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: `tests/ui/scenarios/stave-styling.test.tsx` (new)

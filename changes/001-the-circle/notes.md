@@ -143,3 +143,6 @@ All matched files use Prettier code style!
 ## T013 (2026-09-19)
 - W2 fixed: range property now enumerates all 90 key×variant pairs (30 keys × 3 variants), pairsChecked asserted. PASS/PASS.
 - fast-check now unused anywhere; dependency left in package.json (out of task scope) — candidate removal at finish.
+
+## T014 (2026-09-19)
+- W3 fixed: styling inputs tested — 3 root-emphasis + 3 new-accidental groups asserted for G major and B♭ major; reviewer independently reproduced the SVG probe and confirmed the counts count notes, not paths. PASS/PASS.
