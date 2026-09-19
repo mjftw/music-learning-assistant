@@ -41,3 +41,12 @@ tags: [sdd, decisions]
 2026-09-19 · init · 004 hear-me built early despite only being needed by 005 · riskiest unknown (live pitch, latency budget) de-risked while paying its way as a tuner
 2026-09-19 · init · Cut line below 005 · tool-leads + learner-leads + tuner is the product; temperament and tooltips are enrichment
 2026-09-19 · init · Vocabulary: "in tune" (close enough to the target pitch) and "held" (sustained in tune for the required duration) replace "nailed" · too colloquial for specs and code
+2026-09-19 · 001-the-circle · Circle shows both rings (majors outside, relative natural minors inside); stave covers major and natural minor only · matches the paper circle being replaced; harmonic/melodic minor later
+2026-09-19 · 001-the-circle · Enharmonic positions show both spellings; scale spelled per chosen name · seeing 6♯ ≡ 6♭ teaches the connection
+2026-09-19 · 001-the-circle · Key view: signature, full playable range of the key lowest→highest with root emphasised, new accidental highlighted vs the key with one fewer accidental, relative named · showing only one octave would be misleading when the instrument plays more
+2026-09-19 · 001-the-circle · Note names toggleable off · avoids crowding; not being told aids memory
+2026-09-19 · 001-the-circle · v1 instruments: flute C4–C7, Ocarina Alto C A4–F6, Ocarina Bass C A3–F5; tiered selector instrument→variant, expandable · user owns these; future categories without redesign
+2026-09-19 · 001-the-circle · Variants are plugin-style input data files; no in-app range editing · new variants added as data over time
+2026-09-19 · 001-the-circle · Remember last selection locally; first run C major on flute; nothing else stored · resume where left off, nothing personal
+2026-09-19 · 001-the-circle · Invalid variant file skipped with visible non-interrupting notice · a broken file never takes the tool down
+2026-09-19 · 001-the-circle · Acceptance: G major on flute (F♯ new vs C major, E minor relative) + Alto→Bass octave shift; property tests for adjacency and range safety · user sign-off on laptop

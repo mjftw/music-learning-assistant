@@ -30,7 +30,7 @@ sdd_phase: approved
 
 | # | Slice | Context | Outcome (one line) | Depends on | Status | Spec |
 |---|---|---|---|---|---|---|
-| 001 | `the-circle` | `theory` | An interactive circle of fifths: pick a key and instrument, see the scale on a stave with note names and which accidental is new — replaces the paper circle on the stand | — | proposed | |
+| 001 | `the-circle` | `theory` | An interactive circle of fifths: pick a key and instrument, see the scale on a stave with note names and which accidental is new — replaces the paper circle on the stand | — | grilling | |
 | 002 | `hear-the-scale` | `practice` | Choose traversal (1–2 octaves, up/down, scale or arpeggio) and tempo; the tool plays it within the instrument's range; the learner plays along | 001 | proposed | |
 | 003 | `the-drone` | `practice` | Hold a drone on any note for wind pitching and string tuning | 001 | proposed | |
 | 004 | `hear-me` | `listening` | Live pitch readout — sharp/flat in cents, inside the latency budget — useful alone as a tuner | — | proposed | |
