@@ -55,3 +55,6 @@ One line each, newest last.
 - Review round 1 raised a critical "fabricated authorization" — retracted on evidence: the key-label.ts extension was controller-authorized in the dispatch (established policy since T005/T008). Final: SPEC PASS / QUALITY PASS.
 - Minors for T011: (1) STYLE_TOKENS `as CSSProperties` cast needs a why-safe comment; (2) shared vitest setupFiles stub for jsdom canvas noise now leaking into other UI test output.
 - REQ-003/S1 visual acceptance remains the user's manual sign-off (per plan) — headless probe confirmed 22 names C4–C7, 3 roots, 3 F♯ highlights structurally.
+
+## T010 (2026-09-19)
+- PASS/PASS round 1, no findings. findVariantById extracted to src/ui/catalogue-lookup.ts (authorized). Article VI spot-checked across the whole mounted App: nothing interruptive.

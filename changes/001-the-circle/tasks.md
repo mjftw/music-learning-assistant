@@ -547,7 +547,7 @@ _Demonstrable: the acceptance walk-through in a browser._
 
 ### T010 · theory.instruments/REQ-001 (S2), REQ-003 (S2) · Variant selector and the notice strip
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/InstrumentSelector.tsx`, `src/ui/Notices.tsx`

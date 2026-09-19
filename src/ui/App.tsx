@@ -8,9 +8,12 @@ import {
   type Signature,
   type Variant,
 } from "../theory/published";
+import { findVariantById } from "./catalogue-lookup";
 import { CircleOfFifths } from "./CircleOfFifths";
+import { InstrumentSelector } from "./InstrumentSelector";
 import { keyLabel, pitchClassLabel } from "./key-label";
 import { KeyViewStave } from "./KeyViewStave";
+import { Notices } from "./Notices";
 import type { SelectionStore, StoredSelection } from "./selection-store";
 
 const DEFAULT_VARIANT_ID = "flute-concert";
@@ -21,18 +24,6 @@ function findKeyById(keyId: string): Key | undefined {
   for (const position of circleOfFifths()) {
     for (const key of [...position.majors, ...position.minors]) {
       if (keyIdOf(key) === keyId) return key;
-    }
-  }
-  return undefined;
-}
-
-function findVariantById(
-  catalogue: Catalogue,
-  variantId: string,
-): Variant | undefined {
-  for (const instrument of catalogue.instruments) {
-    for (const variant of instrument.variants) {
-      if (variant.variantId === variantId) return variant;
     }
   }
   return undefined;
@@ -115,6 +106,17 @@ export function App(props: {
 
   return (
     <div>
+      <Notices notices={catalogue.notices} />
+      <InstrumentSelector
+        catalogue={catalogue}
+        selectedVariantId={selection.variantId}
+        onSelect={(selectedVariant) =>
+          setSelection((current) => ({
+            ...current,
+            variantId: selectedVariant.variantId,
+          }))
+        }
+      />
       <p data-testid="current-key">{key === undefined ? "" : keyLabel(key)}</p>
       <p data-testid="current-variant">
         {variant === undefined ? "" : variantLabel(variant)}
