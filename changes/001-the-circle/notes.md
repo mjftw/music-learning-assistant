@@ -40,3 +40,7 @@ One line each, newest last.
 ## T006 (2026-09-19)
 - PASS/PASS round 1. Reviewer re-derived the acceptance arithmetic by hand (G major/flute 22 notes, octave shift, E minor from C4) — all match.
 - fast-check resolved at v3 (plan said 4.x); same API for our calls. Note for converge alongside the other version drifts.
+
+## T007 (2026-09-19)
+- PASS/PASS round 1. Two disclosed test deviations (cleanup registration, aria-checked assertion) — intent preserved, jest-dom absent by design.
+- Minor: App.tsx render-time ?? fallback duplicates init-time validation; unreachable. Candidate cleanup in T011.

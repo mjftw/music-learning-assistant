@@ -400,7 +400,7 @@ _Demonstrable: the acceptance walk-through in a browser._
 
 ### T007 · theory.circle-of-fifths/REQ-008 · Selection state, storage port, first run
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/selection-store.ts`
