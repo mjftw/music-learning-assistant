@@ -13,3 +13,8 @@ sdd_id: 002-circle-redesign
 Decisions taken during implementation that the plan did not cover, and why.
 One line each, newest last.
 
+
+## T001 (2026-09-20)
+- PASS/PASS. fast-check + coverage out, 4 @fontsource packages + playwright (dev) in, theme.ts matches the reference palette.
+- Controller fix: eslint ignores changes/** and .sdd/** — the vendored design prototype broke typed linting; SDD artefact trees are never lintable app code.
+- Brief said 30 tests; real count 31 (stale figure, no regression).
