@@ -19,7 +19,6 @@ verified:
 sdd_id: 002-circle-redesign
 sdd_context: theory
 sdd_phase: resolved
-generated.at: 2026-09-20T19:32:07Z
 ---
 
 # Intent: Circle redesign
