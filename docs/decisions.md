@@ -67,3 +67,7 @@ tags: [sdd, decisions]
 2026-09-20 · 002-circle-redesign · Laptop renders the phone-proportioned column centred (~400px); wide layouts are a later change · the handoff contains no widescreen design
 2026-09-20 · 002-circle-redesign · Span (1/2/3 oct/full stave display) is a new concept, distinct from Traversal (playback, 003) · display has no walking semantics; avoid premature coupling
 2026-09-20 · 002-circle-redesign · Acceptance: prototype side-by-side on the phone + functional walk; closes 001's phone-legibility question · user signs off
+2026-09-20 · 002-circle-redesign · VexFlow removed; stave hand-drawn from the prototype's geometry (ADR 0002) · pixel fidelity to the design is the acceptance bar, and the design draws its own simplified notation
+2026-09-20 · 002-circle-redesign · Fonts self-hosted via @fontsource (4 packages); the prototype's Google Fonts CDN violates Article VII · zero runtime network requests
+2026-09-20 · 002-circle-redesign · fast-check and @vitest/coverage-v8 removed as unused; re-add when something needs them · Article VIII
+2026-09-20 · 002-circle-redesign · The prototype is vendored into the change (design/) and a screenshot-driven design-review loop iterates the implementation against it until the user is satisfied; dev-only Playwright drives it · the reference must live in the repo, and fidelity is reached by iteration, not one final glance

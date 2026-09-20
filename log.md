@@ -4,6 +4,7 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-20
 
+- Implementation Plan `changes/002-circle-redesign/plan.md` → approved (human:merlin-webster)
 - Spec Delta `changes/002-circle-redesign/delta/theory/circle-of-fifths.md` → approved (human:merlin-webster)
 - Change Proposal `changes/002-circle-redesign/proposal.md` → approved (human:merlin-webster)
 - Intent `changes/002-circle-redesign/intent.md` → resolved (human:merlin-webster)

@@ -2,6 +2,6 @@
 
 - [Circle redesign — intent](intent.md) — Intent · resolved — Redesign the circle of fifths and key view's visual and interaction language, from a Claude Design handoff prototype.
 - [002-circle-redesign — notes](notes.md) — Implementation Notes — Decisions taken during implementation that the plan did not cover.
-- [<Feature name> — plan](plan.md) — Implementation Plan · draft — <one sentence — the approach>
+- [Circle redesign — plan](plan.md) — Implementation Plan · approved — Rebuild the UI to the Function Paper prototype — hand-drawn SVG circle and stave, self-hosted fonts, new pure theory functions for arc and span, versioned stored state.
 - [Circle redesign](proposal.md) — Change Proposal · approved — The circle and key view rebuilt to the Function Paper prototype — distance ring, degrees, global spelling, names/stave panel, picker sheet, settings drawer.
 - [<Feature name> — tasks](tasks.md) — Task List · draft — <one sentence — N tasks across M phases>

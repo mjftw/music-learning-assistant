@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Noto+Music&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style>body{margin:0;background:#ddd6c7}a{color:#8a4b2a}a:hover{color:#a85c33}</style></helmet>
+<div style="position:relative;width:390px;height:844px;background:#efe9dc;color:#1c1916;font-family:'Public Sans',system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px 2px">
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 12px 7px 11px;border:1px solid #cfc6b4;border-radius:999px;background:#f7f3ea;white-space:nowrap;cursor:pointer" onClick="{{ openPicker }}">
+      <div style="width:7px;height:7px;border-radius:999px;background:#8a4b2a;flex:none"></div>
+      <div style="font-size:13px;font-weight:600">{{ instrumentLabel }}</div>
+      <div style="font-size:12px;color:#7a7167">{{ rangeLabel }}</div>
+      <div style="font-size:9px;color:#9a9186">▼</div>
+    </div>
+    <div style="width:32px;height:32px;border-radius:999px;border:1px solid #cfc6b4;background:#f7f3ea;color:#6f675c;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;flex:none" onClick="{{ openSettings }}">⚙</div>
+  </div>
+
+  <div style="position:relative;width:378px;height:378px;margin:0 auto;flex:none">
+    <svg viewBox="0 0 378 378" width="378" height="378" style="position:absolute;top:0;left:0" role="img" aria-label="Circle of fifths">
+      <sc-for list="{{ ring }}" as="r" hint-placeholder-count="14">
+        <path d="{{ r.d }}" fill="{{ r.fill }}" stroke="none"></path>
+      </sc-for>
+      <sc-for list="{{ wedges }}" as="w" hint-placeholder-count="24">
+        <path d="{{ w.d }}" fill="{{ w.fill }}" stroke="#efe9dc" stroke-width="1.8" style="cursor:pointer" onClick="{{ w.pick }}"></path>
+      </sc-for>
+      <circle cx="189" cy="189" r="72" fill="#fbf8f1" stroke="#cfc6b4" stroke-width="1"></circle>
+      <line x1="125" y1="171" x2="253" y2="171" stroke="#2b2620" stroke-width="1"></line>
+      <line x1="125" y1="180" x2="253" y2="180" stroke="#2b2620" stroke-width="1"></line>
+      <line x1="125" y1="189" x2="253" y2="189" stroke="#2b2620" stroke-width="1"></line>
+      <line x1="125" y1="198" x2="253" y2="198" stroke="#2b2620" stroke-width="1"></line>
+      <line x1="125" y1="207" x2="253" y2="207" stroke="#2b2620" stroke-width="1"></line>
+      <line x1="253" y1="171" x2="253" y2="207" stroke="#2b2620" stroke-width="1.4"></line>
+    </svg>
+    <sc-for list="{{ numerals }}" as="r" hint-placeholder-count="7">
+      <div style="position:absolute;left:{{ r.x }}px;top:{{ r.y }}px;transform:translate(-50%,-50%);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:{{ r.ink }};line-height:1;pointer-events:none;white-space:nowrap">{{ r.label }}</div>
+    </sc-for>
+    <sc-for list="{{ scaleNames }}" as="s" hint-placeholder-count="7">
+      <div style="position:absolute;left:{{ s.x }}px;top:{{ s.y }}px;transform:translate(-50%,-50%);font-size:12.5px;font-weight:{{ s.weight }};color:{{ s.ink }};line-height:1;pointer-events:none;white-space:nowrap">{{ s.label }}</div>
+    </sc-for>
+    <sc-for list="{{ labels }}" as="l" hint-placeholder-count="24">
+      <div style="position:absolute;left:{{ l.x }}px;top:{{ l.y }}px;transform:translate(-50%,-50%);font-size:{{ l.size }}px;font-weight:{{ l.weight }};color:{{ l.ink }};line-height:1;pointer-events:none;white-space:nowrap">{{ l.label }}</div>
+    </sc-for>
+    <div style="position:absolute;left:140px;top:187px;transform:translate(-50%,-50%);font-family:'Noto Music',serif;font-size:28px;line-height:1;color:#2b2620;pointer-events:none">𝄞</div>
+    <sc-for list="{{ sigGlyphs }}" as="g" hint-placeholder-count="1">
+      <div style="position:absolute;left:{{ g.x }}px;top:{{ g.y }}px;transform:translate(-50%,-50%);font-family:'Public Sans',sans-serif;font-size:{{ g.size }}px;font-weight:500;line-height:1;color:{{ g.ink }};pointer-events:none">{{ g.glyph }}</div>
+    </sc-for>
+    <div style="position:absolute;left:189px;top:230px;transform:translate(-50%,-50%);display:flex;border:1px solid #e0d7c5;border-radius:999px;overflow:hidden">
+      <div style="padding:2px 12px 4px;font-size:14px;font-weight:600;line-height:1.2;color:{{ sharpInk }};background:{{ sharpBg }};cursor:pointer" onClick="{{ pickSharp }}">♯</div>
+      <div style="padding:2px 12px 4px;font-size:14px;font-weight:600;line-height:1.2;color:{{ flatInk }};background:{{ flatBg }};cursor:pointer" onClick="{{ pickFlat }}">♭</div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:center;padding:6px 16px 0">
+    <div style="font-family:'Instrument Serif',serif;font-size:46px;line-height:1;color:#1c1916">{{ keyName }}</div>
+  </div>
+
+  <div style="margin:22px 16px 0;padding:12px 8px 11px;background:#f7f3ea;border:1px solid #ddd4c2;border-radius:14px">
+    <sc-if value="{{ staveMode }}" hint-placeholder-val="{{ false }}">
+      <div style="position:relative;width:342px;height:{{ stave.height }}px">
+        <svg viewBox="{{ stave.viewBox }}" width="342" height="{{ stave.height }}" style="position:absolute;top:0;left:0">
+          <sc-for list="{{ stave.ledgers }}" as="g" hint-placeholder-count="4">
+            <line x1="{{ g.x1 }}" y1="{{ g.y }}" x2="{{ g.x2 }}" y2="{{ g.y }}" stroke="#2b2620" stroke-width="1.1"></line>
+          </sc-for>
+          <sc-for list="{{ stave.lines }}" as="g" hint-placeholder-count="5">
+            <line x1="10" y1="{{ g.y }}" x2="332" y2="{{ g.y }}" stroke="#2b2620" stroke-width="1"></line>
+          </sc-for>
+          <line x1="332" y1="{{ stave.barTop }}" x2="332" y2="{{ stave.barBottom }}" stroke="#2b2620" stroke-width="1.6"></line>
+          <sc-for list="{{ stave.heads }}" as="n" hint-placeholder-count="8">
+            <line x1="{{ n.stemX }}" y1="{{ n.stemY1 }}" x2="{{ n.stemX }}" y2="{{ n.stemY2 }}" stroke="{{ n.ink }}" stroke-width="1.4"></line>
+          </sc-for>
+          <sc-for list="{{ stave.heads }}" as="n" hint-placeholder-count="8">
+            <ellipse cx="{{ n.x }}" cy="{{ n.y }}" rx="{{ n.rx }}" ry="{{ n.ry }}" transform="{{ n.tilt }}" fill="{{ n.ink }}"></ellipse>
+          </sc-for>
+        </svg>
+        <div style="position:absolute;left:20px;top:{{ stave.clefY }}px;transform:translate(-50%,-50%);font-family:'Noto Music',serif;font-size:31px;line-height:1;color:#2b2620;pointer-events:none">𝄞</div>
+        <sc-for list="{{ stave.names }}" as="n" hint-placeholder-count="8">
+          <div style="position:absolute;left:{{ n.x }}px;top:{{ stave.nameRowY }}px;transform:translateX(-50%);font-size:{{ stave.nameSize }}px;font-weight:600;line-height:1;color:{{ n.ink }};pointer-events:none;white-space:nowrap">{{ n.label }}</div>
+        </sc-for>
+        <sc-for list="{{ stave.sig }}" as="g" hint-placeholder-count="1">
+          <div style="position:absolute;left:{{ g.x }}px;top:{{ g.y }}px;transform:translate(-50%,-50%);font-family:'Public Sans',sans-serif;font-size:{{ g.size }}px;font-weight:500;line-height:1;color:{{ g.ink }};pointer-events:none">{{ g.glyph }}</div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ namesMode }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;align-items:flex-end;gap:2px">
+      <sc-for list="{{ scale }}" as="n" hint-placeholder-count="7">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:{{ n.markWeight }};color:{{ n.markInk }};line-height:1;height:11px">{{ n.mark }}</div>
+          <div style="font-size:26px;font-weight:600;letter-spacing:-.02em;color:#1c1916;line-height:1">{{ n.name }}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#6f675c;line-height:1;height:11px">{{ n.deg }}</div>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+    <div style="margin-top:10px;padding-top:9px;border-top:1px solid #e6ddcc;display:{{ spanRowDisplay }};align-items:center;justify-content:space-between;gap:10px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6f675c;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis">{{ spanCaption }}</div>
+      <div style="display:flex;gap:4px;flex:none">
+        <sc-for list="{{ spanPills }}" as="p" hint-placeholder-count="3">
+          <div style="padding:4px 8px 5px;border-radius:999px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;line-height:1.2;color:{{ p.ink }};background:{{ p.bg }};cursor:pointer;white-space:nowrap" onClick="{{ p.pick }}">{{ p.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="margin-top:10px;padding-top:9px;border-top:1px solid #e6ddcc;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.02em;color:#6f675c;white-space:nowrap">{{ rangeSummary }}</div>
+      <div style="display:flex;border:1px solid #e0d7c5;border-radius:999px;overflow:hidden;flex:none">
+        <div style="padding:4px 11px 5px;font-size:11px;font-weight:600;line-height:1.2;color:{{ namesInk }};background:{{ namesBg }};cursor:pointer" onClick="{{ pickNames }}">names</div>
+        <div style="padding:4px 11px 5px;font-size:11px;font-weight:600;line-height:1.2;color:{{ staveInk }};background:{{ staveBg }};cursor:pointer" onClick="{{ pickStave }}">stave</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:auto;padding:12px 16px 20px">
+    <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px dashed #c8bfad;border-radius:14px;opacity:.6">
+      <div style="width:38px;height:38px;border-radius:999px;border:1px solid #c8bfad;display:flex;align-items:center;justify-content:center;font-size:12px;color:#8a8175;flex:none">▶</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <div style="height:3px;border-radius:2px;background:#ddd4c2"></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#9a9186;letter-spacing:.05em">PLAY ALONG · DRONE · TEMPO</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:absolute;top:0;right:0;bottom:0;left:0;background:rgba(28,25,22,.32);display:{{ pickerDisplay }};z-index:7" onClick="{{ closePicker }}"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#f7f3ea;border-top:1px solid #d5cbb8;border-radius:20px 20px 0 0;box-shadow:0 -10px 30px rgba(28,25,22,.16);display:{{ pickerDisplay }};flex-direction:column;padding-bottom:14px;z-index:8">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid #e6ddcc">
+      <div style="font-size:14px;font-weight:600">Instrument</div>
+      <div style="width:28px;height:28px;border-radius:999px;border:1px solid #cfc6b4;display:flex;align-items:center;justify-content:center;font-size:12px;color:#5e564c;cursor:pointer" onClick="{{ closePicker }}">✕</div>
+    </div>
+    <sc-for list="{{ variants }}" as="v" hint-placeholder-count="3">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 18px;border-bottom:1px solid #ece4d5;background:{{ v.bg }};cursor:pointer" onClick="{{ v.pick }}">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <div style="font-size:14px;font-weight:{{ v.weight }}">{{ v.instrument }}</div>
+          <div style="font-size:12.5px;color:#6f675c">{{ v.variant }}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#6f675c">{{ v.range }}</div>
+          <div style="width:16px;font-size:13px;color:#8a4b2a;text-align:right">{{ v.tick }}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;top:0;right:0;bottom:0;left:0;background:rgba(28,25,22,.32);display:{{ drawerDisplay }};z-index:5" onClick="{{ closeSettings }}"></div>
+  <div style="position:absolute;top:0;right:0;bottom:0;width:266px;background:#f7f3ea;border-left:1px solid #d5cbb8;box-shadow:-10px 0 30px rgba(28,25,22,.16);display:{{ drawerDisplay }};flex-direction:column;z-index:6">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 18px 14px;border-bottom:1px solid #e6ddcc">
+      <div style="font-size:14px;font-weight:600">Settings</div>
+      <div style="width:28px;height:28px;border-radius:999px;border:1px solid #cfc6b4;display:flex;align-items:center;justify-content:center;font-size:12px;color:#5e564c;cursor:pointer" onClick="{{ closeSettings }}">✕</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 18px;border-bottom:1px solid #ece4d5;cursor:pointer" onClick="{{ toggleStaveNames }}">
+      <div>
+        <div style="font-size:13px;font-weight:600">Note names on the stave</div>
+        <div style="font-size:11.5px;line-height:1.35;color:#6f675c;margin-top:3px">Label each notehead underneath</div>
+      </div>
+      <div style="width:36px;height:20px;border-radius:999px;background:{{ staveNamesTrack }};position:relative;flex:none"><div style="position:absolute;top:3px;left:{{ staveNamesKnobLeft }};width:14px;height:14px;border-radius:999px;background:#f7f3ea"></div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 18px;border-bottom:1px solid #ece4d5;cursor:pointer" onClick="{{ toggleDegrees }}">
+      <div>
+        <div style="font-size:13px;font-weight:600">Scale degrees</div>
+        <div style="font-size:11.5px;line-height:1.35;color:#6f675c;margin-top:3px">Number each note of the key, set into the arc</div>
+      </div>
+      <div style="width:36px;height:20px;border-radius:999px;background:{{ degreesTrack }};position:relative;flex:none"><div style="position:absolute;top:3px;left:{{ degreesKnobLeft }};width:14px;height:14px;border-radius:999px;background:#f7f3ea"></div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 18px;border-bottom:1px solid #ece4d5;cursor:pointer" onClick="{{ toggleRing }}">
+      <div>
+        <div style="font-size:13px;font-weight:600">Distance ring</div>
+        <div style="font-size:11.5px;line-height:1.35;color:#6f675c;margin-top:3px">The arc and its note names — warm sharpward, cool flatward, from the key you are on</div>
+      </div>
+      <div style="width:36px;height:20px;border-radius:999px;background:{{ ringTrack }};position:relative;flex:none"><div style="position:absolute;top:3px;left:{{ ringKnobLeft }};width:14px;height:14px;border-radius:999px;background:#f7f3ea"></div></div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844},&quot;spelling&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;sharp&quot;,&quot;flat&quot;],&quot;default&quot;:&quot;sharp&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Circle&quot;},&quot;showDegrees&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Circle&quot;},&quot;showDistanceRing&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Circle&quot;},&quot;showStaveNames&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Stave&quot;}}">
+const MAJORS = ["C","G","D","A","E","B","F♯","D♭","A♭","E♭","B♭","F"];
+const MINORS = ["A","E","B","F♯","C♯","G♯","D♯","B♭","F","C","G","D"];
+const SIG = [[0,""],[1,"♯"],[2,"♯"],[3,"♯"],[4,"♯"],[5,"♯"],[6,"♯"],[5,"♭"],[4,"♭"],[3,"♭"],[2,"♭"],[1,"♭"]];
+
+// Three positions carry two spellings of the same sounding key. Rather than
+// showing both and crowding the ring, one global preference spells all three
+// the same way — the ♯/♭ button in the centre.
+const DUAL = { 5: true, 6: true, 7: true };
+const SHARP_MAJORS = { 5: "B", 6: "F♯", 7: "C♯" };
+const FLAT_MAJORS = { 5: "C♭", 6: "G♭", 7: "D♭" };
+const SHARP_MINORS = { 5: "G♯", 6: "D♯", 7: "A♯" };
+const FLAT_MINORS = { 5: "A♭", 6: "E♭", 7: "B♭" };
+const SHARP_DUAL_SIG = { 5: [5, "♯"], 6: [6, "♯"], 7: [7, "♯"] };
+const FLAT_DUAL_SIG = { 5: [7, "♭"], 6: [6, "♭"], 7: [5, "♭"] };
+
+const SHARP_ORDER = ["F","C","G","D","A","E","B"];
+const FLAT_ORDER = ["B","E","A","D","G","C","F"];
+const LETTERS = ["C","D","E","F","G","A","B"];
+const LETTER_SEMI = { C:0, D:2, E:4, F:5, G:7, A:9, B:11 };
+const ACC = { "":0, "♯":1, "♭":-1 };
+const STEPS_MAJ = [0,2,4,5,7,9,11];
+const STEPS_MIN = [0,2,3,5,7,8,10];
+
+// Step around the circle -> which degree of the scale that note is. These
+// wedges are notes, not chords, so they take scale-degree numbers.
+const DEGREE_BY_STEP = { "-1": 4, 0: 1, 1: 5, 2: 2, 3: 6, 4: 3, 5: 7 };
+
+// Mirrors src/theory/instruments/data/*.json — a variant is the unit of
+// selection, and its range is what the key view is clipped to.
+const VARIANTS = [
+  { id: "flute-concert", instrument: "Flute", variant: "Concert", low: "C4", high: "C7" },
+  { id: "ocarina-alto-c", instrument: "Ocarina", variant: "Alto C", low: "A4", high: "F6" },
+  { id: "ocarina-bass-c", instrument: "Ocarina", variant: "Bass C", low: "A3", high: "F5" },
+];
+
+const CX = 189, CY = 189;
+const INNER = [72,100], OUTER = [100,142];
+// Everything relative to the chosen key lives on or outside the arc: the
+// band carries distance (colour) and scale degree, and the names outside it
+// are what this key calls each note.
+const DIST_RING = [148,153];
+const DEGREE_R = 150.5;
+const DEGREE_GAP = 3.1;
+const OUTSIDE_R = 170;
+const MUTED_INK = "#6f675c";
+
+// Treble stave inside the centre disc: top line (F5) at y=152, 9px apart.
+const STAVE_TOP = 171;
+const STAVE_STEP = 9;
+const SHARP_STAFF_STEPS = [0, 1.5, -0.5, 1, 2.5, 0.5, 2];   // F5 C5 G5 D5 A4 E5 B4
+const FLAT_STAFF_STEPS = [2, 0.5, 2.5, 1, 3, 1.5, 3.5];     // B4 E5 A4 D5 G4 C5 F4
+const GLYPH_X0 = 163;
+const GLYPH_DX = 13;
+
+// Distance ramp for the outer ring: hot clockwise (sharpward), cold
+// anticlockwise (flatward), bleaching out as you get further from here.
+// Step 1 (the IV and V neighbours) stays light enough for dark ink to clear
+// 4.5:1 — those two digits are the most-read on the arc.
+const DIST_L = [0.420, 0.665, 0.750, 0.818, 0.868, 0.906, 0.930];
+const DIST_C = [0.160, 0.150, 0.124, 0.096, 0.068, 0.042, 0.023];
+
+function pt(deg, r) {
+  const a = ((deg - 90) * Math.PI) / 180;
+  return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
+}
+
+function wedge(a0, a1, ri, ro) {
+  const os = pt(a0, ro), oe = pt(a1, ro), is = pt(a1, ri), ie = pt(a0, ri);
+  return `M ${os.x} ${os.y} A ${ro} ${ro} 0 0 1 ${oe.x} ${oe.y} L ${is.x} ${is.y} A ${ri} ${ri} 0 0 0 ${ie.x} ${ie.y} Z`;
+}
+
+// Absolute semitone position, keeping the written letter's octave — so B♯3
+// sorts above B3, as it sounds.
+function pitchPosition(letter, accidentalOffset, octave) {
+  return octave * 12 + LETTER_SEMI[letter] + accidentalOffset;
+}
+
+function accidentalOffsetOf(suffix) {
+  let offset = 0;
+  for (const ch of suffix) offset += ch === "♯" ? 1 : ch === "♭" ? -1 : 0;
+  return offset;
+}
+
+function parseRangeNote(text) {
+  const letter = text[0];
+  const octave = Number(text[text.length - 1]);
+  const suffix = text.slice(1, -1);
+  return { letter, offset: accidentalOffsetOf(suffix), octave };
+}
+
+// Every note of the key the variant can actually play, lowest to highest
+// (theory.circle-of-fifths/REQ-003 and REQ-005).
+function rangeIndexed(scaleNames, variant) {
+  const low = parseRangeNote(variant.low);
+  const high = parseRangeNote(variant.high);
+  const lowPos = pitchPosition(low.letter, low.offset, low.octave);
+  const highPos = pitchPosition(high.letter, high.offset, high.octave);
+  const found = [];
+  for (let octave = low.octave - 1; octave <= high.octave + 1; octave += 1) {
+    for (const name of scaleNames) {
+      const offset = accidentalOffsetOf(name.slice(1));
+      const position = pitchPosition(name[0], offset, octave);
+      if (position < lowPos || position > highPos) continue;
+      found.push({
+        name, octave, position,
+        label: `${name}${octave}`,
+        index: diatonicIndex(name[0], octave),
+      });
+    }
+  }
+  found.sort((a, b) => a.position - b.position);
+  return found;
+}
+
+function rangeSummaryOf(found) {
+  if (found.length === 0) return "no notes of this key in range";
+  return `${found.length} notes · ${found[0].label}–${found[found.length - 1].label}`;
+}
+
+// Scale stave in the bottom panel: five lines 10px apart, top line F5 at
+// y=26. A diatonic index counts letters, so every step is half a gap.
+const PANEL_TOP_Y = 26;
+const PANEL_GAP = 10;
+const PANEL_F5 = 5 * 7 + 3;
+const PANEL_SIG_X0 = 42;
+const PANEL_SIG_DX = 8.5;
+const PANEL_NOTES_END = 318;
+
+function diatonicIndex(letter, octave) {
+  return octave * 7 + LETTERS.indexOf(letter);
+}
+
+function panelY(index) {
+  return PANEL_TOP_Y + (PANEL_F5 - index) * (PANEL_GAP / 2);
+}
+
+// A run of N octaves up from the lowest tonic that leaves room for the
+// whole run inside the instrument's range.
+function octaveRun(notes, tonic, octaves) {
+  const wanted = octaves * 7;
+  for (let s = 0; s < notes.length; s += 1) {
+    if (notes[s].name !== tonic) continue;
+    if (s + wanted <= notes.length - 1) return notes.slice(s, s + wanted + 1);
+  }
+  return null;
+}
+
+function maxOctaves(notes, tonic) {
+  let best = 0;
+  for (let n = 1; n <= 4; n += 1) if (octaveRun(notes, tonic, n) !== null) best = n;
+  return best;
+}
+
+// Lays a run of notes onto one system, sizing the box to the ledger lines
+// the highest and lowest notes actually need.
+function buildStave(notes, { count, kind, staffSteps, tonic, withNames }) {
+  const indices = notes.map((n) => n.index);
+  const highest = Math.max(...indices, PANEL_F5);
+  const lowest = Math.min(...indices, PANEL_F5 - 8);
+  const topY = 16 + Math.max(0, Math.ceil((highest - 38) / 2)) * PANEL_GAP;
+  const y = (index) => topY + (PANEL_F5 - index) * (PANEL_GAP / 2);
+  const nameRowY = Math.max(y(lowest) + 20, topY + 4 * PANEL_GAP + 20);
+  const height = Math.max(nameRowY + (withNames ? 16 : 12), topY + 72);
+
+  const rx = notes.length > 18 ? 4.3 : notes.length > 12 ? 5.2 : 6.1;
+  const sigEnd = count === 0 ? PANEL_SIG_X0 : PANEL_SIG_X0 + (count - 1) * PANEL_SIG_DX + 7;
+  const x0 = Math.max(sigEnd + 14, 62);
+  const step = notes.length > 1 ? (PANEL_NOTES_END - x0) / (notes.length - 1) : 0;
+
+  const heads = [];
+  const ledgers = [];
+  const names = [];
+  notes.forEach((n, k) => {
+    const x = x0 + k * step;
+    const ny = y(n.index);
+    const stemUp = n.index < 34;
+    const ink = n.name === tonic ? "#8a4b2a" : "#1c1916";
+    for (let v = 28; v >= n.index; v -= 2) ledgers.push({ x1: x - rx - 3, x2: x + rx + 3, y: y(v) });
+    for (let v = 40; v <= n.index; v += 2) ledgers.push({ x1: x - rx - 3, x2: x + rx + 3, y: y(v) });
+    heads.push({
+      x, y: ny, rx, ry: rx * 0.76,
+      tilt: `rotate(-20 ${x.toFixed(1)} ${ny.toFixed(1)})`,
+      ink,
+      stemX: stemUp ? x + rx - 0.4 : x - rx + 0.4,
+      stemY1: ny,
+      stemY2: stemUp ? ny - 24 : ny + 24,
+    });
+    if (withNames) names.push({ x, label: n.name, ink: n.name === tonic ? "#8a4b2a" : "#4a4136" });
+  });
+
+  const lines = [];
+  for (let k = 0; k < 5; k += 1) lines.push({ y: topY + k * PANEL_GAP });
+
+  const sig = [];
+  for (let k = 0; k < count; k += 1) {
+    sig.push({
+      x: PANEL_SIG_X0 + k * PANEL_SIG_DX,
+      y: topY + staffSteps[k] * PANEL_GAP - (kind === "♭" ? 4.5 : 0),
+      glyph: kind,
+      size: kind === "♭" ? 24 : 20,
+      ink: k === count - 1 ? "#8a4b2a" : "#2b2620",
+    });
+  }
+
+  return {
+    height, viewBox: `0 0 342 ${height}`,
+    heads, ledgers, lines, sig, names, nameRowY,
+    nameSize: notes.length > 18 ? 8.5 : notes.length > 12 ? 10 : 11.5,
+    barTop: topY, barBottom: topY + 4 * PANEL_GAP,
+    clefY: topY + 18,
+  };
+}
+
+function signedStep(index, selected) {
+  return (((index - selected + 18) % 12) - 6);
+}
+
+function scaleOf(root, mode) {
+  const letter = root[0];
+  const base = LETTER_SEMI[letter] + (ACC[root.slice(1)] ?? 0);
+  const li = LETTERS.indexOf(letter);
+  const steps = mode === "minor" ? STEPS_MIN : STEPS_MAJ;
+  return steps.map((semi, k) => {
+    const L = LETTERS[(li + k) % 7];
+    const target = (((base + semi) % 12) + 12) % 12;
+    const diff = (((target - LETTER_SEMI[L]) % 12) + 12) % 12;
+    const suffix = diff === 0 ? "" : diff === 1 ? "♯" : diff === 11 ? "♭" : diff === 2 ? "♯♯" : "♭♭";
+    return L + suffix;
+  });
+}
+
+class Component extends DCLogic {
+  state = { sel: 1, mode: "major", spelling: null, degrees: null, ring: null, settings: false, variant: 0, picker: false, panel: "names", span: "full", staveNames: null };
+
+  renderVals() {
+    const { sel, mode, settings, picker } = this.state;
+    const variant = VARIANTS[this.state.variant];
+    const spelling = this.state.spelling ?? this.props.spelling ?? "sharp";
+    const sharp = spelling === "sharp";
+    const showDegrees = this.state.degrees ?? this.props.showDegrees ?? true;
+    const showStaveNames = this.state.staveNames ?? this.props.showStaveNames ?? false;
+    const showRing = this.state.ring ?? this.props.showDistanceRing ?? true;
+
+    const majorAt = (i) => (DUAL[i] ? (sharp ? SHARP_MAJORS : FLAT_MAJORS)[i] : MAJORS[i]);
+    const minorAt = (i) => (DUAL[i] ? (sharp ? SHARP_MINORS : FLAT_MINORS)[i] : MINORS[i]);
+    const sigAt = (i) => (DUAL[i] ? (sharp ? SHARP_DUAL_SIG : FLAT_DUAL_SIG)[i] : SIG[i]);
+    const inArc = (step) => step >= -1 && step <= 5;
+
+    // The wedges carry the key's own hue — fixed, so a key looks the same
+    // every time you open the app. Distance lives in the ring outside them.
+    const paintFor = (step, i, isSel, isInner) => {
+      const hue = (i * 30 + 25) % 360;
+      if (isSel) return { fill: `oklch(0.40 0.125 ${hue})`, L: 0.40 };
+      const L = isInner ? 0.855 : 0.785;
+      return { fill: `oklch(${L} ${isInner ? 0.068 : 0.098} ${hue})`, L };
+    };
+
+    const tonicNow = mode === "major" ? majorAt(sel) : minorAt(sel);
+    const scaleNotes = scaleOf(tonicNow, mode);
+
+    const ring = [];
+    const wedges = [];
+    const labels = [];
+    const numerals = [];
+    const scaleNames = [];
+
+    for (let i = 0; i < 12; i += 1) {
+      const a0 = i * 30 - 15, a1 = i * 30 + 15;
+      const step = signedStep(i, sel);
+      const d = Math.abs(step);
+
+      // The arc only spans the seven positions whose notes are in the key —
+      // one step flatward and five sharpward — so its extent is the scale.
+      if (showRing && inArc(step)) {
+        const fill = i === sel
+          ? "oklch(0.330 0.095 40)"
+          : `oklch(${DIST_L[d].toFixed(3)} ${DIST_C[d].toFixed(3)} ${step >= 0 ? 28 : 258})`;
+        if (showDegrees) {
+          // The arc notches either side of the digit so the number sits in
+          // the line rather than on top of it.
+          ring.push({ d: wedge(a0, i * 30 - DEGREE_GAP, DIST_RING[0], DIST_RING[1]), fill });
+          ring.push({ d: wedge(i * 30 + DEGREE_GAP, a1, DIST_RING[0], DIST_RING[1]), fill });
+          numerals.push({
+            ...pt(i * 30, DEGREE_R),
+            label: String(DEGREE_BY_STEP[String(step)]),
+            ink: "#1c1916",
+          });
+        } else {
+          ring.push({ d: wedge(a0, a1, DIST_RING[0], DIST_RING[1]), fill });
+        }
+      }
+
+      const majSel = mode === "major" && i === sel;
+      const majPaint = paintFor(step, i, majSel, false);
+      const majMid = pt(i * 30, (OUTER[0] + OUTER[1]) / 2);
+      wedges.push({
+        d: wedge(a0, a1, OUTER[0], OUTER[1]),
+        fill: majPaint.fill,
+        pick: () => this.setState({ sel: i, mode: "major" }),
+      });
+      labels.push({
+        x: majMid.x, y: majMid.y, label: majorAt(i),
+        size: majSel ? 23 : 19, weight: majSel ? 700 : 600,
+        ink: majPaint.L < 0.58 ? "#f9f4e9" : "#1c1916",
+      });
+      // Everything key-relative lives on or outside the arc, so it all goes
+      // together when the arc is switched off.
+      if (showRing && inArc(step)) {
+        // The wedge keeps its fixed key name; what this key calls that note
+        // sits outside the ring, accented where the two disagree.
+        const spelled = scaleNotes[DEGREE_BY_STEP[String(step)] - 1];
+        const differs = spelled !== majorAt(i);
+        scaleNames.push({
+          ...pt(i * 30, OUTSIDE_R),
+          label: spelled,
+          weight: differs ? 700 : 600,
+          ink: differs ? "#8a4b2a" : "#6f675c",
+        });
+      }
+
+      const minSel = mode === "minor" && i === sel;
+      const minPaint = paintFor(step, i, minSel, true);
+      const minMid = pt(i * 30, (INNER[0] + INNER[1]) / 2);
+      wedges.push({
+        d: wedge(a0, a1, INNER[0], INNER[1]),
+        fill: minPaint.fill,
+        pick: () => this.setState({ sel: i, mode: "minor" }),
+      });
+      labels.push({
+        x: minMid.x, y: minMid.y, label: minorAt(i) + "m",
+        size: minSel ? 17 : 14, weight: minSel ? 700 : 500,
+        ink: minPaint.L < 0.58 ? "#f9f4e9" : "#33302a",
+      });
+    }
+
+    const [count, kind] = sigAt(sel);
+    const tonic = tonicNow;
+    const notes = scaleNotes;
+    const rangeList = rangeIndexed(scaleNotes, variant);
+
+    const isFlat = kind === "♭";
+    const order = isFlat ? FLAT_ORDER : SHARP_ORDER;
+    const staffSteps = isFlat ? FLAT_STAFF_STEPS : SHARP_STAFF_STEPS;
+    const newAcc = count === 0 ? null : order[count - 1] + kind;
+
+    // The flat glyph's bowl sits below its centre, so it rides a little
+    // higher than the sharp to land on the right line.
+    const sigGlyphs = [];
+    for (let k = 0; k < count; k += 1) {
+      sigGlyphs.push({
+        x: GLYPH_X0 + k * GLYPH_DX,
+        y: STAVE_TOP + staffSteps[k] * STAVE_STEP - (isFlat ? 6 : 0),
+        glyph: kind,
+        size: isFlat ? 32 : 26,
+        ink: k === count - 1 ? "#8a4b2a" : "#2b2620",
+      });
+    }
+    const panelMode = this.state.panel;
+
+    // 6a: the whole selected span on one system, noteheads sized to how
+    // many there are, and the box grown to fit whatever ledger lines the
+    // extremes demand.
+    const available = maxOctaves(rangeList, tonic);
+    const requested = this.state.span === "full" ? null : Math.min(this.state.span, Math.max(available, 1));
+    const shownRun = requested === null ? rangeList : (octaveRun(rangeList, tonic, requested) ?? rangeList);
+    const isFullSpan = requested === null;
+    const stave = buildStave(shownRun, { count, kind, staffSteps, tonic, withNames: showStaveNames });
+    const spanPills = [1, 2, 3, "full"]
+      .filter((v) => v === "full" || v <= available)
+      .map((v) => {
+        const active = v === "full" ? isFullSpan : !isFullSpan && v === requested;
+        return {
+          label: v === "full" ? "full" : `${v} oct`,
+          bg: active ? "#e7dcc6" : "transparent",
+          ink: active ? "#4a4136" : "#756c60",
+          pick: () => this.setState({ span: v }),
+        };
+      });
+
+    return {
+      ring, wedges, labels, numerals, scaleNames, sigGlyphs,
+      keyName: tonic + (mode === "major" ? " major" : " minor"),
+      pickSharp: () => this.setState({ spelling: "sharp" }),
+      pickFlat: () => this.setState({ spelling: "flat" }),
+      sharpBg: sharp ? "#e7dcc6" : "transparent",
+      sharpInk: sharp ? "#4a4136" : "#756c60",
+      flatBg: sharp ? "transparent" : "#e7dcc6",
+      flatInk: sharp ? "#756c60" : "#4a4136",
+      // The variant is the unit of selection (theory.instruments/REQ-001),
+      // so the collapsed pill has to name it, not just the instrument.
+      instrumentLabel: `${variant.instrument} ${variant.variant}`,
+      rangeLabel: `${variant.low}–${variant.high}`,
+      rangeSummary: rangeSummaryOf(rangeList),
+      stave, spanPills,
+      spanCaption: isFullSpan ? `all ${shownRun.length} in range` : `${requested} oct from ${tonic} · ${shownRun.length}`,
+      spanRowDisplay: panelMode === "stave" ? "flex" : "none",
+      namesMode: panelMode !== "stave",
+      staveMode: panelMode === "stave",
+      pickNames: () => this.setState({ panel: "names" }),
+      pickStave: () => this.setState({ panel: "stave" }),
+      namesBg: panelMode === "stave" ? "transparent" : "#e7dcc6",
+      namesInk: panelMode === "stave" ? "#756c60" : "#4a4136",
+      staveBg: panelMode === "stave" ? "#e7dcc6" : "transparent",
+      staveInk: panelMode === "stave" ? "#4a4136" : "#756c60",
+      openPicker: () => this.setState({ picker: true }),
+      closePicker: () => this.setState({ picker: false }),
+      pickerDisplay: picker ? "flex" : "none",
+      variants: VARIANTS.map((v, k) => ({
+        instrument: v.instrument,
+        variant: v.variant,
+        range: `${v.low}–${v.high}`,
+        tick: k === this.state.variant ? "✓" : "",
+        weight: k === this.state.variant ? 700 : 600,
+        bg: k === this.state.variant ? "rgba(138,75,42,.08)" : "transparent",
+        pick: () => this.setState({ variant: k, picker: false }),
+      })),
+      openSettings: () => this.setState({ settings: true }),
+      closeSettings: () => this.setState({ settings: false }),
+      drawerDisplay: settings ? "flex" : "none",
+      toggleStaveNames: () => this.setState({ staveNames: !showStaveNames }),
+      staveNamesTrack: showStaveNames ? "#8a4b2a" : "#c8bfad",
+      staveNamesKnobLeft: showStaveNames ? "19px" : "3px",
+      toggleDegrees: () => this.setState({ degrees: !showDegrees }),
+      degreesTrack: showDegrees ? "#8a4b2a" : "#c8bfad",
+      degreesKnobLeft: showDegrees ? "19px" : "3px",
+      toggleRing: () => this.setState({ ring: !showRing }),
+      ringTrack: showRing ? "#8a4b2a" : "#c8bfad",
+      ringKnobLeft: showRing ? "19px" : "3px",
+      // Names stay ink; the small mark above an accidental gives its place
+      // in the order the circle introduces them, with the one this key just
+      // added picked out in the accent.
+      scale: notes.map((name, k) => {
+        // The degree ties each name back to the numbered position on the
+        // arc, so it follows the same setting.
+        const deg = showDegrees ? String(k + 1) : "";
+        if (name.length === 1) return { name, deg, mark: "", markInk: "#6f675c", markWeight: 500 };
+        const orderIndex = order.indexOf(name[0]);
+        const isNewest = orderIndex === count - 1;
+        return {
+          name, deg,
+          mark: `${kind}${orderIndex + 1}`,
+          markInk: isNewest ? "#8a4b2a" : "#6f675c",
+          markWeight: isNewest ? 700 : 500,
+        };
+      }),
+    };
+  }
+}
+</script>
+</body>
+</html>
