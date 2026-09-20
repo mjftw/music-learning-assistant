@@ -63,7 +63,7 @@ sdd_phase: in-progress
 
 ### T002 · — · Design-shots script for the review loop
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `scripts/design-shots.mjs`
