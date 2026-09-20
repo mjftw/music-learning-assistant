@@ -112,7 +112,7 @@ One line each, newest last.
    - Expect: every displayed note moves down exactly one octave.
 6. The user signs off; their verdict is recorded here verbatim.
 
-**User verdict:** _pending_
+**User verdict:** Accepted — "Yep seems to work correctly. The UI is terrible but we'll do that in the next change, this one is done." UI/visual polish deliberately deferred to a later change; functional acceptance passed.
 
 ### `pnpm check` output (T011)
 
