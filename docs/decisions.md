@@ -59,3 +59,11 @@ tags: [sdd, decisions]
 2026-09-19 · 001-the-circle · Rust deferred to 004, not used for 001–003 · user weighed Rust-brain options and chose TS-now; theory logic is trivial compute feeding the view
 2026-09-19 · 001-the-circle · All code lives under src/<dir>/ — app entry is src/ui/index.html + main.tsx (Vite root); tooling manifests at repo root are the accepted exception; tests/ at root · repo will hold more than the web app; no loose code at the root
 2026-09-20 · init · Roadmap slice 002 inserted: circle-redesign (theory.circle-of-fifths modifies), pushing hear-the-scale etc. to 003-008 · shipped UI is unusable by the user's own verdict; corrective, not enrichment, so it sits above the cut line before more UI is built on the same patterns
+2026-09-20 · 002-circle-redesign · The prototype (Circle 1c Function Paper) wins on every visual and interaction divergence from shipped behaviour · "doing the prototype UI helped refine how I want the product to behave"
+2026-09-20 · 002-circle-redesign · Enharmonic display: one global ♯/♭ spelling preference over all three dual positions, replacing both-spellings-at-position · modifies theory.circle-of-fifths/REQ-002; less crowded, per the prototype
+2026-09-20 · 002-circle-redesign · New-accidental accent: signature glyph only in stave view; accidental-order marks in names view · modifies REQ-004 rendering, per the prototype
+2026-09-20 · 002-circle-redesign · REQ-007 restructured: names/stave panel switch + stave-names setting; new settings: scale degrees, distance ring · per the prototype's settings drawer
+2026-09-20 · 002-circle-redesign · All six new preferences persist with the selection; one schema bump, defaults for old state · consistent with REQ-008
+2026-09-20 · 002-circle-redesign · Laptop renders the phone-proportioned column centred (~400px); wide layouts are a later change · the handoff contains no widescreen design
+2026-09-20 · 002-circle-redesign · Span (1/2/3 oct/full stave display) is a new concept, distinct from Traversal (playback, 003) · display has no walking semantics; avoid premature coupling
+2026-09-20 · 002-circle-redesign · Acceptance: prototype side-by-side on the phone + functional walk; closes 001's phone-legibility question · user signs off

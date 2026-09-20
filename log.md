@@ -4,6 +4,7 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-20
 
+- Intent `changes/002-circle-redesign/intent.md` → resolved (human:merlin-webster)
 - Roadmap `docs/roadmap.md` → approved (human:merlin-webster)
 - Roadmap `docs/roadmap.md` → approved (human:merlin-webster)
 - Glossary `docs/glossary.md` → approved (human:merlin-webster)
