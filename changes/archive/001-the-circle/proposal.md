@@ -17,7 +17,7 @@ verified:
     at: 2026-09-19T16:28:19Z
 sdd_id: 001-the-circle
 sdd_context: theory
-sdd_phase: approved
+sdd_phase: merged
 sdd_constitution: 1.0.0
 ---
 

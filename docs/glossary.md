@@ -13,6 +13,8 @@ generated:
 verified:
   - by: human:merlin-webster
     at: 2026-09-19T15:48:37Z
+  - by: human:merlin-webster
+    at: 2026-09-20T18:53:54Z
 sdd_phase: approved
 ---
 
@@ -32,6 +34,7 @@ sdd_phase: approved
 | Note | `theory` (shared with `practice`) | A named position in music: name + octave, with a pitch under the chosen temperament (e.g. F♯4) | Detected pitch — what the learner actually produced | intent-product |
 | Detected pitch | `listening` | What the microphone heard: a frequency (Hz) with a confidence and a time — near or far from any note | Note — the thing the learner was aiming at | domain map |
 | Instrument | `theory` (shared with `practice`) | A thing the user plays: a name and a playable range (e.g. flute, ocarina) | The app or its sounds; "instrument" always means the physical one | intent-product |
+| Variant | `theory` | A concrete, playable form of an instrument, with its own range (e.g. Ocarina Alto C) | Instrument — the tier above; a variant is what's actually selected and played | 001-the-circle |
 | Range | `theory` | The lowest to highest note an instrument can play; every generated sequence stays inside it | — | product brief |
 | Key | `theory` | A tonal centre and its accidentals (e.g. B♭ major); a position on the circle of fifths | Scale — the notes played in that key | intent-product |
 | Scale | `theory` | The ordered notes of a key, played as an exercise | Arpeggio; Key | intent-product |
