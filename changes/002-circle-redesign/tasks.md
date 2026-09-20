@@ -158,7 +158,7 @@ sdd_phase: in-progress
 
 ### T004 [P] · theory.circle-of-fifths/REQ-011 (S1, S2, S3) · Span choices and span notes
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/theory/domain/span.ts`

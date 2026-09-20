@@ -10,6 +10,8 @@ export type { ArcPosition, SpellingPreference } from "../domain/arc";
 export { arcOf, spelledMajorAt, spelledMinorAt } from "../domain/arc";
 export type { KeyView, KeyViewNote } from "../domain/key-view";
 export { keyView } from "../domain/key-view";
+export type { Span, SpanChoice } from "../domain/span";
+export { spanChoicesOf, spanNotesOf } from "../domain/span";
 export type {
   Catalogue,
   CatalogueNotice,
