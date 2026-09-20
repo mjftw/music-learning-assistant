@@ -87,7 +87,7 @@ sdd_phase: in-progress
 
 ### T003 [P] · theory.circle-of-fifths/REQ-009 (S1, S2), REQ-010 (S1 arc), REQ-001 (S1) · Arc positions and preference spelling
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/theory/domain/arc.ts`

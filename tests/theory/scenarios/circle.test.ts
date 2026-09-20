@@ -1,5 +1,9 @@
 import { expect, test } from "vitest";
-import { circleOfFifths, keyId } from "../../../src/theory/published";
+import {
+  circleOfFifths,
+  keyId,
+  spelledMajorAt,
+} from "../../../src/theory/published";
 const spell = (key: { tonic: { letter: string; accidental: string } }) =>
   `${key.tonic.letter}${key.tonic.accidental === "sharp" ? "#" : key.tonic.accidental === "flat" ? "b" : ""}`;
 test("theory.circle-of-fifths/REQ-001/S1 — the rings are complete and aligned", () => {
@@ -30,4 +34,40 @@ test("theory.circle-of-fifths/REQ-002/S1 — six o’clock offers both F# and Gb
   const sixOClock = circleOfFifths()[6]!;
   expect(sixOClock.majors.map(spell).sort()).toEqual(["F#", "Gb"]);
   expect(new Set(sixOClock.majors.map(keyId)).size).toBe(2);
+});
+test("theory.circle-of-fifths/REQ-001/S1 — sharp preference reads the ring C G D A E B F# C# Ab Eb Bb F", () => {
+  const readings = circleOfFifths().map((position) =>
+    spell(spelledMajorAt(position, "sharp")),
+  );
+  expect(readings).toEqual([
+    "C",
+    "G",
+    "D",
+    "A",
+    "E",
+    "B",
+    "F#",
+    "C#",
+    "Ab",
+    "Eb",
+    "Bb",
+    "F",
+  ]);
+  const flatReadings = circleOfFifths().map((position) =>
+    spell(spelledMajorAt(position, "flat")),
+  );
+  expect(flatReadings).toEqual([
+    "C",
+    "G",
+    "D",
+    "A",
+    "E",
+    "Cb",
+    "Gb",
+    "Db",
+    "Ab",
+    "Eb",
+    "Bb",
+    "F",
+  ]);
 });

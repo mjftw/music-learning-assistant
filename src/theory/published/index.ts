@@ -6,6 +6,8 @@ export type { Signature, SignatureKind } from "../domain/signatures";
 export { newAccidentalOf, relativeOf, signatureOf } from "../domain/signatures";
 export type { CirclePosition } from "../domain/circle";
 export { circleOfFifths } from "../domain/circle";
+export type { ArcPosition, SpellingPreference } from "../domain/arc";
+export { arcOf, spelledMajorAt, spelledMinorAt } from "../domain/arc";
 export type { KeyView, KeyViewNote } from "../domain/key-view";
 export { keyView } from "../domain/key-view";
 export type {

@@ -24,3 +24,7 @@ One line each, newest last.
 - Design pipeline confirmed working end to end: prototype PNG matches the vendored design exactly (arc, degrees, names, footer).
 - Google Fonts requests aborted for hermetic shots; dev server spawned/torn down only when needed; failures propagate (no silent blank PNGs).
 - Minor (non-blocking): text-based click locators could silently break on a future prototype edit.
+
+## T003 (2026-09-20)
+- PASS/PASS. arcOf, spelledMajorAt/spelledMinorAt land clean; A major's Ab-wedge → G# scaleName traced correctly.
+- Minor: two tests share scenario id REQ-001/S1 by design (raw circle vs. derived reading) — brief-directed, not a defect.
