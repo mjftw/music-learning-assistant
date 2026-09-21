@@ -3,13 +3,17 @@ import {
   circleOfFifths,
   keyId as keyIdOf,
   keyView,
+  spelledMajorAt,
+  spelledMinorAt,
   type Catalogue,
   type Key,
+  type Mode,
   type Signature,
+  type SpellingPreference,
   type Variant,
 } from "../theory/published";
 import { findVariantById } from "./catalogue-lookup";
-import { CircleOfFifths } from "./CircleOfFifths";
+import { CircleOfFifths, locateSpelledKey } from "./CircleOfFifths";
 import { InstrumentSelector } from "./InstrumentSelector";
 import { keyLabel, pitchClassLabel } from "./key-label";
 import { KeyViewStave } from "./KeyViewStave";
@@ -19,19 +23,14 @@ import {
   type SelectionStore,
   type StoredSelection,
 } from "./selection-store";
+import { fonts } from "./theme";
 
 const DEFAULT_VARIANT_ID = "flute-concert";
 const DEFAULT_KEY_ID = "C-major";
+// The 001 stave note-names toggle's own default, kept independent of
+// `firstRunDefaults.staveNamesEnabled` — this is the temporary bridge
+// T007-T011 replace, not the new preference set (see additional context).
 const DEFAULT_NOTE_NAMES_VISIBLE = true;
-
-function findKeyById(keyId: string): Key | undefined {
-  for (const position of circleOfFifths()) {
-    for (const key of [...position.majors, ...position.minors]) {
-      if (keyIdOf(key) === keyId) return key;
-    }
-  }
-  return undefined;
-}
 
 function variantLabel(variant: Variant): string {
   return `${variant.instrumentName} — ${variant.variantName}`;
@@ -50,16 +49,32 @@ function signatureSummary(signature: Signature): string {
   return `${signature.count} ${kindLabel} (${accidentalsLabel})`;
 }
 
+// The selection is kept keyed by circle position, not by key id — a
+// respell (theory.circle-of-fifths/REQ-002/S2) then falls out of re-deriving
+// the key from the same position under the new spelling, rather than the UI
+// having to special-case it.
 interface Selection {
   readonly variantId: string;
-  readonly keyId: string;
+  readonly positionIndex: number;
+  readonly mode: Mode;
+  readonly spelling: SpellingPreference;
+  readonly degreesEnabled: boolean;
+  readonly distanceRingEnabled: boolean;
   readonly noteNamesVisible: boolean;
 }
 
 function defaultSelection(): Selection {
+  const located = locateSpelledKey(DEFAULT_KEY_ID, firstRunDefaults.spelling);
+  if (located === undefined) {
+    throw new Error("unreachable: default key is not on the circle of fifths");
+  }
   return {
     variantId: DEFAULT_VARIANT_ID,
-    keyId: DEFAULT_KEY_ID,
+    positionIndex: located.position.index,
+    mode: located.key.mode,
+    spelling: firstRunDefaults.spelling,
+    degreesEnabled: firstRunDefaults.degreesEnabled,
+    distanceRingEnabled: firstRunDefaults.distanceRingEnabled,
     noteNamesVisible: DEFAULT_NOTE_NAMES_VISIBLE,
   };
 }
@@ -71,11 +86,15 @@ function initialSelection(
   const stored = selectionStore.load();
   if (stored === null) return defaultSelection();
   const variant = findVariantById(catalogue, stored.variantId);
-  const key = findKeyById(stored.keyId);
-  if (variant === undefined || key === undefined) return defaultSelection();
+  const located = locateSpelledKey(stored.keyId, stored.spelling);
+  if (variant === undefined || located === undefined) return defaultSelection();
   return {
     variantId: stored.variantId,
-    keyId: stored.keyId,
+    positionIndex: located.position.index,
+    mode: located.key.mode,
+    spelling: stored.spelling,
+    degreesEnabled: stored.degreesEnabled,
+    distanceRingEnabled: stored.distanceRingEnabled,
     noteNamesVisible: stored.staveNamesEnabled,
   };
 }
@@ -89,26 +108,34 @@ export function App(props: {
     initialSelection(catalogue, selectionStore),
   );
 
+  const position = circleOfFifths()[selection.positionIndex];
+  if (position === undefined) {
+    throw new Error("unreachable: selection position index out of range");
+  }
+  const selectedKey =
+    selection.mode === "major"
+      ? spelledMajorAt(position, selection.spelling)
+      : spelledMinorAt(position, selection.spelling);
+
   useEffect(() => {
     const toSave: StoredSelection = {
       ...firstRunDefaults,
       variantId: selection.variantId,
-      keyId: selection.keyId,
+      keyId: keyIdOf(selectedKey),
+      spelling: selection.spelling,
+      degreesEnabled: selection.degreesEnabled,
+      distanceRingEnabled: selection.distanceRingEnabled,
       staveNamesEnabled: selection.noteNamesVisible,
     };
     selectionStore.save(toSave);
-  }, [selection, selectionStore]);
+  }, [selection, selectedKey, selectionStore]);
 
-  // initialSelection already resolved variantId/keyId to values that exist
-  // in this catalogue/circle before this state was set (falling back to the
-  // default when they didn't), so these always resolve; no further fallback
-  // is needed here.
+  // initialSelection already resolved variantId to a value that exists in
+  // this catalogue (falling back to the default when it didn't), so this
+  // always resolves; no further fallback is needed here.
   const variant = findVariantById(catalogue, selection.variantId);
-  const key = findKeyById(selection.keyId);
   const view =
-    key === undefined || variant === undefined
-      ? undefined
-      : keyView(key, variant);
+    variant === undefined ? undefined : keyView(selectedKey, variant);
 
   return (
     <div>
@@ -123,25 +150,40 @@ export function App(props: {
           }))
         }
       />
-      <p data-testid="current-key">{key === undefined ? "" : keyLabel(key)}</p>
+      <div
+        data-testid="current-key"
+        style={{ fontFamily: fonts.display, fontSize: 46 }}
+      >
+        {keyLabel(selectedKey)}
+      </div>
       <p data-testid="current-variant">
         {variant === undefined ? "" : variantLabel(variant)}
       </p>
       <p data-testid="relative-key">
-        {key === undefined || view === undefined
-          ? ""
-          : relativeKeyLabel(key, view.relative)}
+        {view === undefined ? "" : relativeKeyLabel(selectedKey, view.relative)}
       </p>
       <p data-testid="signature-summary">
         {view === undefined ? "" : signatureSummary(view.signature)}
       </p>
       <CircleOfFifths
-        selectedKeyId={selection.keyId}
-        onSelect={(selectedKey) =>
+        selectedKeyId={keyIdOf(selectedKey)}
+        spelling={selection.spelling}
+        degreesEnabled={selection.degreesEnabled}
+        distanceRingEnabled={selection.distanceRingEnabled}
+        onSelectKey={(selectedWedgeKey) => {
+          const located = locateSpelledKey(
+            keyIdOf(selectedWedgeKey),
+            selection.spelling,
+          );
+          if (located === undefined) return;
           setSelection((current) => ({
             ...current,
-            keyId: keyIdOf(selectedKey),
-          }))
+            positionIndex: located.position.index,
+            mode: located.key.mode,
+          }));
+        }}
+        onSelectSpelling={(preference) =>
+          setSelection((current) => ({ ...current, spelling: preference }))
         }
       />
       {view === undefined ? null : (

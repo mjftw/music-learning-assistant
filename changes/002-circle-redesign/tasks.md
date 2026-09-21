@@ -275,7 +275,7 @@ sdd_phase: in-progress
 
 ### T006 · theory.circle-of-fifths/REQ-001 (S2), REQ-002 (S1, S2) · The circle rebuilt: wedges, hues, ring, centre disc, ♯/♭ pill
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/CircleOfFifths.tsx` (full rebuild), `src/ui/App.tsx` (spelling/degrees/ring state from `firstRunDefaults`; key title element)

@@ -37,3 +37,9 @@ One line each, newest last.
 - Minor: schema is z.union not z.discriminatedUnion (behaviourally verified equivalent: v2 passes, v1 migrates, junk → null, never throws).
 - Minor: brief's test import path was one level shallow; implementer corrected it silently — briefs for tests/ui/scenarios must use ../../../src/.
 - Note for T011: App currently maps its old noteNamesVisible state onto staveNamesEnabled as a temporary bridge — T011 replaces it.
+
+## T006 (2026-09-21)
+- PASS/PASS. Reviewer verified every circle constant value-for-value against the reference; arc driven by published arcOf; selection keyed by position+ring so the respell follows structurally. c-major and e-minor screenshot pairs match essentially pixel-for-pixel in the circle region.
+- For T012: (1) design-shots `gb-flat-spelling` app driver must click the `flat` pill before `G♭ major` — that pair has never truly been compared; (2) route the prototype's Google Fonts requests to the local @fontsource files so pairs compare on equal typography; (3) the ♯/♭ pill's layout literals in CircleOfFifths.tsx should become named constants like the rest of the file.
+- Trap for T007–T011: the 001 note-names bridge keeps DEFAULT_NOTE_NAMES_VISIBLE = true, deliberately separate from firstRunDefaults.staveNamesEnabled (false), until the old panel is replaced.
+- Controller process correction (user): explicit `model` on every dispatch; visual comparison belongs to the reviewer subagent, not the main session.
