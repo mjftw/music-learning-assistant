@@ -501,6 +501,25 @@ sdd_phase: in-progress
 
 **Verify** — `pnpm check` → exit 0; `./scripts/check-scenarios.sh --change changes/002-circle-redesign` → no gaps; acceptance walk-through present with verdict pending
 
+### T014 · — · Remove the play-along footer placeholder (user decision 2026-09-21) · `Trivial`
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/App.tsx` (delete the footer placeholder block and every constant only it uses)
+- Modify: `scripts/design-shots.mjs` only if a state driver depends on the footer (it should not)
+
+**Interfaces**
+- Consumes / Produces: nothing — pure removal
+
+**Steps**
+- [ ] 1. `grep -rn "PLAY ALONG\|footer" src tests scripts` — list every reference; confirm no test asserts on the footer (if one does, stop and report rather than deleting the assertion)
+- [ ] 2. Delete the footer placeholder JSX block from `src/ui/App.tsx` and every `FOOTER_*` (or similarly named) constant that only it used; keep the column layout (max-width 390px, min-height 100vh, position relative, overflow hidden) exactly as is
+- [ ] 3. Run `pnpm check` — expect green, 52 tests; run `pnpm build` — expect success
+- [ ] 4. `grep -rn "PLAY ALONG" src` — expect no matches
+
+**Verify** — `pnpm check` → exit 0; `grep -rn "PLAY ALONG" src` → no output
+
 ## Coverage
 
 | Requirement | Tasks | Covered |
@@ -533,7 +552,6 @@ sdd_phase: in-progress
 ## Deferred
 
 - Wide/desktop layout — decision 2026-09-20; a later change.
-- Removing the dashed footer placeholder — it leaves with change 003's real
-  play-along bar.
+- ~~Removing the dashed footer placeholder with change 003~~ — superseded: the user removed it in this change (T014, decision 2026-09-21).
 - The vendored design's other studies (1a, 1b, colour studies) — reference
   history only; 1c is the binding design.

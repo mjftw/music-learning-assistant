@@ -71,3 +71,4 @@ tags: [sdd, decisions]
 2026-09-20 · 002-circle-redesign · Fonts self-hosted via @fontsource (4 packages); the prototype's Google Fonts CDN violates Article VII · zero runtime network requests
 2026-09-20 · 002-circle-redesign · fast-check and @vitest/coverage-v8 removed as unused; re-add when something needs them · Article VIII
 2026-09-20 · 002-circle-redesign · The prototype is vendored into the change (design/) and a screenshot-driven design-review loop iterates the implementation against it until the user is satisfied; dev-only Playwright drives it · the reference must live in the repo, and fidelity is reached by iteration, not one final glance
+2026-09-21 · 002-circle-redesign · Remove the dashed "PLAY ALONG · DRONE · TEMPO" footer placeholder now; supersedes the intent/proposal line that it stays until 003 · "that'll be implemented in later changes for real so we don't need the mockup yet" — a deliberate departure from the prototype in that one region

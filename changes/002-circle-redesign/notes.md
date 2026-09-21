@@ -92,3 +92,10 @@ Work-list items applied first (T011's accumulated findings):
 ### Design review — round 2
 
 Re-ran `pnpm design:shots` for all six states after round 1's fixes and re-compared every pair (full-frame + crops: header pill lettering, settings-drawer wrapping, wedge focus ring, sharp/flat pill, span/names pills, key-name serif heading, stave). No further visible difference found. The remaining `compare -metric AE` pixel counts are uniform thin double-edge anti-aliasing along every shape boundary (confirmed by reading the diff overlays), not a localised shift or a real geometry/colour/type mismatch — expected and explicitly out of scope per plan.md ("anti-aliasing and font rasterisation differ run-to-run... judgement stays human-plus-agent", not a pixel-diff gate). Converged at round 2, within the 4-round cap.
+
+## Design review — user verdict (2026-09-21)
+Presented all six prototype/app screenshot pairs (equal self-hosted fonts on both sides). Independent reviewer: all six match; one ~2px drawer-divider offset, imperceptible at 1:1.
+**User response, verbatim:** "Matches — proceed"
+
+## User decision (2026-09-21) — footer placeholder removed
+After the design review: "Looks great! You can remove the 'play along' area at the bottom though as that'll be implemented in later changes for real so we don't need the mockup yet." Logged in docs/decisions.md. Consequence for converge and the screenshot pairs: the bottom-of-column region now DELIBERATELY differs from the prototype (no dashed footer); no requirement in the delta mentions the footer, so the spec is unaffected. Tracked as T014.
