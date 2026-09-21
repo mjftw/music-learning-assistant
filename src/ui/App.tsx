@@ -52,6 +52,10 @@ const KEY_NAME_ROW_PADDING = "6px 16px 0";
 const KEY_NAME_FONT_SIZE = 46;
 
 const CIRCLE_WRAPPER_MARGIN = "0 auto";
+// Not from the reference (a fixed 390×844 screenshot has no wider viewport
+// to centre within) — this app's own choice for how the column behaves on
+// a viewport wider than 390px.
+const COLUMN_CENTERING_MARGIN = "0 auto";
 
 const FOOTER_OUTER_PADDING = "12px 16px 20px";
 const FOOTER_CARD_PADDING = "13px 14px";
@@ -264,7 +268,7 @@ export function App(props: {
         flexDirection: "column",
         maxWidth: COLUMN_MAX_WIDTH,
         minHeight: COLUMN_MIN_HEIGHT,
-        margin: "0 auto",
+        margin: COLUMN_CENTERING_MARGIN,
         overflow: "hidden",
         background: COLUMN_BACKGROUND,
         color: paper.ink,

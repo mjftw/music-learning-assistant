@@ -11,9 +11,13 @@ const CARD_BACKGROUND = paper.card;
 const CARD_BORDER = `1px solid ${paper.borderSoft}`;
 const CARD_RADIUS = 14;
 
-const SUMMARY_ROW_MARGIN_TOP = 10;
-const SUMMARY_ROW_PADDING_TOP = 9;
-const SUMMARY_ROW_BORDER = `1px solid ${paper.hairline}`;
+// Shared by both bordered rows below the card's content — the span row
+// (stave view only) and the summary row (always shown) sit on an identical
+// top rule in the vendored visual reference, so one set of constants names
+// it once rather than each row aliasing its own copy.
+const ROW_MARGIN_TOP = 10;
+const ROW_PADDING_TOP = 9;
+const ROW_BORDER = `1px solid ${paper.hairline}`;
 
 const SUMMARY_TEXT_FONT_SIZE = 10.5;
 const SUMMARY_TEXT_LETTER_SPACING = "0.02em";
@@ -23,25 +27,26 @@ const PILL_BORDER = "#e0d7c5";
 const PILL_ACTIVE_BACKGROUND = paper.pillActive;
 const PILL_ACTIVE_INK = "#4a4136";
 const PILL_INACTIVE_INK = "#756c60";
-const PILL_PADDING = "4px 11px 5px";
+const PILL_LINE_HEIGHT = 1.2;
 const PILL_FONT_SIZE = 11;
 const PILL_FONT_WEIGHT = 600;
+const PILL_PADDING = "4px 11px 5px";
 
 // The span row's own pills (theory.circle-of-fifths/REQ-011) sit loose,
 // not inside a shared bordered group like the names/stave pair above —
 // each one is individually rounded, per the vendored visual reference.
-const SPAN_ROW_MARGIN_TOP = SUMMARY_ROW_MARGIN_TOP;
-const SPAN_ROW_PADDING_TOP = SUMMARY_ROW_PADDING_TOP;
-const SPAN_ROW_BORDER = SUMMARY_ROW_BORDER;
 const SPAN_PILL_GAP = 4;
 const SPAN_PILL_PADDING = "4px 8px 5px";
+const SPAN_PILL_BORDER_RADIUS = 999;
 
-function pillStyle(active: boolean): CSSProperties {
+// Both pill kinds share colour, weight and line-height; only padding,
+// monospacing and individual rounding (the span pills' loose-pill look)
+// differ per caller.
+function basePillStyle(active: boolean): CSSProperties {
   return {
-    padding: PILL_PADDING,
     fontSize: PILL_FONT_SIZE,
     fontWeight: PILL_FONT_WEIGHT,
-    lineHeight: 1.2,
+    lineHeight: PILL_LINE_HEIGHT,
     color: active ? PILL_ACTIVE_INK : PILL_INACTIVE_INK,
     background: active ? PILL_ACTIVE_BACKGROUND : "transparent",
     border: "none",
@@ -49,18 +54,16 @@ function pillStyle(active: boolean): CSSProperties {
   };
 }
 
+function pillStyle(active: boolean): CSSProperties {
+  return { ...basePillStyle(active), padding: PILL_PADDING };
+}
+
 function spanPillStyle(active: boolean): CSSProperties {
   return {
+    ...basePillStyle(active),
     padding: SPAN_PILL_PADDING,
     fontFamily: fonts.mono,
-    fontSize: PILL_FONT_SIZE,
-    fontWeight: PILL_FONT_WEIGHT,
-    lineHeight: 1.2,
-    color: active ? PILL_ACTIVE_INK : PILL_INACTIVE_INK,
-    background: active ? PILL_ACTIVE_BACKGROUND : "transparent",
-    border: "none",
-    borderRadius: 999,
-    cursor: "pointer",
+    borderRadius: SPAN_PILL_BORDER_RADIUS,
     whiteSpace: "nowrap",
   };
 }
@@ -106,9 +109,9 @@ export function KeyPanel(props: {
       {view === "stave" && (
         <div
           style={{
-            marginTop: SPAN_ROW_MARGIN_TOP,
-            paddingTop: SPAN_ROW_PADDING_TOP,
-            borderTop: SPAN_ROW_BORDER,
+            marginTop: ROW_MARGIN_TOP,
+            paddingTop: ROW_PADDING_TOP,
+            borderTop: ROW_BORDER,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -147,9 +150,9 @@ export function KeyPanel(props: {
       )}
       <div
         style={{
-          marginTop: SUMMARY_ROW_MARGIN_TOP,
-          paddingTop: SUMMARY_ROW_PADDING_TOP,
-          borderTop: SUMMARY_ROW_BORDER,
+          marginTop: ROW_MARGIN_TOP,
+          paddingTop: ROW_PADDING_TOP,
+          borderTop: ROW_BORDER,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",

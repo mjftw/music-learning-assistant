@@ -8,7 +8,7 @@
 
 import { chromium } from "playwright";
 import { spawn } from "node:child_process";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -27,7 +27,62 @@ const VIEWPORT = { width: 390, height: 844 };
 const DEVICE_SCALE_FACTOR = 2;
 const DEV_SERVER_POLL_INTERVAL_MS = 500;
 const DEV_SERVER_TIMEOUT_MS = 30_000;
-const BLOCKED_FONT_HOSTS = ["fonts.googleapis.com", "fonts.gstatic.com"];
+// The prototype's <link> pulls the same four @fontsource families the app
+// imports in src/ui/main.tsx (Instrument Serif 400, Noto Music 400, Public
+// Sans 400/500/600/700, JetBrains Mono 400/500/600) — routing its Google
+// Fonts request to the *same* locally vendored CSS+woff2 files makes the
+// prototype/app screenshot pairs a fair typography comparison instead of
+// falling back to system fonts on one side only.
+const FONT_STYLESHEET_HOST = "fonts.googleapis.com";
+const FONT_FILE_HOST = "fonts.gstatic.com";
+const FONT_FILE_URL_PREFIX = `https://${FONT_FILE_HOST}/s/`;
+const FONTSOURCE_DIR = path.join(REPO_ROOT, "node_modules", "@fontsource");
+const FONT_STYLESHEETS = [
+  ["instrument-serif", "index.css"],
+  ["noto-music", "index.css"],
+  ["public-sans", "index.css"],
+  ["public-sans", "500.css"],
+  ["public-sans", "600.css"],
+  ["public-sans", "700.css"],
+  ["jetbrains-mono", "index.css"],
+  ["jetbrains-mono", "500.css"],
+  ["jetbrains-mono", "600.css"],
+];
+
+// Builds one stylesheet out of the vendored @font-face rules, rewriting each
+// relative `url(./files/…)` to an absolute fonts.gstatic.com URL so the
+// prototype's <link> — which points at that host — can be answered with it,
+// and the individual font files can then be routed from the same package.
+async function buildLocalFontStylesheet() {
+  const sheets = await Promise.all(
+    FONT_STYLESHEETS.map(([pkg, file]) =>
+      readFile(path.join(FONTSOURCE_DIR, pkg, file), "utf8"),
+    ),
+  );
+  return sheets
+    .join("\n")
+    .replaceAll("url(./files/", `url(${FONT_FILE_URL_PREFIX}`);
+}
+
+// Every @font-face src the stylesheet above references lives under one of
+// the four packages' files/ directories, named uniquely (each filename
+// already carries its package prefix) — so the font file it requests can be
+// found by basename alone, without re-deriving which package/weight it is.
+async function readLocalFontFile(fileName) {
+  for (const [pkg] of FONT_STYLESHEETS) {
+    const candidate = path.join(FONTSOURCE_DIR, pkg, "files", fileName);
+    try {
+      return await readFile(candidate);
+    } catch {
+      // Not in this package's files/ directory — try the next.
+    }
+  }
+  throw new Error(`no local font file found for ${fileName}`);
+}
+
+function fontFileContentType(fileName) {
+  return fileName.endsWith(".woff2") ? "font/woff2" : "font/woff";
+}
 
 // Mirrors the geometry constants in the prototype's own script (the .dc.html
 // has no build step to import them from) so wedge clicks land correctly
@@ -110,6 +165,7 @@ const STATES = {
       await clickPrototypeWedge(page, GB_POSITION_INDEX, OUTER_RING_MID_RADIUS);
     },
     app: async (page) => {
+      await page.getByRole("button", { name: "flat" }).click();
       await page.getByRole("button", { name: "G♭ major" }).click();
     },
   },
@@ -126,7 +182,16 @@ const STATES = {
     },
   },
   "settings-open": {
+    // Same C-major correction as c-major-names above — without it this pair
+    // would compare the settings drawer over two different keys (the
+    // prototype's leftover G major behind it vs. the app's real C major
+    // default), which is no comparison of the drawer at all.
     prototype: async (page) => {
+      await clickPrototypeWedge(
+        page,
+        C_MAJOR_POSITION_INDEX,
+        OUTER_RING_MID_RADIUS,
+      );
       await clickPrototypeText(page, "⚙");
     },
     app: async (page) => {
@@ -134,7 +199,13 @@ const STATES = {
     },
   },
   "picker-open": {
+    // Same C-major correction as c-major-names above (see settings-open).
     prototype: async (page) => {
+      await clickPrototypeWedge(
+        page,
+        C_MAJOR_POSITION_INDEX,
+        OUTER_RING_MID_RADIUS,
+      );
       await clickPrototypeText(page, "Flute Concert");
     },
     app: async (page) => {
@@ -211,13 +282,27 @@ function stopDevServer(child) {
   }
 }
 
-// Google Fonts is unreachable in some environments this runs in; abort those
-// requests rather than fail the page load, accepting the system-font
-// fallback in the shot (noted in the design-review report, not asserted on).
-async function abortGoogleFontRequests(page) {
-  await page.route("**/*", (route) => {
-    const { hostname } = new URL(route.request().url());
-    if (BLOCKED_FONT_HOSTS.includes(hostname)) return route.abort();
+// Google Fonts is unreachable in some environments this runs in (and would
+// serve different bytes than the app's self-hosted, pinned @fontsource
+// versions even where it is reachable), so the prototype's request for it is
+// answered locally instead: the stylesheet request gets the vendored
+// @font-face rules, and each font file request gets the matching local
+// woff2/woff bytes — the same files src/ui/main.tsx imports for the app.
+async function fulfillGoogleFontRequests(page) {
+  const stylesheet = await buildLocalFontStylesheet();
+  await page.route("**/*", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.hostname === FONT_STYLESHEET_HOST) {
+      return route.fulfill({ contentType: "text/css", body: stylesheet });
+    }
+    if (url.hostname === FONT_FILE_HOST) {
+      const fileName = url.pathname.replace(/^\/s\//, "");
+      const body = await readLocalFontFile(fileName);
+      return route.fulfill({
+        contentType: fontFileContentType(fileName),
+        body,
+      });
+    }
     return route.continue();
   });
 }
@@ -228,7 +313,7 @@ async function screenshotPrototype(browser, stateName) {
     deviceScaleFactor: DEVICE_SCALE_FACTOR,
   });
   const page = await context.newPage();
-  await abortGoogleFontRequests(page);
+  await fulfillGoogleFontRequests(page);
   await page.goto(pathToFileURL(PROTOTYPE_PATH).href);
   await page.locator('svg[aria-label="Circle of fifths"]').waitFor();
   await STATES[stateName].prototype(page);

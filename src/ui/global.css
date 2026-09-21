@@ -8,3 +8,33 @@ body {
   margin: 0;
   background: #ddd6c7;
 }
+
+/* Circle wedges (src/ui/CircleOfFifths.tsx) are keyboard-activatable
+   (role="button" tabIndex={0}), but the browser's default focus ring is a
+   pointer-click artefact the vendored screenshot never shows — suppress it
+   for pointer/programmatic focus and give keyboard focus its own visible
+   treatment instead, so Tab-navigation stays legible without disagreeing
+   with the reference on a mouse click. */
+.circle-wedge {
+  outline: none;
+}
+.circle-wedge:focus-visible {
+  /* #8a4b2a mirrors paper.accent (src/ui/theme.ts) — CSS has no import, so
+     the value is copied, not derived; keep the two in sync by hand. */
+  outline: 2px solid #8a4b2a;
+  outline-offset: -2px;
+}
+
+/* The browser's UA stylesheet gives <button> its own system font instead of
+   inheriting the page's (App.tsx sets fontFamily: fonts.body on the root
+   column) — the vendored reference has no such gap, since its interactive
+   elements are plain <div onClick> rather than real buttons. Round 1 of the
+   design-review loop (002 T012) found every button rendering in Arial
+   instead of Public Sans/JetBrains Mono once fonts were served fairly on
+   both sides (design-shots' font fulfilment). `font: inherit` restores the
+   inheritance; each button's own inline fontSize/fontWeight still wins
+   where set, since inline style beats any stylesheet rule regardless of
+   this selector's specificity. */
+button {
+  font: inherit;
+}

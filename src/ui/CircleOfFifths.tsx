@@ -34,6 +34,12 @@ const OUTSIDE_NAME_RADIUS = 170;
 const WEDGE_STROKE = paper.frame;
 const WEDGE_STROKE_WIDTH = 1.8;
 
+// Not in the reference (a static screenshot has no focus state) — hooks the
+// wedge to global.css's focus-visible rule, which replaces the browser's
+// default black focus ring (only ever seen after a click, never in the
+// prototype) with a deliberate keyboard-only treatment.
+const WEDGE_CLASS_NAME = "circle-wedge";
+
 const HUE_STEP_DEGREES = 30;
 const HUE_OFFSET_DEGREES = 25;
 const HUE_MODULUS = 360;
@@ -122,6 +128,11 @@ const PILL_BORDER = "#e0d7c5";
 const PILL_ACTIVE_BG = paper.pillActive;
 const PILL_ACTIVE_INK = "#4a4136";
 const PILL_INACTIVE_INK = "#756c60";
+const PILL_BUTTON_PADDING = "2px 12px 4px";
+const PILL_BUTTON_FONT_SIZE = 14;
+const PILL_BUTTON_FONT_WEIGHT = 600;
+const PILL_BUTTON_LINE_HEIGHT = 1.2;
+const PILL_BORDER_RADIUS = 999;
 
 interface Point {
   readonly x: number;
@@ -391,6 +402,7 @@ export function CircleOfFifths(props: {
           return (
             <g key={render.position.index}>
               <path
+                className={WEDGE_CLASS_NAME}
                 role="button"
                 tabIndex={0}
                 aria-label={keyLabel(render.majorKey)}
@@ -412,6 +424,7 @@ export function CircleOfFifths(props: {
                 }
               />
               <path
+                className={WEDGE_CLASS_NAME}
                 role="button"
                 tabIndex={0}
                 aria-label={keyLabel(render.minorKey)}
@@ -645,7 +658,7 @@ export function CircleOfFifths(props: {
           transform: "translate(-50%,-50%)",
           display: "flex",
           border: `1px solid ${PILL_BORDER}`,
-          borderRadius: 999,
+          borderRadius: PILL_BORDER_RADIUS,
           overflow: "hidden",
         }}
       >
@@ -655,10 +668,10 @@ export function CircleOfFifths(props: {
           aria-pressed={sharpSelected}
           onClick={() => onSelectSpelling("sharp")}
           style={{
-            padding: "2px 12px 4px",
-            fontSize: 14,
-            fontWeight: 600,
-            lineHeight: 1.2,
+            padding: PILL_BUTTON_PADDING,
+            fontSize: PILL_BUTTON_FONT_SIZE,
+            fontWeight: PILL_BUTTON_FONT_WEIGHT,
+            lineHeight: PILL_BUTTON_LINE_HEIGHT,
             color: sharpSelected ? PILL_ACTIVE_INK : PILL_INACTIVE_INK,
             background: sharpSelected ? PILL_ACTIVE_BG : "transparent",
             border: "none",
@@ -673,10 +686,10 @@ export function CircleOfFifths(props: {
           aria-pressed={!sharpSelected}
           onClick={() => onSelectSpelling("flat")}
           style={{
-            padding: "2px 12px 4px",
-            fontSize: 14,
-            fontWeight: 600,
-            lineHeight: 1.2,
+            padding: PILL_BUTTON_PADDING,
+            fontSize: PILL_BUTTON_FONT_SIZE,
+            fontWeight: PILL_BUTTON_FONT_WEIGHT,
+            lineHeight: PILL_BUTTON_LINE_HEIGHT,
             color: !sharpSelected ? PILL_ACTIVE_INK : PILL_INACTIVE_INK,
             background: !sharpSelected ? PILL_ACTIVE_BG : "transparent",
             border: "none",
