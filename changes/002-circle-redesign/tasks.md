@@ -16,7 +16,7 @@ verified:
     at: 2026-09-20T19:49:04Z
 sdd_id: 002-circle-redesign
 sdd_context: theory
-sdd_phase: in-progress
+sdd_phase: complete
 ---
 
 # Tasks: Circle redesign
@@ -599,7 +599,7 @@ sdd_phase: in-progress
 
 ### T018 · theory.circle-of-fifths/REQ-001 · Selected wedge labels always fit inside their wedge (user finding, 2026-09-21)
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/CircleOfFifths.tsx`

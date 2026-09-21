@@ -62,14 +62,61 @@ const LABEL_INK_LIGHTNESS_THRESHOLD = 0.58;
 const LABEL_INK_LIGHT = "#f9f4e9";
 const MAJOR_LABEL_INK_DARK = paper.ink;
 const MINOR_LABEL_INK_DARK = "#33302a";
+// Major selected labels keep the reference's one size regardless of length
+// — the T018 sweep (selecting all 24 wedges under both spelling preferences,
+// screenshotting each) found every major label (1 character, e.g. "C"; 2,
+// e.g. "F♯"/"B♭") fits at 23px/700, so there is nothing to key off length
+// for this ring.
 const MAJOR_LABEL_SIZE_SELECTED = 23;
 const MAJOR_LABEL_SIZE = 19;
 const MAJOR_LABEL_WEIGHT_SELECTED = 700;
 const MAJOR_LABEL_WEIGHT = 600;
+
+// Minor selected labels DO need to key off length: the same T018 sweep found
+// the reference's 17px/700 overflows the inner wedge for every
+// three-character minor label ("F♯m", "C♯m", "G♯m"/"A♭m", "D♯m"/"E♭m",
+// "A♯m"/"B♭m") — worst at "F♯m" (3 o'clock) — while every two-character
+// label ("Am", "Em", …) fits at 17 with clearance. 14 is the largest size
+// that clears all three-character labels at every position the sweep
+// checked (re-verified per docs/decisions.md 2026-09-21: a selected label is
+// never smaller than its own unselected size, 14, so 14 is also the floor).
+//
+// T018 follow-up (same day): 14px alone still only bought ~1px of clearance
+// on the tightest wedge (F♯m) — thin enough that a phone's own text
+// rasterisation could tip it over. The SELECTED weight steps down for the
+// same three-character labels too (600, not 700) to buy more margin without
+// going below the unselected size (14) again: 600 still reads as emphasised
+// against the unselected weight (500), and the dark selected fill carries
+// the rest of the emphasis.
+const MINOR_LABEL_LONG_LABEL_LENGTH = 3;
 const MINOR_LABEL_SIZE_SELECTED = 17;
+const MINOR_LABEL_SIZE_SELECTED_LONG = 14;
 const MINOR_LABEL_SIZE = 14;
 const MINOR_LABEL_WEIGHT_SELECTED = 700;
+const MINOR_LABEL_WEIGHT_SELECTED_LONG = 600;
 const MINOR_LABEL_WEIGHT = 500;
+
+interface MinorSelectedLabelStyle {
+  readonly fontSize: number;
+  readonly fontWeight: number;
+}
+
+// The selected size AND weight for one minor wedge label, from the same
+// length test — 17px/700 where the reference fits (two characters), both
+// stepped down where it does not (three characters) — see the constants
+// above for the evidence and the floor. Kept as one function, not two
+// separately-keyed conditionals, so the two properties can't drift apart.
+function minorLabelSelectedStyle(label: string): MinorSelectedLabelStyle {
+  const isLong = label.length >= MINOR_LABEL_LONG_LABEL_LENGTH;
+  return {
+    fontSize: isLong
+      ? MINOR_LABEL_SIZE_SELECTED_LONG
+      : MINOR_LABEL_SIZE_SELECTED,
+    fontWeight: isLong
+      ? MINOR_LABEL_WEIGHT_SELECTED_LONG
+      : MINOR_LABEL_WEIGHT_SELECTED,
+  };
+}
 
 const ARC_SELECTED_FILL = "oklch(0.330 0.095 40)";
 const DISTANCE_LIGHTNESS: readonly number[] = [
@@ -639,6 +686,8 @@ export function CircleOfFifths(props: {
           render.position.index * DEGREES_PER_POSITION,
           (MINOR_RADII[0] + MINOR_RADII[1]) / 2,
         );
+        const minorLabel = wedgeLabel(render.minorKey);
+        const minorSelectedStyle = minorLabelSelectedStyle(minorLabel);
         return [
           <div
             key={`major-${render.position.index}`}
@@ -674,10 +723,10 @@ export function CircleOfFifths(props: {
               transform: "translate(-50%,-50%)",
               fontFamily: fonts.body,
               fontSize: render.minorSelected
-                ? MINOR_LABEL_SIZE_SELECTED
+                ? minorSelectedStyle.fontSize
                 : MINOR_LABEL_SIZE,
               fontWeight: render.minorSelected
-                ? MINOR_LABEL_WEIGHT_SELECTED
+                ? minorSelectedStyle.fontWeight
                 : MINOR_LABEL_WEIGHT,
               color: labelInk(
                 render.minorPaint.lightness,
@@ -688,7 +737,7 @@ export function CircleOfFifths(props: {
               whiteSpace: "nowrap",
             }}
           >
-            {wedgeLabel(render.minorKey)}
+            {minorLabel}
           </div>,
         ];
       })}

@@ -12,6 +12,38 @@ afterEach(() => {
   cleanup();
 });
 
+// Guard, not a spec scenario (no REQ traces label sizing) — added after a
+// user finding (2026-09-21, T018): the design reference's selected-label
+// size (17px/700) overflows the inner wedge for three-character minor
+// labels ("C♯m", "F♯m", …) at every position the T018 sweep checked, so the
+// SELECTED size must step down for those without shrinking the two-character
+// labels ("Am", …), which the reference's 17 fits. Extended (T018 follow-up,
+// same day): even the stepped-down 14px left only ~1px clearance on the
+// tightest wedge, so the SELECTED weight also steps down for the same
+// three-character labels (600, not 700) to buy margin without shrinking
+// below the unselected size — still above the unselected weight (500), so
+// it still reads as emphasised.
+test("a selected wedge label never uses a larger font than fits its label length", async () => {
+  localStorage.clear();
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole("button", { name: "A minor" }));
+  const aMinorLabel = screen.getByText("Am");
+  expect(aMinorLabel.style.fontSize).toBe("17px");
+  expect(aMinorLabel.style.fontWeight).toBe("700");
+
+  await userEvent.click(screen.getByRole("button", { name: "C♯ minor" }));
+  const cSharpMinorLabel = screen.getByText("C♯m");
+  const cSharpMinorSize = Number.parseFloat(cSharpMinorLabel.style.fontSize);
+  expect(cSharpMinorSize).toBeLessThan(17);
+  expect(cSharpMinorLabel.style.fontWeight).toBe("600");
+});
+
 test("theory.circle-of-fifths/REQ-001/S2 — selecting E minor on the inner ring shows its key view, aligned with its relative major", async () => {
   localStorage.clear();
   render(

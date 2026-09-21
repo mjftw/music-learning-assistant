@@ -184,3 +184,8 @@ User screenshot: selected `C♯m` (17px/700) spills out of its inner wedge. Inhe
 
 ## Acceptance finding 2 / T019 (2026-09-21) — blue flash on tap
 User on phone: "When I click on a segment on my phone a blue backing box appears for a moment." = the mobile tap highlight over the focusable SVG wedge's bounding box. Haiku tier; sonnet review PASS/PASS with one minor (the overlay scrim is a tappable <div>, missed by per-selector rules). Follow-up: `-webkit-tap-highlight-color: transparent` set ONCE on `body` (inherited) — covers wedges, buttons and the scrim. Not verifiable headlessly (desktop Chromium paints no tap highlight) — final proof is the user's phone.
+
+## T018 (2026-09-21) — selected labels fit their wedge
+- Rule: one length-keyed function `minorLabelSelectedStyle` — 2-character selected minor labels keep the reference's 17px/700; 3-character ones use 14px/600 (never below the unselected 14px/500; the dark fill carries the emphasis). Major ring unchanged (23px/700 fits every label).
+- Evidence: implementer's 48-shot sweep (24 wedges × both preferences) and the reviewer's own independent sweeps, twice. Worst case `F♯m` at 3 o'clock: clearance ~1.0 → ~1.5 CSS px after the weight follow-up; nothing touches an edge. PASS/PASS both rounds.
+- If the user's phone still shows a problem, the only remaining lever is wedge/disc geometry (radii) — a separate task.
