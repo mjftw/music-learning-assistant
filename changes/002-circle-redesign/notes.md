@@ -156,3 +156,8 @@ All matched files use Prettier code style!
 - Haiku-tier implementer, sonnet review. Round 1: SPEC FAIL — the helper extraction silently dropped a pre-existing assertion (note-degree non-empty) and the walk-through omitted the G-major acceptance values. Fixer round restored/added both; AGENTS.md bullet re-wrapped. Round 2: PASS/PASS.
 - Lesson for the ladder: small-tier work that touches tests always gets a mid-tier review — it caught a dropped assertion here.
 - 52 tests, 26 target scenarios all cited, boundaries clean, JS bundle 332 kB (001: 1.43 MB).
+
+## Convergence audit 1 (2026-09-21) — Not converged: 0 critical, 4 warnings
+- W1 (reviewer): minor-key outside-name accent differs from the prototype. Controller traced the ROOT CAUSE: the prototype reuses the major step→degree map for minor keys, so the arc shows wrong notes/degrees at positions (E minor: shows A·4 at C's position; truth is C·6). The app copied it faithfully. User decision: show the notes where they really are (docs/decisions.md). Delta amended in flight with REQ-009/S4 and REQ-010/S3, re-approved by the user by name. The e-minor screenshot pair will now DELIBERATELY differ from the prototype on the arc's names/numerals.
+- W2 centre-disc signature effectively untested; W3 a 001 test still cites REQ-002/S1 with its superseded meaning; W4 dead code (paper.dash, unused overlay exports, KeyView.relative). All tasked: T015 (W1), T016 (W2), T017 (W3+W4).
+- Intent's carried assumption "the prototype's theory logic agrees with theory/published everywhere reachable" was FALSE for minor-key arcs — the risk it named materialised, in the direction of the prototype being wrong.

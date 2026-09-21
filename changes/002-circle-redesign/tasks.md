@@ -16,7 +16,7 @@ verified:
     at: 2026-09-20T19:49:04Z
 sdd_id: 002-circle-redesign
 sdd_context: theory
-sdd_phase: complete
+sdd_phase: in-progress
 ---
 
 # Tasks: Circle redesign
@@ -520,6 +520,81 @@ sdd_phase: complete
 
 **Verify** — `pnpm check` → exit 0; `grep -rn "PLAY ALONG" src` → no output
 
+## Phase 7 — Convergence follow-ups (audit 2026-09-21: 0 critical, 4 warnings)
+
+### T015 · theory.circle-of-fifths/REQ-009 (S4), REQ-010 (S3) · Minor keys: the arc names and numbers the notes where they really are (W1)
+
+**Status:** todo
+
+**Files**
+- Modify: `src/theory/domain/arc.ts`
+- Test: `tests/theory/scenarios/arc.test.ts` (add two scenario tests)
+
+**Interfaces**
+- Consumes: `Key`, `scaleNotesOf`, `circleOfFifths`, `spelledMajorAt` (as today)
+- Produces: `arcOf(key: Key, preference: SpellingPreference): readonly ArcPosition[]` — signature UNCHANGED; semantics corrected for `mode: 'naturalMinor'`:
+  - the seven positions are unchanged (signed steps -1…5 around the selected wedge's position index — a minor key shares its index, and its seven notes, with its relative major);
+  - `degree` for a minor key maps steps (-1,0,1,2,3,4,5) → (6,3,7,4,1,5,2) — the note at each position numbered from the minor tonic (major keys keep 4,1,5,2,6,3,7);
+  - `scaleName` stays `scaleNotesOf(key)[degree - 1]` (with the corrected degree it IS the note at that position);
+  - `wedgeName` is ALWAYS the outer (major) wedge's tonic under the spelling preference — for both modes — because the outer ring is where the notes live; `differsFromWedge` compares `scaleName` with it (the design reference's own rule, `spelled !== majorAt(i)`).
+
+**Steps**
+- [ ] 1. RED — scenarios theory.circle-of-fifths/REQ-009/S4 and theory.circle-of-fifths/REQ-010/S3 appended to `tests/theory/scenarios/arc.test.ts` (reuse the file's `spell` helper):
+  ```ts
+  const eMinor = { tonic: { letter: 'E', accidental: 'natural' }, mode: 'naturalMinor' } as const
+  test('theory.circle-of-fifths/REQ-009/S4 — a minor key’s arc names the notes where they are', () => {
+    const arc = arcOf(eMinor, 'sharp')
+    expect(arc).toHaveLength(7)
+    const nameAt = (index: number) => spell(arc.find((position) => position.positionIndex === index)!.scaleName)
+    expect([0, 1, 2, 3, 4, 5, 6].map(nameAt)).toEqual(['C', 'G', 'D', 'A', 'E', 'B', 'F#'])
+    expect(arc.every((position) => position.differsFromWedge === false)).toBe(true)
+  })
+  test('theory.circle-of-fifths/REQ-010/S3 — a minor key numbers from its own tonic', () => {
+    const arc = arcOf(eMinor, 'sharp')
+    const degreeAt = (index: number) => arc.find((position) => position.positionIndex === index)!.degree
+    expect([0, 1, 2, 3, 4, 5, 6].map(degreeAt)).toEqual([6, 3, 7, 4, 1, 5, 2])
+  })
+  ```
+- [ ] 2. Run `pnpm vitest run tests/theory/scenarios/arc.test.ts` — expect FAIL: position 0 reads `A` (degree 4), not `C` (degree 6)
+- [ ] 3. GREEN — in `arc.ts` select the step→degree map by `key.mode`; take `wedgeName` from `spelledMajorAt` for both modes; name the two maps for what they are (e.g. `MAJOR_DEGREE_BY_SIGNED_STEP`, `NATURAL_MINOR_DEGREE_BY_SIGNED_STEP`) with a why-comment: relative keys share one arc, numbered from different tonics
+- [ ] 4. Run the same command — expect PASS (5 passed); `pnpm check` — green (the existing major-key scenarios REQ-009/S1, S2 and REQ-010/S1 must pass unchanged)
+- [ ] 5. REFACTOR — none
+
+**Verify** — `pnpm vitest run tests/theory/scenarios/arc.test.ts` → `5 passed`; `pnpm check` → exit 0
+
+### T016 · theory.circle-of-fifths/REQ-003 (S1), REQ-004 (S1, S2) · The centre-disc key signature is actually asserted (W2)
+
+**Status:** todo
+
+**Files**
+- Test: `tests/ui/scenarios/centre-signature.test.tsx` (new)
+
+**Interfaces**
+- Consumes: the rendered `App`; `data-testid="signature-glyph"` elements in the circle's centre disc, each with `data-accented="true|false"` (from T006)
+
+**Steps**
+- [ ] 1. RED-by-construction (the behaviour exists; the test must be able to fail): in `tests/ui/scenarios/centre-signature.test.tsx` add tests named `theory.circle-of-fifths/REQ-003/S1 — the centre disc carries G major’s one-sharp signature`, `theory.circle-of-fifths/REQ-004/S1 — G major’s F♯ glyph is the accented one in the centre`, `theory.circle-of-fifths/REQ-004/S2 — B♭ major accents its second flat in the centre`: render `App` (empty storage), click `G major` → exactly 1 `signature-glyph`, text `♯`, `data-accented="true"`; click `B♭ major` → exactly 2 glyphs, both `♭`, only the LAST `data-accented="true"`; click `C major` → 0 glyphs
+- [ ] 2. Prove each test can fail: temporarily invert the accent condition in `src/ui/CircleOfFifths.tsx`, run the file, confirm the REQ-004 tests FAIL, then restore the source exactly (`git diff --stat src/` must be empty afterwards)
+- [ ] 3. Run `pnpm vitest run tests/ui/scenarios/centre-signature.test.tsx` — expect PASS (3 passed); `pnpm check` — green
+
+**Verify** — `pnpm vitest run tests/ui/scenarios/centre-signature.test.tsx` → `3 passed`; `git diff --stat src/` → empty
+
+### T017 · — · Stale citation and dead code from the rebuild (W3, W4) · `Trivial`
+
+**Status:** todo
+
+**Files**
+- Modify: `tests/theory/scenarios/circle.test.ts`, `src/ui/theme.ts`, `src/ui/overlay.tsx`, `src/theory/domain/key-view.ts`, `src/theory/published/index.ts` (only if an export goes), `tests/theory/scenarios/key-view.test.ts`
+
+**Steps**
+- [ ] 1. W3 — `tests/theory/scenarios/circle.test.ts`: the test titled `theory.circle-of-fifths/REQ-002/S1 — six o’clock offers both F# and Gb major` cites a scenario whose v0.2.0 meaning is the global spelling preference (covered in `tests/ui/scenarios/circle-spelling.test.tsx`). Keep the assertion (the theory still exposes both spellings at dual positions) but retitle it WITHOUT a scenario ID: `circleOfFifths() exposes both spellings at the six o’clock position (theory supports the spelling preference)`
+- [ ] 2. W4a — `src/ui/theme.ts`: delete the `dash` token (zero references since the footer was removed)
+- [ ] 3. W4b — `src/ui/overlay.tsx`: stop exporting what nothing imports (`OverlayCloseButton` and the constants used only inside the file become module-private); delete anything wholly unused
+- [ ] 4. W4c — `KeyView.relative`: REQ-003 no longer names the relative key and no UI reads the field. Remove `relative` from `KeyView` and from `keyView()` in `src/theory/domain/key-view.ts`; in `tests/theory/scenarios/key-view.test.ts` replace the two `view.relative` assertions with direct calls to the still-published `relativeOf(key)` so the relative-key theory stays tested
+- [ ] 5. Run `pnpm check` — green; `./scripts/check-scenarios.sh --change changes/002-circle-redesign` — every scenario still cited
+
+**Verify** — `pnpm check` → exit 0; `grep -rn "paper.dash\|dash:" src/ui/theme.ts` → no output; `grep -rn "\.relative" src tests` → no output
+
 ## Coverage
 
 | Requirement | Tasks | Covered |
@@ -530,8 +605,8 @@ sdd_phase: complete
 | theory.circle-of-fifths/REQ-004 (M) | T007 (S1, S2, S3) | ✅ |
 | theory.circle-of-fifths/REQ-007 (M) | T009 (S1, S2) | ✅ |
 | theory.circle-of-fifths/REQ-008 (M) | T011 (S1–S4); store mechanics T005 | ✅ |
-| theory.circle-of-fifths/REQ-009 (A) | T003 (S1, S2), T008 (S3) | ✅ |
-| theory.circle-of-fifths/REQ-010 (A) | T003 (S1 arc), T007 (S1 names), T008 (S2) | ✅ |
+| theory.circle-of-fifths/REQ-009 (A) | T003 (S1, S2), T008 (S3), T015 (S4) | ✅ |
+| theory.circle-of-fifths/REQ-010 (A) | T003 (S1 arc), T007 (S1 names), T008 (S2), T015 (S3) | ✅ |
 | theory.circle-of-fifths/REQ-011 (A) | T004 (S1, S2, S3), T009 (pill rendering) | ✅ |
 | theory.circle-of-fifths/REQ-005, REQ-006 (untouched) | guard: existing tests must stay green throughout; T004 asserts span ⊆ range | ✅ |
 | theory.instruments (untouched) | T010 re-expresses S2 scenarios against the sheet | ✅ |

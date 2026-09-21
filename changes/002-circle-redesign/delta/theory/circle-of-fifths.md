@@ -14,6 +14,8 @@ generated:
 verified:
   - by: human:merlin-webster
     at: 2026-09-20T19:36:23Z
+  - by: human:merlin-webster
+    at: 2026-09-21T15:21:03Z
 sdd_id: 002-circle-redesign
 sdd_context: theory
 sdd_capability: circle-of-fifths
@@ -58,6 +60,14 @@ label
   Then the arc, the degrees set into it and the outside note names all
   disappear together, while the wedges, their labels and the selection are
   unchanged
+- **REQ-009/S4 — a minor key's arc names the notes where they are**
+  Given E minor is selected with the distance ring enabled and sharp
+  spelling preferred
+  When the arc labels are read
+  Then the arc covers the same seven positions as its relative G major —
+  C, G, D, A, E, B and F♯ — and each carries the outside label of the note
+  at that position (C, G, D, A, E, B, F♯), none of them accented, because
+  each matches its outer wedge's label
 
 ### REQ-010: Scale degrees are numbered, or not at all
 
@@ -78,6 +88,13 @@ show no degree numbers anywhere
   When scale degrees are disabled in settings
   Then no degree number appears anywhere, and notes, names and marks are
   otherwise unchanged
+- **REQ-010/S3 — a minor key numbers from its own tonic**
+  Given E minor is selected with scale degrees and the distance ring enabled
+  When the display is read
+  Then the arc position at E carries 1, F♯ carries 2, G carries 3, A
+  carries 4, B carries 5, C carries 6 and D carries 7 — the 1 sits at E's
+  place on the outer ring, not on the selected E minor wedge — and the names
+  view numbers E F♯ G A B C D as 1 2 3 4 5 6 7
 
 ### REQ-011: The stave shows a chosen span
 
