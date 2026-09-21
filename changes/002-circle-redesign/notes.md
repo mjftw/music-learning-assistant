@@ -132,6 +132,8 @@ On the phone (390×844 viewport), side-by-side with the prototype at `/changes/0
 
 10. **Footer:** The bottom of the column is deliberately blank (no "play along" mockup), leaving room for the play-along feature that arrives in a later change.
 
+- **Minor keys (decided after the design review, 2026-09-21):** select **E minor** on the inner ring with the distance ring and degrees on. The arc covers the same seven positions as G major, and reads **C·6 G·3 D·7 A·4 E·1 B·5 F♯·2** — the `1` sits at E's place on the outer ring, not on the selected Em wedge, and no outside name is accented. This DELIBERATELY differs from the prototype (which shows the wrong notes there); the screenshot pairs you approved predate this fix, so please look at it fresh.
+
 **User verdict:** _pending_
 
 ## pnpm check output
@@ -171,3 +173,8 @@ All matched files use Prettier code style!
 ## T016 (2026-09-21)
 - W2 closed: tests/ui/scenarios/centre-signature.test.tsx asserts the centre-disc signature (G major 1 glyph accented; B♭ major 2 glyphs, last accented; G→C major drops to exactly 0). Round 1 SPEC FAIL (the brief's zero-glyph assertion was missing); fixed; round 2 PASS/PASS with the reviewer's own mutation checks (accent inversion, forced glyph count) each failing the right tests.
 - Report-accuracy note: the small-tier fixer claimed to have changed two straight apostrophes to curly; the bytes on disk are unchanged (cosmetic, non-blocking). Small-tier reports are claims, not evidence — the mid-tier review caught it.
+
+## Converge re-run (2026-09-21)
+- Verdict: Converged — 0 critical, 0 warning (re-run block in .sdd/reports/002-circle-redesign/converge.md, HEAD 13504e1). W1–W4 verified closed against the code; reviewer's own probe held the arc invariants over all 30 spellings × both preferences and proved REQ-009/S4 + REQ-010/S3 fail against the pre-fix arc.ts. 58 tests, 28 scenarios cited, boundaries clean, Article VII re-confirmed, REQ-005/006 invariant tests byte-identical to 001.
+- For sdd-finish: glossary (Span, Distance ring); proposal's footer line superseded by decision; fold-back proposals — AGENTS.md "amend vs rewrite" clarification for in-flight delta amendments (Article IX), T010 recurrence on the duplication bullet, test-import-depth rule, ladder lessons (explicit model per dispatch; small-tier test work always gets a mid-tier review; small-tier reports are claims not evidence), engineering §15 "controls inherit the page's typography"; delete the now-redundant vacuous every() at names-view.test.tsx:93-98.
+- Still pending: the user's phone acceptance walk-through (blocks shipping, not convergence).
