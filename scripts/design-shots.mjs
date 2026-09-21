@@ -101,6 +101,7 @@ const STATES = {
     },
     app: async (page) => {
       await page.getByRole("button", { name: "G major" }).click();
+      await page.getByRole("button", { name: "stave" }).click();
     },
   },
   "gb-flat-spelling": {

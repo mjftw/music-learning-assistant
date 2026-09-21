@@ -54,3 +54,10 @@ One line each, newest last.
 - Brief error corrected in dispatch: the redesigned circle has 24 wedge buttons (one spelling per dual position), not 27.
 - For T011: reviewer could not attribute "every toggle change is persisted" to a test — REQ-008/S1's rewrite should include a toggle → re-render-from-store assertion.
 - Real staveNamesEnabled preference now exists (persisted, default false) alongside the temporary 001 note-names bridge; T009 deletes the bridge with the old stave.
+
+## T009 (2026-09-21)
+- PASS/PASS. Hand-drawn stave replaces VexFlow (ADR 0002): drawing rules verified value-for-value against the reference; reviewer hand-checked ledger lines (C4 → 1 at index 28; C7 → 40–48; A3 → 28, 26) and the reference's own index<34 stem rule. Stave card "visually indistinguishable from the prototype".
+- VexFlow gone from package, lockfile, src and the built bundle: JS 1.43 MB → 330 KB. tests/setup.ts canvas stub deleted with it.
+- Deleted with the old stave: KeyViewStave.tsx, the 001 note-names bridge, relative-key/signature-summary paragraphs, stave-styling + names-toggle tests (their REQs were MODIFIED; replacements in stave-view.test.tsx). selection-persistence.test.tsx lost only its two switch aria-checked assertions (T011 rewrites it).
+- KeyPanel props extended (rangeSummary, spanCaption, spanChoices) — single home for the span and summary rows; reviewer judged the surface cohesive.
+- Minors for the T012 cleanup pass: KeyPanel SPAN_ROW_* constants alias SUMMARY_ROW_*; pillStyle/spanPillStyle share most of their body — extract a base.

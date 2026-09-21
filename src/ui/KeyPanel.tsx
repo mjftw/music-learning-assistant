@@ -27,6 +27,15 @@ const PILL_PADDING = "4px 11px 5px";
 const PILL_FONT_SIZE = 11;
 const PILL_FONT_WEIGHT = 600;
 
+// The span row's own pills (theory.circle-of-fifths/REQ-011) sit loose,
+// not inside a shared bordered group like the names/stave pair above —
+// each one is individually rounded, per the vendored visual reference.
+const SPAN_ROW_MARGIN_TOP = SUMMARY_ROW_MARGIN_TOP;
+const SPAN_ROW_PADDING_TOP = SUMMARY_ROW_PADDING_TOP;
+const SPAN_ROW_BORDER = SUMMARY_ROW_BORDER;
+const SPAN_PILL_GAP = 4;
+const SPAN_PILL_PADDING = "4px 8px 5px";
+
 function pillStyle(active: boolean): CSSProperties {
   return {
     padding: PILL_PADDING,
@@ -40,12 +49,48 @@ function pillStyle(active: boolean): CSSProperties {
   };
 }
 
+function spanPillStyle(active: boolean): CSSProperties {
+  return {
+    padding: SPAN_PILL_PADDING,
+    fontFamily: fonts.mono,
+    fontSize: PILL_FONT_SIZE,
+    fontWeight: PILL_FONT_WEIGHT,
+    lineHeight: 1.2,
+    color: active ? PILL_ACTIVE_INK : PILL_INACTIVE_INK,
+    background: active ? PILL_ACTIVE_BACKGROUND : "transparent",
+    border: "none",
+    borderRadius: 999,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  };
+}
+
+// One span choice pill (theory.circle-of-fifths/REQ-011) — the caller
+// (App.tsx) builds these from `spanChoicesOf`, keeping KeyPanel free of any
+// theory import.
+export interface SpanChoicePill {
+  readonly key: string;
+  readonly label: string;
+  readonly active: boolean;
+  readonly onSelect: () => void;
+}
+
 export function KeyPanel(props: {
   readonly view: "names" | "stave";
   readonly onSelectView: (view: "names" | "stave") => void;
   readonly children: ReactNode;
+  readonly rangeSummary: string;
+  readonly spanCaption: string;
+  readonly spanChoices: readonly SpanChoicePill[];
 }): JSX.Element {
-  const { view, onSelectView, children } = props;
+  const {
+    view,
+    onSelectView,
+    children,
+    rangeSummary,
+    spanCaption,
+    spanChoices,
+  } = props;
 
   return (
     <div
@@ -58,6 +103,47 @@ export function KeyPanel(props: {
       }}
     >
       {children}
+      {view === "stave" && (
+        <div
+          style={{
+            marginTop: SPAN_ROW_MARGIN_TOP,
+            paddingTop: SPAN_ROW_PADDING_TOP,
+            borderTop: SPAN_ROW_BORDER,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+          }}
+        >
+          <div
+            data-testid="span-caption"
+            style={{
+              fontFamily: fonts.mono,
+              fontSize: SUMMARY_TEXT_FONT_SIZE,
+              color: SUMMARY_TEXT_INK,
+              whiteSpace: "nowrap",
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {spanCaption}
+          </div>
+          <div style={{ display: "flex", gap: SPAN_PILL_GAP, flex: "none" }}>
+            {spanChoices.map((choice) => (
+              <button
+                key={choice.key}
+                type="button"
+                data-testid="span-pill"
+                onClick={choice.onSelect}
+                style={spanPillStyle(choice.active)}
+              >
+                {choice.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div
         style={{
           marginTop: SUMMARY_ROW_MARGIN_TOP,
@@ -69,8 +155,6 @@ export function KeyPanel(props: {
           gap: 10,
         }}
       >
-        {/* The range summary ("22 notes · C4–C7") is built in T009 — this
-            slot stays empty until then. */}
         <div
           data-testid="range-summary"
           style={{
@@ -80,7 +164,9 @@ export function KeyPanel(props: {
             color: SUMMARY_TEXT_INK,
             whiteSpace: "nowrap",
           }}
-        />
+        >
+          {rangeSummary}
+        </div>
         <div
           style={{
             display: "flex",

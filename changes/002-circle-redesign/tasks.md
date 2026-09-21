@@ -390,7 +390,7 @@ sdd_phase: in-progress
 
 ### T009 · theory.circle-of-fifths/REQ-003 (S1, S2), REQ-007 (S1, S2), REQ-011 (pills) · The hand-drawn stave, spans, and VexFlow removal
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/StaveView.tsx`

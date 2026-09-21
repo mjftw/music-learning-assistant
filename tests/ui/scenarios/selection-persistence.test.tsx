@@ -25,11 +25,6 @@ test("theory.circle-of-fifths/REQ-008/S2 — first run shows C major on the flut
   expect(screen.getByTestId("current-variant").textContent).toBe(
     "Flute — Concert",
   );
-  expect(
-    screen
-      .getByRole("switch", { name: /note names/i })
-      .getAttribute("aria-checked"),
-  ).toBe("true");
 });
 
 test("theory.circle-of-fifths/REQ-008/S1 — reopening restores Bb major on Bass C with names hidden", () => {
@@ -52,11 +47,6 @@ test("theory.circle-of-fifths/REQ-008/S1 — reopening restores Bb major on Bass
   expect(screen.getByTestId("current-variant").textContent).toBe(
     "Ocarina — Bass C",
   );
-  expect(
-    screen
-      .getByRole("switch", { name: /note names/i })
-      .getAttribute("aria-checked"),
-  ).toBe("false");
 });
 
 test("theory.circle-of-fifths/REQ-008/S3 — corrupt storage falls back to the default, usable", () => {
