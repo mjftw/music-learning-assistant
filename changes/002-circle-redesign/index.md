@@ -4,4 +4,4 @@
 - [002-circle-redesign — notes](notes.md) — Implementation Notes — Decisions taken during implementation that the plan did not cover.
 - [Circle redesign — plan](plan.md) — Implementation Plan · approved — Rebuild the UI to the Function Paper prototype — hand-drawn SVG circle and stave, self-hosted fonts, new pure theory functions for arc and span, versioned stored state.
 - [Circle redesign](proposal.md) — Change Proposal · approved — The circle and key view rebuilt to the Function Paper prototype — distance ring, degrees, global spelling, names/stave panel, picker sheet, settings drawer.
-- [Circle redesign — tasks](tasks.md) — Task List · complete — 13 tasks across 6 phases — foundations, theory (arc/span), store, UI rebuild, design-review loop, hardening.
+- [Circle redesign — tasks](tasks.md) — Task List · in-progress — 13 tasks across 6 phases — foundations, theory (arc/span), store, UI rebuild, design-review loop, hardening.
