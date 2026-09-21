@@ -99,3 +99,8 @@ Presented all six prototype/app screenshot pairs (equal self-hosted fonts on bot
 
 ## User decision (2026-09-21) — footer placeholder removed
 After the design review: "Looks great! You can remove the 'play along' area at the bottom though as that'll be implemented in later changes for real so we don't need the mockup yet." Logged in docs/decisions.md. Consequence for converge and the screenshot pairs: the bottom-of-column region now DELIBERATELY differs from the prototype (no dashed footer); no requirement in the delta mentions the footer, so the spec is unaffected. Tracked as T014.
+
+## T012 (2026-09-21)
+- Round 1 review: all six pairs MATCH (independent verdict); SPEC FAIL on a keyboard focus ring that did not actually paint on SVG wedges (Chromium cannot ring a non-rectangular path with `outline`) and on step 5 pending. Fix: a React-tracked, :focus-visible-gated overlay <path> stroked paper.accent — reviewer reproduced a complete ring on a major and a minor wedge under Tab, none on pointer click. Round 2: PASS/PASS.
+- Real bug found by making the font comparison fair: every <button> rendered in Arial (UA form-control font) — fixed with `button { font: inherit }`.
+- design-shots now serves the prototype's Google Fonts from local @fontsource files; gb-flat-spelling, settings-open and picker-open drivers corrected.

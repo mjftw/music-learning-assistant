@@ -467,7 +467,7 @@ sdd_phase: in-progress
 
 ### T012 · — · The design-review loop, run to convergence
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `changes/002-circle-redesign/notes.md` (findings per round), any `src/ui/*.tsx` file a visible difference traces to
