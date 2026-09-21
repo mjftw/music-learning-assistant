@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { useState, type JSX } from "react";
 import {
   arcOf,
   circleOfFifths,
@@ -34,11 +34,18 @@ const OUTSIDE_NAME_RADIUS = 170;
 const WEDGE_STROKE = paper.frame;
 const WEDGE_STROKE_WIDTH = 1.8;
 
-// Not in the reference (a static screenshot has no focus state) — hooks the
-// wedge to global.css's focus-visible rule, which replaces the browser's
-// default black focus ring (only ever seen after a click, never in the
-// prototype) with a deliberate keyboard-only treatment.
+// Not in the reference (a static screenshot has no focus state) — global.css
+// suppresses the browser's default outline on this class entirely (never
+// seen in the prototype, and unusable here regardless: Chromium renders
+// `outline` on a non-rectangular SVG <path> as a partial fragment, not a
+// ring — confirmed with keyboard-focus screenshots, T012 fixer round). The
+// visible keyboard-focus ring is instead painted below as a same-shaped
+// overlay <path>, driven by React focus state, which paints reliably on any
+// path geometry because it IS the path's own outline stroked, not the CSS
+// `outline` box model applied to it.
 const WEDGE_CLASS_NAME = "circle-wedge";
+const FOCUS_RING_COLOR = paper.accent;
+const FOCUS_RING_STROKE_WIDTH = 3;
 
 const HUE_STEP_DEGREES = 30;
 const HUE_OFFSET_DEGREES = 25;
@@ -260,6 +267,19 @@ function labelInk(lightness: number, darkInk: string): string {
   return lightness < LABEL_INK_LIGHTNESS_THRESHOLD ? LABEL_INK_LIGHT : darkInk;
 }
 
+// Identifies which of the 24 wedges (12 positions × major/minor) currently
+// holds keyboard focus, so the overlay ring below knows which single path
+// to redraw — kept separate from selection (aria-pressed), which is a
+// different, independent piece of state.
+interface FocusedWedgeKey {
+  readonly positionIndex: number;
+  readonly ring: "major" | "minor";
+}
+
+function isSameWedge(a: FocusedWedgeKey | null, b: FocusedWedgeKey): boolean {
+  return a !== null && a.positionIndex === b.positionIndex && a.ring === b.ring;
+}
+
 export function CircleOfFifths(props: {
   readonly selectedKeyId: string;
   readonly spelling: SpellingPreference;
@@ -315,6 +335,33 @@ export function CircleOfFifths(props: {
   ): void => {
     if (event.key === "Enter" || event.key === " ") onSelectKey(key);
   };
+
+  const [focusedWedge, setFocusedWedge] = useState<FocusedWedgeKey | null>(
+    null,
+  );
+
+  // `:focus-visible` is the browser's own pointer-vs-keyboard heuristic —
+  // reading it here (rather than reimplementing it) keeps a mouse click on
+  // a wedge showing no ring, exactly as the prototype never shows one.
+  const handleWedgeFocus = (
+    event: React.FocusEvent<SVGPathElement>,
+    wedge: FocusedWedgeKey,
+  ): void => {
+    if (event.currentTarget.matches(":focus-visible")) setFocusedWedge(wedge);
+  };
+
+  const handleWedgeBlur = (wedge: FocusedWedgeKey): void => {
+    setFocusedWedge((current) =>
+      isSameWedge(current, wedge) ? null : current,
+    );
+  };
+
+  const focusedWedgeRender =
+    focusedWedge === null
+      ? undefined
+      : positionRenders.find(
+          (render) => render.position.index === focusedWedge.positionIndex,
+        );
 
   return (
     <div
@@ -422,6 +469,18 @@ export function CircleOfFifths(props: {
                 onKeyDown={(event) =>
                   handleWedgeKeyDown(event, render.majorKey)
                 }
+                onFocus={(event) =>
+                  handleWedgeFocus(event, {
+                    positionIndex: render.position.index,
+                    ring: "major",
+                  })
+                }
+                onBlur={() =>
+                  handleWedgeBlur({
+                    positionIndex: render.position.index,
+                    ring: "major",
+                  })
+                }
               />
               <path
                 className={WEDGE_CLASS_NAME}
@@ -444,10 +503,41 @@ export function CircleOfFifths(props: {
                 onKeyDown={(event) =>
                   handleWedgeKeyDown(event, render.minorKey)
                 }
+                onFocus={(event) =>
+                  handleWedgeFocus(event, {
+                    positionIndex: render.position.index,
+                    ring: "minor",
+                  })
+                }
+                onBlur={() =>
+                  handleWedgeBlur({
+                    positionIndex: render.position.index,
+                    ring: "minor",
+                  })
+                }
               />
             </g>
           );
         })}
+
+        {focusedWedge !== null && focusedWedgeRender !== undefined && (
+          <path
+            data-testid="wedge-focus-ring"
+            aria-hidden="true"
+            pointerEvents="none"
+            fill="none"
+            stroke={FOCUS_RING_COLOR}
+            strokeWidth={FOCUS_RING_STROKE_WIDTH}
+            d={wedgePath(
+              focusedWedgeRender.position.index * DEGREES_PER_POSITION -
+                WEDGE_HALF_ANGLE,
+              focusedWedgeRender.position.index * DEGREES_PER_POSITION +
+                WEDGE_HALF_ANGLE,
+              focusedWedge.ring === "major" ? MAJOR_RADII[0] : MINOR_RADII[0],
+              focusedWedge.ring === "major" ? MAJOR_RADII[1] : MINOR_RADII[1],
+            )}
+          />
+        )}
 
         <circle
           cx={CENTER}
