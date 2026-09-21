@@ -38,12 +38,10 @@ const DEFAULT_KEY_ID = "C-major";
 
 // Geometry and colour below are copied verbatim from the vendored visual
 // reference (changes/002-circle-redesign/design/Circle 1c Function Paper.dc.html
-// — the outer frame, key-name row, circle wrapper and footer placeholder
-// blocks) — named here rather than re-derived by eye. The reference fixes
-// the frame at 390×844 (one phone screenshot); this column keeps the same
-// 390px width but grows with the viewport (`min-height: 100vh`) instead of
-// a fixed height, so the footer's `margin-top: auto` still pins it to the
-// bottom of whatever height the page actually has.
+// — the outer frame, key-name row and circle wrapper blocks) — named here
+// rather than re-derived by eye. The reference fixes the frame at 390×844
+// (one phone screenshot); this column keeps the same 390px width but grows
+// with the viewport (`min-height: 100vh`) instead of a fixed height.
 const COLUMN_MAX_WIDTH = 390;
 const COLUMN_MIN_HEIGHT = "100vh";
 const COLUMN_BACKGROUND = paper.frame;
@@ -56,29 +54,6 @@ const CIRCLE_WRAPPER_MARGIN = "0 auto";
 // to centre within) — this app's own choice for how the column behaves on
 // a viewport wider than 390px.
 const COLUMN_CENTERING_MARGIN = "0 auto";
-
-const FOOTER_OUTER_PADDING = "12px 16px 20px";
-const FOOTER_CARD_PADDING = "13px 14px";
-const FOOTER_CARD_GAP = 12;
-const FOOTER_CARD_BORDER = `1px dashed ${paper.dash}`;
-const FOOTER_CARD_RADIUS = 14;
-const FOOTER_CARD_OPACITY = 0.6;
-const FOOTER_DISC_SIZE = 38;
-const FOOTER_DISC_BORDER = `1px solid ${paper.dash}`;
-const FOOTER_DISC_GLYPH = "▶";
-// Single-use disc glyph colour, matching the reference — not lifted into
-// theme.ts, per the codebase's convention of module-local one-off colours
-// (see e.g. overlay.tsx's CLOSE_ICON_COLOR).
-const FOOTER_DISC_GLYPH_COLOR = "#8a8175";
-const FOOTER_DISC_FONT_SIZE = 12;
-const FOOTER_BAR_GROUP_GAP = 6;
-const FOOTER_BAR_HEIGHT = 3;
-const FOOTER_BAR_RADIUS = 2;
-const FOOTER_BAR_COLOR = paper.borderSoft;
-const FOOTER_CAPTION_TEXT = "PLAY ALONG · DRONE · TEMPO";
-const FOOTER_CAPTION_FONT_SIZE = 10;
-const FOOTER_CAPTION_COLOR = paper.faint;
-const FOOTER_CAPTION_LETTER_SPACING = "0.05em";
 
 function headerInstrumentLabel(variant: Variant): string {
   return `${variant.instrumentName} ${variant.variantName}`;
@@ -356,69 +331,6 @@ export function App(props: {
           )
         )}
       </KeyPanel>
-      {/* Practice controls (play-along, drone, tempo) are not built yet —
-          this placeholder holds their footer's shape so the layout doesn't
-          jump once they arrive. It is static and inert (Article VI): no
-          click handler, and `aria-hidden` so it is never read as a control. */}
-      <div
-        aria-hidden="true"
-        style={{ marginTop: "auto", padding: FOOTER_OUTER_PADDING }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: FOOTER_CARD_GAP,
-            padding: FOOTER_CARD_PADDING,
-            border: FOOTER_CARD_BORDER,
-            borderRadius: FOOTER_CARD_RADIUS,
-            opacity: FOOTER_CARD_OPACITY,
-          }}
-        >
-          <div
-            style={{
-              width: FOOTER_DISC_SIZE,
-              height: FOOTER_DISC_SIZE,
-              borderRadius: 999,
-              border: FOOTER_DISC_BORDER,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: FOOTER_DISC_FONT_SIZE,
-              color: FOOTER_DISC_GLYPH_COLOR,
-              flex: "none",
-            }}
-          >
-            {FOOTER_DISC_GLYPH}
-          </div>
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              gap: FOOTER_BAR_GROUP_GAP,
-            }}
-          >
-            <div
-              style={{
-                height: FOOTER_BAR_HEIGHT,
-                borderRadius: FOOTER_BAR_RADIUS,
-                background: FOOTER_BAR_COLOR,
-              }}
-            />
-            <div
-              style={{
-                fontFamily: fonts.mono,
-                fontSize: FOOTER_CAPTION_FONT_SIZE,
-                color: FOOTER_CAPTION_COLOR,
-                letterSpacing: FOOTER_CAPTION_LETTER_SPACING,
-              }}
-            >
-              {FOOTER_CAPTION_TEXT}
-            </div>
-          </div>
-        </div>
-      </div>
       <SettingsDrawer
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}

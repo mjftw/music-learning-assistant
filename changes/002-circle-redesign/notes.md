@@ -104,3 +104,6 @@ After the design review: "Looks great! You can remove the 'play along' area at t
 - Round 1 review: all six pairs MATCH (independent verdict); SPEC FAIL on a keyboard focus ring that did not actually paint on SVG wedges (Chromium cannot ring a non-rectangular path with `outline`) and on step 5 pending. Fix: a React-tracked, :focus-visible-gated overlay <path> stroked paper.accent — reviewer reproduced a complete ring on a major and a minor wedge under Tab, none on pointer click. Round 2: PASS/PASS.
 - Real bug found by making the font comparison fair: every <button> rendered in Arial (UA form-control font) — fixed with `button { font: inherit }`.
 - design-shots now serves the prototype's Google Fonts from local @fontsource files; gb-flat-spelling, settings-open and picker-open drivers corrected.
+
+## T014 (2026-09-21)
+- Trivial class, haiku tier, controller-verified (no quality-review stage): footer placeholder and its 22 FOOTER_* constants removed from App.tsx; column layout intact; 52 tests green; no test referenced the footer.

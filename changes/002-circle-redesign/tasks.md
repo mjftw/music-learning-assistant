@@ -503,7 +503,7 @@ sdd_phase: in-progress
 
 ### T014 · — · Remove the play-along footer placeholder (user decision 2026-09-21) · `Trivial`
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/App.tsx` (delete the footer placeholder block and every constant only it uses)
