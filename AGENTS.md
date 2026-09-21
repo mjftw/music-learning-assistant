@@ -71,10 +71,10 @@ All matched files use Prettier code style!
  RUN  v5.0.1 /home/merlin/projects/music-learning-assistant
 
 
- Test Files  1 passed (1)
-      Tests  1 passed (1)
-   Start at  20:03:04
-   Duration  531ms (environment 60%, import 20%, tests 10%, transform 9%, worker 1%)
+ Test Files  17 passed (17)
+      Tests  52 passed (52)
+   Start at  15:18:33
+   Duration  2.29s (environment 56%, tests 20%, import 14%, transform 10%)
 ```
 
 Run `check` before calling any task done, and paste the output.
@@ -82,26 +82,29 @@ Run `check` before calling any task done, and paste the output.
 ## Conventions
 
 - Runtime / language: TypeScript (strict), browser SPA built with Vite.
-  Rust arrives at change 004, scoped to `src/listening/` (ADR 0001).
+  Rust arrives at change 005, scoped to `src/listening/` (ADR 0001).
 - Package manager (only this one): pnpm.
-- Test framework and where tests live: Vitest (+ fast-check, Testing
-  Library); `tests/<context>/scenarios/` one test per spec scenario named by
-  its full ID, `tests/<context>/invariants/` for property tests,
-  `tests/ui/scenarios/` for view-observable scenarios.
+- Test framework and where tests live: Vitest (+ Testing Library);
+  `tests/<context>/scenarios/` one test per spec scenario named by
+  its full ID, `tests/<context>/invariants/` for invariants tested by
+  exhaustive enumeration, `tests/ui/scenarios/` for view-observable
+  scenarios.
 - Commits: Conventional Commits citing the requirement — `feat(auth): rate-limit login (REQ-004)`.
 
 ## Architecture
 
 A static single-page web app; no server, no runtime services (Article VII).
 Three bounded contexts (docs/domain.md): `src/theory/` (pure functions —
-notes, keys, circle, catalogue), `src/practice/` (sessions; from change 002),
-`src/listening/` (pitch detection; Rust→WASM from change 004, ADR 0001).
+notes, keys, circle, catalogue), `src/practice/` (sessions; from change 003),
+`src/listening/` (pitch detection; Rust→WASM from change 005, ADR 0001).
 `src/ui/` is the view layer over the contexts, not a context itself. Each
 context exposes `published/` and nothing else crosses its boundary
 (scripts/check-contexts.sh). Data files (instrument variants) and stored
 state are Zod-parsed into typed values at the edge; domain code never
 re-validates. New domain logic goes in its context's `domain/`; new IO goes
-behind a port with the adapter at the edge.
+behind a port with the adapter at the edge. The stave is hand-drawn SVG per
+the design reference (ADR 0002), and all fonts are self-hosted with no
+runtime network dependencies.
 
 ## Things agents get wrong here
 

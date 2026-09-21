@@ -16,7 +16,7 @@ verified:
     at: 2026-09-20T19:49:04Z
 sdd_id: 002-circle-redesign
 sdd_context: theory
-sdd_phase: in-progress
+sdd_phase: complete
 ---
 
 # Tasks: Circle redesign
@@ -486,7 +486,7 @@ sdd_phase: in-progress
 
 ### T013 · — · Edge sweep, checks, acceptance hand-off
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: existing suites (extend only if a gap is found)

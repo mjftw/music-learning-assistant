@@ -30,6 +30,40 @@ function switchChecked(name: string): string | null {
   return screen.getByRole("switch", { name }).getAttribute("aria-checked");
 }
 
+async function expectFirstRunDefaults() {
+  // Check spelling preference (sharp active)
+  expect(pressed("sharp")).toBe("true");
+  expect(pressed("flat")).toBe("false");
+
+  // Check view choice (names active)
+  expect(pressed("names")).toBe("true");
+  expect(pressed("stave")).toBe("false");
+
+  // Check arc degrees visible (7 entries)
+  expect(screen.getAllByTestId("arc-degree")).toHaveLength(7);
+
+  // Check distance ring visible (7 arc names)
+  expect(screen.getAllByTestId("arc-name")).toHaveLength(7);
+
+  // Check note degrees in names view have text content
+  const degrees = screen
+    .getAllByTestId("note-degree")
+    .map((element) => element.textContent);
+  expect(degrees.every((text) => text !== "")).toBe(true);
+
+  // Check settings drawer defaults
+  await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+  expect(switchChecked("Note names on the stave")).toBe("false");
+  expect(switchChecked("Scale degrees")).toBe("true");
+  expect(switchChecked("Distance ring")).toBe("true");
+  await userEvent.click(screen.getByRole("button", { name: "Close settings" }));
+
+  // Check full span is active (switch to stave view to verify span)
+  await userEvent.click(screen.getByRole("button", { name: "stave" }));
+  expect(pressed("full")).toBe("true");
+  await userEvent.click(screen.getByRole("button", { name: "names" }));
+}
+
 test("theory.circle-of-fifths/REQ-008/S1 — resuming mid-week practice", async () => {
   localStorage.clear();
   localStorage.setItem(
@@ -91,21 +125,8 @@ test("theory.circle-of-fifths/REQ-008/S2 — first run", async () => {
   expect(screen.getByTestId("current-variant").textContent).toBe(
     "Flute Concert",
   );
-  expect(pressed("sharp")).toBe("true");
-  expect(pressed("flat")).toBe("false");
-  expect(pressed("names")).toBe("true");
-  expect(pressed("stave")).toBe("false");
-  expect(screen.getAllByTestId("arc-degree")).toHaveLength(7);
-  expect(screen.getAllByTestId("arc-name")).toHaveLength(7);
-  const degrees = screen
-    .getAllByTestId("note-degree")
-    .map((element) => element.textContent);
-  expect(degrees.every((text) => text !== "")).toBe(true);
 
-  await userEvent.click(screen.getByRole("button", { name: "Settings" }));
-  expect(switchChecked("Note names on the stave")).toBe("false");
-  expect(switchChecked("Scale degrees")).toBe("true");
-  expect(switchChecked("Distance ring")).toBe("true");
+  await expectFirstRunDefaults();
 });
 
 test("theory.circle-of-fifths/REQ-008/S3 — corrupt stored state", async () => {
@@ -117,6 +138,8 @@ test("theory.circle-of-fifths/REQ-008/S3 — corrupt stored state", async () => 
   expect(screen.getByTestId("current-variant").textContent).toBe(
     "Flute Concert",
   );
+
+  await expectFirstRunDefaults();
 
   await userEvent.click(screen.getByRole("button", { name: "G major" }));
   expect(screen.getByTestId("current-key").textContent).toBe("G major");
@@ -139,15 +162,6 @@ test("theory.circle-of-fifths/REQ-008/S4 — stored state from the previous shap
   expect(screen.getByTestId("current-variant").textContent).toBe(
     "Ocarina Alto C",
   );
-  expect(pressed("sharp")).toBe("true");
-  expect(pressed("flat")).toBe("false");
-  expect(pressed("names")).toBe("true");
-  expect(pressed("stave")).toBe("false");
-  expect(screen.getAllByTestId("arc-degree")).toHaveLength(7);
-  expect(screen.getAllByTestId("arc-name")).toHaveLength(7);
 
-  await userEvent.click(screen.getByRole("button", { name: "Settings" }));
-  expect(switchChecked("Note names on the stave")).toBe("false");
-  expect(switchChecked("Scale degrees")).toBe("true");
-  expect(switchChecked("Distance ring")).toBe("true");
+  await expectFirstRunDefaults();
 });

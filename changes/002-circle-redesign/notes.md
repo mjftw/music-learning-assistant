@@ -107,3 +107,52 @@ After the design review: "Looks great! You can remove the 'play along' area at t
 
 ## T014 (2026-09-21)
 - Trivial class, haiku tier, controller-verified (no quality-review stage): footer placeholder and its 22 FOOTER_* constants removed from App.tsx; column layout intact; 52 tests green; no test referenced the footer.
+
+## Acceptance walk-through
+
+On the phone (390×844 viewport), side-by-side with the prototype at `/changes/002-circle-redesign/design/Circle 1c Function Paper.dc.html`:
+
+1. **Circle redesign matches the reference:** The circle shows the twelve major-key wedges on the outer ring, relative minors on the inner ring, clockwise from C at the top. All twelve positions are selectable.
+
+2. **Distance ring and degrees:** With G major selected, the distance ring draws an arc spanning exactly the seven positions whose notes belong to G major (C, G, D, A, E, B, F♯ — one flatward, five sharpward). The degrees 1–7 are set into the arc at each of those positions and repeated in the names view below each note.
+
+3. **Acceptance: G major on the flute (REQ-003/S1):** Select **Flute Concert**, pick **G major**, and switch to the **stave** view at **full** span. Verify: the signature shows one sharp (F♯) both in the circle's centre and on the stave, with the F♯ glyph accented; the stave displays exactly **22 notes running C4–C7**; **every G notehead is emphasised** (accent ink); the summary beneath the stave reads `22 notes · C4–C7`. Then switch the variant from **Ocarina Alto C → Ocarina Bass C** and verify every notehead drops exactly one octave.
+
+4. **Spelling preference:** The three enharmonic positions (B/F♯/C♯ on the outer ring, G♯/D♯/A♯ on the inner) respect a global ♯/♭ preference accessible via the sharp/flat pill in the circle's centre. Switching the preference respells all three positions and their keys.
+
+5. **Names view and stave view:** The key view defaults to the names view, showing the seven notes of the selected key with their accidental-order marks and (by default) their scale degrees. A switch at the top allows jumping to the stave view, which shows the same key's notes notated on a hand-drawn stave for the selected instrument variant's range.
+
+6. **Span choices:** In the stave view, span pills show the available octave runs within the variant's range. G major on the flute (C4–C7) offers 1 oct, 2 oct, 3 oct and full; the default is full. Choosing 2 oct shows exactly 15 notes (C4–C6) with a caption naming the span. The span choice persists when switching keys or views.
+
+7. **Instrument picker:** The header's instrument pill (showing "Flute Concert" and the range "C4–C7") is clickable and opens a bottom sheet listing all available variants. The selected variant is marked and highlighted; picking a new one updates the key view and persists.
+
+8. **Settings drawer:** A gear button in the header opens a settings drawer with three toggles: "Note names on the stave" (off by default), "Scale degrees" (on by default), and "Distance ring" (on by default). Closing the drawer preserves the changes. Toggling the distance ring off removes the arc, its degree marks, and the outside note names; toggling degrees off removes degree numbers from both the arc and the names view.
+
+9. **Persistence and reload:** All choices persist across reload: the selected key, variant, spelling preference, view choice (names or stave), span, and the three toggle states. First run defaults to C major on the flute with sharp spelling, names view, full span, degrees and distance ring on, and stave note-names off.
+
+10. **Footer:** The bottom of the column is deliberately blank (no "play along" mockup), leaving room for the play-along feature that arrives in a later change.
+
+**User verdict:** _pending_
+
+## pnpm check output
+
+```
+> music-learning-assistant@0.0.0 check /home/merlin/projects/music-learning-assistant
+> prettier --check . && eslint . && tsc --noEmit && vitest run
+
+Checking formatting...
+All matched files use Prettier code style!
+
+ RUN  v5.0.1 /home/merlin/projects/music-learning-assistant
+
+
+ Test Files  17 passed (17)
+      Tests  52 passed (52)
+   Start at  15:19:40
+   Duration  2.24s (environment 58%, tests 19%, import 14%, transform 8%, worker 1%)
+```
+
+## T013 (2026-09-21)
+- Haiku-tier implementer, sonnet review. Round 1: SPEC FAIL — the helper extraction silently dropped a pre-existing assertion (note-degree non-empty) and the walk-through omitted the G-major acceptance values. Fixer round restored/added both; AGENTS.md bullet re-wrapped. Round 2: PASS/PASS.
+- Lesson for the ladder: small-tier work that touches tests always gets a mid-tier review — it caught a dropped assertion here.
+- 52 tests, 26 target scenarios all cited, boundaries clean, JS bundle 332 kB (001: 1.43 MB).
