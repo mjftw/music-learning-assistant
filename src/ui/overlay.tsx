@@ -3,18 +3,18 @@ import { paper } from "./theme";
 
 // Geometry and colour below are copied verbatim from the vendored visual
 // reference — named here rather than re-derived by eye.
-export const CLOSE_SIZE = 28;
-export const CLOSE_BORDER = paper.border;
+const CLOSE_SIZE = 28;
+const CLOSE_BORDER = paper.border;
 // Single-use close button colour (mirrored in both InstrumentSheet and
 // SettingsDrawer) — not lifted into theme.ts, per the codebase's convention
 // of module-local one-off colours (see e.g. CircleOfFifths.tsx's PILL_BORDER).
-export const CLOSE_ICON_COLOR = "#5e564c";
-export const CLOSE_FONT_SIZE = 12;
-export const CLOSE_GLYPH = "✕";
+const CLOSE_ICON_COLOR = "#5e564c";
+const CLOSE_FONT_SIZE = 12;
+const CLOSE_GLYPH = "✕";
 
-export const HEADER_TITLE_FONT_SIZE = 14;
-export const HEADER_TITLE_FONT_WEIGHT = 600;
-export const HEADER_BORDER = `1px solid ${paper.hairline}`;
+const HEADER_TITLE_FONT_SIZE = 14;
+const HEADER_TITLE_FONT_WEIGHT = 600;
+const HEADER_BORDER = `1px solid ${paper.hairline}`;
 
 export function OverlayScrim(props: {
   readonly open: boolean;
@@ -41,7 +41,7 @@ export function OverlayScrim(props: {
   );
 }
 
-export function OverlayCloseButton(props: {
+function OverlayCloseButton(props: {
   readonly ariaLabel: string;
   readonly onClose: () => void;
 }): JSX.Element {

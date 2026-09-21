@@ -581,7 +581,7 @@ sdd_phase: in-progress
 
 ### T017 · — · Stale citation and dead code from the rebuild (W3, W4) · `Trivial`
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `tests/theory/scenarios/circle.test.ts`, `src/ui/theme.ts`, `src/ui/overlay.tsx`, `src/theory/domain/key-view.ts`, `src/theory/published/index.ts` (only if an export goes), `tests/theory/scenarios/key-view.test.ts`

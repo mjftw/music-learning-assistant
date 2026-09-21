@@ -164,3 +164,6 @@ All matched files use Prettier code style!
 
 ## T015 (2026-09-21)
 - W1 fixed at the root: minor keys use their own step→degree map (6,3,7,4,1,5,2) and wedgeName always reads the outer ring. PASS/PASS. Reviewer's throwaway probe verified for all 30 key spellings × both preferences: every arc label has the same pitch as the outer wedge at its position; degrees are a permutation of 1–7 with 1 on the tonic; differsFromWedge is true only for same-pitch spelling disagreements.
+
+## T017 (2026-09-21)
+- W3 + W4 closed, haiku tier, sonnet-reviewed PASS/PASS: the 001 "both spellings" theory test keeps its assertions but no longer cites REQ-002/S1; paper.dash deleted; overlay.tsx exports only OverlayScrim/OverlayHeader; KeyView.relative removed (relativeOf still published and still tested with identical expected values).

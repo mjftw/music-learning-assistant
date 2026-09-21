@@ -30,7 +30,7 @@ test("theory.circle-of-fifths/REQ-001/S1 — the rings are complete and aligned"
   for (const position of positions)
     expect(position.minors).toHaveLength(position.majors.length);
 });
-test("theory.circle-of-fifths/REQ-002/S1 — six o’clock offers both F# and Gb major", () => {
+test("circleOfFifths() exposes both spellings at the six o’clock position (theory supports the spelling preference)", () => {
   const sixOClock = circleOfFifths()[6]!;
   expect(sixOClock.majors.map(spell).sort()).toEqual(["F#", "Gb"]);
   expect(new Set(sixOClock.majors.map(keyId)).size).toBe(2);

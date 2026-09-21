@@ -15,7 +15,6 @@ export const paper = {
   pillActive: "#e7dcc6",
   accent: "#8a4b2a",
   trackOff: "#c8bfad",
-  dash: "#c8bfad",
   scrim: "rgba(28,25,22,.32)",
 } as const;
 
