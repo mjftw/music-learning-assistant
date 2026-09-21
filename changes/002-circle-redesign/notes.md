@@ -43,3 +43,8 @@ One line each, newest last.
 - For T012: (1) design-shots `gb-flat-spelling` app driver must click the `flat` pill before `G♭ major` — that pair has never truly been compared; (2) route the prototype's Google Fonts requests to the local @fontsource files so pairs compare on equal typography; (3) the ♯/♭ pill's layout literals in CircleOfFifths.tsx should become named constants like the rest of the file.
 - Trap for T007–T011: the 001 note-names bridge keeps DEFAULT_NOTE_NAMES_VISIBLE = true, deliberately separate from firstRunDefaults.staveNamesEnabled (false), until the old panel is replaced.
 - Controller process correction (user): explicit `model` on every dispatch; visual comparison belongs to the reviewer subagent, not the main session.
+
+## T007 (2026-09-21)
+- PASS/PASS, no findings. Names card + marks + degrees verified character-for-character against the reference; names view draws from scaleNotesOf (range-independent, REQ-003/S3).
+- App root now sets fontFamily: fonts.body (reference sets Public Sans at the page root). Note-name text uses data-testid="column-name" because "note-name" still belongs to the mounted 001 KeyViewStave until T009.
+- Outstanding for T011: page background (#efe9dc frame / #ddd6c7 outside) and the centred column.

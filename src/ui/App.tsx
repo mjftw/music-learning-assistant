@@ -16,7 +16,9 @@ import { findVariantById } from "./catalogue-lookup";
 import { CircleOfFifths, locateSpelledKey } from "./CircleOfFifths";
 import { InstrumentSelector } from "./InstrumentSelector";
 import { keyLabel, pitchClassLabel } from "./key-label";
+import { KeyPanel } from "./KeyPanel";
 import { KeyViewStave } from "./KeyViewStave";
+import { NamesView } from "./NamesView";
 import { Notices } from "./Notices";
 import {
   firstRunDefaults,
@@ -58,6 +60,7 @@ interface Selection {
   readonly positionIndex: number;
   readonly mode: Mode;
   readonly spelling: SpellingPreference;
+  readonly view: "names" | "stave";
   readonly degreesEnabled: boolean;
   readonly distanceRingEnabled: boolean;
   readonly noteNamesVisible: boolean;
@@ -73,6 +76,7 @@ function defaultSelection(): Selection {
     positionIndex: located.position.index,
     mode: located.key.mode,
     spelling: firstRunDefaults.spelling,
+    view: firstRunDefaults.view,
     degreesEnabled: firstRunDefaults.degreesEnabled,
     distanceRingEnabled: firstRunDefaults.distanceRingEnabled,
     noteNamesVisible: DEFAULT_NOTE_NAMES_VISIBLE,
@@ -93,6 +97,7 @@ function initialSelection(
     positionIndex: located.position.index,
     mode: located.key.mode,
     spelling: stored.spelling,
+    view: stored.view,
     degreesEnabled: stored.degreesEnabled,
     distanceRingEnabled: stored.distanceRingEnabled,
     noteNamesVisible: stored.staveNamesEnabled,
@@ -123,6 +128,7 @@ export function App(props: {
       variantId: selection.variantId,
       keyId: keyIdOf(selectedKey),
       spelling: selection.spelling,
+      view: selection.view,
       degreesEnabled: selection.degreesEnabled,
       distanceRingEnabled: selection.distanceRingEnabled,
       staveNamesEnabled: selection.noteNamesVisible,
@@ -138,7 +144,7 @@ export function App(props: {
     variant === undefined ? undefined : keyView(selectedKey, variant);
 
   return (
-    <div>
+    <div style={{ fontFamily: fonts.body }}>
       <Notices notices={catalogue.notices} />
       <InstrumentSelector
         catalogue={catalogue}
@@ -186,6 +192,17 @@ export function App(props: {
           setSelection((current) => ({ ...current, spelling: preference }))
         }
       />
+      <KeyPanel
+        view={selection.view}
+        onSelectView={(selectedView) =>
+          setSelection((current) => ({ ...current, view: selectedView }))
+        }
+      >
+        <NamesView
+          key_={selectedKey}
+          degreesEnabled={selection.degreesEnabled}
+        />
+      </KeyPanel>
       {view === undefined ? null : (
         <KeyViewStave
           view={view}

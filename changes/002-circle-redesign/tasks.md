@@ -336,7 +336,7 @@ sdd_phase: in-progress
 
 ### T007 · theory.circle-of-fifths/REQ-003 (S3), REQ-004 (S1, S2, S3), REQ-010 (S1) · Key panel shell and the names view
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/KeyPanel.tsx`, `src/ui/NamesView.tsx`
