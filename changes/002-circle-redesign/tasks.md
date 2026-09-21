@@ -221,7 +221,7 @@ sdd_phase: in-progress
 
 ### T005 · — · Selection store v2 with v1 migration
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/selection-store.ts`

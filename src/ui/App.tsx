@@ -14,7 +14,11 @@ import { InstrumentSelector } from "./InstrumentSelector";
 import { keyLabel, pitchClassLabel } from "./key-label";
 import { KeyViewStave } from "./KeyViewStave";
 import { Notices } from "./Notices";
-import type { SelectionStore, StoredSelection } from "./selection-store";
+import {
+  firstRunDefaults,
+  type SelectionStore,
+  type StoredSelection,
+} from "./selection-store";
 
 const DEFAULT_VARIANT_ID = "flute-concert";
 const DEFAULT_KEY_ID = "C-major";
@@ -72,7 +76,7 @@ function initialSelection(
   return {
     variantId: stored.variantId,
     keyId: stored.keyId,
-    noteNamesVisible: stored.noteNamesVisible,
+    noteNamesVisible: stored.staveNamesEnabled,
   };
 }
 
@@ -87,10 +91,10 @@ export function App(props: {
 
   useEffect(() => {
     const toSave: StoredSelection = {
-      schemaVersion: 1,
+      ...firstRunDefaults,
       variantId: selection.variantId,
       keyId: selection.keyId,
-      noteNamesVisible: selection.noteNamesVisible,
+      staveNamesEnabled: selection.noteNamesVisible,
     };
     selectionStore.save(toSave);
   }, [selection, selectionStore]);

@@ -31,3 +31,9 @@ One line each, newest last.
 
 ## T004 (2026-09-20)
 - PASS/PASS. Reviewer hand-recomputed all three scenarios independently — C major/flute (1,2,3,full), G major/flute (1,2,full), F#/Bass-C (full only, correctly no octave run fits) — all confirmed.
+
+## T005 (2026-09-21)
+- PASS/PASS. Store v2 + v1 migration; App.tsx touched only mechanically (4 lines, controller-authorized) — rendered behaviour unchanged; 001's selection-persistence scenarios still pass untouched.
+- Minor: schema is z.union not z.discriminatedUnion (behaviourally verified equivalent: v2 passes, v1 migrates, junk → null, never throws).
+- Minor: brief's test import path was one level shallow; implementer corrected it silently — briefs for tests/ui/scenarios must use ../../../src/.
+- Note for T011: App currently maps its old noteNamesVisible state onto staveNamesEnabled as a temporary bridge — T011 replaces it.
