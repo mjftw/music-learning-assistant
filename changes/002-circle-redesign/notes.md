@@ -48,3 +48,9 @@ One line each, newest last.
 - PASS/PASS, no findings. Names card + marks + degrees verified character-for-character against the reference; names view draws from scaleNotesOf (range-independent, REQ-003/S3).
 - App root now sets fontFamily: fonts.body (reference sets Public Sans at the page root). Note-name text uses data-testid="column-name" because "note-name" still belongs to the mounted 001 KeyViewStave until T009.
 - Outstanding for T011: page background (#efe9dc frame / #ddd6c7 outside) and the centred column.
+
+## T008 (2026-09-21)
+- PASS/PASS, no findings. Header + settings drawer match the reference value-for-value; closed drawer renders nothing queryable; never opens itself (Article VI).
+- Brief error corrected in dispatch: the redesigned circle has 24 wedge buttons (one spelling per dual position), not 27.
+- For T011: reviewer could not attribute "every toggle change is persisted" to a test — REQ-008/S1's rewrite should include a toggle → re-render-from-store assertion.
+- Real staveNamesEnabled preference now exists (persisted, default false) alongside the temporary 001 note-names bridge; T009 deletes the bridge with the old stave.

@@ -14,8 +14,9 @@ import {
 } from "../theory/published";
 import { findVariantById } from "./catalogue-lookup";
 import { CircleOfFifths, locateSpelledKey } from "./CircleOfFifths";
+import { Header } from "./Header";
 import { InstrumentSelector } from "./InstrumentSelector";
-import { keyLabel, pitchClassLabel } from "./key-label";
+import { keyLabel, noteLabel, pitchClassLabel } from "./key-label";
 import { KeyPanel } from "./KeyPanel";
 import { KeyViewStave } from "./KeyViewStave";
 import { NamesView } from "./NamesView";
@@ -25,6 +26,7 @@ import {
   type SelectionStore,
   type StoredSelection,
 } from "./selection-store";
+import { SettingsDrawer } from "./SettingsDrawer";
 import { fonts } from "./theme";
 
 const DEFAULT_VARIANT_ID = "flute-concert";
@@ -36,6 +38,16 @@ const DEFAULT_NOTE_NAMES_VISIBLE = true;
 
 function variantLabel(variant: Variant): string {
   return `${variant.instrumentName} — ${variant.variantName}`;
+}
+
+// The header pill's own label is space-separated ("Flute Concert"), distinct
+// from `variantLabel`'s em-dash form used elsewhere in this view.
+function headerInstrumentLabel(variant: Variant): string {
+  return `${variant.instrumentName} ${variant.variantName}`;
+}
+
+function headerRangeLabel(variant: Variant): string {
+  return `${noteLabel(variant.range.lowest)}–${noteLabel(variant.range.highest)}`;
 }
 
 function relativeKeyLabel(key: Key, relative: Key): string {
@@ -64,6 +76,11 @@ interface Selection {
   readonly degreesEnabled: boolean;
   readonly distanceRingEnabled: boolean;
   readonly noteNamesVisible: boolean;
+  // The real preference this task adds (see additional context in
+  // .sdd/briefs/002-circle-redesign/T008.md): driven by the settings
+  // drawer and persisted; `noteNamesVisible` above stays the 001 bridge
+  // driving the old KeyViewStave until T009 deletes both.
+  readonly staveNamesEnabled: boolean;
 }
 
 function defaultSelection(): Selection {
@@ -80,6 +97,7 @@ function defaultSelection(): Selection {
     degreesEnabled: firstRunDefaults.degreesEnabled,
     distanceRingEnabled: firstRunDefaults.distanceRingEnabled,
     noteNamesVisible: DEFAULT_NOTE_NAMES_VISIBLE,
+    staveNamesEnabled: firstRunDefaults.staveNamesEnabled,
   };
 }
 
@@ -101,6 +119,7 @@ function initialSelection(
     degreesEnabled: stored.degreesEnabled,
     distanceRingEnabled: stored.distanceRingEnabled,
     noteNamesVisible: stored.staveNamesEnabled,
+    staveNamesEnabled: stored.staveNamesEnabled,
   };
 }
 
@@ -112,6 +131,7 @@ export function App(props: {
   const [selection, setSelection] = useState<Selection>(() =>
     initialSelection(catalogue, selectionStore),
   );
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const position = circleOfFifths()[selection.positionIndex];
   if (position === undefined) {
@@ -131,7 +151,7 @@ export function App(props: {
       view: selection.view,
       degreesEnabled: selection.degreesEnabled,
       distanceRingEnabled: selection.distanceRingEnabled,
-      staveNamesEnabled: selection.noteNamesVisible,
+      staveNamesEnabled: selection.staveNamesEnabled,
     };
     selectionStore.save(toSave);
   }, [selection, selectedKey, selectionStore]);
@@ -144,7 +164,18 @@ export function App(props: {
     variant === undefined ? undefined : keyView(selectedKey, variant);
 
   return (
-    <div style={{ fontFamily: fonts.body }}>
+    <div style={{ fontFamily: fonts.body, position: "relative" }}>
+      <Header
+        variantLabel={
+          variant === undefined ? "" : headerInstrumentLabel(variant)
+        }
+        rangeLabel={variant === undefined ? "" : headerRangeLabel(variant)}
+        onOpenPicker={() => {
+          // T010 wires the real instrument picker; the old
+          // InstrumentSelector below still drives variant choice until then.
+        }}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
       <Notices notices={catalogue.notices} />
       <InstrumentSelector
         catalogue={catalogue}
@@ -223,6 +254,31 @@ export function App(props: {
       >
         Note names
       </button>
+      <SettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        staveNamesEnabled={selection.staveNamesEnabled}
+        degreesEnabled={selection.degreesEnabled}
+        distanceRingEnabled={selection.distanceRingEnabled}
+        onToggleStaveNames={() =>
+          setSelection((current) => ({
+            ...current,
+            staveNamesEnabled: !current.staveNamesEnabled,
+          }))
+        }
+        onToggleDegrees={() =>
+          setSelection((current) => ({
+            ...current,
+            degreesEnabled: !current.degreesEnabled,
+          }))
+        }
+        onToggleRing={() =>
+          setSelection((current) => ({
+            ...current,
+            distanceRingEnabled: !current.distanceRingEnabled,
+          }))
+        }
+      />
     </div>
   );
 }

@@ -9,6 +9,7 @@ export const paper = {
   faint: "#9a9186",
   border: "#cfc6b4",
   borderSoft: "#ddd4c2",
+  drawerBorder: "#d5cbb8",
   hairline: "#e6ddcc",
   hairlineSoft: "#ece4d5",
   pillActive: "#e7dcc6",

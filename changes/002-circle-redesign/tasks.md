@@ -363,7 +363,7 @@ sdd_phase: in-progress
 
 ### T008 · theory.circle-of-fifths/REQ-009 (S3), REQ-010 (S2) · Settings drawer and header
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/SettingsDrawer.tsx`, `src/ui/Header.tsx`

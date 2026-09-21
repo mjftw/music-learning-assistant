@@ -128,7 +128,9 @@ const STATES = {
     prototype: async (page) => {
       await clickPrototypeText(page, "⚙");
     },
-    app: async () => {},
+    app: async (page) => {
+      await page.getByRole("button", { name: "Settings" }).click();
+    },
   },
   "picker-open": {
     prototype: async (page) => {
