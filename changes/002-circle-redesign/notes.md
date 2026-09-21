@@ -181,3 +181,6 @@ All matched files use Prettier code style!
 
 ## Acceptance finding 1 (2026-09-21) — selected labels overflow their wedge
 User screenshot: selected `C♯m` (17px/700) spills out of its inner wedge. Inherited from the prototype's selected sizes. Tasked as T018; roadmap back to `building` until it is fixed and re-audited. Side observation: the same screenshot showed the PRE-fix minor-key arc labels (F♯·4 C♯·1 …) — controller probed HEAD and confirmed current code yields A·6 E·3 B·7 F♯·4 C♯·1 G♯·5 D♯·2, so the user's running page was stale, not the fix broken.
+
+## Acceptance finding 2 / T019 (2026-09-21) — blue flash on tap
+User on phone: "When I click on a segment on my phone a blue backing box appears for a moment." = the mobile tap highlight over the focusable SVG wedge's bounding box. Haiku tier; sonnet review PASS/PASS with one minor (the overlay scrim is a tappable <div>, missed by per-selector rules). Follow-up: `-webkit-tap-highlight-color: transparent` set ONCE on `body` (inherited) — covers wedges, buttons and the scrim. Not verifiable headlessly (desktop Chromium paints no tap highlight) — final proof is the user's phone.

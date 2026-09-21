@@ -619,6 +619,22 @@ sdd_phase: in-progress
 
 **Verify** — `pnpm check` → exit 0; the sweep shots in `.sdd/design-review/fit/` show every selected label inside its wedge
 
+### T019 · — · No tap-highlight flash on touch devices (user finding, 2026-09-21) · `Trivial`
+
+**Status:** done
+
+**Files**
+- Modify: `src/ui/global.css`
+
+**Context** — on the user's phone, tapping a circle segment flashes a blue box for a moment: the mobile browser's default tap highlight, painted over the bounding rectangle of the tapped focusable element (the wedges are focusable SVG shapes, so the highlight is a rectangle, not the wedge).
+
+**Steps**
+- [ ] 1. In `src/ui/global.css` add `-webkit-tap-highlight-color: transparent;` to the existing `.circle-wedge` rule, and add the same declaration to the existing `button` rule so the pills, header pill, sheet rows and drawer switches do not flash either. One why-comment: the app gives its own selected/pressed feedback, and the default highlight paints a rectangle over non-rectangular wedges
+- [ ] 2. Keyboard accessibility must be unaffected: do NOT touch `outline` or the focus-ring overlay
+- [ ] 3. Run `pnpm check` — green (59 tests); `pnpm build` — succeeds
+
+**Verify** — `grep -c "tap-highlight-color" src/ui/global.css` → `2`; `pnpm check` → exit 0. Final proof is the user's phone (headless desktop Chromium does not paint tap highlights)
+
 ## Coverage
 
 | Requirement | Tasks | Covered |
