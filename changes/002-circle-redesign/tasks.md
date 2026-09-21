@@ -444,7 +444,7 @@ sdd_phase: in-progress
 
 ### T011 · theory.circle-of-fifths/REQ-008 (S1, S2, S3, S4) · Final wiring: persistence, layout column, footer
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/App.tsx` (persist all preferences; centred 390px column on wide screens; dashed footer placeholder `PLAY ALONG · DRONE · TEMPO`; body background `#ddd6c7` outside the column, `#efe9dc` inside), `src/ui/main.tsx` (if the column wrapper lives there)

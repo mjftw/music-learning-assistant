@@ -66,3 +66,9 @@ One line each, newest last.
 - Round 1: SPEC PASS / QUALITY FAIL — scrim + close button duplicated verbatim between InstrumentSheet and SettingsDrawer (the recurring class). Fixed by a haiku-tier fixer: shared src/ui/overlay.tsx (OverlayScrim, OverlayCloseButton, OverlayHeader). Round 2: PASS/PASS.
 - theory.instruments spec untouched; its two UI scenarios re-expressed against the sheet. current-variant test id moved to the header pill; visible text is the prototype's 'Flute Concert' form (no em dash).
 - Model ladder applied from here: sonnet implementer/reviewer, haiku for mechanical fixer rounds.
+
+## T011 (2026-09-21)
+- PASS/PASS. REQ-008 S1–S4 rewritten with a genuine persistence round trip (UI change → unmount → fresh App over the same storage). Centred 390px column, overlays clip to the column, inert aria-hidden footer placeholder. Implementer committed its own work (dc778da) — contents verified clean.
+- Reviewer's full-frame comparison: c-major-names, g-major-stave-full, settings-open, picker-open effectively pixel-identical to the prototype.
+- Work list for T012 (design review): (1) design-shots gb-flat-spelling app driver must click `flat` first; (2) serve the prototype's Google Fonts requests from the local @fontsource files so pairs compare on equal typography; (3) keyboard-focus outline on the selected wedge (CircleOfFifths.tsx:394-395, 415-416) — keep keyboard access, style focus-visible instead of the default black ring; (4) name the ♯/♭ pill layout literals; (5) KeyPanel SPAN_ROW_* aliases + pillStyle/spanPillStyle duplication; (6) App.tsx bare "0 auto".
+- Work list for T013 (hardening): REQ-008/S3 should assert the full default set; S2/S4 should assert the full-span default.
