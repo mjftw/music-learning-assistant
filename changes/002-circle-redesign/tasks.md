@@ -524,7 +524,7 @@ sdd_phase: in-progress
 
 ### T015 · theory.circle-of-fifths/REQ-009 (S4), REQ-010 (S3) · Minor keys: the arc names and numbers the notes where they really are (W1)
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/theory/domain/arc.ts`

@@ -34,3 +34,31 @@ test("theory.circle-of-fifths/REQ-010/S1 — degrees on the arc: G=1 D=5 C=4 F#=
   expect(degreeAt(0)).toBe(4); // C
   expect(degreeAt(6)).toBe(7); // F#
 });
+const eMinor = {
+  tonic: { letter: "E", accidental: "natural" },
+  mode: "naturalMinor",
+} as const;
+test("theory.circle-of-fifths/REQ-009/S4 — a minor key’s arc names the notes where they are", () => {
+  const arc = arcOf(eMinor, "sharp");
+  expect(arc).toHaveLength(7);
+  const nameAt = (index: number) =>
+    spell(arc.find((position) => position.positionIndex === index)!.scaleName);
+  expect([0, 1, 2, 3, 4, 5, 6].map(nameAt)).toEqual([
+    "C",
+    "G",
+    "D",
+    "A",
+    "E",
+    "B",
+    "F#",
+  ]);
+  expect(arc.every((position) => position.differsFromWedge === false)).toBe(
+    true,
+  );
+});
+test("theory.circle-of-fifths/REQ-010/S3 — a minor key numbers from its own tonic", () => {
+  const arc = arcOf(eMinor, "sharp");
+  const degreeAt = (index: number) =>
+    arc.find((position) => position.positionIndex === index)!.degree;
+  expect([0, 1, 2, 3, 4, 5, 6].map(degreeAt)).toEqual([6, 3, 7, 4, 1, 5, 2]);
+});

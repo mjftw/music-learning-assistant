@@ -44,8 +44,11 @@ export interface ArcPosition {
 }
 
 // Maps the arc's signed step (-1 flatward through 5 sharpward of the
-// selected key) to the scale degree it lands on, per REQ-010.
-const DEGREE_BY_SIGNED_STEP: Readonly<Record<number, number>> = {
+// selected key) to the scale degree it lands on, per REQ-010. A minor key
+// shares its seven positions with its relative major (same arc), but
+// numbers them from its own tonic, three steps sharpward of the major's —
+// hence a distinct map rather than an offset into the major one.
+const MAJOR_DEGREE_BY_SIGNED_STEP: Readonly<Record<number, number>> = {
   "-1": 4,
   "0": 1,
   "1": 5,
@@ -53,6 +56,15 @@ const DEGREE_BY_SIGNED_STEP: Readonly<Record<number, number>> = {
   "3": 6,
   "4": 3,
   "5": 7,
+};
+const NATURAL_MINOR_DEGREE_BY_SIGNED_STEP: Readonly<Record<number, number>> = {
+  "-1": 6,
+  "0": 3,
+  "1": 7,
+  "2": 4,
+  "3": 1,
+  "4": 5,
+  "5": 2,
 };
 
 function findSelectedPositionIndex(key: Key): number {
@@ -72,21 +84,23 @@ export function arcOf(
 ): readonly ArcPosition[] {
   const selectedIndex = findSelectedPositionIndex(key);
   const scale = scaleNotesOf(key);
-  const wedgeAt =
+  const degreeBySignedStep =
     key.mode === "major"
-      ? (position: CirclePosition) => spelledMajorAt(position, preference)
-      : (position: CirclePosition) => spelledMinorAt(position, preference);
+      ? MAJOR_DEGREE_BY_SIGNED_STEP
+      : NATURAL_MINOR_DEGREE_BY_SIGNED_STEP;
 
   const arcPositions: ArcPosition[] = [];
   for (const position of circleOfFifths()) {
     const signedStep = ((position.index - selectedIndex + 18) % 12) - 6;
     if (signedStep < -1 || signedStep > 5) continue;
-    const degree = DEGREE_BY_SIGNED_STEP[signedStep];
+    const degree = degreeBySignedStep[signedStep];
     if (degree === undefined) throw new Error("unreachable: step out of range");
     const scaleName = scale[degree - 1];
     if (scaleName === undefined)
       throw new Error("unreachable: degree out of range");
-    const wedgeName = wedgeAt(position).tonic;
+    // The outer ring is where the notes live, for both modes — a minor
+    // key's arc still labels against its relative major's fixed wedge.
+    const wedgeName = spelledMajorAt(position, preference).tonic;
     const differsFromWedge =
       wedgeName.letter !== scaleName.letter ||
       wedgeName.accidental !== scaleName.accidental;
