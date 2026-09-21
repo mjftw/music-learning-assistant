@@ -79,6 +79,7 @@ export function Header(props: {
           }}
         />
         <span
+          data-testid="current-variant"
           style={{ fontSize: LABEL_FONT_SIZE, fontWeight: LABEL_FONT_WEIGHT }}
         >
           {variantLabel}

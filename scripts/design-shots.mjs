@@ -138,7 +138,7 @@ const STATES = {
       await clickPrototypeText(page, "Flute Concert");
     },
     app: async (page) => {
-      await page.getByLabel("Instrument").click();
+      await page.getByRole("button", { name: "Instrument" }).click();
     },
   },
 };

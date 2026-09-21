@@ -61,3 +61,8 @@ One line each, newest last.
 - Deleted with the old stave: KeyViewStave.tsx, the 001 note-names bridge, relative-key/signature-summary paragraphs, stave-styling + names-toggle tests (their REQs were MODIFIED; replacements in stave-view.test.tsx). selection-persistence.test.tsx lost only its two switch aria-checked assertions (T011 rewrites it).
 - KeyPanel props extended (rangeSummary, spanCaption, spanChoices) — single home for the span and summary rows; reviewer judged the surface cohesive.
 - Minors for the T012 cleanup pass: KeyPanel SPAN_ROW_* constants alias SUMMARY_ROW_*; pillStyle/spanPillStyle share most of their body — extract a base.
+
+## T010 (2026-09-21)
+- Round 1: SPEC PASS / QUALITY FAIL — scrim + close button duplicated verbatim between InstrumentSheet and SettingsDrawer (the recurring class). Fixed by a haiku-tier fixer: shared src/ui/overlay.tsx (OverlayScrim, OverlayCloseButton, OverlayHeader). Round 2: PASS/PASS.
+- theory.instruments spec untouched; its two UI scenarios re-expressed against the sheet. current-variant test id moved to the header pill; visible text is the prototype's 'Flute Concert' form (no em dash).
+- Model ladder applied from here: sonnet implementer/reviewer, haiku for mechanical fixer rounds.

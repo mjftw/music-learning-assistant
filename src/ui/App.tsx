@@ -18,7 +18,7 @@ import {
 import { findVariantById } from "./catalogue-lookup";
 import { CircleOfFifths, locateSpelledKey } from "./CircleOfFifths";
 import { Header } from "./Header";
-import { InstrumentSelector } from "./InstrumentSelector";
+import { InstrumentSheet } from "./InstrumentSheet";
 import { keyLabel, noteLabel, pitchClassLabel } from "./key-label";
 import { KeyPanel, type SpanChoicePill } from "./KeyPanel";
 import { NamesView } from "./NamesView";
@@ -36,12 +36,6 @@ import { fonts } from "./theme";
 const DEFAULT_VARIANT_ID = "flute-concert";
 const DEFAULT_KEY_ID = "C-major";
 
-function variantLabel(variant: Variant): string {
-  return `${variant.instrumentName} — ${variant.variantName}`;
-}
-
-// The header pill's own label is space-separated ("Flute Concert"), distinct
-// from `variantLabel`'s em-dash form used elsewhere in this view.
 function headerInstrumentLabel(variant: Variant): string {
   return `${variant.instrumentName} ${variant.variantName}`;
 }
@@ -162,6 +156,7 @@ export function App(props: {
     initialSelection(catalogue, selectionStore),
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [instrumentSheetOpen, setInstrumentSheetOpen] = useState(false);
 
   const position = circleOfFifths()[selection.positionIndex];
   if (position === undefined) {
@@ -228,32 +223,16 @@ export function App(props: {
           variant === undefined ? "" : headerInstrumentLabel(variant)
         }
         rangeLabel={variant === undefined ? "" : headerRangeLabel(variant)}
-        onOpenPicker={() => {
-          // T010 wires the real instrument picker; the old
-          // InstrumentSelector below still drives variant choice until then.
-        }}
+        onOpenPicker={() => setInstrumentSheetOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
       />
       <Notices notices={catalogue.notices} />
-      <InstrumentSelector
-        catalogue={catalogue}
-        selectedVariantId={selection.variantId}
-        onSelect={(selectedVariant) =>
-          setSelection((current) => ({
-            ...current,
-            variantId: selectedVariant.variantId,
-          }))
-        }
-      />
       <div
         data-testid="current-key"
         style={{ fontFamily: fonts.display, fontSize: 46 }}
       >
         {keyLabel(selectedKey)}
       </div>
-      <p data-testid="current-variant">
-        {variant === undefined ? "" : variantLabel(variant)}
-      </p>
       <CircleOfFifths
         selectedKeyId={keyIdOf(selectedKey)}
         spelling={selection.spelling}
@@ -328,6 +307,19 @@ export function App(props: {
             distanceRingEnabled: !current.distanceRingEnabled,
           }))
         }
+      />
+      <InstrumentSheet
+        open={instrumentSheetOpen}
+        catalogue={catalogue}
+        selectedVariantId={selection.variantId}
+        onSelect={(selectedVariant) => {
+          setSelection((current) => ({
+            ...current,
+            variantId: selectedVariant.variantId,
+          }));
+          setInstrumentSheetOpen(false);
+        }}
+        onClose={() => setInstrumentSheetOpen(false)}
       />
     </div>
   );

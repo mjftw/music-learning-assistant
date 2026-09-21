@@ -23,7 +23,7 @@ test("theory.circle-of-fifths/REQ-008/S2 — first run shows C major on the flut
   );
   expect(screen.getByTestId("current-key").textContent).toBe("C major");
   expect(screen.getByTestId("current-variant").textContent).toBe(
-    "Flute — Concert",
+    "Flute Concert",
   );
 });
 
@@ -45,7 +45,7 @@ test("theory.circle-of-fifths/REQ-008/S1 — reopening restores Bb major on Bass
   );
   expect(screen.getByTestId("current-key").textContent).toBe("B♭ major");
   expect(screen.getByTestId("current-variant").textContent).toBe(
-    "Ocarina — Bass C",
+    "Ocarina Bass C",
   );
 });
 
@@ -78,6 +78,6 @@ test("theory.circle-of-fifths/REQ-008/S3 — stored selection naming an unknown 
   );
   expect(screen.getByTestId("current-key").textContent).toBe("C major");
   expect(screen.getByTestId("current-variant").textContent).toBe(
-    "Flute — Concert",
+    "Flute Concert",
   );
 });

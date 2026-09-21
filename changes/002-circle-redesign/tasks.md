@@ -417,7 +417,7 @@ sdd_phase: in-progress
 
 ### T010 · theory.instruments/REQ-001 (S2), REQ-003 (S2) — unchanged spec, new surface · Instrument bottom sheet
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/InstrumentSheet.tsx`

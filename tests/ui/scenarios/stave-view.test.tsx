@@ -23,6 +23,14 @@ const enterStaveView = async () => {
   await userEvent.click(screen.getByRole("button", { name: "stave" }));
 };
 
+// The instrument picker moved from a `<select>` to the bottom sheet
+// (theory.instruments/REQ-001/S2, T010) — open it via the header pill, then
+// pick the row named for the variant.
+const selectVariant = async (rowName: string) => {
+  await userEvent.click(screen.getByRole("button", { name: "Instrument" }));
+  await userEvent.click(screen.getByRole("button", { name: rowName }));
+};
+
 test("theory.circle-of-fifths/REQ-003/S1 — G major on the flute (acceptance)", async () => {
   setup();
   await userEvent.click(screen.getByRole("button", { name: "G major" }));
@@ -50,10 +58,7 @@ test("theory.circle-of-fifths/REQ-003/S1 — G major on the flute (acceptance)",
 
 test("theory.circle-of-fifths/REQ-003/S2 — the display follows the variant's range", async () => {
   setup();
-  await userEvent.selectOptions(
-    screen.getByRole("combobox", { name: "Instrument" }),
-    "ocarina-alto-c",
-  );
+  await selectVariant("Ocarina Alto C");
   await userEvent.click(screen.getByRole("button", { name: "G major" }));
   await enterStaveView();
 
@@ -61,10 +66,7 @@ test("theory.circle-of-fifths/REQ-003/S2 — the display follows the variant's r
     .getAllByTestId("stave-note")
     .map((note) => note.getAttribute("data-note"));
 
-  await userEvent.selectOptions(
-    screen.getByRole("combobox", { name: "Instrument" }),
-    "ocarina-bass-c",
-  );
+  await selectVariant("Ocarina Bass C");
 
   const after = screen
     .getAllByTestId("stave-note")

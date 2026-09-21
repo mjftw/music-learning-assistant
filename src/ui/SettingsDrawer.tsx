@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { paper } from "./theme";
+import { OverlayScrim, OverlayHeader } from "./overlay";
 
 // Geometry and colour below are copied verbatim from the vendored visual
 // reference (changes/002-circle-redesign/design/Circle 1c Function Paper.dc.html
@@ -10,18 +11,6 @@ const PANEL_WIDTH = 266;
 const PANEL_SHADOW = "-10px 0 30px rgba(28,25,22,.16)";
 
 const HEADER_PADDING = "18px 18px 14px";
-const HEADER_BORDER = `1px solid ${paper.hairline}`;
-const HEADER_TITLE_FONT_SIZE = 14;
-const HEADER_TITLE_FONT_WEIGHT = 600;
-
-const CLOSE_SIZE = 28;
-const CLOSE_BORDER = paper.border;
-// Single-use in this drawer (and, later, the instrument sheet's own close
-// button) — not lifted into theme.ts, per the codebase's convention of
-// module-local one-off colours (see e.g. CircleOfFifths.tsx's PILL_BORDER).
-const CLOSE_ICON_COLOR = "#5e564c";
-const CLOSE_FONT_SIZE = 12;
-const CLOSE_GLYPH = "✕";
 
 const ROW_PADDING = "15px 18px";
 const ROW_BORDER = `1px solid ${paper.hairlineSoft}`;
@@ -152,19 +141,7 @@ export function SettingsDrawer(props: {
 
   return (
     <>
-      <div
-        onClick={onClose}
-        style={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          background: paper.scrim,
-          display,
-          zIndex: SCRIM_Z_INDEX,
-        }}
-      />
+      <OverlayScrim open={open} zIndex={SCRIM_Z_INDEX} onClose={onClose} />
       <div
         style={{
           position: "absolute",
@@ -180,45 +157,12 @@ export function SettingsDrawer(props: {
           zIndex: PANEL_Z_INDEX,
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: HEADER_PADDING,
-            borderBottom: HEADER_BORDER,
-          }}
-        >
-          <div
-            style={{
-              fontSize: HEADER_TITLE_FONT_SIZE,
-              fontWeight: HEADER_TITLE_FONT_WEIGHT,
-              color: paper.ink,
-            }}
-          >
-            Settings
-          </div>
-          <button
-            type="button"
-            aria-label="Close settings"
-            onClick={onClose}
-            style={{
-              width: CLOSE_SIZE,
-              height: CLOSE_SIZE,
-              borderRadius: 999,
-              border: `1px solid ${CLOSE_BORDER}`,
-              background: "none",
-              color: CLOSE_ICON_COLOR,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: CLOSE_FONT_SIZE,
-              cursor: "pointer",
-            }}
-          >
-            {CLOSE_GLYPH}
-          </button>
-        </div>
+        <OverlayHeader
+          title="Settings"
+          padding={HEADER_PADDING}
+          closeAriaLabel="Close settings"
+          onClose={onClose}
+        />
         <Row
           title="Note names on the stave"
           description="Label each notehead underneath"
