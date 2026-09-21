@@ -135,6 +135,7 @@ export function KeyPanel(props: {
                 key={choice.key}
                 type="button"
                 data-testid="span-pill"
+                aria-pressed={choice.active}
                 onClick={choice.onSelect}
                 style={spanPillStyle(choice.active)}
               >

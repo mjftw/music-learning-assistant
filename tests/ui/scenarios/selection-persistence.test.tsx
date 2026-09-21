@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test } from "vitest";
 import { builtInCatalogue } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
@@ -13,71 +14,140 @@ afterEach(() => {
   cleanup();
 });
 
-test("theory.circle-of-fifths/REQ-008/S2 — first run shows C major on the flute, names on", () => {
-  localStorage.clear();
+const renderApp = () =>
   render(
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
     />,
   );
-  expect(screen.getByTestId("current-key").textContent).toBe("C major");
-  expect(screen.getByTestId("current-variant").textContent).toBe(
-    "Flute Concert",
-  );
-});
 
-test("theory.circle-of-fifths/REQ-008/S1 — reopening restores Bb major on Bass C with names hidden", () => {
+function pressed(name: string): string | null {
+  return screen.getByRole("button", { name }).getAttribute("aria-pressed");
+}
+
+function switchChecked(name: string): string | null {
+  return screen.getByRole("switch", { name }).getAttribute("aria-checked");
+}
+
+test("theory.circle-of-fifths/REQ-008/S1 — resuming mid-week practice", async () => {
+  localStorage.clear();
   localStorage.setItem(
     storageKey,
     JSON.stringify({
-      schemaVersion: 1,
+      schemaVersion: 2,
       variantId: "ocarina-bass-c",
       keyId: "Bb-major",
-      noteNamesVisible: false,
+      spelling: "flat",
+      view: "stave",
+      span: "oct-1",
+      degreesEnabled: false,
+      distanceRingEnabled: true,
+      staveNamesEnabled: true,
     }),
   );
-  render(
-    <App
-      catalogue={builtInCatalogue()}
-      selectionStore={localStorageSelectionStore(localStorage)}
-    />,
-  );
+
+  const { unmount } = renderApp();
+
   expect(screen.getByTestId("current-key").textContent).toBe("B♭ major");
   expect(screen.getByTestId("current-variant").textContent).toBe(
     "Ocarina Bass C",
   );
+  expect(pressed("stave")).toBe("true");
+  expect(pressed("names")).toBe("false");
+  expect(pressed("1 oct")).toBe("true");
+  expect(screen.queryAllByTestId("arc-degree")).toHaveLength(0);
+  expect(screen.getAllByTestId("arc-name")).toHaveLength(7);
+  expect(screen.getAllByTestId("stave-note-name").length).toBeGreaterThan(0);
+  expect(pressed("flat")).toBe("true");
+  expect(pressed("sharp")).toBe("false");
+
+  // theory.circle-of-fifths/REQ-008 (T008 review follow-up): persistence has
+  // to survive every toggle change, not just the state a session started
+  // with — change two preferences through the UI, remount a fresh App over
+  // the same storage, and see both choices come back.
+  await userEvent.click(screen.getByRole("button", { name: "names" }));
+  await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+  await userEvent.click(screen.getByRole("switch", { name: "Scale degrees" }));
+  await userEvent.click(screen.getByRole("button", { name: "Close settings" }));
+
+  unmount();
+  renderApp();
+
+  expect(screen.getByTestId("current-key").textContent).toBe("B♭ major");
+  expect(screen.getByTestId("current-variant").textContent).toBe(
+    "Ocarina Bass C",
+  );
+  expect(pressed("names")).toBe("true");
+  expect(pressed("stave")).toBe("false");
+  expect(screen.getAllByTestId("arc-degree")).toHaveLength(7);
 });
 
-test("theory.circle-of-fifths/REQ-008/S3 — corrupt storage falls back to the default, usable", () => {
-  localStorage.setItem(storageKey, "{not json");
-  render(
-    <App
-      catalogue={builtInCatalogue()}
-      selectionStore={localStorageSelectionStore(localStorage)}
-    />,
-  );
-  expect(screen.getByTestId("current-key").textContent).toBe("C major");
-});
+test("theory.circle-of-fifths/REQ-008/S2 — first run", async () => {
+  localStorage.clear();
+  renderApp();
 
-test("theory.circle-of-fifths/REQ-008/S3 — stored selection naming an unknown variant falls back to default", () => {
-  localStorage.setItem(
-    storageKey,
-    JSON.stringify({
-      schemaVersion: 1,
-      variantId: "ocarina-soprano-g",
-      keyId: "G-major",
-      noteNamesVisible: true,
-    }),
-  );
-  render(
-    <App
-      catalogue={builtInCatalogue()}
-      selectionStore={localStorageSelectionStore(localStorage)}
-    />,
-  );
   expect(screen.getByTestId("current-key").textContent).toBe("C major");
   expect(screen.getByTestId("current-variant").textContent).toBe(
     "Flute Concert",
   );
+  expect(pressed("sharp")).toBe("true");
+  expect(pressed("flat")).toBe("false");
+  expect(pressed("names")).toBe("true");
+  expect(pressed("stave")).toBe("false");
+  expect(screen.getAllByTestId("arc-degree")).toHaveLength(7);
+  expect(screen.getAllByTestId("arc-name")).toHaveLength(7);
+  const degrees = screen
+    .getAllByTestId("note-degree")
+    .map((element) => element.textContent);
+  expect(degrees.every((text) => text !== "")).toBe(true);
+
+  await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+  expect(switchChecked("Note names on the stave")).toBe("false");
+  expect(switchChecked("Scale degrees")).toBe("true");
+  expect(switchChecked("Distance ring")).toBe("true");
+});
+
+test("theory.circle-of-fifths/REQ-008/S3 — corrupt stored state", async () => {
+  localStorage.clear();
+  localStorage.setItem(storageKey, "{not json");
+  renderApp();
+
+  expect(screen.getByTestId("current-key").textContent).toBe("C major");
+  expect(screen.getByTestId("current-variant").textContent).toBe(
+    "Flute Concert",
+  );
+
+  await userEvent.click(screen.getByRole("button", { name: "G major" }));
+  expect(screen.getByTestId("current-key").textContent).toBe("G major");
+});
+
+test("theory.circle-of-fifths/REQ-008/S4 — stored state from the previous shape", async () => {
+  localStorage.clear();
+  localStorage.setItem(
+    storageKey,
+    JSON.stringify({
+      schemaVersion: 1,
+      variantId: "ocarina-alto-c",
+      keyId: "G-major",
+      noteNamesVisible: false,
+    }),
+  );
+  renderApp();
+
+  expect(screen.getByTestId("current-key").textContent).toBe("G major");
+  expect(screen.getByTestId("current-variant").textContent).toBe(
+    "Ocarina Alto C",
+  );
+  expect(pressed("sharp")).toBe("true");
+  expect(pressed("flat")).toBe("false");
+  expect(pressed("names")).toBe("true");
+  expect(pressed("stave")).toBe("false");
+  expect(screen.getAllByTestId("arc-degree")).toHaveLength(7);
+  expect(screen.getAllByTestId("arc-name")).toHaveLength(7);
+
+  await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+  expect(switchChecked("Note names on the stave")).toBe("false");
+  expect(switchChecked("Scale degrees")).toBe("true");
+  expect(switchChecked("Distance ring")).toBe("true");
 });

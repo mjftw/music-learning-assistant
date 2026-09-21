@@ -1,0 +1,10 @@
+/* Page background outside the app column — verbatim from the vendored
+   visual reference (changes/002-circle-redesign/design/
+   Circle 1c Function Paper.dc.html)'s `body{margin:0;background:#ddd6c7}`.
+   The column itself carries the paper frame colour (`#efe9dc`, see
+   App.tsx's COLUMN_BACKGROUND); this is only what shows either side of it
+   on a viewport wider than the column. */
+body {
+  margin: 0;
+  background: #ddd6c7;
+}
