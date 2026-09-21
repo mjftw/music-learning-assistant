@@ -16,7 +16,7 @@ verified:
     at: 2026-09-20T19:49:04Z
 sdd_id: 002-circle-redesign
 sdd_context: theory
-sdd_phase: in-progress
+sdd_phase: complete
 ---
 
 # Tasks: Circle redesign
@@ -564,7 +564,7 @@ sdd_phase: in-progress
 
 ### T016 · theory.circle-of-fifths/REQ-003 (S1), REQ-004 (S1, S2) · The centre-disc key signature is actually asserted (W2)
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: `tests/ui/scenarios/centre-signature.test.tsx` (new)

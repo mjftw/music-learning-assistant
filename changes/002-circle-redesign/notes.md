@@ -167,3 +167,7 @@ All matched files use Prettier code style!
 
 ## T017 (2026-09-21)
 - W3 + W4 closed, haiku tier, sonnet-reviewed PASS/PASS: the 001 "both spellings" theory test keeps its assertions but no longer cites REQ-002/S1; paper.dash deleted; overlay.tsx exports only OverlayScrim/OverlayHeader; KeyView.relative removed (relativeOf still published and still tested with identical expected values).
+
+## T016 (2026-09-21)
+- W2 closed: tests/ui/scenarios/centre-signature.test.tsx asserts the centre-disc signature (G major 1 glyph accented; B♭ major 2 glyphs, last accented; G→C major drops to exactly 0). Round 1 SPEC FAIL (the brief's zero-glyph assertion was missing); fixed; round 2 PASS/PASS with the reviewer's own mutation checks (accent inversion, forced glyph count) each failing the right tests.
+- Report-accuracy note: the small-tier fixer claimed to have changed two straight apostrophes to curly; the bytes on disk are unchanged (cosmetic, non-blocking). Small-tier reports are claims, not evidence — the mid-tier review caught it.
