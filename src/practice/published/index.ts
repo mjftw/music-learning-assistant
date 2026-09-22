@@ -18,3 +18,5 @@ export {
   defaultTraversal,
   summaryLineOf,
 } from "../domain/settings";
+export type { BeatsLeft, Tick, TransportState } from "../domain/transport";
+export { advance, startTransport, tickOf } from "../domain/transport";
