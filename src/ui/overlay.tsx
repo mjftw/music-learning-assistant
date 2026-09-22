@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import type { JSX, ReactNode } from "react";
 import { paper } from "./theme";
 
 // Geometry and colour below are copied verbatim from the vendored visual
@@ -15,6 +15,58 @@ const CLOSE_GLYPH = "✕";
 const HEADER_TITLE_FONT_SIZE = 14;
 const HEADER_TITLE_FONT_WEIGHT = 600;
 const HEADER_BORDER = `1px solid ${paper.hairline}`;
+
+// The bottom-sheet shell shared by every sheet that slides up from the
+// bottom edge (InstrumentSheet, TraversalSheet, TempoSheet) — geometry
+// copied verbatim from the vendored visual reference
+// (changes/003-hear-the-scale/design/hear-the-scale.dc.html, markup lines
+// 145-146, 158-159 and 196-197). `open` is driven entirely by the caller;
+// this shell never opens or closes itself (Article VI).
+const SHEET_BACKGROUND = paper.card;
+const SHEET_BORDER_TOP = `1px solid ${paper.drawerBorder}`;
+const SHEET_RADIUS = "20px 20px 0 0";
+const SHEET_SHADOW = "0 -10px 30px rgba(28,25,22,.16)";
+// `display` still gates visibility (and so accessibility-tree membership —
+// role queries exclude display:none subtrees) while closed; `transform` and
+// `transition` are the vendored reference's slide, declared verbatim
+// alongside it. Because `display` flips abruptly the transition does not
+// animate in practice — an animated open/close would need a mount-then-
+// slide pattern this task does not ask for.
+const SHEET_TRANSITION = "transform .34s cubic-bezier(.32,.72,0,1)";
+const SHEET_TRANSFORM_OPEN = "translateY(0)";
+const SHEET_TRANSFORM_CLOSED = "translateY(110%)";
+
+export function BottomSheet(props: {
+  readonly open: boolean;
+  readonly zIndex: number;
+  readonly paddingBottom: number;
+  readonly children: ReactNode;
+}): JSX.Element {
+  const { open, zIndex, paddingBottom, children } = props;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: SHEET_BACKGROUND,
+        borderTop: SHEET_BORDER_TOP,
+        borderRadius: SHEET_RADIUS,
+        boxShadow: SHEET_SHADOW,
+        display: open ? "flex" : "none",
+        flexDirection: "column",
+        paddingBottom,
+        transform: open ? SHEET_TRANSFORM_OPEN : SHEET_TRANSFORM_CLOSED,
+        transition: SHEET_TRANSITION,
+        zIndex,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function OverlayScrim(props: {
   readonly open: boolean;
@@ -72,7 +124,7 @@ function OverlayCloseButton(props: {
 }
 
 export function OverlayHeader(props: {
-  readonly title: string;
+  readonly title: ReactNode;
   readonly padding: string;
   readonly closeAriaLabel: string;
   readonly onClose: () => void;

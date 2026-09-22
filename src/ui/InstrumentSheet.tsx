@@ -2,17 +2,13 @@ import type { JSX } from "react";
 import type { Catalogue, Variant } from "../theory/published";
 import { noteLabel } from "./key-label";
 import { fonts, paper } from "./theme";
-import { OverlayScrim, OverlayHeader } from "./overlay";
+import { BottomSheet, OverlayScrim, OverlayHeader } from "./overlay";
 
 // Geometry and colour below are copied verbatim from the vendored visual
 // reference (changes/002-circle-redesign/design/Circle 1c Function Paper.dc.html
 // — the instrument picker block) — named here rather than re-derived by eye.
 const SCRIM_Z_INDEX = 7;
 const SHEET_Z_INDEX = 8;
-const SHEET_BACKGROUND = paper.card;
-const SHEET_BORDER_TOP = `1px solid ${paper.drawerBorder}`;
-const SHEET_RADIUS = "20px 20px 0 0";
-const SHEET_SHADOW = "0 -10px 30px rgba(28,25,22,.16)";
 const SHEET_PADDING_BOTTOM = 14;
 
 const HEADER_PADDING = "16px 18px 12px";
@@ -55,26 +51,13 @@ export function InstrumentSheet(props: {
 }): JSX.Element {
   const { open, catalogue, selectedVariantId, onSelect, onClose } = props;
 
-  const display = open ? "flex" : "none";
-
   return (
     <>
       <OverlayScrim open={open} zIndex={SCRIM_Z_INDEX} onClose={onClose} />
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: SHEET_BACKGROUND,
-          borderTop: SHEET_BORDER_TOP,
-          borderRadius: SHEET_RADIUS,
-          boxShadow: SHEET_SHADOW,
-          display,
-          flexDirection: "column",
-          paddingBottom: SHEET_PADDING_BOTTOM,
-          zIndex: SHEET_Z_INDEX,
-        }}
+      <BottomSheet
+        open={open}
+        zIndex={SHEET_Z_INDEX}
+        paddingBottom={SHEET_PADDING_BOTTOM}
       >
         <OverlayHeader
           title="Instrument"
@@ -163,7 +146,7 @@ export function InstrumentSheet(props: {
             );
           }),
         )}
-      </div>
+      </BottomSheet>
     </>
   );
 }
