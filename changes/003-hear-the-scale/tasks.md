@@ -648,11 +648,11 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T023 · practice.session/REQ-001 (S2), REQ-004 (S4 amended), REQ-005, REQ-011; theory.circle-of-fifths/REQ-003 · Crotchets only — note length removed everywhere
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/settings.ts` (drop `NoteLength`, `noteLength`; summary line loses the ♩/♪ segment), `src/practice/domain/transport.ts` (`Tick.durationBeats` always 1 → remove the field and the quaver branch), `src/practice/domain/session.ts` (tick frames from one beat), `src/practice/published/index.ts`, `src/ui/selection-store.ts` (v3 `session` group loses `noteLength` — the v3 shape was never shipped, so no migration), `src/ui/TraversalSheet.tsx` (remove the Note length row), `src/ui/StaveView.tsx` (remove `noteLength` prop, `quaverFlagPathOf`, the flag `<path>`), `src/ui/App.tsx`, `scripts/design-shots.mjs` (remove the `quaver-stave` state)
-- Test: every test that mentions `noteLength`, `quaver`, `♩` or `♪` — `grep -rn "noteLength\|quaver\|♩\|♪" src tests scripts` must return nothing at the end; delete REQ-003/S5 and REQ-004/S4 (old) tests; add the amended REQ-004/S4 (tempo change keeps the place: from note 6 at 96 bpm, three + taps → next tick 588 ms / 28 224 frames apart at 48 kHz, position kept); summary strings become `"↑↓ · 2 oct · scale · loop"`, `"↑↓ · full range · click only · once"`, `"↑↓ · 1 oct · scale · loop"`
+- Test: every test that mentions `noteLength`, `quaver`, `♩` or `♪` — `grep -rn "noteLength\|quaver\|♩\|♪" src tests scripts` must return nothing at the end; delete REQ-003/S5 and REQ-004/S4 (old) tests; add the amended REQ-004/S4 (tempo change keeps the place: from note 6 at 96 bpm, three + taps → next tick 588 ms / 28 235 frames apart at 48 kHz, position kept); summary strings become `"↑↓ · 2 oct · scale · loop"`, `"↑↓ · full range · click only · once"`, `"↑↓ · 1 oct · scale · loop"`
 
 **Interfaces**
 - Produces: `SessionSettings = { soundMode; loop; countIn; restBar; tempoBpm }`; `Tick = { click; tonePosition }` (one beat per tick); `StoredSelection.session` without `noteLength`; `StaveView` without `noteLength`; `summaryLineOf` → `"<dir> · <octaves> · <shape|click only> · <loop|once>"`
