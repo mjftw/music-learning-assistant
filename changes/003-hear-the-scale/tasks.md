@@ -629,7 +629,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T022 · practice.session/REQ-002 (S2, S3, S4 amended) · The idle caption counts the sequence
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts:96-102` (`captionOf` idle branch)
