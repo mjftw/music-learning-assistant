@@ -81,8 +81,9 @@ SHALL start the sequence again after its last note (after a rest bar, where
 enabled) until stopped; WHEN ❚❚ is tapped while playing THE SYSTEM SHALL
 silence within 50 ms and return to idle at the first note; WHEN the last
 note ends with looping disabled THE SYSTEM SHALL return to idle; and WHILE
-idle THE SYSTEM SHALL caption the sequence as "<N> notes · <first>–<last>"
-of the run with the progress bar empty
+idle THE SYSTEM SHALL caption the sequence as "<N> notes · <lowest>–<highest>"
+— N the sequence's length (a ↑↓ run of 8 is 15), the extremes those of the
+run — with the progress bar empty
 
 **Scenarios**
 - **REQ-002/S1 — G major up and down (acceptance)**
@@ -96,18 +97,19 @@ of the run with the progress bar empty
 - **REQ-002/S2 — stop returns to the top**
   Given the sequence of S1 is playing at note 12
   When ❚❚ is tapped
-  Then sound stops within 50 ms, the caption reads "15 notes · G4–G6", the
+  Then sound stops within 50 ms, the caption reads "29 notes · G4–G6", the
   progress bar is empty, and tapping ▶ again begins with the count-in and
   G4
 - **REQ-002/S3 — once through**
   Given the traversal of S1 with looping disabled
   When ▶ is tapped and the 29th note ends
-  Then the transport is idle with the caption "15 notes · G4–G6"
+  Then the transport is idle with the caption "29 notes · G4–G6"
 - **REQ-002/S4 — the idle caption follows the traversal**
   Given G major on flute Concert, idle
-  When the shape is changed to arpeggio with 2 oct
-  Then the caption reads "7 notes · G4–G6" (G4 B4 D5 G5 B5 D6 G6); with
-  full range and scale it reads "22 notes · C4–C7"
+  When the shape is changed to arpeggio with 2 oct (↑↓)
+  Then the caption reads "13 notes · G4–G6" (G4 B4 D5 G5 B5 D6 G6 and back);
+  with full range and scale it reads "43 notes · C4–C7"; with ↑ only, the
+  2-oct scale reads "15 notes · G4–G6"
 
 ### REQ-003: Count-in and rest bar
 

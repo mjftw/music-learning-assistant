@@ -591,7 +591,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T017 · — · Design review loop: the screen matches the prototype
 
-**Status:** todo
+**Status:** in-progress
 
 **Files**
 - Modify: `scripts/design-shots.mjs` (`PROTOTYPE_PATH` → `changes/003-hear-the-scale/design/hear-the-scale.dc.html`; states), `src/ui/*.tsx` as the diffs demand
@@ -605,6 +605,46 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 - [ ] 5. `pnpm check` → green
 
 **Verify** — reviewer report in `notes.md` says "matches" for all five states; `pnpm check` → exit 0
+
+### T021 · theory.circle-of-fifths/REQ-003 (S5) · Quaver flags on the stave
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/StaveView.tsx` (new prop; flag paths), `src/ui/App.tsx` (pass the session's note length), `scripts/design-shots.mjs` (state `quaver-stave`)
+- Test: `tests/ui/scenarios/stave-view.test.tsx`
+- Reference: design script lines 454–464 (the flag path) and markup lines 81–83 (`stave.flags` rendered as `<path d fill opacity>` between the stems and the halos)
+
+**Interfaces**
+- Consumes: `NoteLength` from `src/practice/published`; `SessionSnapshot.settings.noteLength`
+- Produces: `StaveView` gains `readonly noteLength: NoteLength` — with `"quaver"`, one `<path data-testid="stave-flag">` per notehead: `d = M ${sx} ${ty} c 6.5 ${3*s} 8.5 ${9*s} 4.5 ${15*s} c 1 ${-6*s} -1.5 ${-9*s} -4.5 ${-11*s} z` where `sx` is the stem x, `ty` the stem's far end y (`ny − 24` for a stem up, `ny + 24` for a stem down) and `s = 1` for stem up, `−1` for stem down; fill = the head's ink, opacity = the head's opacity (dimmed while playing like the head). With `"crotchet"` no flags. No beams ever.
+
+**Steps**
+- [ ] 1. RED — REQ-003/S5: render `StaveView` for G major on the flute with an 8-note run and `noteLength: "quaver"` → `getAllByTestId("stave-flag")` has 8 entries, each `d` begins `M <stemX> <stemEndY> c 6.5 ` and the second number after `c 6.5` is `3` for a stem-up head and `-3` for a stem-down one (find one of each in the run: index 0 is stem-up, the top G6 is stem-down); with `"crotchet"` → `queryAllByTestId("stave-flag")` is empty. Run → FAIL (prop unknown / no flags)
+- [ ] 2. GREEN — build the flag path per head from the existing `StaveHead.stemX/stemY2` (that is the stem end) and stem direction; render the `<path>`s after the stems and before the halo/heads so the head sits on top; apply `opacity` like the head → PASS
+- [ ] 3. App passes `noteLength={snapshot?.settings.noteLength ?? "crotchet"}`; add `quaver-stave` to `design-shots.mjs` (G major, stave pill, open the traversal sheet, tap `♪`, close the sheet — both sides) → run `pnpm design:shots --states quaver-stave` → two PNGs
+- [ ] 4. `source ~/.cargo/env && pnpm check` → green
+
+**Verify** — `pnpm vitest run tests/ui/scenarios/stave-view.test.tsx` → all passed incl. REQ-003/S5; `.sdd/design-review/quaver-stave.{prototype,app}.png` exist; `pnpm check` → exit 0
+
+### T022 · practice.session/REQ-002 (S2, S3, S4 amended) · The idle caption counts the sequence
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/domain/session.ts:96-102` (`captionOf` idle branch)
+- Test: `tests/practice/scenarios/session-transport.test.ts`, `tests/practice/scenarios/session-traversal.test.ts`, `tests/ui/scenarios/app-session.test.tsx` (expected strings)
+
+**Interfaces**
+- Consumes: `captionOf(transport, run, sequence, soundingPosition)` (private to `session.ts`)
+- Produces: idle caption `` `${sequence.length} notes · ${noteLabel(run[0])}–${noteLabel(run[last])}` `` — the prototype's formula (design script line 730)
+
+**Steps**
+- [ ] 1. RED — update the expected idle captions to the amended scenarios: REQ-002/S2 and S3 `"29 notes · G4–G6"`; REQ-002/S4 `"13 notes · G4–G6"` (2 oct ↑↓ arpeggio), `"43 notes · C4–C7"` (full ↑↓ scale), `"15 notes · G4–G6"` (2 oct ↑ scale); the app-level first-run caption (C major, flute, 1 oct ↑↓) becomes `"15 notes · C4–C5"`. Run `pnpm vitest run tests/practice tests/ui/scenarios/app-session.test.tsx` → FAIL on each old count
+- [ ] 2. GREEN — `captionOf` idle branch uses `sequence.length` → PASS
+- [ ] 3. `source ~/.cargo/env && pnpm check` → green
+
+**Verify** — `pnpm vitest run tests/practice tests/ui/scenarios/app-session.test.tsx` → all passed; `pnpm check` → exit 0
 
 ## Phase 6 — Hardening
 
@@ -662,14 +702,14 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 | Requirement | Tasks | Covered |
 |---|---|---|
-| theory.circle-of-fifths/REQ-003 (M) | T013 | ✅ |
+| theory.circle-of-fifths/REQ-003 (M) | T013, T021 (S5) | ✅ |
 | theory.circle-of-fifths/REQ-007 (M) | T013 | ✅ |
 | theory.circle-of-fifths/REQ-008 (M) | T012 | ✅ |
 | theory.circle-of-fifths/REQ-011 (REMOVED) | T013 (deletes span.ts and its tests) | ✅ |
 | theory.circle-of-fifths/REQ-012 (A) | T003 (S2, S3), T004 (S1, S4, S5) | ✅ |
 | theory.temperament/REQ-001 (A) | T005 | ✅ |
 | practice.session/REQ-001 | T006 (S2), T008 (S1, S3, S4), T015 (UI) | ✅ |
-| practice.session/REQ-002 | T008 (S1–S4), T014 (UI) | ✅ |
+| practice.session/REQ-002 | T008 (S1–S4), T014 (UI), T022 (caption amended) | ✅ |
 | practice.session/REQ-003 | T007 (S1–S3), T015 (toggles UI) | ✅ |
 | practice.session/REQ-004 | T006 (S1–S3), T007 (S4), T014, T015 (UI) | ✅ |
 | practice.session/REQ-005 | T007 (S1–S3), T009 (S2 session-level), T010 (S4) | ✅ |
