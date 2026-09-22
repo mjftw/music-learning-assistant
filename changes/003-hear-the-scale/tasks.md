@@ -608,7 +608,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T021 · theory.circle-of-fifths/REQ-003 (S5) · Quaver flags on the stave
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/StaveView.tsx` (new prop; flag paths), `src/ui/App.tsx` (pass the session's note length), `scripts/design-shots.mjs` (state `quaver-stave`)
