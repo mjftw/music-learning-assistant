@@ -486,7 +486,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T013 · theory.circle-of-fifths/REQ-003 (S1, S2, S3, S4), REQ-007 (S1, S2), REQ-011 (REMOVED), practice.session/REQ-006 (S1, S2) · The panel shows the run and the sounding note; Span deleted
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/StaveView.tsx:284-296` (props), `src/ui/NamesView.tsx:71-79` (props), `src/ui/KeyPanel.tsx` (remove `spanCaption`, `spanChoices`, `SpanChoicePill`, the span row `:35-75,122-150`), `src/ui/App.tsx` (remove span helpers `:66-110`, wire `runOf`, temporary `soundingPosition: null`), `src/theory/published/index.ts` (remove `Span`, `spanChoicesOf`, `spanNotesOf`)
