@@ -209,7 +209,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T005 [P] · theory.temperament/REQ-001 (S1, S2, S3) · Every note has a pitch
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/theory/domain/temperament.ts`

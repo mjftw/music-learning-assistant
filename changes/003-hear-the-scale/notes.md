@@ -17,3 +17,4 @@ One line each, newest last.
 
 - T003 done — review PASS/PASS, no findings. Resumed from an interrupted first run; code matched the brief line for line.
 - T004 done — review PASS/PASS. Minor: per-file test helpers duplicated (codebase convention); brief steps 3–4 labelled RED passed immediately (generic implementation).
+- T005 done — review PASS/PASS, no findings. Phase 2 (theory) complete.
