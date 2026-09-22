@@ -26,3 +26,5 @@ Thumbs.db
 __pycache__/
 node_modules/
 dist/
+target/
+src/sound/pkg/

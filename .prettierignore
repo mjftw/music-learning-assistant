@@ -11,3 +11,6 @@ index.md
 log.md
 REVIEW.md
 pnpm-lock.yaml
+target/
+src/sound/pkg/
+Cargo.lock
