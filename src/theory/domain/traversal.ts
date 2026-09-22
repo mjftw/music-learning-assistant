@@ -2,6 +2,7 @@ import type { Key } from "./keys";
 import { scaleNotesOf } from "./keys";
 import type { KeyViewNote } from "./key-view";
 import { keyView } from "./key-view";
+import type { Note } from "./notes";
 import type { Variant } from "../instruments/catalogue";
 
 export type Direction = "up" | "down" | "updown";
@@ -97,4 +98,31 @@ export function runOf(
   return scaleRun.filter((note) =>
     ARPEGGIO_DEGREES.has(degreeIndexOf(key, note)),
   );
+}
+
+export interface SequenceNote {
+  readonly note: Note;
+  readonly isRoot: boolean;
+  readonly runIndex: number;
+}
+
+// The run in playing order: ascending for up, descending for down,
+// ascending then descending without repeating the top note for updown
+// (2n-1 notes for an n-note run). runIndex is always the note's position
+// in the ascending run, whichever direction the sequence plays it in.
+export function sequenceOf(
+  run: readonly KeyViewNote[],
+  direction: Direction,
+): readonly SequenceNote[] {
+  const ascending = run.map((entry, runIndex) => ({
+    note: entry.note,
+    isRoot: entry.isRoot,
+    runIndex,
+  }));
+  if (direction === "up") return ascending;
+
+  const descending = [...ascending].reverse();
+  if (direction === "down") return descending;
+
+  return [...ascending, ...descending.slice(1)];
 }

@@ -16,6 +16,7 @@ export type {
   Direction,
   Octaves,
   OctaveCount,
+  SequenceNote,
   Shape,
   Traversal,
 } from "../domain/traversal";
@@ -23,6 +24,7 @@ export {
   effectiveOctavesOf,
   fittingOctaveCounts,
   runOf,
+  sequenceOf,
 } from "../domain/traversal";
 export { pitchClassLabel, noteLabel } from "../domain/labels";
 export type {
