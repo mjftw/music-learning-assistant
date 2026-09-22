@@ -200,6 +200,26 @@ const STATES = {
       await page.getByRole("button", { name: "Settings" }).click();
     },
   },
+  "quaver-stave": {
+    prototype: async (page) => {
+      await clickPrototypeWedge(
+        page,
+        G_MAJOR_POSITION_INDEX,
+        OUTER_RING_MID_RADIUS,
+      );
+      await clickPrototypeText(page, "stave");
+      await clickPrototypeText(page, "edit ›");
+      await clickPrototypeText(page, "♪");
+      await clickPrototypeText(page, "✕");
+    },
+    app: async (page) => {
+      await page.getByRole("button", { name: "G major" }).click();
+      await page.getByRole("button", { name: "stave" }).click();
+      await page.getByRole("button", { name: "Edit traversal" }).click();
+      await page.getByRole("button", { name: "♪" }).click();
+      await page.getByRole("button", { name: "Close traversal sheet" }).click();
+    },
+  },
 };
 
 function parseStatesArgument(argv) {

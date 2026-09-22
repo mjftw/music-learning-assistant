@@ -1,4 +1,5 @@
 import type { JSX } from "react";
+import type { NoteLength } from "../practice/published";
 import {
   signatureOf,
   type Key,
@@ -100,6 +101,16 @@ function diatonicIndex(note: Note): number {
   return note.octave * 7 + LETTERS.indexOf(note.letter);
 }
 
+// A single quaver flag, drawn from the stem's far end in the stem's
+// direction (theory.circle-of-fifths/REQ-003/S5) — geometry copied verbatim
+// from the vendored reference's `quavers` flag path (`hear-the-scale.dc.html`
+// lines 454–464), never beamed: a scale's stems alternate direction with
+// pitch, so beaming them would fight the run rather than clarify it.
+function quaverFlagPathOf(stemX: number, stemEndY: number, stemUp: boolean) {
+  const s = stemUp ? 1 : -1;
+  return `M ${stemX} ${stemEndY} c 6.5 ${3 * s} 8.5 ${9 * s} 4.5 ${15 * s} c 1 ${-6 * s} -1.5 ${-9 * s} -4.5 ${-11 * s} z`;
+}
+
 interface StaveHead {
   readonly x: number;
   readonly y: number;
@@ -112,6 +123,7 @@ interface StaveHead {
   readonly stemX: number;
   readonly stemY1: number;
   readonly stemY2: number;
+  readonly stemUp: boolean;
   readonly note: Note;
   readonly isRoot: boolean;
 }
@@ -234,6 +246,7 @@ function buildStave(
       stemX: stemUp ? x + rx - STEM_X_INSET : x - rx + STEM_X_INSET,
       stemY1: ny,
       stemY2: stemUp ? ny - STEM_LENGTH : ny + STEM_LENGTH,
+      stemUp,
       note,
       isRoot,
     });
@@ -310,8 +323,16 @@ export function StaveView(props: {
   readonly staveNamesEnabled: boolean;
   readonly soundingRunIndex: number | null;
   readonly playing: boolean;
+  readonly noteLength: NoteLength;
 }): JSX.Element {
-  const { key_, notes, staveNamesEnabled, soundingRunIndex, playing } = props;
+  const {
+    key_,
+    notes,
+    staveNamesEnabled,
+    soundingRunIndex,
+    playing,
+    noteLength,
+  } = props;
 
   const signature = signatureOf(key_);
   const isFlat = signature.kind === "flats";
@@ -391,6 +412,14 @@ export function StaveView(props: {
               strokeWidth={STEM_STROKE_WIDTH}
               opacity={head.opacity}
             />
+            {noteLength === "quaver" && (
+              <path
+                data-testid="stave-flag"
+                d={quaverFlagPathOf(head.stemX, head.stemY2, head.stemUp)}
+                fill={head.ink}
+                opacity={head.opacity}
+              />
+            )}
             {head.isSounding && (
               <circle
                 data-testid="sounding-halo"

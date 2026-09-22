@@ -62,6 +62,7 @@ test("theory.circle-of-fifths/REQ-003/S1 — G major on the flute (acceptance)",
       staveNamesEnabled={false}
       soundingRunIndex={null}
       playing={false}
+      noteLength="crotchet"
     />,
   );
 
@@ -96,6 +97,7 @@ test("theory.circle-of-fifths/REQ-003/S4 — the stave shows the traversal's run
       staveNamesEnabled={false}
       soundingRunIndex={null}
       playing={false}
+      noteLength="crotchet"
     />,
   );
 
@@ -109,6 +111,59 @@ test("theory.circle-of-fifths/REQ-003/S4 — the stave shows the traversal's run
     "D6",
     "G6",
   ]);
+});
+
+test("theory.circle-of-fifths/REQ-003/S5 — the stave shows the note length", () => {
+  const notes = runOf(gMajor, flute(), {
+    direction: "up",
+    octaves: { kind: "count", count: 1 },
+    shape: "scale",
+  });
+  expect(notes).toHaveLength(8);
+
+  const { rerender } = render(
+    <StaveView
+      key_={gMajor}
+      variant={flute()}
+      notes={notes}
+      staveNamesEnabled={false}
+      soundingRunIndex={null}
+      playing={false}
+      noteLength="quaver"
+    />,
+  );
+
+  const heads = screen.getAllByTestId("stave-note");
+  const flags = screen.getAllByTestId("stave-flag");
+  expect(flags).toHaveLength(8);
+
+  // index 0 (G4) is stem-up; the top of the run (G5) is stem-down — one of
+  // each, per REQ-003/S5.
+  const stemUpLine = heads[0]!.querySelector("line")!;
+  const stemDownLine = heads[heads.length - 1]!.querySelector("line")!;
+  const stemUpFlag = flags[0]!;
+  const stemDownFlag = flags[flags.length - 1]!;
+
+  expect(stemUpFlag.getAttribute("d")).toBe(
+    `M ${stemUpLine.getAttribute("x1")} ${stemUpLine.getAttribute("y2")} c 6.5 3 8.5 9 4.5 15 c 1 -6 -1.5 -9 -4.5 -11 z`,
+  );
+  expect(stemDownFlag.getAttribute("d")).toBe(
+    `M ${stemDownLine.getAttribute("x1")} ${stemDownLine.getAttribute("y2")} c 6.5 -3 8.5 -9 4.5 -15 c 1 6 -1.5 9 -4.5 11 z`,
+  );
+
+  rerender(
+    <StaveView
+      key_={gMajor}
+      variant={flute()}
+      notes={notes}
+      staveNamesEnabled={false}
+      soundingRunIndex={null}
+      playing={false}
+      noteLength="crotchet"
+    />,
+  );
+
+  expect(screen.queryAllByTestId("stave-flag")).toHaveLength(0);
 });
 
 test("practice.session/REQ-006/S1 — the sounding note is accented, enlarged and haloed; the rest are dimmed", () => {
@@ -126,6 +181,7 @@ test("practice.session/REQ-006/S1 — the sounding note is accented, enlarged an
       staveNamesEnabled={false}
       soundingRunIndex={4}
       playing={true}
+      noteLength="crotchet"
     />,
   );
 
@@ -157,6 +213,7 @@ test("practice.session/REQ-006/S1 — the sounding note is accented, enlarged an
       staveNamesEnabled={false}
       soundingRunIndex={null}
       playing={false}
+      noteLength="crotchet"
     />,
   );
 
