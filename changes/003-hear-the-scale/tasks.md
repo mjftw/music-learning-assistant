@@ -78,7 +78,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T002 · — · Sound engine host shim + one audible sine on the phone (the spike)
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/sound/published/sound-command.schema.ts`, `src/sound/published/processor.ts`, `src/sound/published/index.ts`

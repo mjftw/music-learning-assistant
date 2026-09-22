@@ -24,3 +24,4 @@ One line each, newest last.
 
 - Laptop, headless Chromium 153.0.8010.12: ok — `?worker&url` loaded via `audioWorklet.addModule` without a fallback; `WebAssembly.compileStreaming` against Vite's dev-served `.wasm` succeeded; the `?sound-spike` button read "ok" after the click with no console or page errors.
 - Phone: not yet checked — user away; carried to the acceptance walk.
+- T002 done — DONE_WITH_CONCERNS; review PASS/PASS. WASM-in-AudioWorklet confirmed in headless Chromium 153 (plan Risk 1 de-risked on the laptop; phone deferred to acceptance). Minor: onset test proves same-quantum onset only — tighten in T010 (assert the sample after onset is non-zero); test-only Mutex guards the shared static engine; implementer report file was not persisted (reconstructed).
