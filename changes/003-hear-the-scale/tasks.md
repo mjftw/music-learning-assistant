@@ -424,7 +424,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T011 · — · Practice adapters: Web Audio sound, silent sound, wake lock, visibility
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/practice/adapters/web-audio-sound.ts`, `src/practice/adapters/silent-sound.ts`, `src/practice/adapters/screen-wake-lock.ts`, `src/practice/adapters/page-visibility.ts`, `src/practice/adapters/browser-clock.ts`
@@ -575,7 +575,8 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 **Interfaces**
 - Consumes: `createSession`, `Session`, `SessionDeps` (T008/T009); adapters (T011); `TransportCard` (T014); `TraversalRow`, `TraversalSheet`, `TempoSheet` (T015); `StaveView`/`NamesView` props (T013); `StoredSelection` v3 (T012)
-- Produces: `App(props: { catalogue: Catalogue; selectionStore: SelectionStore; sessionDeps: SessionDeps })` — `main.tsx` passes `{ sound: webAudioSound(() => new AudioContext()), clock: browserClock(), wakeLock: screenWakeLock(navigator), visibility: pageVisibility(document) }`; tests pass the fakes from `tests/practice/fakes.ts`. In dev only (`import.meta.env.DEV`) `main.tsx` sets `window.__session = session` for `pnpm test:timing` (T018). Layout (design lines 121-141): below the key panel a `div` with `marginTop auto, padding "14px 16px 20px", display flex column, gap 9` holding `TransportCard` then `TraversalRow`; the sheets and their scrims are siblings of the settings drawer
+- Produces: `src/practice/adapters/fallback-sound.ts` — `export function fallbackSound(primary: SoundPort, fallback: SoundPort): SoundPort` — `start()` tries `primary`; on `{ ok: false }` it starts `fallback` and thereafter delegates every method to it while still returning the primary's `{ ok: false, error }` so the session raises the notice (REQ-010/S1 in the real app: `webAudioSound` has no clock without an engine; `silentSound(() => performance.now())` walks the run). Test `tests/practice/scenarios/fallback-sound.test.ts` with two `FakeSound`s: primary `failWith` set → `start()` is `{ ok: false }`, `post`/`currentFrame`/`onOnset` reach the fallback, `startCalls` on both is 1.
+- Produces: `App(props: { catalogue: Catalogue; selectionStore: SelectionStore; sessionDeps: SessionDeps })` — `main.tsx` passes `{ sound: fallbackSound(webAudioSound(() => new AudioContext()), silentSound(() => performance.now())), clock: browserClock(), wakeLock: screenWakeLock(navigator), visibility: pageVisibility(document) }`; tests pass the fakes from `tests/practice/fakes.ts`. In dev only (`import.meta.env.DEV`) `main.tsx` sets `window.__session = session` for `pnpm test:timing` (T018). Layout (design lines 121-141): below the key panel a `div` with `marginTop auto, padding "14px 16px 20px", display flex column, gap 9` holding `TransportCard` then `TraversalRow`; the sheets and their scrims are siblings of the settings drawer
 
 **Steps**
 - [ ] 1. RED — REQ-011/S2 (app): render `App` with empty storage → `TraversalRow` text `↑↓ · 1 oct · scale · ♩ · loop`, tempo `96`, term `Andante`, caption `8 notes · C4–C5` (C major, flute, 1 oct). Run → FAIL (no transport rendered)
