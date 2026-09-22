@@ -371,7 +371,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T009 · practice.session/REQ-006 (S3, S5), REQ-005 (S2), REQ-009 (S1, S2), REQ-010 (S1, S2) · Onsets become TargetAdvanced; hidden stops; silence is not stuck
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts`
@@ -638,7 +638,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 - Test: `tests/practice/scenarios/edge-cases.test.ts`, `tests/ui/scenarios/edge-cases.test.tsx`
 
 **Steps**
-- [ ] 1. One test per row of proposal › Edge cases not already covered by a scenario test, named after the row: `first run defaults` (already REQ-011/S2 — cite, no new test); `▶ tapped while playing is stop` (session: `start(); start()` → second call is a no-op? No — `App.onTogglePlay` maps to `stop()` when not idle: test at App level, `Play` then `Stop` → `stopAll` posted); `key changed during a count-in continues the count` (session: `setContext` while `countingIn 3` → still `countingIn 3`, new sequence afterwards); `tempo at 40 and 200` (already REQ-004/S3 — cite); `corrupt stored state` (already REQ-008/S3 — cite); `oversized octave count clamped` (already REQ-001/S4 — cite)
+- [ ] 1. One test per row of proposal › Edge cases not already covered by a scenario test, named after the row (plus, from T009's review: `silent-tick timeout is cancelled by stop` — metronome + quaver, `stop()` during a silent odd tick → no later `TargetAdvanced` and `soundingPosition` stays null): `first run defaults` (already REQ-011/S2 — cite, no new test); `▶ tapped while playing is stop` (session: `start(); start()` → second call is a no-op? No — `App.onTogglePlay` maps to `stop()` when not idle: test at App level, `Play` then `Stop` → `stopAll` posted); `key changed during a count-in continues the count` (session: `setContext` while `countingIn 3` → still `countingIn 3`, new sequence afterwards); `tempo at 40 and 200` (already REQ-004/S3 — cite); `corrupt stored state` (already REQ-008/S3 — cite); `oversized octave count clamped` (already REQ-001/S4 — cite)
 - [ ] 2. Remove the spike block from `main.tsx`; `grep -c 'sound-spike' src/ui/main.tsx` → `0`
 - [ ] 3. Run `pnpm check`; paste its last ~8 lines (vitest summary + cargo `test result`) into `AGENTS.md › Healthy output`, replacing the stale 17-files/52-tests block
 - [ ] 4. Add to `AGENTS.md › Things agents get wrong here` one line for anything a T00x review flagged twice during this change (leave the section unchanged if nothing recurred; say so in the report)
