@@ -34,6 +34,13 @@ test("practice.session/REQ-002/S4 — the idle caption follows the traversal", (
     shape: "scale",
   });
   expect(session.snapshot().caption).toBe("43 notes · C4–C7");
+
+  session.setTraversal({
+    direction: "up",
+    octaves: { kind: "count", count: 2 },
+    shape: "scale",
+  });
+  expect(session.snapshot().caption).toBe("15 notes · G4–G6");
 });
 
 test("practice.session/REQ-001/S1 — C major on the flute offers three octave counts", () => {
