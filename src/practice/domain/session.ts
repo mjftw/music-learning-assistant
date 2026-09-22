@@ -343,9 +343,17 @@ export function createSession(
 
   function restartIfPlaying(): void {
     if (transport.kind !== "playing") return;
+    // The superseded sequence's tones and clicks already posted inside the
+    // scheduler's lookahead window must never sound (REQ-007/S1) — silence
+    // them, then rebuild the schedule anchored at the current frame rather
+    // than wherever the old sequence's lookahead had already reached, so
+    // the new sequence's first note begins at once.
+    sound.post({ kind: "stopAll" });
+    scheduler.stop();
     transport = { kind: "playing", position: 0 };
     pendingAdvance = false;
     soundingPosition = null;
+    scheduler.start(sound.currentFrame(), next);
   }
 
   function setContext(newContext: SessionContext): void {

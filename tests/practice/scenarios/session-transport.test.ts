@@ -140,6 +140,10 @@ test("practice.session/REQ-007/S1 — a new key mid-scale", async () => {
   });
 
   const tonesBefore = sound.posted.filter(isTone).length;
+  const lastGTone = sound.posted.filter(isTone).at(-1)!;
+  const lastGToneIndex = sound.posted.lastIndexOf(lastGTone);
+  const postedCountBeforeRestart = sound.posted.length;
+  const frameAtRestart = sound.frame;
 
   session.setContext({ key: keyOf("D"), variant: variantOf("flute-concert") });
 
@@ -152,6 +156,25 @@ test("practice.session/REQ-007/S1 — a new key mid-scale", async () => {
   const tones = sound.posted.filter(isTone);
   const nextTone = tones[tones.length - 1]!;
   expect(nextTone.hz).toBeCloseTo(293.66, 1);
+  const nextToneIndex = sound.posted.indexOf(nextTone);
+
+  // practice.session/REQ-007/S1 — "begins from its first note straight
+  // away": the superseded G-major tones and clicks already posted inside
+  // the 200 ms lookahead must be silenced before D major's first note, so
+  // they never sound after the key change.
+  const stopAllIndex = sound.posted.findIndex(
+    (command) => command.kind === "stopAll",
+  );
+  expect(stopAllIndex).toBeGreaterThan(lastGToneIndex);
+  expect(stopAllIndex).toBeLessThan(nextToneIndex);
+
+  // The new sequence picks up from the current frame, not from wherever
+  // the superseded G-major schedule had already reached.
+  for (const command of sound.posted.slice(postedCountBeforeRestart)) {
+    if (command.kind === "stopAll") continue;
+    expect(command.onsetFrame).toBeGreaterThanOrEqual(frameAtRestart);
+  }
+
   // The caption follows the new sequence's first note's onset.
   sound.fireOnset(nextTone.tag);
   expect(session.snapshot().caption).toMatch(/^D4 · 1 of \d+$/);
