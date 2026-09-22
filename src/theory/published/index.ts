@@ -27,6 +27,7 @@ export {
   sequenceOf,
 } from "../domain/traversal";
 export { pitchClassLabel, noteLabel } from "../domain/labels";
+export { pitchHzOf, REFERENCE_A4_HZ } from "../domain/temperament";
 export type {
   Catalogue,
   CatalogueNotice,
