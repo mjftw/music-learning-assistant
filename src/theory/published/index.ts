@@ -13,6 +13,19 @@ export { keyView } from "../domain/key-view";
 export type { Span, SpanChoice } from "../domain/span";
 export { spanChoicesOf, spanNotesOf } from "../domain/span";
 export type {
+  Direction,
+  Octaves,
+  OctaveCount,
+  Shape,
+  Traversal,
+} from "../domain/traversal";
+export {
+  effectiveOctavesOf,
+  fittingOctaveCounts,
+  runOf,
+} from "../domain/traversal";
+export { pitchClassLabel, noteLabel } from "../domain/labels";
+export type {
   Catalogue,
   CatalogueNotice,
   Instrument,
