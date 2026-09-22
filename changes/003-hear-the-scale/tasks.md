@@ -173,7 +173,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T004 [P] · theory.circle-of-fifths/REQ-012 (S1, S4, S5) · The sequence and its range invariant
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/theory/domain/traversal.ts`, `src/theory/published/index.ts`

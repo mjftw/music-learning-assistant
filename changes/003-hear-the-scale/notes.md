@@ -13,3 +13,7 @@ sdd_id: 003-hear-the-scale
 Decisions taken during implementation that the plan did not cover, and why.
 One line each, newest last.
 
+## Implementation log
+
+- T003 done — review PASS/PASS, no findings. Resumed from an interrupted first run; code matched the brief line for line.
+- T004 done — review PASS/PASS. Minor: per-file test helpers duplicated (codebase convention); brief steps 3–4 labelled RED passed immediately (generic implementation).
