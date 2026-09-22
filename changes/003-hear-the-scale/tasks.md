@@ -17,7 +17,7 @@ verified:
     at: 2026-09-22T17:27:31Z
 sdd_id: 003-hear-the-scale
 sdd_context: practice
-sdd_phase: approved
+sdd_phase: in-progress
 ---
 
 # Tasks: Hear the scale
@@ -121,7 +121,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T003 [P] · theory.circle-of-fifths/REQ-012 (S2, S3) · Fitting octave counts and the run
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/theory/domain/traversal.ts`, `src/theory/domain/labels.ts`
