@@ -184,11 +184,12 @@ export function App(props: {
   readonly catalogue: Catalogue;
   readonly selectionStore: SelectionStore;
   readonly sessionDeps: SessionDeps;
-  // Optional: the session is created inside App (useRef + lazy init, per
-  // practice.session/REQ-011's wiring), so main.tsx — which never holds a
-  // reference to it otherwise — uses this to capture it for T018's dev-only
-  // `window.__session` timing hook. Keeping it optional and additive leaves
-  // App fully testable without it.
+  // Optional: the session is created inside App (in an effect, per
+  // practice.session/REQ-011's wiring — see the session-creating effect
+  // below), so main.tsx — which never holds a reference to it otherwise —
+  // uses this to capture it for T018's dev-only `window.__session` timing
+  // hook. Keeping it optional and additive leaves App fully testable
+  // without it.
   readonly onSessionReady?: (session: Session) => void;
 }): JSX.Element {
   const { catalogue, selectionStore, sessionDeps, onSessionReady } = props;
@@ -216,57 +217,48 @@ export function App(props: {
 
   // The session owns the traversal and session settings from here on
   // (practice.session/REQ-001 onward) — created once per App mount, seeded
-  // from the store, and disposed on unmount. Lazy `useRef` init rather than
-  // `useState` because `createSession` opens ports (sound, wake lock,
-  // visibility) that must exist exactly once for the component's lifetime.
+  // from the store, and disposed on unmount. Created and torn down by the
+  // *same* effect, with an empty dependency list, so cleanup always pairs
+  // with creation: under StrictMode's dev-only mount → cleanup → mount
+  // double-invoke this creates, disposes and creates again harmlessly,
+  // and a genuine unmount always reaches the real `dispose()` (a skip-the-
+  // first-cleanup workaround previously broke that: Vitest, like any
+  // StrictMode-free build, runs with `import.meta.env.DEV` true, so the
+  // very first — and only — cleanup call was always treated as the
+  // phantom one and dispose() never ran).
   const sessionRef = useRef<Session | null>(null);
-  if (sessionRef.current === null) {
+  const [snapshot, setSnapshot] = useState<SessionSnapshot | null>(null);
+
+  useEffect(() => {
     if (variant === undefined) {
       throw new Error("unreachable: initial variant not found");
     }
     const stored = selectionStore.load();
-    sessionRef.current = createSession(
+    const session = createSession(
       { key: selectedKey, variant },
       initialTraversalOf(stored),
       initialSettingsOf(stored),
       sessionDeps,
     );
-  }
-  const session = sessionRef.current;
-
-  const [snapshot, setSnapshot] = useState<SessionSnapshot>(() =>
-    session.snapshot(),
-  );
-
-  useEffect(
-    () => session.onChange(() => setSnapshot(session.snapshot())),
-    [session],
-  );
-
-  // Dev-only StrictMode (main.tsx) deliberately mounts, unmounts and
-  // remounts every effect once to surface non-idempotent cleanup — but
-  // `session`, unlike this effect, is created once during render (see the
-  // `useRef` above) precisely so it survives that double-render, and
-  // `dispose()` cannot be undone (its onOnset/visibility subscriptions
-  // don't reconnect). Skip the phantom first cleanup in dev so it isn't
-  // disposed before the real component ever unmounts; a genuine unmount
-  // always reaches this effect a second time. In production, StrictMode
-  // never runs, so the only cleanup call is the real one.
-  const skippedStrictModeCleanupRef = useRef(false);
-  useEffect(
-    () => () => {
-      if (import.meta.env.DEV && !skippedStrictModeCleanupRef.current) {
-        skippedStrictModeCleanupRef.current = true;
-        return;
-      }
-      session.dispose();
-    },
-    [session],
-  );
-
-  useEffect(() => {
+    sessionRef.current = session;
+    setSnapshot(session.snapshot());
+    const unsubscribeChange = session.onChange(() =>
+      setSnapshot(session.snapshot()),
+    );
     onSessionReady?.(session);
-  }, [session, onSessionReady]);
+
+    return () => {
+      unsubscribeChange();
+      session.dispose();
+      sessionRef.current = null;
+    };
+    // Deliberately empty: the session is seeded once from the initial
+    // render's selection/store and thereafter owns its own state; later
+    // key/variant changes reach it through `setContext` below, not by
+    // recreating it.
+  }, []);
+
+  const session = sessionRef.current;
 
   // Key or variant change → setContext (practice.session/REQ-007). Depends
   // on the primitive ids, not the `selectedKey`/`variant` objects — those
@@ -274,11 +266,15 @@ export function App(props: {
   // fire this on every unrelated re-render (e.g. every tick while playing)
   // and restart the sequence each time.
   useEffect(() => {
-    if (variant === undefined) return;
+    if (variant === undefined || session === null) return;
     session.setContext({ key: selectedKey, variant });
   }, [session, keyIdOf(selectedKey), variant?.variantId]);
 
   useEffect(() => {
+    // Nothing to persist yet on the render before the session-creating
+    // effect above has run (snapshot() still null) — that effect's own
+    // completion re-renders with a snapshot, so this simply runs again.
+    if (snapshot === null) return;
     const toSave: StoredSelection = {
       schemaVersion: 3,
       variantId: selection.variantId,
@@ -300,15 +296,15 @@ export function App(props: {
     selection,
     selectedKey,
     selectionStore,
-    snapshot.traversal,
-    snapshot.settings,
+    snapshot?.traversal,
+    snapshot?.settings,
   ]);
 
   const view =
     variant === undefined ? undefined : keyView(selectedKey, variant);
 
   const soundingSequenceNote =
-    snapshot.soundingPosition === null
+    snapshot === null || snapshot.soundingPosition === null
       ? undefined
       : snapshot.sequence[snapshot.soundingPosition];
   const soundingRunIndex = soundingSequenceNote?.runIndex ?? null;
@@ -319,9 +315,10 @@ export function App(props: {
           letter: soundingSequenceNote.note.letter,
           accidental: soundingSequenceNote.note.accidental,
         };
-  const playing = snapshot.transport.kind === "playing";
+  const playing = snapshot !== null && snapshot.transport.kind === "playing";
 
   function handleTogglePlay(): void {
+    if (session === null || snapshot === null) return;
     if (snapshot.transport.kind === "idle") {
       session.start();
     } else {
@@ -354,7 +351,9 @@ export function App(props: {
       />
       <Notices
         notices={catalogue.notices}
-        soundUnavailable={snapshot.notice === "sound-unavailable"}
+        soundUnavailable={
+          snapshot !== null && snapshot.notice === "sound-unavailable"
+        }
       />
       <div style={{ margin: CIRCLE_WRAPPER_MARGIN, flex: "none" }}>
         <CircleOfFifths
@@ -417,7 +416,7 @@ export function App(props: {
             <StaveView
               key_={selectedKey}
               variant={variant}
-              notes={snapshot.run}
+              notes={snapshot === null ? [] : snapshot.run}
               staveNamesEnabled={selection.staveNamesEnabled}
               soundingRunIndex={soundingRunIndex}
               playing={playing}
@@ -425,31 +424,33 @@ export function App(props: {
           )
         )}
       </KeyPanel>
-      <div
-        style={{
-          marginTop: SESSION_AREA_MARGIN_TOP,
-          padding: SESSION_AREA_PADDING,
-          display: "flex",
-          flexDirection: "column",
-          gap: SESSION_AREA_GAP,
-        }}
-      >
-        <TransportCard
-          snapshot={snapshot}
-          onTogglePlay={handleTogglePlay}
-          onStepTempo={(delta) =>
-            session.setSettings({
-              ...snapshot.settings,
-              tempoBpm: steppedTempo(snapshot.settings.tempoBpm, delta),
-            })
-          }
-          onOpenTempo={() => setTempoSheetOpen(true)}
-        />
-        <TraversalRow
-          summaryLine={snapshot.summaryLine}
-          onOpen={() => setTraversalSheetOpen(true)}
-        />
-      </div>
+      {snapshot !== null && session !== null && (
+        <div
+          style={{
+            marginTop: SESSION_AREA_MARGIN_TOP,
+            padding: SESSION_AREA_PADDING,
+            display: "flex",
+            flexDirection: "column",
+            gap: SESSION_AREA_GAP,
+          }}
+        >
+          <TransportCard
+            snapshot={snapshot}
+            onTogglePlay={handleTogglePlay}
+            onStepTempo={(delta) =>
+              session.setSettings({
+                ...snapshot.settings,
+                tempoBpm: steppedTempo(snapshot.settings.tempoBpm, delta),
+              })
+            }
+            onOpenTempo={() => setTempoSheetOpen(true)}
+          />
+          <TraversalRow
+            summaryLine={snapshot.summaryLine}
+            onOpen={() => setTraversalSheetOpen(true)}
+          />
+        </div>
+      )}
       <SettingsDrawer
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -488,28 +489,32 @@ export function App(props: {
         }}
         onClose={() => setInstrumentSheetOpen(false)}
       />
-      <TraversalSheet
-        open={traversalSheetOpen}
-        traversal={snapshot.traversal}
-        effectiveOctaves={snapshot.effectiveOctaves}
-        fittingCounts={snapshot.fittingCounts}
-        settings={snapshot.settings}
-        onTraversal={(traversal) => session.setTraversal(traversal)}
-        onSettings={(settings) => session.setSettings(settings)}
-        onClose={() => setTraversalSheetOpen(false)}
-      />
-      <TempoSheet
-        open={tempoSheetOpen}
-        tempoBpm={snapshot.settings.tempoBpm}
-        onPick={(term) => {
-          session.setSettings({
-            ...snapshot.settings,
-            tempoBpm: tempoForTerm(term),
-          });
-          setTempoSheetOpen(false);
-        }}
-        onClose={() => setTempoSheetOpen(false)}
-      />
+      {snapshot !== null && session !== null && (
+        <>
+          <TraversalSheet
+            open={traversalSheetOpen}
+            traversal={snapshot.traversal}
+            effectiveOctaves={snapshot.effectiveOctaves}
+            fittingCounts={snapshot.fittingCounts}
+            settings={snapshot.settings}
+            onTraversal={(traversal) => session.setTraversal(traversal)}
+            onSettings={(settings) => session.setSettings(settings)}
+            onClose={() => setTraversalSheetOpen(false)}
+          />
+          <TempoSheet
+            open={tempoSheetOpen}
+            tempoBpm={snapshot.settings.tempoBpm}
+            onPick={(term) => {
+              session.setSettings({
+                ...snapshot.settings,
+                tempoBpm: tempoForTerm(term),
+              });
+              setTempoSheetOpen(false);
+            }}
+            onClose={() => setTempoSheetOpen(false)}
+          />
+        </>
+      )}
     </div>
   );
 }

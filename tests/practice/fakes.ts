@@ -160,6 +160,13 @@ export class FakeWakeLock implements WakeLockPort {
 export class FakeVisibility implements VisibilityPort {
   private readonly listeners = new Set<() => void>();
 
+  // Observable subscription count — the regression coverage for T016's
+  // fixer round asserts this returns to 0 after `<App>` unmounts, proving
+  // `session.dispose()` actually ran rather than being skipped.
+  get listenerCount(): number {
+    return this.listeners.size;
+  }
+
   onHidden(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -168,6 +175,21 @@ export class FakeVisibility implements VisibilityPort {
   hide(): void {
     for (const listener of this.listeners) listener();
   }
+}
+
+// The `SessionDeps` fakes a rendered `<App>` needs to satisfy its
+// now-required `sessionDeps` prop (practice.session/REQ-011, T016) — shared
+// by every UI scenario that doesn't itself need to inspect the sound, clock,
+// wake lock or visibility fakes (those that do build their own deps inline,
+// e.g. `tests/ui/scenarios/app-session.test.tsx`).
+export function testSessionDeps(): SessionDeps {
+  const sound = new FakeSound();
+  return {
+    sound,
+    clock: new FakeClock(sound),
+    wakeLock: new FakeWakeLock(),
+    visibility: new FakeVisibility(),
+  };
 }
 
 // Builds a major-key tonic from a spelling like "C", "F#" or "Bb" — every

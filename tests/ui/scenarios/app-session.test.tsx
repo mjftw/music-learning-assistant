@@ -1,5 +1,6 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { StrictMode } from "react";
 import { afterEach, expect, test } from "vitest";
 import {
   defaultSessionSettings,
@@ -30,21 +31,28 @@ afterEach(() => {
 
 const STORAGE_KEY = "music-learning-assistant.selection.v1";
 
+// This suite (unlike the shared `testSessionDeps` in `tests/practice/fakes`)
+// needs the `sound`, `clock` and `visibility` fakes back out for its own
+// assertions — every scenario here drives sound/clock directly or, for the
+// dispose regression below, inspects the visibility subscription.
 function testSessionDeps(sound = new FakeSound()): {
   readonly sessionDeps: SessionDeps;
   readonly sound: FakeSound;
   readonly clock: FakeClock;
+  readonly visibility: FakeVisibility;
 } {
   const clock = new FakeClock(sound);
+  const visibility = new FakeVisibility();
   return {
     sessionDeps: {
       sound,
       clock,
       wakeLock: new FakeWakeLock(),
-      visibility: new FakeVisibility(),
+      visibility,
     },
     sound,
     clock,
+    visibility,
   };
 }
 
@@ -223,5 +231,66 @@ test("practice.session/REQ-007/S3, REQ-010/S2 (UI) — no sound before the gestu
   expect(screen.getByRole("button", { name: "Stop" })).toBeTruthy();
   expect(sound.posted.some((command) => command.kind === "stopAll")).toBe(
     false,
+  );
+});
+
+// T016 fixer round: the session's effect must be symmetric — created and
+// disposed by the same effect — so a genuine unmount always tears down its
+// subscriptions (practice.session/REQ-009 relies on the visibility
+// subscription; a leaked one would keep stopping playback on a page that no
+// longer exists). Rendering `<App>` with no `<StrictMode>` wrapper (as every
+// other test in this suite does) is exactly the "DEV, no double-invoke"
+// case the reviewer found broken.
+test("practice.session/REQ-009 (app) — unmounting the app disposes the session (its visibility subscription is released)", () => {
+  localStorage.clear();
+  const { sessionDeps, visibility } = testSessionDeps();
+
+  const { unmount } = render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={sessionDeps}
+    />,
+  );
+
+  expect(visibility.listenerCount).toBe(1);
+
+  unmount();
+
+  expect(visibility.listenerCount).toBe(0);
+});
+
+// The other half of the same fix: StrictMode's mount → cleanup → mount
+// double-invoke of the session-creating effect must leave exactly one live,
+// working session behind (create → dispose → create), not a stuck or
+// doubled one.
+test("practice.session/REQ-009 (app) — under StrictMode the session still plays after the double-mount", async () => {
+  localStorage.clear();
+  const { sessionDeps, sound, clock } = testSessionDeps();
+
+  render(
+    <StrictMode>
+      <App
+        catalogue={builtInCatalogue()}
+        selectionStore={localStorageSelectionStore(localStorage)}
+        sessionDeps={sessionDeps}
+      />
+    </StrictMode>,
+  );
+
+  await userEvent.click(screen.getByRole("button", { name: "Play" }));
+  expect(sound.startCalls).toBe(1);
+
+  act(() => {
+    advanceUntil(clock, () => sound.posted.some(isTone));
+  });
+  const firstTone = sound.posted.find(isTone);
+  if (firstTone === undefined) throw new Error("unreachable: no tone posted");
+  act(() => {
+    sound.fireOnset(firstTone.tag);
+  });
+
+  expect(screen.getByTestId("position-caption").textContent).toBe(
+    "C4 · 1 of 15",
   );
 });
