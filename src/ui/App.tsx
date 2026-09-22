@@ -3,31 +3,30 @@ import {
   circleOfFifths,
   keyId as keyIdOf,
   keyView,
-  spanChoicesOf,
-  spanNotesOf,
+  runOf,
   spelledMajorAt,
   spelledMinorAt,
   type Catalogue,
-  type Key,
   type KeyView,
   type Mode,
-  type Span,
+  type Octaves,
   type SpellingPreference,
+  type Traversal,
   type Variant,
 } from "../theory/published";
 import { findVariantById } from "./catalogue-lookup";
 import { CircleOfFifths, locateSpelledKey } from "./CircleOfFifths";
 import { Header } from "./Header";
 import { InstrumentSheet } from "./InstrumentSheet";
-import { keyLabel, noteLabel, pitchClassLabel } from "./key-label";
-import { KeyPanel, type SpanChoicePill } from "./KeyPanel";
+import { keyLabel, noteLabel } from "./key-label";
+import { KeyPanel } from "./KeyPanel";
 import { NamesView } from "./NamesView";
 import { Notices } from "./Notices";
 import {
   firstRunDefaults,
   type SelectionStore,
+  type StoredOctaves,
   type StoredSelection,
-  type StoredSpan,
 } from "./selection-store";
 import { SettingsDrawer } from "./SettingsDrawer";
 import { StaveView } from "./StaveView";
@@ -63,51 +62,28 @@ function headerRangeLabel(variant: Variant): string {
   return `${noteLabel(variant.range.lowest)}–${noteLabel(variant.range.highest)}`;
 }
 
-// Maps the store's stringly-typed span (`'full' | 'oct-1'…'oct-4'`) to and
-// from the `Span` sum type published/consumed by the theory context (T004's
-// `spanChoicesOf`/`spanNotesOf`) — see .sdd/briefs/002-circle-redesign/
-// T009.md's additional context.
-function spanFromStored(stored: StoredSpan): Span {
-  if (stored === "full") return { kind: "full" };
-  const count = Number(stored.slice("oct-".length));
-  if (count !== 1 && count !== 2 && count !== 3 && count !== 4) {
-    throw new Error(`unreachable: invalid stored span "${stored}"`);
-  }
-  return { kind: "octaves", count };
+// Maps the store's stringly-typed octave count (`'full' | 1 | 2 | 3 | 4`) to
+// and from the `Octaves` sum type published/consumed by the theory context's
+// `runOf` (T003/T004) — the traversal's direction and shape carry over
+// unchanged, so only the octaves need translating.
+function octavesFromStored(stored: StoredOctaves): Octaves {
+  return stored === "full"
+    ? { kind: "full" }
+    : { kind: "count", count: stored };
 }
 
-function storedFromSpan(span: Span): StoredSpan {
-  return span.kind === "full" ? "full" : (`oct-${span.count}` as StoredSpan);
-}
-
-function spanEquals(a: Span, b: Span): boolean {
-  if (a.kind === "full" || b.kind === "full") return a.kind === b.kind;
-  return a.count === b.count;
-}
-
-function spanPillLabel(span: Span): string {
-  return span.kind === "full" ? "full" : `${span.count} oct`;
+function storedFromOctaves(octaves: Octaves): StoredOctaves {
+  return octaves.kind === "full" ? "full" : octaves.count;
 }
 
 // "22 notes · C4–C7" — the full in-range note count and extremes
-// (theory.circle-of-fifths/REQ-003), independent of the chosen span.
+// (theory.circle-of-fifths/REQ-003), independent of the traversal.
 function rangeSummaryText(view: KeyView): string {
   const first = view.notes[0];
   const last = view.notes[view.notes.length - 1];
   if (first === undefined || last === undefined)
     return "no notes of this key in range";
   return `${view.notes.length} notes · ${noteLabel(first.note)}–${noteLabel(last.note)}`;
-}
-
-// "1 oct from G · 8" / "all 22 in range" (theory.circle-of-fifths/REQ-011).
-function spanCaptionText(
-  span: Span,
-  tonic: Key["tonic"],
-  shownNoteCount: number,
-): string {
-  return span.kind === "full"
-    ? `all ${shownNoteCount} in range`
-    : `${span.count} oct from ${pitchClassLabel(tonic)} · ${shownNoteCount}`;
 }
 
 // The selection is kept keyed by circle position, not by key id — a
@@ -120,10 +96,18 @@ interface Selection {
   readonly mode: Mode;
   readonly spelling: SpellingPreference;
   readonly view: "names" | "stave";
-  readonly span: Span;
+  readonly traversal: Traversal;
   readonly degreesEnabled: boolean;
   readonly distanceRingEnabled: boolean;
   readonly staveNamesEnabled: boolean;
+}
+
+function traversalFromStored(stored: StoredSelection["traversal"]): Traversal {
+  return {
+    direction: stored.direction,
+    octaves: octavesFromStored(stored.octaves),
+    shape: stored.shape,
+  };
 }
 
 function defaultSelection(): Selection {
@@ -137,7 +121,7 @@ function defaultSelection(): Selection {
     mode: located.key.mode,
     spelling: firstRunDefaults.spelling,
     view: firstRunDefaults.view,
-    span: spanFromStored(firstRunDefaults.span),
+    traversal: traversalFromStored(firstRunDefaults.traversal),
     degreesEnabled: firstRunDefaults.degreesEnabled,
     distanceRingEnabled: firstRunDefaults.distanceRingEnabled,
     staveNamesEnabled: firstRunDefaults.staveNamesEnabled,
@@ -159,7 +143,7 @@ function initialSelection(
     mode: located.key.mode,
     spelling: stored.spelling,
     view: stored.view,
-    span: spanFromStored(stored.span),
+    traversal: traversalFromStored(stored.traversal),
     degreesEnabled: stored.degreesEnabled,
     distanceRingEnabled: stored.distanceRingEnabled,
     staveNamesEnabled: stored.staveNamesEnabled,
@@ -198,42 +182,24 @@ export function App(props: {
       keyId: keyIdOf(selectedKey),
       spelling: selection.spelling,
       view: selection.view,
-      span: storedFromSpan(selection.span),
       degreesEnabled: selection.degreesEnabled,
       distanceRingEnabled: selection.distanceRingEnabled,
       staveNamesEnabled: selection.staveNamesEnabled,
+      traversal: {
+        direction: selection.traversal.direction,
+        octaves: storedFromOctaves(selection.traversal.octaves),
+        shape: selection.traversal.shape,
+      },
     };
     selectionStore.save(toSave);
   }, [selection, selectedKey, selectionStore]);
 
-  // theory.circle-of-fifths/REQ-011: once the key or variant changes, a
-  // span the user had chosen may no longer fit — reset to full rather than
-  // showing a span the pills no longer offer.
-  useEffect(() => {
-    if (variant === undefined) return;
-    const stillOffered = spanChoicesOf(selectedKey, variant).some((choice) =>
-      spanEquals(choice.span, selection.span),
-    );
-    if (stillOffered) return;
-    setSelection((current) => ({ ...current, span: { kind: "full" } }));
-  }, [keyIdOf(selectedKey), selection.variantId, variant, selection.span]);
-
   const view =
     variant === undefined ? undefined : keyView(selectedKey, variant);
-  const spanChoices: readonly SpanChoicePill[] =
+  const staveRun =
     variant === undefined
       ? []
-      : spanChoicesOf(selectedKey, variant).map((choice) => ({
-          key: spanPillLabel(choice.span),
-          label: spanPillLabel(choice.span),
-          active: spanEquals(choice.span, selection.span),
-          onSelect: () =>
-            setSelection((current) => ({ ...current, span: choice.span })),
-        }));
-  const shownSpanNoteCount =
-    variant === undefined
-      ? 0
-      : spanNotesOf(selectedKey, variant, selection.span).length;
+      : runOf(selectedKey, variant, selection.traversal);
 
   return (
     <div
@@ -308,25 +274,22 @@ export function App(props: {
           setSelection((current) => ({ ...current, view: selectedView }))
         }
         rangeSummary={view === undefined ? "" : rangeSummaryText(view)}
-        spanCaption={spanCaptionText(
-          selection.span,
-          selectedKey.tonic,
-          shownSpanNoteCount,
-        )}
-        spanChoices={spanChoices}
       >
         {selection.view === "names" ? (
           <NamesView
             key_={selectedKey}
             degreesEnabled={selection.degreesEnabled}
+            soundingPitchClass={null}
           />
         ) : (
           variant !== undefined && (
             <StaveView
               key_={selectedKey}
               variant={variant}
-              span={selection.span}
+              notes={staveRun}
               staveNamesEnabled={selection.staveNamesEnabled}
+              soundingRunIndex={null}
+              playing={false}
             />
           )
         )}

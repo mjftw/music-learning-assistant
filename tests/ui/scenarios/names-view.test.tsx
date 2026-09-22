@@ -1,9 +1,15 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test } from "vitest";
-import { builtInCatalogue } from "../../../src/theory/published";
+import { builtInCatalogue, type Key } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
+import { NamesView } from "../../../src/ui/NamesView";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
+
+const gMajor: Key = {
+  tonic: { letter: "G", accidental: "natural" },
+  mode: "major",
+};
 
 afterEach(() => {
   cleanup();
@@ -43,6 +49,25 @@ test("theory.circle-of-fifths/REQ-003/S3 — the names view shows G major's seve
 
   const names = readColumns().map((column) => column.name);
   expect(names).toEqual(["G", "A", "B", "C", "D", "E", "F♯"]);
+});
+
+test("practice.session/REQ-006/S2 — the names view follows the sound", () => {
+  render(
+    <NamesView
+      key_={gMajor}
+      degreesEnabled={false}
+      soundingPitchClass={{ letter: "D", accidental: "natural" }}
+    />,
+  );
+
+  const columns = screen.getAllByTestId("names-column");
+  const readings = columns.map((column) => ({
+    name: within(column).getByTestId("column-name").textContent,
+    sounding: column.getAttribute("data-sounding"),
+  }));
+  const sounding = readings.filter((reading) => reading.sounding === "true");
+  expect(sounding).toHaveLength(1);
+  expect(sounding[0]?.name).toBe("D");
 });
 
 test("theory.circle-of-fifths/REQ-010/S1 — degrees on the arc and in the names view agree", async () => {

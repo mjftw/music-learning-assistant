@@ -1,5 +1,10 @@
 import type { JSX } from "react";
-import { scaleNotesOf, signatureOf, type Key } from "../theory/published";
+import {
+  scaleNotesOf,
+  signatureOf,
+  type Key,
+  type PitchClass,
+} from "../theory/published";
 import { pitchClassLabel } from "./key-label";
 import { fonts, paper } from "./theme";
 
@@ -29,17 +34,30 @@ const DEGREE_INK = paper.muted;
 const SHARP_SYMBOL = "♯";
 const FLAT_SYMBOL = "♭";
 
+// practice.session/REQ-006 — the sounding note's column, matched by pitch
+// class (spelling and octave both irrelevant to the names view).
+const SOUNDING_BACKGROUND = "rgba(138,75,42,.10)";
+const SOUNDING_INK = paper.accent;
+
 interface ColumnData {
   readonly name: string;
   readonly mark: string;
   readonly accented: boolean;
   readonly degree: number;
+  readonly isSounding: boolean;
+}
+
+function samePitchClass(a: PitchClass, b: PitchClass): boolean {
+  return a.letter === b.letter && a.accidental === b.accidental;
 }
 
 // Each accidental-bearing scale note is marked with the symbol the key's
 // signature uses plus its 1-based position in the order that signature
 // introduces accidentals (`signatureOf`) — the newest, at `count`, accented.
-function columnsOf(key: Key): readonly ColumnData[] {
+function columnsOf(
+  key: Key,
+  soundingPitchClass: PitchClass | null,
+): readonly ColumnData[] {
   const scale = scaleNotesOf(key);
   const signature = signatureOf(key);
   const kindSymbol =
@@ -52,8 +70,11 @@ function columnsOf(key: Key): readonly ColumnData[] {
   return scale.map((pitchClass, index) => {
     const degree = index + 1;
     const name = pitchClassLabel(pitchClass);
+    const isSounding =
+      soundingPitchClass !== null &&
+      samePitchClass(pitchClass, soundingPitchClass);
     if (pitchClass.accidental === "natural") {
-      return { name, mark: "", accented: false, degree };
+      return { name, mark: "", accented: false, degree, isSounding };
     }
     const orderIndex = signature.accidentals.findIndex(
       (accidental) => accidental.letter === pitchClass.letter,
@@ -64,6 +85,7 @@ function columnsOf(key: Key): readonly ColumnData[] {
       mark: `${kindSymbol}${position}`,
       accented: position === signature.count,
       degree,
+      isSounding,
     };
   });
 }
@@ -71,9 +93,10 @@ function columnsOf(key: Key): readonly ColumnData[] {
 export function NamesView(props: {
   readonly key_: Key;
   readonly degreesEnabled: boolean;
+  readonly soundingPitchClass: PitchClass | null;
 }): JSX.Element {
-  const { key_, degreesEnabled } = props;
-  const columns = columnsOf(key_);
+  const { key_, degreesEnabled, soundingPitchClass } = props;
+  const columns = columnsOf(key_, soundingPitchClass);
 
   return (
     <div style={{ display: "flex", alignItems: "flex-end", gap: ROW_FLEX_GAP }}>
@@ -81,12 +104,14 @@ export function NamesView(props: {
         <div
           key={column.name}
           data-testid="names-column"
+          data-sounding={column.isSounding ? "true" : "false"}
           style={{
             flex: 1,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             gap: COLUMN_GAP,
+            background: column.isSounding ? SOUNDING_BACKGROUND : "transparent",
           }}
         >
           <div
@@ -111,7 +136,7 @@ export function NamesView(props: {
               fontSize: NAME_FONT_SIZE,
               fontWeight: NAME_FONT_WEIGHT,
               letterSpacing: NAME_LETTER_SPACING,
-              color: NAME_INK,
+              color: column.isSounding ? SOUNDING_INK : NAME_INK,
               lineHeight: 1,
             }}
           >
