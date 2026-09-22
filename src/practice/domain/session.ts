@@ -1,0 +1,337 @@
+// The session aggregate — practice.session/REQ-001, REQ-002, REQ-007. Holds
+// the traversal, the transport and everything derived from them, drives the
+// lookahead scheduler over SoundPort, and notifies listeners of every
+// change. Pure domain logic (transport.ts, settings.ts, tempo.ts) stays
+// pure; this is the imperative shell around it (docs/engineering.md §2).
+
+import type { SoundCommand } from "../../sound/published/sound-command.schema";
+import type {
+  Key,
+  KeyViewNote,
+  Note,
+  OctaveCount,
+  Octaves,
+  SequenceNote,
+  Traversal,
+  Variant,
+} from "../../theory/published";
+import {
+  effectiveOctavesOf,
+  fittingOctaveCounts,
+  noteLabel,
+  pitchHzOf,
+  runOf,
+  sequenceOf,
+} from "../../theory/published";
+import type { TickPlan } from "../adapters/lookahead-scheduler";
+import { createLookaheadScheduler } from "../adapters/lookahead-scheduler";
+import type { ClockPort } from "../ports/clock";
+import type { SoundPort } from "../ports/sound";
+import type { VisibilityPort } from "../ports/visibility";
+import type { WakeLockPort } from "../ports/wake-lock";
+import type { SessionSettings } from "./settings";
+import { summaryLineOf } from "./settings";
+import type { TempoTerm } from "./tempo";
+import { tempoTermFor } from "./tempo";
+import type { TransportState } from "./transport";
+import { advance, startTransport, tickOf } from "./transport";
+
+export interface SessionContext {
+  readonly key: Key;
+  readonly variant: Variant;
+}
+
+export interface SessionDeps {
+  readonly sound: SoundPort;
+  readonly clock: ClockPort;
+  readonly wakeLock: WakeLockPort;
+  readonly visibility: VisibilityPort;
+}
+
+export interface TargetAdvanced {
+  readonly note: Note;
+  readonly position: number;
+  readonly length: number;
+  readonly atFrame: number;
+}
+
+export interface SessionSnapshot {
+  readonly transport: TransportState;
+  readonly traversal: Traversal;
+  readonly effectiveOctaves: Octaves;
+  readonly fittingCounts: readonly OctaveCount[];
+  readonly settings: SessionSettings;
+  readonly run: readonly KeyViewNote[];
+  readonly sequence: readonly SequenceNote[];
+  readonly caption: string;
+  readonly progress: number;
+  readonly summaryLine: string;
+  readonly tempoTerm: TempoTerm;
+  readonly soundingPosition: number | null;
+  readonly notice: "sound-unavailable" | null;
+}
+
+export interface Session {
+  snapshot(): SessionSnapshot;
+  start(): void;
+  stop(): void;
+  setContext(context: SessionContext): void;
+  setTraversal(traversal: Traversal): void;
+  setSettings(settings: SessionSettings): void;
+  onTargetAdvanced(listener: (event: TargetAdvanced) => void): () => void;
+  onChange(listener: () => void): () => void;
+  dispose(): void;
+}
+
+// Click tags run from 1_000_000 up so they never collide with a tone's tag
+// (a sequence position, always small).
+const CLICK_TAG_BASE = 1_000_000;
+
+function captionOf(
+  transport: TransportState,
+  run: readonly KeyViewNote[],
+  sequence: readonly SequenceNote[],
+  soundingPosition: number | null,
+): string {
+  switch (transport.kind) {
+    case "idle": {
+      const first = run[0];
+      const last = run[run.length - 1];
+      if (first === undefined || last === undefined) return "";
+      return `${run.length} notes · ${noteLabel(first.note)}–${noteLabel(last.note)}`;
+    }
+    case "countingIn":
+      return `COUNT IN · ${transport.beatsLeft}`;
+    case "resting":
+      return `REST · ${transport.beatsLeft}`;
+    case "playing": {
+      if (soundingPosition === null) return "";
+      const sounding = sequence[soundingPosition];
+      if (sounding === undefined) return "";
+      return `${noteLabel(sounding.note)} · ${soundingPosition + 1} of ${sequence.length}`;
+    }
+  }
+}
+
+export function createSession(
+  context: SessionContext,
+  traversal: Traversal,
+  settings: SessionSettings,
+  deps: SessionDeps,
+): Session {
+  const { sound, clock, wakeLock } = deps;
+  const scheduler = createLookaheadScheduler(sound, clock);
+
+  let currentContext = context;
+  let currentTraversal = traversal;
+  let currentSettings = settings;
+  let transport: TransportState = { kind: "idle" };
+  let soundingPosition: number | null = null;
+  let notice: "sound-unavailable" | null = null;
+  let clickCounter = 0;
+  // Whether `transport` needs to move on to the state after it before the
+  // next tick is built. false right after start() (or a restart) — the
+  // very next tick uses `transport` as it stands, not the one after it —
+  // and true once that tick has been posted, so the observable transport
+  // (what snapshot() reports) always reflects the tick most recently
+  // posted, never one it has already stepped past.
+  let pendingAdvance = false;
+
+  let run: readonly KeyViewNote[] = [];
+  let sequence: readonly SequenceNote[] = [];
+  let effectiveOctaves: Octaves = { kind: "full" };
+  let fittingCounts: readonly OctaveCount[] = [];
+
+  const changeListeners = new Set<() => void>();
+  const targetAdvancedListeners = new Set<(event: TargetAdvanced) => void>();
+
+  function recompute(): void {
+    run = runOf(currentContext.key, currentContext.variant, currentTraversal);
+    sequence = sequenceOf(run, currentTraversal.direction);
+    effectiveOctaves = effectiveOctavesOf(
+      currentContext.key,
+      currentContext.variant,
+      currentTraversal.octaves,
+    );
+    fittingCounts = fittingOctaveCounts(
+      currentContext.key,
+      currentContext.variant,
+    );
+  }
+
+  recompute();
+
+  function notifyChange(): void {
+    for (const listener of changeListeners) listener();
+  }
+
+  function tickFramesOf(durationBeats: number): number {
+    return Math.round(
+      (durationBeats * 60 * sound.sampleRate()) / currentSettings.tempoBpm,
+    );
+  }
+
+  function next(onsetFrame: number): TickPlan | null {
+    if (pendingAdvance) {
+      transport = advance(transport, currentSettings, sequence.length);
+    }
+    pendingAdvance = true;
+
+    if (transport.kind === "idle") {
+      wakeLock.release();
+      notifyChange();
+      return null;
+    }
+
+    const tick = tickOf(transport, currentSettings);
+    const durationFrames = tickFramesOf(tick.durationBeats);
+    const commands: SoundCommand[] = [];
+
+    if (tick.click !== null) {
+      commands.push({
+        kind: "click",
+        tag: CLICK_TAG_BASE + clickCounter,
+        accent: tick.click.accent,
+        onsetFrame,
+      });
+      clickCounter += 1;
+    }
+
+    if (tick.tonePosition !== null) {
+      const target = sequence[tick.tonePosition];
+      if (target === undefined) {
+        throw new Error("unreachable: tonePosition out of range");
+      }
+      commands.push({
+        kind: "tone",
+        tag: tick.tonePosition,
+        hz: pitchHzOf(target.note),
+        onsetFrame,
+        durationFrames,
+      });
+      // T009 moves this to the onset report.
+      soundingPosition = tick.tonePosition;
+      const advancedEvent: TargetAdvanced = {
+        note: target.note,
+        position: tick.tonePosition,
+        length: sequence.length,
+        atFrame: onsetFrame,
+      };
+      for (const listener of targetAdvancedListeners) listener(advancedEvent);
+    } else if (transport.kind !== "playing") {
+      soundingPosition = null;
+    }
+
+    notifyChange();
+
+    return { commands, durationFrames };
+  }
+
+  function snapshot(): SessionSnapshot {
+    return {
+      transport,
+      traversal: currentTraversal,
+      effectiveOctaves,
+      fittingCounts,
+      settings: currentSettings,
+      run,
+      sequence,
+      caption: captionOf(transport, run, sequence, soundingPosition),
+      progress:
+        soundingPosition !== null && transport.kind === "playing"
+          ? (soundingPosition + 1) / sequence.length
+          : 0,
+      summaryLine: summaryLineOf(
+        currentTraversal,
+        effectiveOctaves,
+        currentSettings,
+      ),
+      tempoTerm: tempoTermFor(currentSettings.tempoBpm),
+      soundingPosition,
+      notice,
+    };
+  }
+
+  function start(): void {
+    notice = null;
+    transport = startTransport(currentSettings);
+    pendingAdvance = false;
+    soundingPosition = null;
+    notifyChange();
+
+    void (async () => {
+      const result = await sound.start();
+      // REQ-010 (the visible notice and the silent walk-through) lands in
+      // T009; here we only record the failure and keep going.
+      if (!result.ok) notice = "sound-unavailable";
+      await wakeLock.acquire();
+      scheduler.start(sound.currentFrame(), next);
+      notifyChange();
+    })();
+  }
+
+  function stop(): void {
+    scheduler.stop();
+    sound.post({ kind: "stopAll" });
+    transport = { kind: "idle" };
+    soundingPosition = null;
+    wakeLock.release();
+    notifyChange();
+  }
+
+  function restartIfPlaying(): void {
+    if (transport.kind !== "playing") return;
+    transport = { kind: "playing", position: 0 };
+    pendingAdvance = false;
+    soundingPosition = null;
+  }
+
+  function setContext(newContext: SessionContext): void {
+    currentContext = newContext;
+    recompute();
+    restartIfPlaying();
+    notifyChange();
+  }
+
+  function setTraversal(newTraversal: Traversal): void {
+    currentTraversal = newTraversal;
+    recompute();
+    restartIfPlaying();
+    notifyChange();
+  }
+
+  function setSettings(newSettings: SessionSettings): void {
+    currentSettings = newSettings;
+    notifyChange();
+  }
+
+  function onTargetAdvanced(
+    listener: (event: TargetAdvanced) => void,
+  ): () => void {
+    targetAdvancedListeners.add(listener);
+    return () => targetAdvancedListeners.delete(listener);
+  }
+
+  function onChange(listener: () => void): () => void {
+    changeListeners.add(listener);
+    return () => changeListeners.delete(listener);
+  }
+
+  function dispose(): void {
+    scheduler.stop();
+    changeListeners.clear();
+    targetAdvancedListeners.clear();
+  }
+
+  return {
+    snapshot,
+    start,
+    stop,
+    setContext,
+    setTraversal,
+    setSettings,
+    onTargetAdvanced,
+    onChange,
+    dispose,
+  };
+}

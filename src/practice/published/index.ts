@@ -20,3 +20,11 @@ export {
 } from "../domain/settings";
 export type { BeatsLeft, Tick, TransportState } from "../domain/transport";
 export { advance, startTransport, tickOf } from "../domain/transport";
+export type {
+  Session,
+  SessionContext,
+  SessionDeps,
+  SessionSnapshot,
+  TargetAdvanced,
+} from "../domain/session";
+export { createSession } from "../domain/session";
