@@ -567,7 +567,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T016 · practice.session/REQ-011 (S1, S2, S3 app), REQ-010 (S1 UI), REQ-007 (S3 UI) · Wire the session into the app
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/App.tsx`, `src/ui/main.tsx`, `src/ui/Notices.tsx` (accept a `soundUnavailable: boolean` prop and render the notice text `Sound unavailable — the run still shows; tap ▶ to try again`), `src/ui/global.css` (nothing new expected; confirm `button { font: inherit }` covers the new controls)
