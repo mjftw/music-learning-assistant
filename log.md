@@ -4,6 +4,7 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-22
 
+- Task List `changes/003-hear-the-scale/tasks.md` → approved (human:merlin-webster)
 - Implementation Plan `changes/003-hear-the-scale/plan.md` → approved (human:merlin-webster)
 - Domain Map `docs/domain.md` → approved (human:merlin-webster)
 - Spec Delta `changes/003-hear-the-scale/delta/theory/temperament.md` → approved (human:merlin-webster)
