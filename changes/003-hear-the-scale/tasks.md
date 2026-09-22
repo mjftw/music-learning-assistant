@@ -313,7 +313,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T008 · practice.session/REQ-001 (S1, S3, S4), REQ-002 (S1, S2, S3, S4), REQ-007 (S1, S2, S3) · The session aggregate over fake ports
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/practice/ports/sound.ts`, `src/practice/ports/clock.ts`, `src/practice/ports/wake-lock.ts`, `src/practice/ports/visibility.ts`, `src/practice/ports/result.ts`, `src/practice/domain/session.ts`, `src/practice/adapters/lookahead-scheduler.ts`
@@ -369,7 +369,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 **Verify** — `pnpm vitest run tests/practice` → all passed (≥ 14 tests); `pnpm check` → exit 0
 
-### T009 · practice.session/REQ-006 (S3, S5), REQ-009 (S1, S2), REQ-010 (S1, S2) · Onsets become TargetAdvanced; hidden stops; silence is not stuck
+### T009 · practice.session/REQ-006 (S3, S5), REQ-005 (S2), REQ-009 (S1, S2), REQ-010 (S1, S2) · Onsets become TargetAdvanced; hidden stops; silence is not stuck
 
 **Status:** todo
 
@@ -388,9 +388,10 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 - [ ] 3. RED — REQ-006/S5 invariant in `tests/practice/invariants/target-in-sequence.test.ts`: for every variant × 30 keys × each fitting count + full × both shapes × three directions: create the session with `countIn false`, `loop false`, drive the fake clock through the whole sequence firing each tone's onset, collect events; assert every event's `note` equals `sequence[event.position].note` and `event.length === sequence.length`, and the event count equals the sequence length → PASS
 - [ ] 4. RED — REQ-009/S1: playing → `visibility.hide()` → transport `idle`, `stopAll` posted, caption idle. REQ-009/S2: `wake.acquired` is `true` from `start()` until `stop()`/hide, then `false` → GREEN (subscribe to `visibility.onHidden` in `createSession`; `dispose()` unsubscribes)
 - [ ] 5. RED — REQ-010/S1: `sound.failWith = { reason: "worklet-failed", detail: "x" }` → `start()` → `snapshot().notice === "sound-unavailable"`, transport still `countingIn 4` and ticks still advance as the clock runs (the fake still delivers onsets); REQ-010/S2: `sound.startCalls === 0` before `start()` → GREEN (the session never touches `sound` before `start()`)
-- [ ] 6. `pnpm check` → green
+- [ ] 6. RED — REQ-005/S2 at the session level (added after T008's review found the gap): `soundMode: "metronome"`, crotchet → after each playing tick's click onset fires, `soundingPosition` and the caption advance exactly as in `both`; with `noteLength: "quaver"` the odd positions (no click, no tone) still advance at their tick time. Tag rule: a playing tick's *first* sounding command (the tone, else the click) carries `tag = position`; count-in and rest-bar clicks keep `tag ≥ 1_000_000`; a playing tick with nothing sounding schedules a `clock.setTimeout` for its onset (frames → ms via `sound.sampleRate()`) that advances `soundingPosition` and emits `TargetAdvanced` with `atFrame` = its onset frame → GREEN
+- [ ] 7. `pnpm check` → green
 
-**Verify** — `pnpm vitest run tests/practice` → all passed (≥ 20 tests); `pnpm check` → exit 0
+**Verify** — `pnpm vitest run tests/practice` → all passed (≥ 21 tests); `pnpm check` → exit 0
 
 ## Phase 4 — Sound: the real engine and the adapters
 
@@ -670,7 +671,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 | practice.session/REQ-002 | T008 (S1–S4), T014 (UI) | ✅ |
 | practice.session/REQ-003 | T007 (S1–S3), T015 (toggles UI) | ✅ |
 | practice.session/REQ-004 | T006 (S1–S3), T007 (S4), T014, T015 (UI) | ✅ |
-| practice.session/REQ-005 | T007 (S1–S3), T010 (S4) | ✅ |
+| practice.session/REQ-005 | T007 (S1–S3), T009 (S2 session-level), T010 (S4) | ✅ |
 | practice.session/REQ-006 | T013 (S1, S2), T009 (S3, S5), T018 (S4) | ✅ |
 | practice.session/REQ-007 | T008 (S1–S3), T016 (S3 UI) | ✅ |
 | practice.session/REQ-008 | T018 (S1) | ✅ |
