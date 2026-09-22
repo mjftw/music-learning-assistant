@@ -206,6 +206,55 @@ test("practice.session/REQ-007/S2 — turning the metronome off mid-run", async 
   expect(sound.posted.filter(isClick).length).toBe(clicksBefore);
 });
 
+test("practice.session/REQ-004/S4 — a tempo change keeps the place", async () => {
+  const settings = {
+    ...defaultSessionSettings,
+    tempoBpm: 96,
+    countIn: false,
+  };
+  const { session, sound, clock } = sessionOn(
+    "G",
+    "flute-concert",
+    GMajorTwoOctaves,
+    settings,
+  );
+
+  await flushStart(session);
+  // "note 6" (REQ-004/S4's Given) is position 5 — the transport advances
+  // on the scheduler's own ticks, independently of any onset.
+  advanceUntil(clock, () => {
+    const transport = session.snapshot().transport;
+    return transport.kind === "playing" && transport.position === 5;
+  });
+
+  const tonesBeforeChange = sound.posted.filter(isTone).length;
+
+  // Three + taps, 96 → 98 → 100 → 102 — the UI's stepper maps to a single
+  // setSettings call carrying the result.
+  session.setSettings({ ...settings, tempoBpm: 102 });
+
+  // The position already reached is never reset by a tempo change — only
+  // setContext/setTraversal restart (REQ-007).
+  expect(session.snapshot().transport).toEqual({
+    kind: "playing",
+    position: 5,
+  });
+
+  advanceUntil(
+    clock,
+    () => sound.posted.filter(isTone).length >= tonesBeforeChange + 3,
+  );
+  const tones = sound.posted.filter(isTone);
+  const changeIndex = tonesBeforeChange; // first tone posted after the tap
+
+  // The tick already inside the lookahead window when the tap happened
+  // keeps its scheduled onset; the tempo takes hold from the tick after
+  // it — Math.round(60 / 102 * 48000) = 28235 frames (588 ms) at 48 kHz.
+  expect(
+    tones[changeIndex + 1]!.onsetFrame - tones[changeIndex]!.onsetFrame,
+  ).toBe(28235);
+});
+
 test("practice.session/REQ-007/S3 — the sheet is not a stop", async () => {
   const settings = { ...defaultSessionSettings, tempoBpm: 120 };
   const { session, clock } = sessionOn(

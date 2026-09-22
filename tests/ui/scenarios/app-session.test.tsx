@@ -74,7 +74,7 @@ test("practice.session/REQ-011/S2 (app) — first run shows the S2 defaults in t
     />,
   );
 
-  expect(screen.getByText("↑↓ · 1 oct · scale · ♩ · loop")).toBeTruthy();
+  expect(screen.getByText("↑↓ · 1 oct · scale · loop")).toBeTruthy();
   expect(screen.getByText("96")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Andante" })).toBeTruthy();
   expect(screen.getByTestId("position-caption").textContent).toBe(
@@ -97,7 +97,6 @@ test("practice.session/REQ-011/S1 (app) — a stored v3 payload is restored exac
       staveNamesEnabled: false,
       traversal: { direction: "down", octaves: 2, shape: "arpeggio" },
       session: {
-        noteLength: "quaver",
         soundMode: "metronome",
         loop: false,
         countIn: false,
@@ -116,7 +115,7 @@ test("practice.session/REQ-011/S1 (app) — a stored v3 payload is restored exac
     />,
   );
 
-  expect(screen.getByText("↓ · 2 oct · click only · ♪ · once")).toBeTruthy();
+  expect(screen.getByText("↓ · 2 oct · click only · once")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Allegro" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Play" })).toBeTruthy();
 });

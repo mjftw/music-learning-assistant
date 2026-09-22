@@ -8,11 +8,7 @@ export {
   tempoForTerm,
   tempoTermFor,
 } from "../domain/tempo";
-export type {
-  NoteLength,
-  SessionSettings,
-  SoundMode,
-} from "../domain/settings";
+export type { SessionSettings, SoundMode } from "../domain/settings";
 export {
   defaultSessionSettings,
   defaultTraversal,

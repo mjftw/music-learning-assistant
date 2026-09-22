@@ -21,7 +21,6 @@ test("a v3 payload round-trips (practice.session/REQ-011/S1, theory.circle-of-fi
     staveNamesEnabled: true,
     traversal: { direction: "down", octaves: 2, shape: "arpeggio" },
     session: {
-      noteLength: "quaver",
       soundMode: "metronome",
       loop: false,
       countIn: false,
@@ -96,7 +95,6 @@ test("empty storage loads as null; first-run defaults match the spec (practice.s
     staveNamesEnabled: false,
     traversal: { direction: "updown", octaves: 1, shape: "scale" },
     session: {
-      noteLength: "crotchet",
       soundMode: "both",
       loop: true,
       countIn: true,

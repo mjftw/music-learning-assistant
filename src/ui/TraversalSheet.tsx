@@ -6,11 +6,7 @@ import type {
   Shape,
   Traversal,
 } from "../theory/published";
-import type {
-  NoteLength,
-  SessionSettings,
-  SoundMode,
-} from "../practice/published";
+import type { SessionSettings, SoundMode } from "../practice/published";
 import { fonts, paper } from "./theme";
 import { BottomSheet, OverlayScrim, OverlayHeader } from "./overlay";
 
@@ -58,14 +54,6 @@ const SHAPE_PILL_GEOMETRY: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const NOTE_LENGTH_PILL_GEOMETRY: CSSProperties = {
-  minWidth: 46,
-  padding: "7px 12px 9px",
-  borderRadius: 10,
-  fontFamily: fonts.music,
-  fontSize: 16,
-};
-
 const SOUND_PILL_GEOMETRY: CSSProperties = {
   padding: "9px 11px 10px",
   borderRadius: 10,
@@ -101,14 +89,6 @@ const DIRECTIONS: readonly {
 const SHAPES: readonly { readonly value: Shape; readonly label: string }[] = [
   { value: "scale", label: "scale" },
   { value: "arpeggio", label: "arpeggio" },
-];
-
-const NOTE_LENGTHS: readonly {
-  readonly value: NoteLength;
-  readonly label: string;
-}[] = [
-  { value: "crotchet", label: "♩" },
-  { value: "quaver", label: "♪" },
 ];
 
 const SOUND_MODES: readonly {
@@ -290,19 +270,6 @@ export function TraversalSheet(props: {
               active={traversal.shape === option.value}
               geometry={SHAPE_PILL_GEOMETRY}
               onClick={() => onTraversal({ ...traversal, shape: option.value })}
-            />
-          ))}
-        </Row>
-        <Row label="Note length">
-          {NOTE_LENGTHS.map((option) => (
-            <Pill
-              key={option.value}
-              label={option.label}
-              active={settings.noteLength === option.value}
-              geometry={NOTE_LENGTH_PILL_GEOMETRY}
-              onClick={() =>
-                onSettings({ ...settings, noteLength: option.value })
-              }
             />
           ))}
         </Row>

@@ -1,10 +1,8 @@
 import type { Octaves, Traversal } from "../../theory/published";
 
-export type NoteLength = "crotchet" | "quaver";
 export type SoundMode = "notes" | "both" | "metronome";
 
 export interface SessionSettings {
-  readonly noteLength: NoteLength;
   readonly soundMode: SoundMode;
   readonly loop: boolean;
   readonly countIn: boolean;
@@ -13,7 +11,6 @@ export interface SessionSettings {
 }
 
 export const defaultSessionSettings: SessionSettings = {
-  noteLength: "crotchet",
   soundMode: "both",
   loop: true,
   countIn: true,
@@ -31,11 +28,6 @@ const DIRECTION_GLYPH: Record<Traversal["direction"], string> = {
   up: "↑",
   down: "↓",
   updown: "↑↓",
-};
-
-const NOTE_LENGTH_GLYPH: Record<NoteLength, string> = {
-  crotchet: "♩",
-  quaver: "♪",
 };
 
 function octavesWordOf(octaves: Octaves): string {
@@ -58,7 +50,6 @@ export function summaryLineOf(
     DIRECTION_GLYPH[traversal.direction],
     octavesWordOf(effectiveOctaves),
     shapeWordOf(traversal.shape, settings.soundMode),
-    NOTE_LENGTH_GLYPH[settings.noteLength],
     settings.loop ? "loop" : "once",
   ].join(" · ");
 }

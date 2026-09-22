@@ -87,18 +87,16 @@ test("practice.session/REQ-003/S3 — off means straight in", () => {
   });
 });
 
-test("practice.session/REQ-005/S1 — both, crotchet", () => {
+test("practice.session/REQ-005/S1 — both", () => {
   const settings = {
     ...defaultSessionSettings,
     soundMode: "both" as const,
-    noteLength: "crotchet" as const,
   };
 
   for (let position = 0; position < 5; position++) {
     const tick = tickOf({ kind: "playing", position }, settings);
     expect(tick.click).toEqual({ accent: false });
     expect(tick.tonePosition).toBe(position);
-    expect(tick.durationBeats).toBe(1);
   }
 });
 
@@ -129,26 +127,4 @@ test("practice.session/REQ-005/S3 — notes only", () => {
     accent: false,
   });
   expect(tickOf({ kind: "playing", position: 0 }, settings).click).toBeNull();
-});
-
-test("practice.session/REQ-004/S4 — quavers double up", () => {
-  const settings = {
-    ...defaultSessionSettings,
-    soundMode: "both" as const,
-    noteLength: "quaver" as const,
-  };
-
-  const clicksAt = [0, 1, 2, 3, 4].map(
-    (position) => tickOf({ kind: "playing", position }, settings).click,
-  );
-  expect(clicksAt).toEqual([
-    { accent: false },
-    null,
-    { accent: false },
-    null,
-    { accent: false },
-  ]);
-  expect(tickOf({ kind: "playing", position: 0 }, settings).durationBeats).toBe(
-    0.5,
-  );
 });

@@ -1,7 +1,6 @@
 // The practice transport state machine — practice.session/REQ-003,
-// REQ-004, REQ-005. Pure: no clocks, no frames. `Tick.durationBeats` is the
-// only timing fact it emits; turning that into wall-clock time is the
-// session's job (T008).
+// REQ-004, REQ-005. Pure: no clocks, no frames — every tick is one beat, and
+// turning a beat into wall-clock time is the session's job (T008).
 
 import type { SessionSettings } from "./settings";
 
@@ -16,7 +15,6 @@ export type TransportState =
 export interface Tick {
   readonly click: { readonly accent: boolean } | null; // what sounds at this state's onset
   readonly tonePosition: number | null; // sequence position whose tone sounds, else null
-  readonly durationBeats: 1 | 0.5; // until the next tick
 }
 
 export function startTransport(settings: SessionSettings): TransportState {
@@ -28,7 +26,7 @@ export function startTransport(settings: SessionSettings): TransportState {
 export function tickOf(state: TransportState, settings: SessionSettings): Tick {
   switch (state.kind) {
     case "idle":
-      return { click: null, tonePosition: null, durationBeats: 1 };
+      return { click: null, tonePosition: null };
 
     case "countingIn":
     case "resting":
@@ -37,20 +35,14 @@ export function tickOf(state: TransportState, settings: SessionSettings): Tick {
       return {
         click: { accent: state.beatsLeft === 4 },
         tonePosition: null,
-        durationBeats: 1,
       };
 
-    case "playing": {
-      const clicks =
-        settings.soundMode !== "notes" &&
-        (settings.noteLength === "crotchet" || state.position % 2 === 0);
+    case "playing":
       return {
-        click: clicks ? { accent: false } : null,
+        click: settings.soundMode !== "notes" ? { accent: false } : null,
         tonePosition:
           settings.soundMode === "metronome" ? null : state.position,
-        durationBeats: settings.noteLength === "crotchet" ? 1 : 0.5,
       };
-    }
   }
 }
 

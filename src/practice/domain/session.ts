@@ -165,10 +165,10 @@ export function createSession(
     for (const listener of changeListeners) listener();
   }
 
-  function tickFramesOf(durationBeats: number): number {
-    return Math.round(
-      (durationBeats * 60 * sound.sampleRate()) / currentSettings.tempoBpm,
-    );
+  // Every tick is one beat — practice.session/REQ-004: "one note per beat
+  // (every note is a crotchet)".
+  function tickFramesOf(): number {
+    return Math.round((60 * sound.sampleRate()) / currentSettings.tempoBpm);
   }
 
   function nextClickTag(): number {
@@ -222,7 +222,7 @@ export function createSession(
     }
 
     const tick = tickOf(transport, currentSettings);
-    const durationFrames = tickFramesOf(tick.durationBeats);
+    const durationFrames = tickFramesOf();
     const commands: SoundCommand[] = [];
 
     if (transport.kind !== "playing") {
@@ -241,7 +241,10 @@ export function createSession(
       const position = transport.position;
       // The tick's first sounding command carries the position's tag; any
       // second command (a click alongside a tone) gets an ordinary click
-      // tag so only one onset resolves this position.
+      // tag so only one onset resolves this position. With every note a
+      // crotchet, a playing tick always sounds a tone (soundMode notes or
+      // both) or a click (soundMode both or metronome) — never neither —
+      // so every position is always tagged by one of the two below.
       let positionTagged = false;
 
       if (tick.tonePosition !== null) {
@@ -267,20 +270,6 @@ export function createSession(
           onsetFrame,
         });
         positionTagged = true;
-      }
-
-      if (!positionTagged) {
-        // Nothing sounds this tick (metronome mode, ♪, an off-beat position
-        // — REQ-005/S2) — advance on a timer at the tick's own onset time
-        // rather than never at all.
-        const delayMs = Math.max(
-          ((onsetFrame - sound.currentFrame()) * 1000) / sound.sampleRate(),
-          0,
-        );
-        clock.setTimeout(
-          () => applyTargetAdvance(position, onsetFrame),
-          delayMs,
-        );
       }
     }
 

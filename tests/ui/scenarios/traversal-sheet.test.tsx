@@ -127,24 +127,19 @@ test("practice.session/REQ-003 (UI) — the settings pills and toggles call onSe
   const countInButton = screen.getByRole("button", { name: "count-in" });
   expect(countInButton.getAttribute("aria-pressed")).toBe("true");
 
-  await userEvent.click(screen.getByRole("button", { name: "♪" }));
   await userEvent.click(screen.getByRole("button", { name: "metronome" }));
   await userEvent.click(screen.getByRole("button", { name: "rest bar" }));
   await userEvent.click(countInButton);
 
   expect(onSettings).toHaveBeenNthCalledWith(1, {
     ...settings,
-    noteLength: "quaver",
+    soundMode: "metronome",
   });
   expect(onSettings).toHaveBeenNthCalledWith(2, {
     ...settings,
-    soundMode: "metronome",
-  });
-  expect(onSettings).toHaveBeenNthCalledWith(3, {
-    ...settings,
     restBar: true,
   });
-  expect(onSettings).toHaveBeenNthCalledWith(4, {
+  expect(onSettings).toHaveBeenNthCalledWith(3, {
     ...settings,
     countIn: false,
   });
@@ -154,14 +149,11 @@ test("practice.session/REQ-001/S2 (UI) — TraversalRow shows the summary line a
   const onOpen = vi.fn();
 
   render(
-    <TraversalRow
-      summaryLine="↑↓ · 2 oct · scale · ♩ · loop"
-      onOpen={onOpen}
-    />,
+    <TraversalRow summaryLine="↑↓ · 2 oct · scale · loop" onOpen={onOpen} />,
   );
 
   const row = screen.getByRole("button", { name: "Edit traversal" });
-  expect(row.textContent).toContain("↑↓ · 2 oct · scale · ♩ · loop");
+  expect(row.textContent).toContain("↑↓ · 2 oct · scale · loop");
   expect(row.textContent).toContain("edit ›");
 
   await userEvent.click(row);

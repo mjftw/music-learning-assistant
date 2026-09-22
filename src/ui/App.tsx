@@ -420,7 +420,6 @@ export function App(props: {
               staveNamesEnabled={selection.staveNamesEnabled}
               soundingRunIndex={soundingRunIndex}
               playing={playing}
-              noteLength={snapshot?.settings.noteLength ?? "crotchet"}
             />
           )
         )}

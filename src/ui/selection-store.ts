@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Direction, Shape } from "../theory/published";
-import type { NoteLength, SoundMode } from "../practice/published";
+import type { SoundMode } from "../practice/published";
 
 export type StoredOctaves = "full" | 1 | 2 | 3 | 4;
 
@@ -19,7 +19,6 @@ export interface StoredSelection {
     readonly shape: Shape;
   };
   readonly session: {
-    readonly noteLength: NoteLength;
     readonly soundMode: SoundMode;
     readonly loop: boolean;
     readonly countIn: boolean;
@@ -37,7 +36,6 @@ export const firstRunDefaults: Omit<StoredSelection, "variantId" | "keyId"> = {
   staveNamesEnabled: false,
   traversal: { direction: "updown", octaves: 1, shape: "scale" },
   session: {
-    noteLength: "crotchet",
     soundMode: "both",
     loop: true,
     countIn: true,
@@ -63,7 +61,6 @@ const storedOctavesSchema = z.union([
 
 const directionSchema = z.enum(["up", "down", "updown"]);
 const shapeSchema = z.enum(["scale", "arpeggio"]);
-const noteLengthSchema = z.enum(["crotchet", "quaver"]);
 const soundModeSchema = z.enum(["notes", "both", "metronome"]);
 
 const storedSelectionV3Schema = z.object({
@@ -81,7 +78,6 @@ const storedSelectionV3Schema = z.object({
     shape: shapeSchema,
   }),
   session: z.object({
-    noteLength: noteLengthSchema,
     soundMode: soundModeSchema,
     loop: z.boolean(),
     countIn: z.boolean(),

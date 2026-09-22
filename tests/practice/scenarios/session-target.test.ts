@@ -164,7 +164,7 @@ test("practice.session/REQ-010/S2 — nothing before the gesture", async () => {
   expect(sound.startCalls).toBe(1);
 });
 
-test("practice.session/REQ-005/S2 — metronome-only advances on the click's onset (♩)", async () => {
+test("practice.session/REQ-005/S2 — metronome-only advances on the click's onset", async () => {
   const settings = {
     ...defaultSessionSettings,
     tempoBpm: 120,
@@ -189,42 +189,4 @@ test("practice.session/REQ-005/S2 — metronome-only advances on the click's ons
 
   expect(session.snapshot().soundingPosition).toBe(0);
   expect(session.snapshot().caption).toBe("G4 · 1 of 29");
-});
-
-test("practice.session/REQ-005/S2 — metronome-only, ♪: silent positions still advance at their tick", async () => {
-  const settings = {
-    ...defaultSessionSettings,
-    tempoBpm: 120,
-    countIn: false,
-    soundMode: "metronome" as const,
-    noteLength: "quaver" as const,
-  };
-  const { session, sound, clock } = sessionOn(
-    "G",
-    "flute-concert",
-    GMajorTwoOctaves,
-    settings,
-  );
-
-  const events: TargetAdvanced[] = [];
-  session.onTargetAdvanced((event) => events.push(event));
-
-  await flushStart(session);
-
-  // Position 0 (even) clicks — its tag carries the position.
-  const firstClick = sound.posted.filter(isClick)[0]!;
-  expect(firstClick.tag).toBe(0);
-  sound.fireOnset(0);
-  expect(session.snapshot().soundingPosition).toBe(0);
-
-  const clicksBeforePosition1 = sound.posted.filter(isClick).length;
-
-  // Position 1 (odd) sounds nothing at all — no click, no tone — but still
-  // advances, at its own onset time, via a scheduled timer.
-  advanceUntil(clock, () => session.snapshot().soundingPosition === 1);
-
-  expect(sound.posted.filter(isClick).length).toBe(clicksBeforePosition1);
-  expect(sound.posted.some(isTone)).toBe(false);
-  expect(session.snapshot().caption).toBe("A4 · 2 of 29");
-  expect(events.some((event) => event.position === 1)).toBe(true);
 });
