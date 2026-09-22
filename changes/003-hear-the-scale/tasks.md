@@ -232,7 +232,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T006 [P] · practice.session/REQ-004 (S1, S2, S3), REQ-001 (S2) · Tempo terms and the summary line
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/practice/domain/tempo.ts`, `src/practice/domain/settings.ts`, `src/practice/published/index.ts`
