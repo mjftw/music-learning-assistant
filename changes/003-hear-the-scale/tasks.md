@@ -397,7 +397,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T010 · practice.session/REQ-005 (S4) · Tone, click, onset reports and stop in Rust
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/sound/src/lib.rs`
