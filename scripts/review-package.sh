@@ -3,14 +3,14 @@
 # before the implementer was dispatched — never HEAD~1, which is wrong the
 # moment the implementer makes two commits or none.
 #
-#   ./scripts/review-package.sh specs/001-slug T011 <base-sha>
+#   ./scripts/review-package.sh changes/001-slug T011 <base-sha>
 #   → .sdd/reviews/001-slug/T011.md   (path printed)
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-SLICE="${1:?usage: review-package.sh specs/NNN-slug T0NN BASE_SHA}"
+SLICE="${1:?usage: review-package.sh changes/NNN-slug T0NN BASE_SHA}"
 SLICE="${SLICE%/}"
-TID="${2:?usage: review-package.sh specs/NNN-slug T0NN BASE_SHA}"
-BASE="${3:?usage: review-package.sh specs/NNN-slug T0NN BASE_SHA}"
+TID="${2:?usage: review-package.sh changes/NNN-slug T0NN BASE_SHA}"
+BASE="${3:?usage: review-package.sh changes/NNN-slug T0NN BASE_SHA}"
 NAME=$(basename "$SLICE")
 OUT=".sdd/reviews/${NAME}/${TID}.md"
 mkdir -p "$(dirname "$OUT")"
@@ -24,7 +24,7 @@ HEAD_SHA=$(git rev-parse HEAD)
   echo "description: The diff produced for $TID, for the task reviewer."
   echo "resource: /$OUT"
   echo "status: draft"
-  echo "tags: [sdd, review, \"slice:$NAME\"]"
+  echo "tags: [sdd, review, \"change:$NAME\"]"
   echo "sources:"
   echo "  - resource: /.sdd/briefs/$NAME/$TID.md"
   echo "  - resource: git:${BASE}..${HEAD_SHA}"

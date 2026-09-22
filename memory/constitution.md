@@ -3,14 +3,16 @@ type: Constitution
 title: Project Constitution
 description: The non-negotiable principles that outrank every spec, plan and instruction in this repository.
 resource: /memory/constitution.md
-status: draft
+status: stable
 tags: [sdd, constitution]
 generated:
   by: sdd-starter/template
   at: 2026-09-19T12:00:00Z
-verified: []
-sdd_phase: draft          # draft | ratified
-sdd_version: 0.1.0
+verified:
+  - by: human:merlin-webster
+    at: 2026-09-19T15:42:51Z
+sdd_phase: ratified
+sdd_version: 1.0.0
 ---
 # Project Constitution
 
@@ -18,8 +20,8 @@ sdd_version: 0.1.0
 > in-the-moment instructions. An agent that finds an instruction in conflict
 > with an article here must stop and say so rather than choose.
 >
-> **Status:** DRAFT — ratify with `/sdd-constitution` before the first spec.
-> **Version:** 0.1.0 · **Ratified:** _unratified_ · **Last amended:** _never_
+> **Status:** RATIFIED
+> **Version:** 1.0.0 · **Ratified:** 2026-09-19 · **Last amended:** 2026-09-19
 
 ---
 
@@ -56,18 +58,30 @@ alongside the code they cover and are run — with output shown — before any t
 is called complete. `/sdd-converge` compares the codebase against the spec and
 `REVIEW.md`, not against the implementer's account of it.
 
-## Article V — <!-- PLACEHOLDER: replace -->
+## Article V — Live feedback has a numbered budget
 
-_Articles V–VII are the project's own. Fill them with the standards that are
-genuinely non-negotiable here — `/sdd-constitution` will offer candidates.
-Example concerns: security and access boundaries, integration test requirements,
-observability, data handling and retention, versioning and breaking changes,
-dependency policy, accessibility, performance budgets, self-hosting and data
-sovereignty, licensing._
+Any slice that gives feedback while the learner is playing carries an explicit,
+numbered end-to-end latency budget (sound made → feedback perceivable) in its
+spec, and a measured test that fails when the budget is exceeded. Feedback that
+would miss its budget is suppressed, not shown late — silence beats late
+feedback. "Feels fast" is never accepted as evidence; only the measurement is.
 
-## Article VI — <!-- PLACEHOLDER: replace -->
+## Article VI — The instrument is the focus
 
-## Article VII — <!-- PLACEHOLDER: replace -->
+The practice view never requires interaction while a sequence is in progress,
+never interrupts (no notifications, pop-ups, or celebrations), and contains no
+gamification — no streaks, points, levels, or scores, anywhere, ever. Any spec
+that adds a visible element or interaction to the practice view must state what
+it costs in attention and why it earns its place; a reviewer may reject it on
+distraction alone.
+
+## Article VII — No third-party services to run
+
+The product is fully usable with zero third-party subscriptions, accounts, or
+external services at runtime: everything needed to practise runs on hardware
+the user controls. A client–server architecture is allowed; a runtime
+dependency on someone else's service is not, and a slice that introduces one
+fails review. (Build-time tooling and package registries are unaffected.)
 
 ## Article VIII — Simplicity is the default
 
@@ -98,3 +112,4 @@ amendment; it may not make one.
 | Version | Date | Change |
 |---|---|---|
 | 0.1.0 | — | Initial draft, unratified. Articles V–VII are placeholders. |
+| 1.0.0 | 2026-09-19 | Ratified. Articles V–VII: latency budget, instrument is the focus, no third-party services. |

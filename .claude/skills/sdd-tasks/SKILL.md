@@ -1,20 +1,24 @@
 ---
 type: Skill
 name: sdd-tasks
-description: Break an approved plan into an ordered, dependency-aware task list in specs/NNN-slug/tasks.md, each task citing the requirement IDs it satisfies and how it will be verified. Use after a plan is approved, or when the user says "break this down", "make the task list", "generate tasks", or asks what the steps are for a planned feature.
+description: Break an approved plan into an ordered, dependency-aware task list in changes/NNN-slug/tasks.md, each task citing the requirement IDs it satisfies and how it will be verified. Use after a plan is approved, or when the user says "break this down", "make the task list", "generate tasks", or asks what the steps are for a planned feature.
 ---
 
 # Tasks
 
-Produce `specs/NNN-slug/tasks.md`: an ordered checklist an agent can execute one
+Produce `changes/NNN-slug/tasks.md`: an ordered checklist an agent can execute one
 item at a time without re-deriving the design.
 
 ## Before writing
 
-1. Read the approved `spec.md` and `plan.md`. Both must have
-   `sdd_phase: approved`.
+1. Read the approved `proposal.md`, its deltas, and `plan.md`. The proposal
+   and plan must have `sdd_phase: approved`.
 2. Read `templates/tasks-template.md`.
-3. Read the plan's requirement → design mapping. That table is the input to this
+3. Run `./scripts/merge_delta.py preview changes/NNN-slug`. Tasks cite
+   requirements by qualified ID (`<context>.<capability>/REQ-NNN`) and RED
+   steps cite qualified scenario IDs; the brief pulls each from the target
+   state.
+4. Read the plan's requirement → design mapping. That table is the input to this
    one; if a requirement is missing there, stop and fix the plan.
 
 ## Ordering
@@ -54,7 +58,9 @@ paths, split. If ten tasks each touch one line of one file, merge.
 
 ## Coverage check
 
-Fill the coverage table. **Every requirement in the spec appears at least once.**
+Fill the coverage table. **Every ADDED and MODIFIED requirement in the deltas
+appears at least once.** Every REMOVED requirement has a task that deletes its
+tests and any code only it needed, citing the qualified ID.
 Every task either cites a requirement or sits in Foundations/Hardening. If a
 requirement has no task, the list is incomplete — do not present it. If a task
 has no requirement and is not scaffolding, it is scope creep — delete it.
@@ -71,12 +77,12 @@ Run these over the whole file and fix what fails before presenting:
 - **Interface consistency** — every `Consumes:` matches a `Produces:` above
   it exactly. Fill the Interface consistency table.
 - **Placeholder scan** —
-  `grep -nE 'TBD|TODO|<[a-z ]+>|handle .* cases|error handling|similar to|like T[0-9]+' specs/NNN-slug/tasks.md`
+  `grep -nE 'TBD|TODO|<[a-z ]+>|handle .* cases|error handling|similar to|like T[0-9]+' changes/NNN-slug/tasks.md`
   returns nothing outside the template's own guidance block.
 - **Granularity** — no step you could not do in five minutes; no task with
   one step.
 - **Scenario coverage** — every scenario ID in the spec appears in some task's
-  RED step. `./scripts/check-scenarios.sh specs/NNN-slug` reports gaps once
+  RED step. `./scripts/check-scenarios.sh changes/NNN-slug` reports gaps once
   tests exist; before that, grep the spec's IDs against `tasks.md`.
 - **Preference conformance** — steps follow `docs/engineering.md` (types,
   error style, test style). A departure is a plan open question, not a task.
@@ -105,7 +111,7 @@ Write the file, then report in at most five lines:
 Then `AskUserQuestion`: *Approve and start implementing*, *Approve, stop here*,
 *Revise*, *Re-order*.
 
-On approval: `./scripts/approve.sh specs/NNN-slug/tasks.md approved`, set the
+On approval: `./scripts/approve.sh changes/NNN-slug/tasks.md approved`, set the
 slice's `docs/roadmap.md` status to `building`, `./scripts/index.sh`, commit
 `docs(tasks): NNN-slug`, and hand to `sdd-implement` only if the user chose to
 start.

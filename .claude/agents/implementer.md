@@ -57,15 +57,15 @@ The report file starts with this frontmatter:
 ---
 type: Implementation Report
 title: <TID> — implementation report
-resource: /.sdd/reports/<slice>/<TID>.md
+resource: /.sdd/reports/<change>/<TID>.md
 status: draft
-tags: [sdd, report, "slice:<slice>"]
+tags: [sdd, report, "change:<change>"]
 sources:
-  - resource: /.sdd/briefs/<slice>/<TID>.md
+  - resource: /.sdd/briefs/<change>/<TID>.md
 generated:
   by: claude-code/<your model id, or unknown>
   at: <ISO 8601 UTC>
-sdd_id: <slice>
+sdd_id: <change>
 ---
 ```
 

@@ -2,9 +2,9 @@
 type: Intent
 title: <slice name> — intent
 description: <one sentence, the user's words>
-resource: /specs/NNN-slug/intent.md
+resource: /changes/NNN-slug/intent.md
 status: draft
-tags: [sdd, intent, "slice:NNN-slug"]
+tags: [sdd, intent, "change:NNN-slug"]
 sources:
   - resource: conversation:YYYY-MM-DD
   - resource: /docs/product.md

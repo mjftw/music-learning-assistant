@@ -28,7 +28,8 @@ nothing and buys provenance, trust and progressive disclosure.
 | `verified` | List of `{by, at}`. **A gate approval is a `human:<id>` entry**, appended by `scripts/approve.sh`. Trust tier is derived, not stored: no `verified` → unverified; only non-human actors → machine-confirmed; any `human:` → human-reviewed. |
 | `stale_after` | Only on ephemeral `.sdd/` artefacts. |
 | `sdd_id` | Slice id `NNN-slug`. |
-| `sdd_context` | The bounded context (from `docs/domain.md`) a slice artefact belongs to. |
+| `sdd_context` | The bounded context (from `docs/domain.md`) an artefact belongs to. |
+| `sdd_capability` | The capability a living spec or delta describes. Cited with its context as `<context>.<capability>`. |
 | `sdd_phase` | Workflow state, finer than OKF's `status`. Values per type below. |
 | `sdd_constitution` | Constitution version a spec was written against. |
 | `sdd_version` | Semver of the constitution / engineering preferences themselves. |
@@ -49,11 +50,13 @@ Extension keys are flat and `sdd_`-prefixed so `grep` and `sed` keep working.
 | `REVIEW.md` | `Review Policy` | — |
 | `docs/sdd-guide.md`, `docs/okf.md` | `Guide` | — |
 | `docs/adr/*.md` | `Architecture Decision Record` | `proposed \| accepted \| superseded` |
-| `specs/NNN/intent.md` | `Intent` | `draft \| resolved` |
-| `specs/NNN/spec.md` | `Specification` | `draft \| in-review \| approved \| implemented \| superseded` |
-| `specs/NNN/plan.md` | `Implementation Plan` | `draft \| in-review \| approved` |
-| `specs/NNN/tasks.md` | `Task List` | `draft \| approved \| in-progress \| complete` |
-| `specs/NNN/notes.md` | `Implementation Notes` | — |
+| `specs/<context>/<capability>.md` | `Capability Spec` | `current` (+ `sdd_version`, `sdd_context`, `sdd_capability`) |
+| `changes/NNN/intent.md` | `Intent` | `draft \| resolved` |
+| `changes/NNN/proposal.md` | `Change Proposal` | `draft \| in-review \| approved \| merged` |
+| `changes/NNN/delta/<context>/<capability>.md` | `Spec Delta` | `draft \| approved` |
+| `changes/NNN/plan.md` | `Implementation Plan` | `draft \| in-review \| approved` |
+| `changes/NNN/tasks.md` | `Task List` | `draft \| approved \| in-progress \| complete` |
+| `changes/NNN/notes.md` | `Implementation Notes` | — |
 | `.sdd/briefs/**` | `Task Brief` | — (ephemeral; `stale_after` set) |
 | `.sdd/reports/**/T*.md` | `Implementation Report` | — |
 | `.sdd/reviews/**/T*.md` | `Task Review` | — |
@@ -77,12 +80,20 @@ done
 cat log.md
 
 # Every artefact of one type
-grep -rl '^type: Implementation Plan' specs/
+grep -rl '^type: Change Proposal' changes/
+
+# What does the system do now, in one context?
+cat specs/readings/index.md
+
+# Which changes shaped a capability?
+./scripts/fm.py get specs/readings/recording.md sources   # or read its History table
 ```
 
 ## Rules
 
 - Never hand-edit frontmatter. Use `scripts/fm.py set` / `scripts/approve.sh`.
+- `specs/**` is written only by `scripts/merge_delta.py`; the hook blocks
+  everything else.
 - Every gate runs `approve.sh`, then `scripts/index.sh`.
 - `index.md` and `log.md` are reserved, carry no `type`, and are generated —
   the `guard-paths` hook blocks editing them directly.

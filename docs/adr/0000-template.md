@@ -4,9 +4,9 @@ title: ADR 0000 — <Title>
 description: <one sentence — the decision>
 resource: /docs/adr/0000-title.md
 status: draft
-tags: [sdd, adr, "slice:NNN-slug"]
+tags: [sdd, adr, "change:NNN-slug"]
 sources:
-  - resource: /specs/NNN-slug/plan.md
+  - resource: /changes/NNN-slug/plan.md
 generated:
   by: claude-code/unknown
   at: YYYY-MM-DDTHH:MM:SSZ

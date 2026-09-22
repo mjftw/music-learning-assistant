@@ -38,6 +38,10 @@ case "$BASE" in
 esac
 
 case "$REL" in
+  specs/*/*.md)
+    if [[ -f .sdd/unlock-specs ]]; then exit 0; fi
+    echo "blocked: '$REL' is a living spec, merged by scripts/merge_delta.py at sdd-finish. Write a delta under changes/<id>/delta/ instead." >&2
+    exit 2 ;;
   memory/constitution.md)
     if [[ -f .sdd/unlock-constitution ]]; then exit 0; fi
     echo "blocked: memory/constitution.md is edited only by /sdd-constitution after the user approves the amendment." >&2

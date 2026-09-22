@@ -34,8 +34,11 @@ If 4 conflicts with 1–3, stop and say so. Do not pick silently.
   them, the invariants. A slice belongs to one. Code never crosses a context
   except through `published/`.
 - `docs/decisions.md` — every decision the user has made. Never re-ask one.
-- `specs/NNN-slug/` — per slice: `intent.md`, `spec.md`, `plan.md`, `tasks.md`,
-  `notes.md`.
+- `specs/<context>/<capability>.md` — **what the system does now.** One living
+  spec per capability. Read it before touching that capability. Never edit it;
+  it is merged from deltas at `sdd-finish`.
+- `changes/NNN-slug/` — a change in flight: `intent.md`, `proposal.md`,
+  `delta/`, `plan.md`, `tasks.md`, `notes.md`. `changes/archive/` — shipped.
 - `REVIEW.md` — the review policy. `docs/adr/` — decision records.
 - `index.md` in any directory — read it first; it lists what is there by type
   and phase. `log.md` — what was approved when.
@@ -45,39 +48,60 @@ If 4 conflicts with 1–3, stop and say so. Do not pick silently.
 
 ## Commands
 
-<!-- FILL THIS IN during the first /sdd-plan. Exact commands with flags. Prefer
-     one command that runs everything ("make check"). Until filled, say you do
-     not know the command; do not guess one. -->
-
 ```bash
 # install:
+pnpm install
 # run (dev):
+pnpm dev
 # check (all — test + lint + typecheck, one command):
+pnpm check
 # test (one file):
+pnpm vitest run <path/to/file.test.ts>
 ```
 
 Healthy output looks like:
 
 ```
-<!-- paste the last ~5 lines of a passing `check` run here -->
+> music-learning-assistant@0.0.0 check /home/merlin/projects/music-learning-assistant
+> prettier --check . && eslint . && tsc --noEmit && vitest run
+
+Checking formatting...
+All matched files use Prettier code style!
+
+ RUN  v5.0.1 /home/merlin/projects/music-learning-assistant
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  20:03:04
+   Duration  531ms (environment 60%, import 20%, tests 10%, transform 9%, worker 1%)
 ```
 
 Run `check` before calling any task done, and paste the output.
 
 ## Conventions
 
-<!-- FILL THIS IN during the first /sdd-plan. Only things a good developer could
-     not infer from the code. -->
-
-- Runtime / language:
-- Package manager (only this one):
-- Test framework and where tests live:
+- Runtime / language: TypeScript (strict), browser SPA built with Vite.
+  Rust arrives at change 004, scoped to `src/listening/` (ADR 0001).
+- Package manager (only this one): pnpm.
+- Test framework and where tests live: Vitest (+ fast-check, Testing
+  Library); `tests/<context>/scenarios/` one test per spec scenario named by
+  its full ID, `tests/<context>/invariants/` for property tests,
+  `tests/ui/scenarios/` for view-observable scenarios.
 - Commits: Conventional Commits citing the requirement — `feat(auth): rate-limit login (REQ-004)`.
 
 ## Architecture
 
-<!-- FILL THIS IN during the first /sdd-plan, kept current by later plans. Five
-     to ten lines: the shape, the boundaries, where a new thing goes. -->
+A static single-page web app; no server, no runtime services (Article VII).
+Three bounded contexts (docs/domain.md): `src/theory/` (pure functions —
+notes, keys, circle, catalogue), `src/practice/` (sessions; from change 002),
+`src/listening/` (pitch detection; Rust→WASM from change 004, ADR 0001).
+`src/ui/` is the view layer over the contexts, not a context itself. Each
+context exposes `published/` and nothing else crosses its boundary
+(scripts/check-contexts.sh). Data files (instrument variants) and stored
+state are Zod-parsed into typed values at the edge; domain code never
+re-validates. New domain logic goes in its context's `domain/`; new IO goes
+behind a port with the adapter at the edge.
 
 ## Things agents get wrong here
 
@@ -85,7 +109,9 @@ Run `check` before calling any task done, and paste the output.
      line here so it does not recur. Newest last. Prune when the code makes a
      line impossible. -->
 
--
+- Duplicating a private helper instead of extracting it, because the natural
+  home file isn't in the task's Files list. Extract within the same context
+  and say so in the report; don't copy-paste (failed T002 and T004 reviews).
 
 ## Never
 
@@ -98,7 +124,10 @@ Run `check` before calling any task done, and paste the output.
   events. `scripts/check-contexts.sh` fails otherwise.
 - Write a test that reaches inside the context. Tests go through the published
   interface (`bdd` skill).
-- Rewrite an approved spec in place; propose a delta.
+- Edit anything under `specs/`. Write a delta under `changes/<id>/delta/`;
+  `merge_delta.py` is the only writer.
+- Rewrite an approved proposal or delta in place after approval; open a new
+  change.
 - Invent a requirement, a command, or a convention. Ask.
 - Add a feature, abstraction, or dependency the spec and plan do not name.
 - Claim a test passes without having run it.

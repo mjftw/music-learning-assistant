@@ -1,19 +1,23 @@
 ---
 type: Skill
 name: sdd-plan
-description: Turn an approved spec into a technical implementation plan in specs/NNN-slug/plan.md — stack, data model, interfaces, file structure, test strategy, risks and rollout. Use after a spec is approved, or when the user says "plan this", "write the plan", "how should we build it", or asks for architecture or technology choices for a specced feature.
+description: Turn an approved spec into a technical implementation plan in changes/NNN-slug/plan.md — stack, data model, interfaces, file structure, test strategy, risks and rollout. Use after a spec is approved, or when the user says "plan this", "write the plan", "how should we build it", or asks for architecture or technology choices for a specced feature.
 ---
 
 # Plan
 
-Produce `specs/NNN-slug/plan.md`: everything the spec deliberately excluded.
+Produce `changes/NNN-slug/plan.md`: everything the spec deliberately excluded.
 This is where technology lives, and **every choice names its alternative and its
 reason**.
 
 ## Before writing
 
-1. Read the approved `spec.md` in full. If its `sdd_phase` is not `approved`,
-   stop — the plan cannot be trusted against a moving spec.
+1. Read the approved `proposal.md` and every delta under `delta/` in full. If
+   the proposal's `sdd_phase` is not `approved`, stop — the plan cannot be
+   trusted against a moving proposal. Then run
+   `./scripts/merge_delta.py preview changes/NNN-slug` and read the target
+   state of each capability touched: the plan is for what the capability must
+   do *after* the change.
 2. Read `memory/constitution.md`. The compliance table is not a formality: if
    the plan cannot comply, either change the plan or propose an amendment, but do
    not proceed on a noted exception.
@@ -74,12 +78,13 @@ including how it is reversed.
 **Interfaces** — the public surface, *including error shapes*. An interface
 without its failure responses is half-specified and will be guessed at later.
 
-**Events** — every event this slice emits or consumes, with its schema path.
+**Events** — every event this change emits or consumes, with its schema path.
 Emitted events are named in this context's language, past tense, and their
 schema lives under `published/`. If a consumed event's shape leaks past the
 adapter into domain code, the plan is wrong.
 
-**Requirement → design mapping** — every requirement from the spec appears
+**Requirement → design mapping** — every ADDED or MODIFIED requirement from
+the deltas, cited as `<context>.<capability>/REQ-NNN`, appears
 exactly once. A requirement with no row is unimplemented. A row with no
 requirement is scope creep — delete it or go back to the spec.
 
@@ -128,11 +133,11 @@ On approval:
 - fill `scripts/hooks/post-edit.sh` with the project formatter
 - tune `scripts/check-contexts.sh` (`PUBLISHED`, `IMPORT_RE`) to the chosen
   stack if the defaults do not fit it
-- if this slice introduces a context, event or invariant not yet in
+- if this change introduces a context, event or invariant not yet in
   `docs/domain.md`, propose the map change and, once the user agrees,
   `./scripts/approve.sh docs/domain.md approved`
-- `./scripts/approve.sh specs/NNN-slug/plan.md approved`
-- set the slice's `docs/roadmap.md` status to `planned`
+- `./scripts/approve.sh changes/NNN-slug/plan.md approved`
+- set the change's `docs/roadmap.md` status to `planned`
 - `./scripts/index.sh`
 - commit `docs(plan): NNN-slug`, then hand to `sdd-tasks`.
 

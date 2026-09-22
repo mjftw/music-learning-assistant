@@ -17,8 +17,9 @@ Classify the request:
 
 - **Trivial** — typo, formatting, comment, dependency bump, or the user prefixed
   it `quick:`. Just do it. Say you are treating it as trivial.
-- **Small** — one file, no new interface, no new dependency, no schema change.
-  Propose: spec only, skip the plan. Wait for confirmation.
+- **Small** — a change whose delta is one MODIFIED requirement or a couple of
+  ADDED scenarios, no new interface, no new dependency, no schema change.
+  Propose: proposal + delta only, skip the plan. Wait for confirmation.
 - **Full** — anything else. Full workflow.
 - **Full, no exceptions** — touches auth, payments, personal data, deletion, or
   migrations. Full workflow even if the diff looks tiny. Say why.
@@ -39,12 +40,15 @@ Do this before asking the user anything:
    It is needed at `sdd-plan`, not earlier; `sdd-plan` runs
    `sdd-engineering` itself. Never route to it before a spec is approved.
 5. `docs/roadmap.md` — which slices exist, and what is each one's status?
-6. `ls specs/` — for each slice, the `sdd_phase` of `intent.md`, `spec.md`,
-   `plan.md`, `tasks.md` (`./scripts/fm.py get <file> sdd_phase`).
-7. `AGENTS.md` Commands — if it still contains `FILL THIS IN`, the project has
+6. `specs/index.md` — the living capabilities, by context. This is what the
+   system does now; read the capability the request touches.
+7. `changes/index.md` — changes in flight; for each, the `sdd_phase` of
+   `intent.md`, `proposal.md`, `plan.md`, `tasks.md`
+   (`./scripts/fm.py get <file> sdd_phase`).
+8. `AGENTS.md` Commands — if it still contains `FILL THIS IN`, the project has
    no recorded commands yet. Do not guess commands; establish them in the plan.
 
-Running `./scripts/check-specs.sh` answers most of 3–7 in one call.
+Running `./scripts/check-specs.sh` answers most of 3–8 in one call.
 
 ## Step 3 — Dispatch
 
@@ -52,18 +56,19 @@ Running `./scripts/check-specs.sh` answers most of 3–7 in one call.
 |---|---|
 | `docs/product.md` missing or templated | `sdd-init` |
 | Constitution not ratified or has placeholders | `sdd-constitution` |
-| `docs/roadmap.md` has no approved slices | `sdd-init` (Step 6) |
-| Request does not match a slice in `docs/roadmap.md` | Ask whether to add it to the roadmap, and where — then `grill` |
-| Slice exists, no `intent.md` or `intent.md` not `resolved` | `grill` |
-| `intent.md` resolved, no `spec.md` content | `sdd-specify` |
-| `spec.md` written, `sdd_phase` not `approved` | Present it for approval — **stop** |
-| `spec.md` approved, `plan.md` still template | `sdd-plan` (which runs `sdd-engineering` first if `docs/engineering.md` is missing or unapproved) |
+| `docs/roadmap.md` has no approved changes | `sdd-init` (Step 6) |
+| User asks what the system does / how X works now | Read `specs/<context>/<capability>.md` and answer from it. No change needed. |
+| Request does not match a change in `docs/roadmap.md` | Ask whether to add it, and where. Then `grill`. |
+| Change exists, no `intent.md` or `intent.md` not `resolved` | `grill` |
+| `intent.md` resolved, `proposal.md` still template or no deltas | `sdd-specify` |
+| `proposal.md` written, `sdd_phase` not `approved` | Present it for approval — **stop** |
+| `proposal.md` approved, `plan.md` still template | `sdd-plan` (runs `sdd-engineering` first if `docs/engineering.md` is missing or unapproved) |
 | `plan.md` written, `sdd_phase` not `approved` | Present it for approval — **stop** |
 | `plan.md` approved, `tasks.md` still template | `sdd-tasks` |
 | `tasks.md` approved, tasks with `**Status:** todo` remain | `sdd-implement` |
 | All tasks `done` | `sdd-converge` |
 | Converge found gaps (appended tasks) | `sdd-implement` again |
-| Converge reports Converged | `sdd-finish` |
+| Converge reports Converged | `sdd-finish` (merges the deltas into `specs/`) |
 
 Announce the phase you are entering in one short line. Do not narrate the table.
 
@@ -115,6 +120,8 @@ not refuse; the user decides.
 - Edit `memory/constitution.md`, `docs/engineering.md` or `REVIEW.md` outside
   their skills. Propose instead.
 - Hand-edit frontmatter, `index.md` or `log.md`.
+- Edit anything under `specs/`. It is the current truth and changes only by
+  `merge_delta.py` at `sdd-finish`. Write a delta.
 
 ## Resuming
 

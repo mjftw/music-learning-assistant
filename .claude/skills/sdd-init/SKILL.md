@@ -1,13 +1,13 @@
 ---
 type: Skill
 name: sdd-init
-description: Onboard a fresh repository created from the starter — brainstorm what the product is, then product brief, domain map of bounded contexts, constitution, roadmap of vertical slices, glossary — before any slice is specified. Use on a new project, when docs/product.md is missing or still a template, or when the user says "init", "set up the project", "new project", "let's start", or describes an app they want to build and no specs exist yet.
+description: Onboard a fresh repository created from the starter — brainstorm what the product is, then product brief, domain map of bounded contexts, constitution, roadmap of changes, glossary — before any change is specified. Use on a new project, when docs/product.md is missing or still a template, or when the user says "init", "set up the project", "new project", "let's start", or describes an app they want to build and no specs exist yet.
 ---
 
 # Init — the opening interviews
 
 Runs once, on a new repository. It captures what the project *is* before any
-slice is specified. Everything written here is what every later phase reads
+change is specified. Everything written here is what every later phase reads
 first, so these are the highest-leverage questions in the whole workflow.
 
 **Run this on the strongest model available.** If you have reason to think you
@@ -22,7 +22,7 @@ answer is recorded in their words. Nothing is inferred. Article I.
 not the framework, not the database, not the hosting. Every step below is
 about what the product is, who it is for, how it divides, and what must never
 be false. The first time a technology question is legitimate is `sdd-plan` for
-the first slice, and even then it is answered from the constraints recorded
+the first change, and even then it is answered from the constraints recorded
 here, not before them.
 
 If the user volunteers a technology ("it'll be in Rust"), record it under
@@ -115,22 +115,25 @@ constraints (data sovereignty, hosting, regulation) before generic ones.
 
 ## Step 6 — Roadmap → `docs/roadmap.md`
 
-Decompose the product into **vertical slices**: each thin, end-to-end, and
-demonstrably useful alone. Not layers ("database", "API", "UI") — outcomes
+Decompose the product into **changes**, each a thin vertical slice: end-to-end,
+and demonstrably useful alone. Not layers ("database", "API", "UI") — outcomes
 ("a reading can be recorded and seen").
 
-Propose a first cut of 3–8 slices, ordered, one-line outcome each, **the
+Propose a first cut of 3–8 changes, ordered, one-line outcome each, **the
 context each belongs to**, and the dependencies between them. Then interrogate
 it with the user, one question at a time:
 
-- Is slice 1 the smallest thing that is still useful to you?
-- Which slice would you cut if you had half the time? (That is the cut line.)
-- Does any slice depend on a decision we have not made?
-- Is anything here really two slices? Really none?
-- Does any slice span two contexts? Then it is two slices, or an integration
-  slice.
+- Is change 1 the smallest thing that is still useful to you?
+- Which change would you cut if you had half the time? (That is the cut line.)
+- Does any change depend on a decision we have not made?
+- Is anything here really two changes? Really none?
+- Does any change span two contexts? Then it is two changes, or an integration
+  change.
+- Which capability does each change create or modify? Name it
+  (`<context>.<capability>`); the first changes create capabilities, later ones
+  modify them.
 
-Write the file with every slice `proposed`. **Gate**: *Approve* / *Revise* /
+Write the file with every change `proposed`. **Gate**: *Approve* / *Revise* /
 *Re-order*. On approval `./scripts/approve.sh docs/roadmap.md approved`, then
 `./scripts/index.sh`; append decisions.
 
@@ -146,9 +149,9 @@ Write the file. **Gate**: *Approve* / *Revise*, then
 
 Commit: `docs(init): intent, product brief, domain, roadmap, glossary`.
 
-Summarise in five lines: the product in one sentence; N contexts; N slices and
+Summarise in five lines: the product in one sentence; N contexts; N changes and
 which is first; the riskiest assumption; the open questions. Then offer to
-start slice 1 with `grill`.
+start change 1 with `grill`.
 
 Say explicitly: *engineering preferences and the stack are chosen at the first
 plan, from what we recorded today.* If `docs/engineering.md` was copied in by

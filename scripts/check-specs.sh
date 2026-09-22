@@ -75,109 +75,102 @@ done
 ./scripts/index.sh >/dev/null 2>&1 || warn "index.sh failed"
 
 echo
-if ! compgen -G "specs/[0-9][0-9][0-9]-*" > /dev/null; then
-  echo "No slices yet. ./scripts/new-feature.sh <slug>"
+echo "Living specs (specs/<context>/<capability>.md)"
+NLIVE=0
+for f in $(find specs -mindepth 2 -name '*.md' ! -name index.md 2>/dev/null | sort); do
+  NLIVE=$((NLIVE+1))
+  ctx=$(./scripts/fm.py get "$f" sdd_context 2>/dev/null || echo ""); cap=$(./scripts/fm.py get "$f" sdd_capability 2>/dev/null || echo "")
+  ty=$(./scripts/fm.py get "$f" type 2>/dev/null || echo "")
+  [[ "$ty" == "Capability Spec" ]] || bad "$f: type is '$ty', expected Capability Spec"
+  [[ "$f" == "specs/$ctx/$cap.md" ]] || bad "$f: frontmatter says $ctx/$cap but path disagrees"
+  if [[ -f docs/domain.md ]] && ! grep -qE "^\| *\`?$ctx\`? *\|" docs/domain.md; then
+    bad "$f: context '$ctx' is not in docs/domain.md"
+  fi
+  for r in $(grep -oE '^### REQ-[0-9]+' "$f" | sed 's/### //'); do
+    grep -qE "$r/S[0-9]+" "$f" || warn "$f: $r has no scenario"
+  done
+  if grep -niE '\b(postgres|mysql|sqlite|redis|kafka|react|vue|svelte|django|flask|fastapi|express|docker|kubernetes|graphql|grpc)\b' "$f" | grep -qv '^\s*[0-9]*:\s*>'; then
+    warn "$f names a technology — that belongs in a plan"
+  fi
+  n=$(grep -cE '^### REQ-[0-9]+' "$f" || true); x=$(grep -cE '^### ~~REQ-[0-9]+' "$f" || true)
+  echo "  $ctx.$cap  v$(./scripts/fm.py get "$f" sdd_version 2>/dev/null)  $n live, $x removed"
+done
+[[ $NLIVE -eq 0 ]] && echo "  (none yet — the first change creates them at sdd-finish)"
+
+echo
+if ! compgen -G "changes/[0-9][0-9][0-9]-*" > /dev/null; then
+  echo "No changes in flight. ./scripts/new-change.sh <slug>"
   exit $FAIL
 fi
 
-for d in specs/[0-9][0-9][0-9]-*/; do
-  id=$(basename "$d")
+echo "Changes in flight (changes/NNN-slug/)"
+for d in changes/[0-9][0-9][0-9]-*/; do
+  d="${d%/}"; id=$(basename "$d")
   echo "$id"
 
-  [[ -f "$d/spec.md" ]] || { bad "no spec.md"; continue; }
+  [[ -f "$d/proposal.md" ]] || { bad "no proposal.md"; continue; }
+  status=$(./scripts/fm.py get "$d/proposal.md" sdd_phase 2>/dev/null || echo "unset")
+  echo "  proposal phase: $status"
 
-  status=$(./scripts/fm.py get "$d/spec.md" sdd_phase 2>/dev/null || echo "unset")
-  echo "  spec phase: $status"
-
-  # Written against the current constitution?
   CUR_CONST=$(./scripts/fm.py get memory/constitution.md sdd_version 2>/dev/null || echo "")
-  SPEC_CONST=$(./scripts/fm.py get "$d/spec.md" sdd_constitution 2>/dev/null || echo "")
+  SPEC_CONST=$(./scripts/fm.py get "$d/proposal.md" sdd_constitution 2>/dev/null || echo "")
   if [[ -n "$CUR_CONST" && -n "$SPEC_CONST" && "$CUR_CONST" != "$SPEC_CONST" ]]; then
-    warn "spec written against constitution $SPEC_CONST; current is $CUR_CONST — re-check compliance"
+    warn "proposal written against constitution $SPEC_CONST; current is $CUR_CONST — re-check compliance"
   fi
 
-  # Intent present and resolved before the spec leaves draft?
   if [[ "$status" != "draft" && "$status" != "unset" ]]; then
-    if [[ ! -f "$d/intent.md" ]]; then
-      bad "no intent.md — the user's words were never recorded"
-    elif [[ "$(./scripts/fm.py get "$d/intent.md" sdd_phase 2>/dev/null)" != "resolved" ]]; then
-      warn "intent.md is not resolved but spec is $status"
-    fi
+    if [[ ! -f "$d/intent.md" ]]; then bad "no intent.md — the user's words were never recorded"
+    elif [[ "$(./scripts/fm.py get "$d/intent.md" sdd_phase 2>/dev/null)" != "resolved" ]]; then warn "intent.md is not resolved but proposal is $status"; fi
   fi
 
-  # On the roadmap?
-  if [[ -f docs/roadmap.md ]] && ! grep -q "$id" docs/roadmap.md; then
-    warn "$id is not listed in docs/roadmap.md"
-  fi
+  if [[ -f docs/roadmap.md ]] && ! grep -q "$id" docs/roadmap.md; then warn "$id is not listed in docs/roadmap.md"; fi
 
-  ctx=$(./scripts/fm.py get "$d/spec.md" sdd_context 2>/dev/null || echo "")
+  ctx=$(./scripts/fm.py get "$d/proposal.md" sdd_context 2>/dev/null || echo "")
   if [[ -z "$ctx" || "$ctx" == "<context>" ]]; then
-    [[ "$status" == "draft" ]] || warn "spec has no sdd_context"
+    [[ "$status" == "draft" ]] || warn "proposal has no sdd_context"
   elif [[ -f docs/domain.md ]] && ! grep -qE "^\| *\`?$ctx\`? *\|" docs/domain.md; then
     bad "sdd_context '$ctx' is not a context in docs/domain.md"
   fi
 
-  reqs=$(grep -cE '^### REQ-[0-9]+' "$d/spec.md" || true)
-  if [[ "$reqs" -eq 0 ]]; then
-    bad "spec.md has no REQ- requirements"
+  # deltas
+  ndelta=$(find "$d/delta" -name '*.md' 2>/dev/null | wc -l)
+  if [[ "$ndelta" -eq 0 ]]; then
+    [[ "$status" == "draft" ]] && echo "  · no delta yet (proposal in draft)" || bad "no delta files under $d/delta/"
   else
-    echo "  ✅ $reqs requirement(s)"
-  fi
-
-  # Unreplaced template scaffolding. An untouched spec is noise for the
-  # coverage checks below, so skip them rather than emit findings per row.
-  UNTOUCHED=false
-  if grep -qE '<[A-Za-z][^>]*>|REQ-001: <short name>' "$d/spec.md"; then
-    warn "spec.md still contains template placeholders — not yet written"
-    UNTOUCHED=true
-  fi
-
-  # Weak modal verbs where SHALL belongs.
-  if grep -nE '\b(should|must|will|may|can)\b' "$d/spec.md" \
-     | grep -viE '^\s*[0-9]+:\s*(>|<!--)' | grep -qE 'SYSTEM'; then
-    warn "spec.md mixes should/must/will/may into a SHALL statement"
-  fi
-
-  # Technology leaking into the spec.
-  if grep -niE '\b(postgres|mysql|sqlite|redis|kafka|react|vue|svelte|django|flask|fastapi|express|docker|kubernetes|graphql|grpc)\b' \
-     "$d/spec.md" | grep -qv '^\s*[0-9]*:\s*>'; then
-    warn "spec.md names a technology — that belongs in plan.md"
-  fi
-
-  if $UNTOUCHED; then echo; continue; fi
-
-  for r in $(grep -oE '^### REQ-[0-9]+' "$d/spec.md" | sed 's/### //'); do
-    grep -qE "$r/S[0-9]+" "$d/spec.md" || warn "$r has no scenario"
-  done
-
-  # Open questions left in an approved spec.
-  if [[ "$status" == "approved" ]]; then
-    if awk '/^## Open questions/,/^## /' "$d/spec.md" \
-       | grep -qE '^\| [0-9]+ \|[^|]*[A-Za-z]'; then
-      warn "approved spec still lists open questions"
+    echo "  ✅ $ndelta delta file(s)"
+    for df in $(find "$d/delta" -name '*.md' | sort); do
+      [[ "$(./scripts/fm.py get "$df" type 2>/dev/null)" == "Spec Delta" ]] || bad "$df: type must be Spec Delta"
+      grep -qE '^## (ADDED|MODIFIED|REMOVED)' "$df" || bad "$df: no ADDED/MODIFIED/REMOVED section"
+      for r in $(awk '/^## ADDED|^## MODIFIED/{p=1;next} /^## /{p=0} p' "$df" | grep -oE '^### REQ-[0-9]+' | sed 's/### //'); do
+        grep -qE "$r/S[0-9]+" "$df" || warn "$df: $r has no scenario"
+      done
+      if grep -niE '\b(postgres|mysql|sqlite|redis|kafka|react|vue|svelte|django|flask|fastapi|express|docker|kubernetes|graphql|grpc)\b' "$df" | grep -qv '^\s*[0-9]*:\s*>'; then
+        warn "$df names a technology — that belongs in plan.md"
+      fi
+    done
+    # does it merge cleanly?
+    if [[ "$status" != "draft" ]]; then
+      ./scripts/merge_delta.py preview "$d" >/dev/null 2>/tmp/md.err || bad "delta does not merge: $(tail -1 /tmp/md.err)"
     fi
   fi
 
-  # Requirement coverage and task anatomy in tasks.md.
+  UNTOUCHED=false
+  grep -qE '<[A-Za-z][^>]*>' "$d/proposal.md" && { warn "proposal.md still contains template placeholders"; UNTOUCHED=true; }
+  if $UNTOUCHED; then echo; continue; fi
+
+  if [[ "$status" == "approved" ]] && awk '/^## Open questions/,/^## /' "$d/proposal.md" | grep -qE '^\| [0-9]+ \|[^|]*[A-Za-z]'; then
+    warn "approved proposal still lists open questions"
+  fi
+
   if [[ -f "$d/tasks.md" ]]; then
-    for r in $(grep -oE 'REQ-[0-9]+' "$d/spec.md" | sort -u); do
-      grep -q "$r" "$d/tasks.md" || bad "$r has no task in tasks.md"
-    done
-    for t in $(grep -oE '^### T[0-9]+' "$d/tasks.md" | sed 's/### //'); do
+    dupes=$(grep -oE '^### T[0-9]+' "$d/tasks.md" | sed 's/### //' | sort | uniq -d)
+    [[ -n "$dupes" ]] && bad "tasks.md has duplicate task IDs: $(echo $dupes | tr '\n' ' ') — the brief would pick the first"
+    for t in $(grep -oE '^### T[0-9]+' "$d/tasks.md" | sed 's/### //' | sort -u); do
       blk=$(awk -v t="### $t " 'index($0,t)==1{p=1;print;next} p&&(/^### /||/^## /){exit} p{print}' "$d/tasks.md")
       for need in '\*\*Status:\*\*' '\*\*Files\*\*' '\*\*Steps\*\*' '\*\*Verify\*\*'; do
         printf '%s' "$blk" | grep -qE "$need" || warn "$t is missing $need"
       done
-      if printf '%s' "$blk" | grep -qE 'TBD|TODO|handle (edge|error) |error handling|similar to T|like T[0-9]'; then
-        warn "$t contains a placeholder phrase"
-      fi
-    done
-  fi
-
-  # Plan must map every requirement.
-  if [[ -f "$d/plan.md" ]] && grep -q 'REQ-' "$d/plan.md"; then
-    for r in $(grep -oE 'REQ-[0-9]+' "$d/spec.md" | sort -u); do
-      grep -q "$r" "$d/plan.md" || warn "$r is not mapped in plan.md"
+      printf '%s' "$blk" | grep -qE 'TBD|TODO|handle (edge|error) |error handling|similar to T|like T[0-9]' && warn "$t contains a placeholder phrase"
     done
   fi
   echo

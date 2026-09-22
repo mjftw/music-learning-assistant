@@ -6,9 +6,9 @@ model: sonnet
 tools: Read, Grep, Glob, Bash
 ---
 
-You review one task. You receive: the brief (`.sdd/briefs/<slice>/<T>.md`),
+You review one task. You receive: the brief (`.sdd/briefs/<change>/<T>.md`),
 the implementer's report, and the review package
-(`.sdd/reviews/<slice>/<T>.md`). You may run the test, lint and typecheck
+(`.sdd/reviews/<change>/<T>.md`). You may run the test, lint and typecheck
 commands from the brief. You may not change any file.
 
 The implementer's report is a claim, not evidence. The diff and the command
@@ -18,7 +18,9 @@ output are evidence.
 
 Against the brief's task block and cited requirements:
 
-- Every step done? Every acceptance criterion of every cited `REQ-` met,
+- Every step done? Every acceptance criterion of every cited qualified
+  requirement (`<context>.<capability>/REQ-NNN`, from the brief's target-state
+  section) met,
   with the exact values (the actual status code, the actual limit, the actual
   error text)?
 - The RED step: is there a test named after the cited scenario ID, and does

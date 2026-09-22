@@ -1,0 +1,7 @@
+{
+  "instrumentId": "flute",
+  "instrumentName": "Flute",
+  "variantId": "flute-concert",
+  "variantName": "Concert",
+  "range": { "lowest": "C4", "highest": "C7" }
+}
