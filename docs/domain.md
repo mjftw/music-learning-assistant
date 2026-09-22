@@ -18,6 +18,8 @@ verified:
     at: 2026-09-19T15:48:38Z
   - by: human:merlin-webster
     at: 2026-09-22T17:17:37Z
+  - by: human:merlin-webster
+    at: 2026-09-22T22:27:02Z
 sdd_phase: approved
 ---
 
@@ -37,7 +39,7 @@ sdd_phase: approved
 | Context | Owns (the nouns) | Responsible for (the verbs) | Not responsible for | Code root |
 |---|---|---|---|---|
 | `theory` | Note, Instrument (name + playable range), Key, Scale, Arpeggio, Interval, Circle of Fifths, Temperament (just/equal), NoteSequence | Answering timeless questions: the notes of a scale/arpeggio in a key, a traversal (1–4 octaves or the full range, up, down or both, as a scale or an arpeggio) fitted to an instrument's range, a note's pitch under a temperament, neighbouring keys on the circle | Anything that changes during a session; sound; the microphone | `src/theory/` |
-| `practice` | Session, Mode (tool-leads / learner-leads), Traversal choice, Session settings (note length, sound mode, loop, count-in, rest bar), Target note, Tempo, Drone, Judgement (sharp / flat / in tune, in cents) | Running a session: sounding notes and the drone, holding the current target, consuming detected pitch and judging it against the target, advancing through the sequence | Music-theory facts; how pitch is detected | `src/practice/` |
+| `practice` | Session, Mode (tool-leads / learner-leads), Traversal choice, Session settings (sound mode, loop, count-in, rest bar), Target note, Tempo, Drone, Judgement (sharp / flat / in tune, in cents) | Running a session: sounding notes and the drone, holding the current target, consuming detected pitch and judging it against the target, advancing through the sequence | Music-theory facts; how pitch is detected | `src/practice/` |
 | `listening` | Detected pitch (frequency, confidence, time) | Capturing the instrument through the microphone and publishing what pitch was heard, fast | Knowing the target note; judging sharp/flat; theory | `src/listening/` |
 | `sound` | Voice (a tone or click with an onset in audio frames), Onset report | Rendering scheduled tones and clicks on the audio clock, sample-accurately, and reporting when each onset actually rendered | What to play or when (practice); what pitch a note has (theory); the microphone (listening) | `src/sound/` |
 

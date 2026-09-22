@@ -42,7 +42,7 @@ vendored at `design/hear-the-scale.dc.html`) is the source of truth for the
 screen. Below the key panel a transport card plays and stops the traversal,
 shows the note sounding and where it is in the sequence, and steps the
 tempo with its Italian name shown; a row summarising the traversal opens
-the Traversal sheet — direction, octaves, shape, note length, sound, and
+the Traversal sheet — direction, octaves, shape, sound, and
 the loop / count-in / rest bar toggles. The Span pills are gone: the
 traversal decides what the stave and names view show, and the note that is
 sounding lights up as it sounds, in time. A learner can pick G major on the
@@ -60,7 +60,7 @@ Andante, and play along.
 **In scope**
 - Traversal choice: direction ↑ ↓ ↑↓; octaves 1–4 (as many as fit) or
   full range; shape scale or arpeggio — as the prototype's sheet offers it
-- Session settings: note length ♩/♪, sound mode notes / both / metronome,
+- Session settings: sound mode notes / both / metronome,
   loop, count-in, rest bar, tempo 40–200 with the tempo-term sheet
 - The transport card: play/stop, position caption, progress bar, tempo
   stepper and term
@@ -79,6 +79,7 @@ Andante, and play along.
 - Just temperament and any temperament choice (007) — this change fixes
   equal temperament as the only one
 - Per-instrument timbres, samples, a volume control, a metre other than 4/4
+- Note length: every note is a crotchet — the prototype's ♩/♪ row is deliberately dropped (user decision, 2026-09-22)
 - Pause/resume — ❚❚ is stop
 - Wide/laptop layouts (carried from 002)
 - Harmonic or melodic minor; the circle's own behaviour (002 stands)
@@ -136,8 +137,8 @@ Andante, and play along.
 
 | Document | Change | Approved at finish? |
 |---|---|---|
-| `docs/domain.md` | `theory` row: "a traversal (1–2 octaves, up/down) fitted to an instrument's range" → "a traversal (1–4 octaves or the full range, up, down or both, as a scale or an arpeggio) fitted to an instrument's range". `practice` Owns: add Session settings (note length, sound mode, loop, count-in, rest bar). No new events or invariants | |
-| `docs/glossary.md` | **Traversal** → direction (↑ ↓ ↑↓), octaves (1–4 or full range) and shape (scale or arpeggio) — the recipe for the NoteSequence. **NoteSequence** → the notes in playing order, direction applied (a ↑↓ run of 8 notes is a 15-note sequence). **Session** → add the session settings. **Span** row removed (superseded). Add **Session setting** (`practice`: how the sequence is played — note length, sound mode, loop, count-in, rest bar, tempo — as distinct from which notes), **Count-in** (`practice`: one bar of clicks counted down before the first note), **Rest bar** (`practice`: one bar of clicks between loops), **Tempo term** (`practice`: the Italian name for a band of tempos — Largo … Presto) | |
+| `docs/domain.md` | `theory` row: "a traversal (1–2 octaves, up/down) fitted to an instrument's range" → "a traversal (1–4 octaves or the full range, up, down or both, as a scale or an arpeggio) fitted to an instrument's range". `practice` Owns: add Session settings (sound mode, loop, count-in, rest bar). No new events or invariants | |
+| `docs/glossary.md` | **Traversal** → direction (↑ ↓ ↑↓), octaves (1–4 or full range) and shape (scale or arpeggio) — the recipe for the NoteSequence. **NoteSequence** → the notes in playing order, direction applied (a ↑↓ run of 8 notes is a 15-note sequence). **Session** → add the session settings. **Span** row removed (superseded). Add **Session setting** (`practice`: how the sequence is played — sound mode, loop, count-in, rest bar, tempo — as distinct from which notes), **Count-in** (`practice`: one bar of clicks counted down before the first note), **Rest bar** (`practice`: one bar of clicks between loops), **Tempo term** (`practice`: the Italian name for a band of tempos — Largo … Presto) | |
 | `docs/product.md` | none | — |
 
 ## Non-functional requirements
@@ -147,7 +148,7 @@ Andante, and play along.
 
 | Concern | Requirement | How measured |
 |---|---|---|
-| Timing | Every note onset within ±5 ms of its scheduled time, at every tempo 40–200 and both note lengths, over at least 60 s of looping | Automated test compares actual onset times against the schedule (practice.session/REQ-008) |
+| Timing | Every note onset within ±5 ms of its scheduled time, at every tempo 40–200, over at least 60 s of looping | Automated test compares actual onset times against the schedule (practice.session/REQ-008) |
 | Sight matches sound | The current-note highlight is shown within 30 ms of the note's onset | Automated test measures onset → highlight (practice.session/REQ-006/S4) |
 | Stop | ❚❚ silences within 50 ms | Test: no audio output after 50 ms |
 | Privacy / data retention | Nothing personal stored; only settings, locally, as REQ-008 | Inspection of stored state |
@@ -157,7 +158,7 @@ Andante, and play along.
 
 | Situation | Expected behaviour | Requirement |
 |---|---|---|
-| First run | ↑↓ · 1 oct · scale · ♩ · both · loop on · count-in on · rest bar off · 96 bpm (Andante); idle | practice.session/REQ-011 |
+| First run | ↑↓ · 1 oct · scale · both · loop on · count-in on · rest bar off · 96 bpm (Andante); idle | practice.session/REQ-011 |
 | No whole-octave run fits (F♯ major on Ocarina Bass C) | Only "full" offered; full plays | practice.session/REQ-001/S3 |
 | Stored octave count no longer fits after an instrument change | Clamped for display and playback; the stored choice kept | practice.session/REQ-001/S4 |
 | A full run starts off the tonic (G major on the flute starts at C4) | Arpeggio keeps degree-1/3/5 notes wherever they fall; scale plays every note | theory.circle-of-fifths/REQ-012/S3 |
@@ -192,7 +193,7 @@ Andante, and play along.
 ## Out of band
 
 - The prototype is silent, so everything about *sound* (timbre, click,
-  count-in length, click cadence with quavers) was decided in the grill,
+  count-in length) was decided in the grill,
   not by the design; the intent's Interview record has the reasoning. The
   one visible departure from the prototype is the 4-beat count-in
   (`COUNT IN · 4·3·2·1` where it shows 3·2·1).

@@ -82,10 +82,9 @@ WHEN a key is selected
 THE SYSTEM SHALL display that key's signature — in the circle's centre and
 on the stave view's stave — and, in the stave view, the traversal's run
 (`REQ-012`) ordered lowest to highest with every occurrence of the root
-visually emphasised and each note drawn at the session's note length
-(crotchet, or quaver with a flag), together with a summary of how many
-in-range notes the key has and their extremes; and, in the names view, the
-key's seven notes in scale order
+visually emphasised, together with a summary of how many in-range notes
+the key has and their extremes; and, in the names view, the key's seven
+notes in scale order
 
 **Scenarios**
 - **REQ-003/S1 — G major on the flute (acceptance)**
@@ -110,13 +109,6 @@ key's seven notes in scale order
   When the traversal is set to 2 oct, arpeggio
   Then the stave shows exactly G4 B4 D5 G5 B5 D6 G6 while the summary still
   reads 22 notes, C4–C7
-- **REQ-003/S5 — the stave shows the note length**
-  Given G major on flute Concert in stave view with note length ♩
-  When the note length is changed to ♪
-  Then every notehead gains a single quaver flag at the end of its stem,
-  in the stem's direction (stems keep alternating with pitch; no beams),
-  and changing back to ♩ removes every flag
-
 **Was:**
 > WHEN a key is selected
 > THE SYSTEM SHALL display that key's signature — in the circle's centre and

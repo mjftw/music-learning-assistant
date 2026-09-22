@@ -608,7 +608,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T021 · theory.circle-of-fifths/REQ-003 (S5) · Quaver flags on the stave
 
-**Status:** done
+**Status:** done — superseded by T023 (user dropped note length, 2026-09-22); S5 removed from the delta
 
 **Files**
 - Modify: `src/ui/StaveView.tsx` (new prop; flag paths), `src/ui/App.tsx` (pass the session's note length), `scripts/design-shots.mjs` (state `quaver-stave`)
@@ -645,6 +645,25 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 - [ ] 3. `source ~/.cargo/env && pnpm check` → green
 
 **Verify** — `pnpm vitest run tests/practice tests/ui/scenarios/app-session.test.tsx` → all passed; `pnpm check` → exit 0
+
+### T023 · practice.session/REQ-001 (S2), REQ-004 (S4 amended), REQ-005, REQ-011; theory.circle-of-fifths/REQ-003 · Crotchets only — note length removed everywhere
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/domain/settings.ts` (drop `NoteLength`, `noteLength`; summary line loses the ♩/♪ segment), `src/practice/domain/transport.ts` (`Tick.durationBeats` always 1 → remove the field and the quaver branch), `src/practice/domain/session.ts` (tick frames from one beat), `src/practice/published/index.ts`, `src/ui/selection-store.ts` (v3 `session` group loses `noteLength` — the v3 shape was never shipped, so no migration), `src/ui/TraversalSheet.tsx` (remove the Note length row), `src/ui/StaveView.tsx` (remove `noteLength` prop, `quaverFlagPathOf`, the flag `<path>`), `src/ui/App.tsx`, `scripts/design-shots.mjs` (remove the `quaver-stave` state)
+- Test: every test that mentions `noteLength`, `quaver`, `♩` or `♪` — `grep -rn "noteLength\|quaver\|♩\|♪" src tests scripts` must return nothing at the end; delete REQ-003/S5 and REQ-004/S4 (old) tests; add the amended REQ-004/S4 (tempo change keeps the place: from note 6 at 96 bpm, three + taps → next tick 588 ms / 28 224 frames apart at 48 kHz, position kept); summary strings become `"↑↓ · 2 oct · scale · loop"`, `"↑↓ · full range · click only · once"`, `"↑↓ · 1 oct · scale · loop"`
+
+**Interfaces**
+- Produces: `SessionSettings = { soundMode; loop; countIn; restBar; tempoBpm }`; `Tick = { click; tonePosition }` (one beat per tick); `StoredSelection.session` without `noteLength`; `StaveView` without `noteLength`; `summaryLineOf` → `"<dir> · <octaves> · <shape|click only> · <loop|once>"`
+
+**Steps**
+- [ ] 1. RED — change the summary-line test (REQ-001/S2) and the store round-trip test to the new shapes; add the amended REQ-004/S4 in `session-transport.test.ts` → run `pnpm vitest run tests/practice tests/ui` → FAIL (type errors on `noteLength`, old strings)
+- [ ] 2. GREEN — remove note length through the stack as listed in Files; `Tick` loses `durationBeats`; the session computes tick frames as `60 / tempoBpm · sampleRate`; the transport's click rule becomes "click when soundMode !== notes" for playing ticks
+- [ ] 3. Delete the quaver tests (REQ-003/S5 in `stave-view.test.tsx`, the quaver case in `transport.test.ts`), the `quaver-stave` design state and its PNGs; `grep -rn "noteLength\|quaver\|♩\|♪" src tests scripts` → empty
+- [ ] 4. `source ~/.cargo/env && pnpm check` → green; `./scripts/check-scenarios.sh --change changes/003-hear-the-scale` → no test cites a removed scenario; `pnpm design:shots --states traversal-sheet-open` → the sheet has no Note length row on the app side (the prototype still shows one — deliberate divergence, recorded in notes.md)
+
+**Verify** — `pnpm check` → exit 0; `grep -rn "noteLength\|quaver\|♩\|♪" src tests scripts | wc -l` → `0`
 
 ## Phase 6 — Hardening
 
@@ -711,7 +730,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 | practice.session/REQ-001 | T006 (S2), T008 (S1, S3, S4), T015 (UI) | ✅ |
 | practice.session/REQ-002 | T008 (S1–S4), T014 (UI), T022 (caption amended) | ✅ |
 | practice.session/REQ-003 | T007 (S1–S3), T015 (toggles UI) | ✅ |
-| practice.session/REQ-004 | T006 (S1–S3), T007 (S4), T014, T015 (UI) | ✅ |
+| practice.session/REQ-004 | T006 (S1–S3), T023 (S4 amended), T014, T015 (UI) | ✅ |
 | practice.session/REQ-005 | T007 (S1–S3), T009 (S2 session-level), T010 (S4) | ✅ |
 | practice.session/REQ-006 | T013 (S1, S2), T009 (S3, S5), T018 (S4) | ✅ |
 | practice.session/REQ-007 | T008 (S1–S3), T016 (S3 UI) | ✅ |

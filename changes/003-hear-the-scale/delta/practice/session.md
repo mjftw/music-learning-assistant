@@ -53,10 +53,10 @@ changing the stored choice
   Then Octaves offers 1 oct, 2 oct, 3 oct and full — no 4 oct, because
   four octaves from C4 would leave the range
 - **REQ-001/S2 — the summary line**
-  Given G major on the flute with ↑↓, 2 oct, scale, ♩, both, loop on
+  Given G major on the flute with ↑↓, 2 oct, scale, both, loop on
   When the row above the sheet is read
-  Then it reads "↑↓ · 2 oct · scale · ♩ · loop"; with full range, sound
-  mode metronome and loop off it reads "↑↓ · full range · click only · ♩ ·
+  Then it reads "↑↓ · 2 oct · scale · loop"; with full range, sound
+  mode metronome and loop off it reads "↑↓ · full range · click only ·
   once"
 - **REQ-001/S3 — a range with no whole-octave run offers only full**
   Given F♯ major on Ocarina Bass C (A3–F5)
@@ -87,7 +87,7 @@ run — with the progress bar empty
 
 **Scenarios**
 - **REQ-002/S1 — G major up and down (acceptance)**
-  Given G major on flute Concert, ↑↓, 2 oct, scale, ♩, sound both, loop
+  Given G major on flute Concert, ↑↓, 2 oct, scale, sound both, loop
   and count-in on, rest bar off, 96 bpm
   When ▶ is tapped
   Then after a four-beat count-in the notes G4 A4 B4 C5 D5 E5 F♯5 G5 A5 B5
@@ -139,16 +139,16 @@ whatever the sound mode
   Then the first note sounds at once, and each loop follows the last note
   of the previous without a gap
 
-### REQ-004: Tempo, tempo terms and note length
+### REQ-004: Tempo and tempo terms
 
 THE SYSTEM SHALL hold a tempo between 40 and 200 beats per minute, stepped
 by 2 with − and +, SHALL show beside it the tempo term whose band contains
 it (Largo 40–59, Larghetto 60–65, Adagio 66–75, Andante 76–107, Moderato
 108–119, Allegro 120–155, Vivace 156–175, Presto 176–200), SHALL let the
 learner pick a term from the Tempo sheet, setting the tempo to the middle of
-its band, SHALL sound one note per beat with note length ♩ and two per beat
-with ♪, and WHEN the tempo or note length changes while playing THE SYSTEM
-SHALL apply it from the next note without losing the position
+its band, SHALL sound one note per beat (every note is a crotchet), and
+WHEN the tempo changes while playing THE SYSTEM SHALL apply it from the
+next note without losing the position
 
 **Scenarios**
 - **REQ-004/S1 — stepping through a band boundary**
@@ -165,17 +165,16 @@ SHALL apply it from the next note without losing the position
   Given the tempo is 200
   When + is tapped
   Then it stays 200 Presto; likewise − at 40 stays 40 Largo
-- **REQ-004/S4 — quavers double up**
-  Given 96 bpm, ♩, playing
-  When ♪ is chosen
-  Then from the next note onward two notes sound per beat (312.5 ms apart)
-  while the metronome, where sounding, still clicks once per beat; the
-  position in the sequence is not reset
+- **REQ-004/S4 — a tempo change keeps the place**
+  Given 96 bpm, playing at note 6
+  When + is tapped three times
+  Then from the next note onward notes sound 588 ms apart (102 bpm) and
+  the position in the sequence is not reset
 
 ### REQ-005: What sounds
 
 THE SYSTEM SHALL sound each note of the sequence at its pitch as a plain
-synthesised tone sustained for its note length with a short release, and
+synthesised tone sustained for its beat with a short release, and
 the metronome as a soft, woody click on every beat with no accent during
 the run; WHERE the sound mode is notes THE SYSTEM SHALL sound only the
 tones (the count-in and rest bar still click), WHERE it is both THE SYSTEM
@@ -184,7 +183,7 @@ sound only clicks while still advancing through the sequence
 
 **Scenarios**
 - **REQ-005/S1 — both**
-  Given sound mode both, count-in off, 60 bpm, ♩
+  Given sound mode both, count-in off, 60 bpm
   When ▶ is tapped on the sequence of REQ-002/S1
   Then a tone at G4's pitch and a click begin together, a tone at A4's
   pitch and a click one second later, and so on
@@ -198,7 +197,7 @@ sound only clicks while still advancing through the sequence
   When ▶ is tapped
   Then the count-in clicks, then only tones sound
 - **REQ-005/S4 — the tone stops when the note does**
-  Given ♩ at 120 bpm
+  Given 120 bpm
   When a note sounds
   Then its tone has ended (release included) before the next note's onset
   500 ms later
@@ -228,7 +227,7 @@ WHILE idle or counting THE SYSTEM SHALL highlight nothing
   When the panel is read
   Then no notehead or column is highlighted
 - **REQ-006/S4 — sight matches sound (measured)**
-  Given any tempo from 40 to 200 and either note length
+  Given any tempo from 40 to 200
   When the onset of each note is compared with the moment its highlight is
   shown
   Then the highlight is never later than 30 ms after the onset
@@ -269,12 +268,12 @@ because a sheet, the drawer or the instrument picker opened or closed
 ### REQ-008: Playback keeps time
 
 THE SYSTEM SHALL begin every note and click within 5 ms of its scheduled
-time, at every tempo from 40 to 200 and both note lengths, for as long as
+time, at every tempo from 40 to 200, for as long as
 playback continues
 
 **Scenarios**
 - **REQ-008/S1 — steadiness (measured)**
-  Given 40, 96, 200 bpm, each with ♩ and ♪, loop on
+  Given 40, 96, 200 bpm, loop on
   When playback runs for 60 seconds and every onset is timestamped
   Then no onset deviates from its scheduled time by more than 5 ms, and
   the deviation does not grow over the minute
@@ -319,17 +318,17 @@ ask nothing before the first ▶
 
 WHEN the tool starts
 THE SYSTEM SHALL restore the stored traversal (direction, octaves, shape)
-and session settings (note length, sound mode, loop, count-in, rest bar,
+and session settings (sound mode, loop, count-in, rest bar,
 tempo) alongside the selection restored by
 `theory.circle-of-fifths/REQ-008`; IF nothing is stored, the stored state
 is unreadable, or it predates this change THEN THE SYSTEM SHALL use ↑↓,
-1 oct, scale, ♩, both, loop on, count-in on, rest bar off and 96 bpm for
+1 oct, scale, both, loop on, count-in on, rest bar off and 96 bpm for
 what is missing; and THE SYSTEM SHALL never store whether it was playing —
 it always starts idle
 
 **Scenarios**
 - **REQ-011/S1 — back where it was**
-  Given the tool was closed with ↓, 2 oct, arpeggio, ♪, metronome, loop off,
+  Given the tool was closed with ↓, 2 oct, arpeggio, metronome, loop off,
   count-in off, rest bar on, 132 bpm, mid-playback
   When it is reopened
   Then every one of those settings is restored, the term reads Allegro, and
@@ -337,7 +336,7 @@ it always starts idle
 - **REQ-011/S2 — first run**
   Given no stored state
   When the tool starts
-  Then the summary row reads "↑↓ · 1 oct · scale · ♩ · loop" and the tempo
+  Then the summary row reads "↑↓ · 1 oct · scale · loop" and the tempo
   reads 96 Andante
 - **REQ-011/S3 — stored state from before this change**
   Given stored state from 002 (selection and display preferences only)
