@@ -40,11 +40,11 @@ sdd_phase: approved
 
 | # | Change | Context | Capability (creates / modifies) | Outcome (one line) | Depends on | Status | Dir |
 |---|---|---|---|---|---|---|---|
-| 003 | `hear-the-scale` | `practice` | `practice.session` (creates), `theory.circle-of-fifths` (modifies) | Choose traversal (1–4 octaves or full, ↑/↓/↑↓, scale or arpeggio), tempo and how it sounds; the tool plays it within the instrument's range, the panel follows; the learner plays along | 001, 002 | grilling | `changes/003-hear-the-scale/` |
+| 003 | `hear-the-scale` | `practice` | `practice.session` (creates), `theory.temperament` (creates), `theory.circle-of-fifths` (modifies) | Choose traversal (1–4 octaves or full, ↑/↓/↑↓, scale or arpeggio), tempo and how it sounds; the tool plays it within the instrument's range, the panel follows; the learner plays along | 001, 002 | specified | `changes/003-hear-the-scale/` |
 | 004 | `the-drone` | `practice` | `practice.drone` (creates) | Hold a drone on any note for wind pitching and string tuning | 001 | proposed | |
 | 005 | `hear-me` | `listening` | `listening.pitch-detection` (creates) | Live pitch readout — sharp/flat in cents, inside the latency budget — useful alone as a tuner | — | proposed | |
 | 006 | `learner-leads` | `practice` | `practice.session` (modifies) | The tool shows the target note, listens, and advances when it is held in tune for the required duration | 003, 005 | proposed | |
-| 007 | `temperament` | `theory` | `theory.temperament` (creates), `practice.session` (modifies) | Choose just vs equal temperament for playback and drone | 003, 004 | proposed | |
+| 007 | `temperament` | `theory` | `theory.temperament` (modifies), `practice.session` (modifies) | Choose just vs equal temperament for playback and drone | 003, 004 | proposed | |
 | 008 | `teach-me` | `theory` | `theory.explanations` (creates) | Tooltips that explain the theory behind whatever is on screen | 001 | proposed | |
 
 ## Why this order
