@@ -539,7 +539,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T015 · practice.session/REQ-001 (S1, S2 UI), REQ-004 (S2 UI), REQ-003 (toggles UI) · The Traversal sheet, its row, and the Tempo sheet
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/TraversalRow.tsx`, `src/ui/TraversalSheet.tsx`, `src/ui/TempoSheet.tsx`
