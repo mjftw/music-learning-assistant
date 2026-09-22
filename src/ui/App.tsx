@@ -1,19 +1,28 @@
-import { useEffect, useState, type JSX } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import {
   circleOfFifths,
   keyId as keyIdOf,
   keyView,
-  runOf,
   spelledMajorAt,
   spelledMinorAt,
   type Catalogue,
   type KeyView,
   type Mode,
   type Octaves,
+  type PitchClass,
   type SpellingPreference,
   type Traversal,
   type Variant,
 } from "../theory/published";
+import {
+  createSession,
+  steppedTempo,
+  tempoForTerm,
+  type Session,
+  type SessionDeps,
+  type SessionSettings,
+  type SessionSnapshot,
+} from "../practice/published";
 import { findVariantById } from "./catalogue-lookup";
 import { CircleOfFifths, locateSpelledKey } from "./CircleOfFifths";
 import { Header } from "./Header";
@@ -30,7 +39,11 @@ import {
 } from "./selection-store";
 import { SettingsDrawer } from "./SettingsDrawer";
 import { StaveView } from "./StaveView";
+import { TempoSheet } from "./TempoSheet";
 import { fonts, paper } from "./theme";
+import { TransportCard } from "./TransportCard";
+import { TraversalRow } from "./TraversalRow";
+import { TraversalSheet } from "./TraversalSheet";
 
 const DEFAULT_VARIANT_ID = "flute-concert";
 const DEFAULT_KEY_ID = "C-major";
@@ -53,6 +66,14 @@ const CIRCLE_WRAPPER_MARGIN = "0 auto";
 // to centre within) — this app's own choice for how the column behaves on
 // a viewport wider than 390px.
 const COLUMN_CENTERING_MARGIN = "0 auto";
+
+// The transport card and traversal row's wrapper — copied verbatim from the
+// vendored visual reference (changes/003-hear-the-scale/design/
+// hear-the-scale.dc.html, markup lines 121-141). `marginTop: "auto"` pins it
+// to the bottom of the 390px column.
+const SESSION_AREA_MARGIN_TOP = "auto";
+const SESSION_AREA_PADDING = "14px 16px 20px";
+const SESSION_AREA_GAP = 9;
 
 function headerInstrumentLabel(variant: Variant): string {
   return `${variant.instrumentName} ${variant.variantName}`;
@@ -96,7 +117,6 @@ interface Selection {
   readonly mode: Mode;
   readonly spelling: SpellingPreference;
   readonly view: "names" | "stave";
-  readonly traversal: Traversal;
   readonly degreesEnabled: boolean;
   readonly distanceRingEnabled: boolean;
   readonly staveNamesEnabled: boolean;
@@ -121,7 +141,6 @@ function defaultSelection(): Selection {
     mode: located.key.mode,
     spelling: firstRunDefaults.spelling,
     view: firstRunDefaults.view,
-    traversal: traversalFromStored(firstRunDefaults.traversal),
     degreesEnabled: firstRunDefaults.degreesEnabled,
     distanceRingEnabled: firstRunDefaults.distanceRingEnabled,
     staveNamesEnabled: firstRunDefaults.staveNamesEnabled,
@@ -143,23 +162,43 @@ function initialSelection(
     mode: located.key.mode,
     spelling: stored.spelling,
     view: stored.view,
-    traversal: traversalFromStored(stored.traversal),
     degreesEnabled: stored.degreesEnabled,
     distanceRingEnabled: stored.distanceRingEnabled,
     staveNamesEnabled: stored.staveNamesEnabled,
   };
 }
 
+// The session's initial traversal and settings (practice.session/REQ-011) —
+// restored from the store alongside the rest of the selection, defaulting
+// (via `firstRunDefaults`, the same S2 defaults a migrated v1/v2 payload
+// takes) when nothing usable is stored.
+function initialTraversalOf(stored: StoredSelection | null): Traversal {
+  return traversalFromStored(stored?.traversal ?? firstRunDefaults.traversal);
+}
+
+function initialSettingsOf(stored: StoredSelection | null): SessionSettings {
+  return stored?.session ?? firstRunDefaults.session;
+}
+
 export function App(props: {
   readonly catalogue: Catalogue;
   readonly selectionStore: SelectionStore;
+  readonly sessionDeps: SessionDeps;
+  // Optional: the session is created inside App (useRef + lazy init, per
+  // practice.session/REQ-011's wiring), so main.tsx — which never holds a
+  // reference to it otherwise — uses this to capture it for T018's dev-only
+  // `window.__session` timing hook. Keeping it optional and additive leaves
+  // App fully testable without it.
+  readonly onSessionReady?: (session: Session) => void;
 }): JSX.Element {
-  const { catalogue, selectionStore } = props;
+  const { catalogue, selectionStore, sessionDeps, onSessionReady } = props;
   const [selection, setSelection] = useState<Selection>(() =>
     initialSelection(catalogue, selectionStore),
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [instrumentSheetOpen, setInstrumentSheetOpen] = useState(false);
+  const [traversalSheetOpen, setTraversalSheetOpen] = useState(false);
+  const [tempoSheetOpen, setTempoSheetOpen] = useState(false);
 
   const position = circleOfFifths()[selection.positionIndex];
   if (position === undefined) {
@@ -175,9 +214,73 @@ export function App(props: {
   // always resolves; no further fallback is needed here.
   const variant = findVariantById(catalogue, selection.variantId);
 
+  // The session owns the traversal and session settings from here on
+  // (practice.session/REQ-001 onward) — created once per App mount, seeded
+  // from the store, and disposed on unmount. Lazy `useRef` init rather than
+  // `useState` because `createSession` opens ports (sound, wake lock,
+  // visibility) that must exist exactly once for the component's lifetime.
+  const sessionRef = useRef<Session | null>(null);
+  if (sessionRef.current === null) {
+    if (variant === undefined) {
+      throw new Error("unreachable: initial variant not found");
+    }
+    const stored = selectionStore.load();
+    sessionRef.current = createSession(
+      { key: selectedKey, variant },
+      initialTraversalOf(stored),
+      initialSettingsOf(stored),
+      sessionDeps,
+    );
+  }
+  const session = sessionRef.current;
+
+  const [snapshot, setSnapshot] = useState<SessionSnapshot>(() =>
+    session.snapshot(),
+  );
+
+  useEffect(
+    () => session.onChange(() => setSnapshot(session.snapshot())),
+    [session],
+  );
+
+  // Dev-only StrictMode (main.tsx) deliberately mounts, unmounts and
+  // remounts every effect once to surface non-idempotent cleanup — but
+  // `session`, unlike this effect, is created once during render (see the
+  // `useRef` above) precisely so it survives that double-render, and
+  // `dispose()` cannot be undone (its onOnset/visibility subscriptions
+  // don't reconnect). Skip the phantom first cleanup in dev so it isn't
+  // disposed before the real component ever unmounts; a genuine unmount
+  // always reaches this effect a second time. In production, StrictMode
+  // never runs, so the only cleanup call is the real one.
+  const skippedStrictModeCleanupRef = useRef(false);
+  useEffect(
+    () => () => {
+      if (import.meta.env.DEV && !skippedStrictModeCleanupRef.current) {
+        skippedStrictModeCleanupRef.current = true;
+        return;
+      }
+      session.dispose();
+    },
+    [session],
+  );
+
+  useEffect(() => {
+    onSessionReady?.(session);
+  }, [session, onSessionReady]);
+
+  // Key or variant change → setContext (practice.session/REQ-007). Depends
+  // on the primitive ids, not the `selectedKey`/`variant` objects — those
+  // are freshly derived every render, so depending on them directly would
+  // fire this on every unrelated re-render (e.g. every tick while playing)
+  // and restart the sequence each time.
+  useEffect(() => {
+    if (variant === undefined) return;
+    session.setContext({ key: selectedKey, variant });
+  }, [session, keyIdOf(selectedKey), variant?.variantId]);
+
   useEffect(() => {
     const toSave: StoredSelection = {
-      ...firstRunDefaults,
+      schemaVersion: 3,
       variantId: selection.variantId,
       keyId: keyIdOf(selectedKey),
       spelling: selection.spelling,
@@ -186,20 +289,45 @@ export function App(props: {
       distanceRingEnabled: selection.distanceRingEnabled,
       staveNamesEnabled: selection.staveNamesEnabled,
       traversal: {
-        direction: selection.traversal.direction,
-        octaves: storedFromOctaves(selection.traversal.octaves),
-        shape: selection.traversal.shape,
+        direction: snapshot.traversal.direction,
+        octaves: storedFromOctaves(snapshot.traversal.octaves),
+        shape: snapshot.traversal.shape,
       },
+      session: snapshot.settings,
     };
     selectionStore.save(toSave);
-  }, [selection, selectedKey, selectionStore]);
+  }, [
+    selection,
+    selectedKey,
+    selectionStore,
+    snapshot.traversal,
+    snapshot.settings,
+  ]);
 
   const view =
     variant === undefined ? undefined : keyView(selectedKey, variant);
-  const staveRun =
-    variant === undefined
-      ? []
-      : runOf(selectedKey, variant, selection.traversal);
+
+  const soundingSequenceNote =
+    snapshot.soundingPosition === null
+      ? undefined
+      : snapshot.sequence[snapshot.soundingPosition];
+  const soundingRunIndex = soundingSequenceNote?.runIndex ?? null;
+  const soundingPitchClass: PitchClass | null =
+    soundingSequenceNote === undefined
+      ? null
+      : {
+          letter: soundingSequenceNote.note.letter,
+          accidental: soundingSequenceNote.note.accidental,
+        };
+  const playing = snapshot.transport.kind === "playing";
+
+  function handleTogglePlay(): void {
+    if (snapshot.transport.kind === "idle") {
+      session.start();
+    } else {
+      session.stop();
+    }
+  }
 
   return (
     <div
@@ -224,7 +352,10 @@ export function App(props: {
         onOpenPicker={() => setInstrumentSheetOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
       />
-      <Notices notices={catalogue.notices} />
+      <Notices
+        notices={catalogue.notices}
+        soundUnavailable={snapshot.notice === "sound-unavailable"}
+      />
       <div style={{ margin: CIRCLE_WRAPPER_MARGIN, flex: "none" }}>
         <CircleOfFifths
           selectedKeyId={keyIdOf(selectedKey)}
@@ -279,21 +410,46 @@ export function App(props: {
           <NamesView
             key_={selectedKey}
             degreesEnabled={selection.degreesEnabled}
-            soundingPitchClass={null}
+            soundingPitchClass={soundingPitchClass}
           />
         ) : (
           variant !== undefined && (
             <StaveView
               key_={selectedKey}
               variant={variant}
-              notes={staveRun}
+              notes={snapshot.run}
               staveNamesEnabled={selection.staveNamesEnabled}
-              soundingRunIndex={null}
-              playing={false}
+              soundingRunIndex={soundingRunIndex}
+              playing={playing}
             />
           )
         )}
       </KeyPanel>
+      <div
+        style={{
+          marginTop: SESSION_AREA_MARGIN_TOP,
+          padding: SESSION_AREA_PADDING,
+          display: "flex",
+          flexDirection: "column",
+          gap: SESSION_AREA_GAP,
+        }}
+      >
+        <TransportCard
+          snapshot={snapshot}
+          onTogglePlay={handleTogglePlay}
+          onStepTempo={(delta) =>
+            session.setSettings({
+              ...snapshot.settings,
+              tempoBpm: steppedTempo(snapshot.settings.tempoBpm, delta),
+            })
+          }
+          onOpenTempo={() => setTempoSheetOpen(true)}
+        />
+        <TraversalRow
+          summaryLine={snapshot.summaryLine}
+          onOpen={() => setTraversalSheetOpen(true)}
+        />
+      </div>
       <SettingsDrawer
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -331,6 +487,28 @@ export function App(props: {
           setInstrumentSheetOpen(false);
         }}
         onClose={() => setInstrumentSheetOpen(false)}
+      />
+      <TraversalSheet
+        open={traversalSheetOpen}
+        traversal={snapshot.traversal}
+        effectiveOctaves={snapshot.effectiveOctaves}
+        fittingCounts={snapshot.fittingCounts}
+        settings={snapshot.settings}
+        onTraversal={(traversal) => session.setTraversal(traversal)}
+        onSettings={(settings) => session.setSettings(settings)}
+        onClose={() => setTraversalSheetOpen(false)}
+      />
+      <TempoSheet
+        open={tempoSheetOpen}
+        tempoBpm={snapshot.settings.tempoBpm}
+        onPick={(term) => {
+          session.setSettings({
+            ...snapshot.settings,
+            tempoBpm: tempoForTerm(term),
+          });
+          setTempoSheetOpen(false);
+        }}
+        onClose={() => setTempoSheetOpen(false)}
       />
     </div>
   );

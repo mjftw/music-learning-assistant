@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test } from "vitest";
+import type { SessionDeps } from "../../../src/practice/published";
 import {
   builtInCatalogue,
   runOf,
@@ -9,10 +10,29 @@ import {
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
 import { StaveView } from "../../../src/ui/StaveView";
+import {
+  FakeClock,
+  FakeSound,
+  FakeVisibility,
+  FakeWakeLock,
+} from "../../practice/fakes";
 
 afterEach(() => {
   cleanup();
 });
+
+// This suite doesn't exercise the session — a bare set of fakes is enough
+// to satisfy App's now-required `sessionDeps` (practice.session/REQ-011,
+// T016).
+function testSessionDeps(): SessionDeps {
+  const sound = new FakeSound();
+  return {
+    sound,
+    clock: new FakeClock(sound),
+    wakeLock: new FakeWakeLock(),
+    visibility: new FakeVisibility(),
+  };
+}
 
 const setup = () => {
   localStorage.clear();
@@ -20,6 +40,7 @@ const setup = () => {
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps()}
     />,
   );
 };

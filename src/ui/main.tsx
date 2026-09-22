@@ -10,6 +10,15 @@ import "@fontsource/jetbrains-mono/600.css";
 import "./global.css";
 import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
+import {
+  browserClock,
+  fallbackSound,
+  pageVisibility,
+  screenWakeLock,
+  silentSound,
+  webAudioSound,
+  type Session,
+} from "../practice/published";
 import { createSoundEngine } from "../sound/published";
 import { builtInCatalogue } from "../theory/published";
 import { App } from "./App";
@@ -53,6 +62,15 @@ function SoundSpike() {
   );
 }
 
+// T018's timing harness (pnpm test:timing) drives the session directly, in
+// dev only — main.tsx is the only place that ever sees the instance App
+// creates, so it hands it off here rather than App reaching for `window`
+// itself.
+function exposeSessionForTiming(session: Session): void {
+  if (!import.meta.env.DEV) return;
+  (window as unknown as { __session?: Session }).__session = session;
+}
+
 createRoot(rootElement).render(
   <StrictMode>
     {location.search === "?sound-spike" ? (
@@ -61,6 +79,16 @@ createRoot(rootElement).render(
       <App
         catalogue={builtInCatalogue()}
         selectionStore={localStorageSelectionStore(window.localStorage)}
+        sessionDeps={{
+          sound: fallbackSound(
+            webAudioSound(() => new AudioContext()),
+            silentSound(() => performance.now()),
+          ),
+          clock: browserClock(),
+          wakeLock: screenWakeLock(navigator),
+          visibility: pageVisibility(document),
+        }}
+        onSessionReady={exposeSessionForTiming}
       />
     )}
   </StrictMode>,

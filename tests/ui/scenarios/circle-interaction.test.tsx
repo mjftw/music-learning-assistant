@@ -1,9 +1,16 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test } from "vitest";
+import type { SessionDeps } from "../../../src/practice/published";
 import { builtInCatalogue } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
+import {
+  FakeClock,
+  FakeSound,
+  FakeVisibility,
+  FakeWakeLock,
+} from "../../practice/fakes";
 
 // No global `afterEach` in scope (vitest globals are off), so
 // @testing-library/react's automatic cleanup never registers itself; without
@@ -11,6 +18,19 @@ import { localStorageSelectionStore } from "../../../src/ui/selection-store";
 afterEach(() => {
   cleanup();
 });
+
+// This suite doesn't exercise the session — a bare set of fakes is enough
+// to satisfy App's now-required `sessionDeps` (practice.session/REQ-011,
+// T016).
+function testSessionDeps(): SessionDeps {
+  const sound = new FakeSound();
+  return {
+    sound,
+    clock: new FakeClock(sound),
+    wakeLock: new FakeWakeLock(),
+    visibility: new FakeVisibility(),
+  };
+}
 
 // Guard, not a spec scenario (no REQ traces label sizing) — added after a
 // user finding (2026-09-21, T018): the design reference's selected-label
@@ -29,6 +49,7 @@ test("a selected wedge label never uses a larger font than fits its label length
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps()}
     />,
   );
 
@@ -50,6 +71,7 @@ test("theory.circle-of-fifths/REQ-001/S2 — selecting E minor on the inner ring
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps()}
     />,
   );
   const gMajorWedge = screen.getByRole("button", { name: "G major" });
@@ -78,6 +100,7 @@ test("Tab-focusing a wedge shows a focus ring that follows focus, and disappears
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps()}
     />,
   );
 

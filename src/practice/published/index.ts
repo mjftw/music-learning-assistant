@@ -28,3 +28,11 @@ export type {
   TargetAdvanced,
 } from "../domain/session";
 export { createSession } from "../domain/session";
+// Adapters — the UI may only import published/, so every SessionDeps
+// implementation main.tsx needs to wire up (T016) is re-exported here.
+export { fallbackSound } from "../adapters/fallback-sound";
+export { webAudioSound } from "../adapters/web-audio-sound";
+export { silentSound } from "../adapters/silent-sound";
+export { screenWakeLock } from "../adapters/screen-wake-lock";
+export { pageVisibility } from "../adapters/page-visibility";
+export { browserClock } from "../adapters/browser-clock";
