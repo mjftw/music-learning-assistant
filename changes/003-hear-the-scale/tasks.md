@@ -273,7 +273,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T007 · practice.session/REQ-003 (S1, S2, S3), REQ-005 (S1, S2, S3), REQ-004 (S4) · The transport state machine
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/practice/domain/transport.ts`
