@@ -21,6 +21,8 @@ verified:
     at: 2026-09-20T18:54:28Z
   - by: human:merlin-webster
     at: 2026-09-20T19:14:01Z
+  - by: human:merlin-webster
+    at: 2026-09-22T16:33:44Z
 sdd_phase: approved
 ---
 
@@ -38,7 +40,6 @@ sdd_phase: approved
 
 | # | Change | Context | Capability (creates / modifies) | Outcome (one line) | Depends on | Status | Dir |
 |---|---|---|---|---|---|---|---|
-| 002 | `circle-redesign` | `theory` | `theory.circle-of-fifths` (modifies) | Redesign the circle's visual and interaction language per the Claude Design handoff — distance ring, scale degrees, a names/stave view switch, settings drawer | 001 | converged | `changes/002-circle-redesign` |
 | 003 | `hear-the-scale` | `practice` | `practice.session` (creates) | Choose traversal (1–2 octaves, up/down, scale or arpeggio) and tempo; the tool plays it within the instrument's range; the learner plays along | 001 | proposed | |
 | 004 | `the-drone` | `practice` | `practice.drone` (creates) | Hold a drone on any note for wind pitching and string tuning | 001 | proposed | |
 | 005 | `hear-me` | `listening` | `listening.pitch-detection` (creates) | Live pitch readout — sharp/flat in cents, inside the latency budget — useful alone as a tuner | — | proposed | |
@@ -75,3 +76,4 @@ by the user's own verdict), not enrichment.
 | # | Change | Capability | Version after | Shipped |
 |---|---|---|---|---|
 | 001 | `the-circle` | `theory.circle-of-fifths`, `theory.instruments` | v0.1.0 each | 2026-09-20 |
+| 002 | `circle-redesign` | `theory.circle-of-fifths` | v0.2.0 | 2026-09-22 |

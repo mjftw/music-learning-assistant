@@ -17,7 +17,7 @@ verified:
     at: 2026-09-20T19:36:23Z
 sdd_id: 002-circle-redesign
 sdd_context: theory
-sdd_phase: approved
+sdd_phase: merged
 sdd_constitution: 1.0.0
 ---
 
