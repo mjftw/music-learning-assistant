@@ -15,11 +15,17 @@ import type { SoundPort } from "../ports/sound";
 // subscribes once at creation, before start() ever runs — a lazy
 // subscription would still be bound to the primary after the switch to the
 // fallback.
+//
+// `context()` is dev-only usage for T018's timing harness (`window.__sound`,
+// main.tsx) — nothing in this module's own contract needs it. It forwards to
+// whichever port is currently active; `silentSound` (the REQ-010 fallback)
+// has none, so the intersection keeps it optional on the inputs while the
+// return always exposes it, same as `webAudioSound`.
 export function fallbackSound(
-  primary: SoundPort,
-  fallback: SoundPort,
-): SoundPort {
-  let active: SoundPort = primary;
+  primary: SoundPort & { context?(): AudioContext | null },
+  fallback: SoundPort & { context?(): AudioContext | null },
+): SoundPort & { context(): AudioContext | null } {
+  let active: SoundPort & { context?(): AudioContext | null } = primary;
   const listeners = new Set<(report: OnsetReport) => void>();
 
   function forwardFrom(port: SoundPort, report: OnsetReport): void {
@@ -50,5 +56,6 @@ export function fallbackSound(
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
+    context: () => active.context?.() ?? null,
   };
 }

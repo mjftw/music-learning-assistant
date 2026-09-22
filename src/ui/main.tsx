@@ -71,6 +71,23 @@ function exposeSessionForTiming(session: Session): void {
   (window as unknown as { __session?: Session }).__session = session;
 }
 
+// T018 also reads the sound port directly — `sampleRate()`/`onOnset()` for
+// the onset-timing measurement, and the real `AudioContext` behind
+// `context()` (fallback-sound.ts forwards it) to correlate an onset's frame
+// with wall-clock time via `context.currentTime`/`performance.now()`.
+function exposeSoundForTiming(sound: ReturnType<typeof fallbackSound>): void {
+  if (!import.meta.env.DEV) return;
+  (
+    window as unknown as { __sound?: ReturnType<typeof fallbackSound> }
+  ).__sound = sound;
+}
+
+const sound = fallbackSound(
+  webAudioSound(() => new AudioContext()),
+  silentSound(() => performance.now()),
+);
+exposeSoundForTiming(sound);
+
 createRoot(rootElement).render(
   <StrictMode>
     {location.search === "?sound-spike" ? (
@@ -80,10 +97,7 @@ createRoot(rootElement).render(
         catalogue={builtInCatalogue()}
         selectionStore={localStorageSelectionStore(window.localStorage)}
         sessionDeps={{
-          sound: fallbackSound(
-            webAudioSound(() => new AudioContext()),
-            silentSound(() => performance.now()),
-          ),
+          sound,
           clock: browserClock(),
           wakeLock: screenWakeLock(navigator),
           visibility: pageVisibility(document),

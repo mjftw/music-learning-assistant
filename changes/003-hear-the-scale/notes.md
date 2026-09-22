@@ -46,3 +46,19 @@ One line each, newest last.
 
 ## Design review — final round (2026-09-23)
 Five pairs (idle-g-major-stave, traversal-sheet-open, tempo-sheet-open, names-idle, settings-open), fresh after T021–T023. Independent reviewer, pixel-measured: **MATCH on all five**. Accepted departures: no Note length row / no ♩ segment (user decision), prototype's page frame. Minor: NamesView's letters+degrees block is ~9 px (1x) shorter than the prototype's (font metric/line-height; invisible at 1:1; pre-dates 003). Phase 5 complete.
+
+## Timing
+
+T018 done — `pnpm test:timing`, three rows (T023 collapsed the six configurations to three: only tempo varies — note length is gone). All three PASS, three consecutive 60 s runs, e.g.:
+
+```
+bpm  onsets  max onset dev (ms)  drift (ms)  highlights  max highlight (ms)  status
+40   82      2.67                -2.67       40          25.67               PASS
+96   194     0.00                0.00        94          27.17               PASS
+200  402     0.00                0.00        195         24.27               PASS
+test:timing: PASS — every onset ≤5 ms, drift ≤1 ms, highlight ≤30 ms
+```
+
+Two harness bugs found and fixed while building it (not product bugs): (1) `getOutputTimestamp()` maps the *output* clock, which trails the *processing* clock `onsetFrame`/`currentFrame()` are actually defined against (`context.currentTime`) by the destination's output latency — using it biased every highlight prediction by that latency (tens of ms, once briefly manifesting as ~300 ms of apparent "lateness", ~1 beat, at 200 bpm). Fixed to correlate `context.currentTime` with `performance.now()` directly. (2) The 2-oct ↑↓ run is a palindrome (starts and ends on G4), so the note sounding at a loop's last position and the next loop's first position is the same run index — the stave's `sounding-halo` circle (keyed by note) never unmounts across that seam, correctly, so no DOM mutation fires there. Predicting one highlight per onset regardless mismatched the arrays by one at every loop boundary. Fixed by predicting from `Session.onTargetAdvanced`'s note, only when it changes.
+
+One real, reproducible product characteristic surfaced and is not a bug to fix here: the very first onset of a run can be measurably late (0–~10.7 ms, once touching REQ-008's 5 ms bound in a 10 s smoke run) before locking to exact (0 ms) precision for the rest of the run — see T018 report CONCERNS for the mechanism (Web Audio graph warm-up racing REQ-003/S3's "no delay" first note and REQ-010/S2's "no AudioContext before ▶").

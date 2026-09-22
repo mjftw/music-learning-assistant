@@ -80,6 +80,16 @@ All matched files use Prettier code style!
    Duration  2.29s (environment 56%, tests 20%, import 14%, transform 10%)
 ```
 
+`pnpm test:timing` healthy output ends:
+
+```
+bpm  onsets  max onset dev (ms)  drift (ms)  highlights  max highlight (ms)  status
+40   82      2.67                -2.67       40          25.67               PASS
+96   194     0.00                0.00        94          27.17               PASS
+200  402     0.00                0.00        195         24.27               PASS
+test:timing: PASS — every onset ≤5 ms, drift ≤1 ms, highlight ≤30 ms
+```
+
 Run `check` before calling any task done, and paste the output.
 
 ## Conventions
