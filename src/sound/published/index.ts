@@ -61,16 +61,18 @@ export async function createSoundEngine(
     ) {
       return;
     }
-    // Onset reports start arriving once T010 wires up Rust's onset reporting;
-    // until then this listener set is fanned out to but never invoked.
-    const parsed = onsetReportSchema.safeParse(
-      (data as { report?: unknown }).report,
-    );
-    if (!parsed.success) {
+    const reports = (data as { reports?: unknown }).reports;
+    if (!Array.isArray(reports)) {
       return;
     }
-    for (const listener of listeners) {
-      listener(parsed.data);
+    for (const candidate of reports) {
+      const parsed = onsetReportSchema.safeParse(candidate);
+      if (!parsed.success) {
+        continue;
+      }
+      for (const listener of listeners) {
+        listener(parsed.data);
+      }
     }
   };
 
