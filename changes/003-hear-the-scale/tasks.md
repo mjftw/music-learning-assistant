@@ -591,7 +591,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T017 · — · Design review loop: the screen matches the prototype
 
-**Status:** in-progress
+**Status:** done
 
 **Files**
 - Modify: `scripts/design-shots.mjs` (`PROTOTYPE_PATH` → `changes/003-hear-the-scale/design/hear-the-scale.dc.html`; states), `src/ui/*.tsx` as the diffs demand
