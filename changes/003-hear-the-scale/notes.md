@@ -34,3 +34,4 @@ One line each, newest last.
 - T012 done — review PASS/PASS. Out-of-range v3 tempo → `null` confirmed. Minor: one test lacks the `localStorage.clear()` opener. Tree intentionally red in App.tsx until T013.
 - T012 fix — store test names cited unqualified ids (T012 reviewer's 'verbatim' claim was wrong); haiku fixer qualified them; verified by the scenario checker.
 - T013 done — DONE_WITH_CONCERNS; review PASS/PASS. Span deleted; `span` survives only in the v2 migration schema (intended). Minor: two span-pill assertions removed from selection-persistence.test; REQ-006/S1 test title paraphrased; end-to-end REQ-006/S1 (caption + highlight during playback) lands with T016. Scenario gaps remaining: REQ-005/S4 (Rust test needs the id in a comment — T019), REQ-006/S4 + REQ-008/S1 (T018 timing).
+- T014 done — review PASS/PASS, no findings. Progress width is unrounded per the brief (design script rounds) — a deliberate override; design review (T017) will judge the visual.

@@ -514,7 +514,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T014 · practice.session/REQ-002 (S1, S2 UI), REQ-004 (S1, S3 UI) · The transport card
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/TransportCard.tsx`
