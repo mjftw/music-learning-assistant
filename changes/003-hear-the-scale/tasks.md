@@ -454,7 +454,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T012 · practice.session/REQ-011 (S1, S2, S3), theory.circle-of-fifths/REQ-008 (S1, S2, S3, S4) · Stored selection v3
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/selection-store.ts`, `tests/ui/scenarios/selection-store-v2.test.ts` → rename to `selection-store.test.ts`
