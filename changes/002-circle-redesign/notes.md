@@ -134,7 +134,7 @@ On the phone (390×844 viewport), side-by-side with the prototype at `/changes/0
 
 - **Minor keys (decided after the design review, 2026-09-21):** select **E minor** on the inner ring with the distance ring and degrees on. The arc covers the same seven positions as G major, and reads **C·6 G·3 D·7 A·4 E·1 B·5 F♯·2** — the `1` sits at E's place on the outer ring, not on the selected Em wedge, and no outside name is accented. This DELIBERATELY differs from the prototype (which shows the wrong notes there); the screenshot pairs you approved predate this fix, so please look at it fresh.
 
-**User verdict:** _pending_
+**User verdict (2026-09-22):** Accepted — on the phone, after the T018/T019 fixes.
 
 ## pnpm check output
 
