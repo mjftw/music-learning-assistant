@@ -16,6 +16,8 @@ verified:
     at: 2026-09-19T15:37:24Z
   - by: human:merlin-webster
     at: 2026-09-19T15:48:38Z
+  - by: human:merlin-webster
+    at: 2026-09-22T17:17:37Z
 sdd_phase: approved
 ---
 
@@ -34,12 +36,15 @@ sdd_phase: approved
 
 | Context | Owns (the nouns) | Responsible for (the verbs) | Not responsible for | Code root |
 |---|---|---|---|---|
-| `theory` | Note, Instrument (name + playable range), Key, Scale, Arpeggio, Interval, Circle of Fifths, Temperament (just/equal), NoteSequence | Answering timeless questions: the notes of a scale/arpeggio in a key, a traversal (1–2 octaves, up/down) fitted to an instrument's range, a note's pitch under a temperament, neighbouring keys on the circle | Anything that changes during a session; sound; the microphone | `src/theory/` |
-| `practice` | Session, Mode (tool-leads / learner-leads), Traversal choice, Target note, Tempo, Drone, Judgement (sharp / flat / in tune, in cents) | Running a session: sounding notes and the drone, holding the current target, consuming detected pitch and judging it against the target, advancing through the sequence | Music-theory facts; how pitch is detected | `src/practice/` |
+| `theory` | Note, Instrument (name + playable range), Key, Scale, Arpeggio, Interval, Circle of Fifths, Temperament (just/equal), NoteSequence | Answering timeless questions: the notes of a scale/arpeggio in a key, a traversal (1–4 octaves or the full range, up, down or both, as a scale or an arpeggio) fitted to an instrument's range, a note's pitch under a temperament, neighbouring keys on the circle | Anything that changes during a session; sound; the microphone | `src/theory/` |
+| `practice` | Session, Mode (tool-leads / learner-leads), Traversal choice, Session settings (note length, sound mode, loop, count-in, rest bar), Target note, Tempo, Drone, Judgement (sharp / flat / in tune, in cents) | Running a session: sounding notes and the drone, holding the current target, consuming detected pitch and judging it against the target, advancing through the sequence | Music-theory facts; how pitch is detected | `src/practice/` |
 | `listening` | Detected pitch (frequency, confidence, time) | Capturing the instrument through the microphone and publishing what pitch was heard, fast | Knowing the target note; judging sharp/flat; theory | `src/listening/` |
+| `sound` | Voice (a tone or click with an onset in audio frames), Onset report | Rendering scheduled tones and clicks on the audio clock, sample-accurately, and reporting when each onset actually rendered | What to play or when (practice); what pitch a note has (theory); the microphone (listening) | `src/sound/` |
 
-The UI (circle-of-fifths display, stave, tooltips) is the interface over all
-three contexts, not a context of its own.
+The UI (circle-of-fifths display, stave, transport, tooltips) is the interface
+over the contexts, not a context of its own. `sound` and `listening` together
+are the audio boundary and are Rust compiled to WebAssembly (ADR 0001, ADR
+0003); the rest is TypeScript.
 
 ## Relationships
 
@@ -51,6 +56,7 @@ three contexts, not a context of its own.
 |---|---|---|---|
 | `theory` | `practice` | interface `theory/published` (synchronous lookups: scales, sequences, pitches) | No — Note and Instrument are shared unchanged |
 | `listening` | `practice` | event `PitchDetected` | Yes — practice translates a detected pitch into a Judgement against its target note |
+| `practice` | `sound` | message `SoundCommand` (schema `src/sound/published/sound-command.schema`); `sound` replies with `OnsetReport` | No — frames and hertz on both sides; practice owns the clock arithmetic |
 
 ## Events
 
@@ -78,6 +84,7 @@ three contexts, not a context of its own.
 | `practice` | In learner-leads mode, the target never advances unless the note was held in tune for the required duration. | Session |
 | `listening` | A PitchDetected fact always carries a positive frequency and a confidence. | Detected pitch |
 | `listening` | Pitch feedback is emitted within a bound that feels instant, or not at all — silence beats late feedback. | Detected pitch |
+| `sound` | An onset renders in the audio quantum containing its frame, or is reported late — it is never silently shifted. | Voice |
 
 ## Shared
 

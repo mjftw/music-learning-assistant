@@ -10,5 +10,7 @@ FILE=$(printf '%s' "$INPUT" | python3 -c 'import sys,json; print(json.load(sys.s
 case "$FILE" in
   *.ts|*.tsx|*.json|*.css|*.html)
     [[ -f node_modules/.bin/prettier ]] && pnpm exec prettier --write "$FILE" >/dev/null 2>&1 || true ;;
+  *.rs)
+    command -v rustfmt >/dev/null 2>&1 && rustfmt --edition 2021 "$FILE" >/dev/null 2>&1 || true ;;
 esac
 exit 0

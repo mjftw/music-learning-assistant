@@ -49,14 +49,17 @@ If 4 conflicts with 1–3, stop and say so. Do not pick silently.
 ## Commands
 
 ```bash
-# install:
+# install (once): rustup — https://rustup.rs — then:
+rustup target add wasm32-unknown-unknown
 pnpm install
-# run (dev):
+# run (dev):                       (builds src/sound/pkg/sound.wasm first)
 pnpm dev
-# check (all — test + lint + typecheck, one command):
+# check (all — prettier, eslint, tsc, vitest, cargo fmt/clippy/test, one command):
 pnpm check
 # test (one file):
 pnpm vitest run <path/to/file.test.ts>
+# measured timing budget (Playwright/Chromium, ~70 s) — required at converge and finish, not per task:
+pnpm test:timing
 ```
 
 Healthy output looks like:
@@ -82,7 +85,10 @@ Run `check` before calling any task done, and paste the output.
 ## Conventions
 
 - Runtime / language: TypeScript (strict), browser SPA built with Vite.
-  Rust arrives at change 005, scoped to `src/listening/` (ADR 0001).
+  Rust (stable, `wasm32-unknown-unknown`, zero crates) owns the audio
+  boundary — `src/sound/` from change 003 and `src/listening/` from 005
+  (ADR 0001, ADR 0003); the workspace `Cargo.toml` at the root is the
+  accepted root-config exception. Rust tests are `cargo test`.
 - Package manager (only this one): pnpm.
 - Test framework and where tests live: Vitest (+ Testing Library);
   `tests/<context>/scenarios/` one test per spec scenario named by
@@ -94,9 +100,13 @@ Run `check` before calling any task done, and paste the output.
 ## Architecture
 
 A static single-page web app; no server, no runtime services (Article VII).
-Three bounded contexts (docs/domain.md): `src/theory/` (pure functions —
-notes, keys, circle, catalogue), `src/practice/` (sessions; from change 003),
-`src/listening/` (pitch detection; Rust→WASM from change 005, ADR 0001).
+Four bounded contexts (docs/domain.md): `src/theory/` (pure functions —
+notes, keys, circle, traversal, pitch, catalogue), `src/practice/` (the
+session: a pure transport state machine, a lookahead scheduler adapter on
+the audio clock, ports for sound / clock / wake lock / visibility),
+`src/sound/` (Rust→WASM synthesiser in an AudioWorklet plus a ~60-line TS
+host shim in its `published/`; ADR 0003), `src/listening/` (pitch
+detection; Rust→WASM from change 005, ADR 0001).
 `src/ui/` is the view layer over the contexts, not a context itself. Each
 context exposes `published/` and nothing else crosses its boundary
 (scripts/check-contexts.sh). Data files (instrument variants) and stored

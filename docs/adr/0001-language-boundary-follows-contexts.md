@@ -17,7 +17,7 @@ verified: []
 
 # ADR 0001 — The language boundary follows the context boundary
 
-**Status:** accepted 2026-09-19
+**Status:** accepted 2026-09-19 · amended by ADR 0003 (2026-09-22): Rust also owns the new `sound` context and arrives with change 003, not 004/005
 
 ## Context
 
