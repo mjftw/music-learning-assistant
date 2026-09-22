@@ -19,21 +19,21 @@ test("practice.session/REQ-002/S4 — the idle caption follows the traversal", (
     defaultSessionSettings,
   );
 
-  expect(session.snapshot().caption).toBe("15 notes · G4–G6");
+  expect(session.snapshot().caption).toBe("29 notes · G4–G6");
 
   session.setTraversal({
     direction: "updown",
     octaves: { kind: "count", count: 2 },
     shape: "arpeggio",
   });
-  expect(session.snapshot().caption).toBe("7 notes · G4–G6");
+  expect(session.snapshot().caption).toBe("13 notes · G4–G6");
 
   session.setTraversal({
     direction: "updown",
     octaves: { kind: "full" },
     shape: "scale",
   });
-  expect(session.snapshot().caption).toBe("22 notes · C4–C7");
+  expect(session.snapshot().caption).toBe("43 notes · C4–C7");
 });
 
 test("practice.session/REQ-001/S1 — C major on the flute offers three octave counts", () => {

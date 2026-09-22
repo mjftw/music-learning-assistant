@@ -98,7 +98,7 @@ function captionOf(
       const first = run[0];
       const last = run[run.length - 1];
       if (first === undefined || last === undefined) return "";
-      return `${run.length} notes · ${noteLabel(first.note)}–${noteLabel(last.note)}`;
+      return `${sequence.length} notes · ${noteLabel(first.note)}–${noteLabel(last.note)}`;
     }
     case "countingIn":
       return `COUNT IN · ${transport.beatsLeft}`;

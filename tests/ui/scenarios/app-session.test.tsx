@@ -78,7 +78,7 @@ test("practice.session/REQ-011/S2 (app) — first run shows the S2 defaults in t
   expect(screen.getByText("96")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Andante" })).toBeTruthy();
   expect(screen.getByTestId("position-caption").textContent).toBe(
-    "8 notes · C4–C5",
+    "15 notes · C4–C5",
   );
 });
 

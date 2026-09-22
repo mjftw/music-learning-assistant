@@ -95,7 +95,7 @@ test("practice.session/REQ-009/S1 — hidden means stopped", async () => {
 
   expect(session.snapshot().transport).toEqual({ kind: "idle" });
   expect(sound.posted.at(-1)).toEqual({ kind: "stopAll" });
-  expect(session.snapshot().caption).toBe("15 notes · G4–G6");
+  expect(session.snapshot().caption).toBe("29 notes · G4–G6");
 });
 
 test("practice.session/REQ-009/S2 — the phone on the stand stays lit", async () => {
