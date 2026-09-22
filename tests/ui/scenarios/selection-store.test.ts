@@ -7,7 +7,7 @@ import {
 
 const storageKey = "music-learning-assistant.selection.v1";
 
-test("a v3 payload round-trips (REQ-011/S1, REQ-008/S1)", () => {
+test("a v3 payload round-trips (practice.session/REQ-011/S1, theory.circle-of-fifths/REQ-008/S1)", () => {
   localStorage.clear();
   const store = localStorageSelectionStore(localStorage);
   const selection: StoredSelection = {
@@ -33,7 +33,7 @@ test("a v3 payload round-trips (REQ-011/S1, REQ-008/S1)", () => {
   expect(store.load()).toEqual(selection);
 });
 
-test("a v2 payload migrates: preferences kept, traversal and session default, span dropped (REQ-011/S3, REQ-008/S4)", () => {
+test("a v2 payload migrates: preferences kept, traversal and session default, span dropped (practice.session/REQ-011/S3, theory.circle-of-fifths/REQ-008/S4)", () => {
   localStorage.clear();
   localStorage.setItem(
     storageKey,
@@ -65,7 +65,7 @@ test("a v2 payload migrates: preferences kept, traversal and session default, sp
   expect(loaded).not.toHaveProperty("span");
 });
 
-test("a 001-shape v1 payload migrates: ids carried, the rest defaulted (REQ-011/S3, REQ-008/S4)", () => {
+test("a 001-shape v1 payload migrates: ids carried, the rest defaulted (practice.session/REQ-011/S3, theory.circle-of-fifths/REQ-008/S4)", () => {
   localStorage.clear();
   localStorage.setItem(
     storageKey,
@@ -84,7 +84,7 @@ test("a 001-shape v1 payload migrates: ids carried, the rest defaulted (REQ-011/
   });
 });
 
-test("empty storage loads as null; first-run defaults match the spec (REQ-011/S2, REQ-008/S2)", () => {
+test("empty storage loads as null; first-run defaults match the spec (practice.session/REQ-011/S2, theory.circle-of-fifths/REQ-008/S2)", () => {
   localStorage.clear();
   expect(localStorageSelectionStore(localStorage).load()).toBeNull();
   expect(firstRunDefaults).toEqual({
@@ -106,7 +106,7 @@ test("empty storage loads as null; first-run defaults match the spec (REQ-011/S2
   });
 });
 
-test("corrupt or unrecognised stored state loads as null (REQ-008/S3)", () => {
+test("corrupt or unrecognised stored state loads as null (theory.circle-of-fifths/REQ-008/S3)", () => {
   localStorage.setItem(storageKey, "{not json");
   expect(localStorageSelectionStore(localStorage).load()).toBeNull();
   localStorage.setItem(storageKey, JSON.stringify({ schemaVersion: 9 }));
