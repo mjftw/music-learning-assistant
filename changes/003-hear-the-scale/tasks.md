@@ -49,7 +49,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T001 · — · Rust workspace, `sound` crate skeleton, build script, `pnpm check` gains cargo
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `Cargo.toml`, `src/sound/Cargo.toml`, `src/sound/src/lib.rs`, `scripts/build-sound.sh`
