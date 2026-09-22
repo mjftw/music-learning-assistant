@@ -16,7 +16,7 @@ verified:
     at: 2026-09-20T19:49:04Z
 sdd_id: 002-circle-redesign
 sdd_context: theory
-sdd_phase: approved
+sdd_phase: complete
 ---
 
 # Tasks: Circle redesign
@@ -38,7 +38,7 @@ sdd_phase: approved
 
 ### T001 · — · Dependency swap: fonts in, unused dev deps out, theme module
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `package.json`, `src/ui/main.tsx`
@@ -63,7 +63,7 @@ sdd_phase: approved
 
 ### T002 · — · Design-shots script for the review loop
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `scripts/design-shots.mjs`
@@ -87,7 +87,7 @@ sdd_phase: approved
 
 ### T003 [P] · theory.circle-of-fifths/REQ-009 (S1, S2), REQ-010 (S1 arc), REQ-001 (S1) · Arc positions and preference spelling
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/theory/domain/arc.ts`
@@ -158,7 +158,7 @@ sdd_phase: approved
 
 ### T004 [P] · theory.circle-of-fifths/REQ-011 (S1, S2, S3) · Span choices and span notes
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/theory/domain/span.ts`
@@ -221,7 +221,7 @@ sdd_phase: approved
 
 ### T005 · — · Selection store v2 with v1 migration
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/selection-store.ts`
@@ -275,7 +275,7 @@ sdd_phase: approved
 
 ### T006 · theory.circle-of-fifths/REQ-001 (S2), REQ-002 (S1, S2) · The circle rebuilt: wedges, hues, ring, centre disc, ♯/♭ pill
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/CircleOfFifths.tsx` (full rebuild), `src/ui/App.tsx` (spelling/degrees/ring state from `firstRunDefaults`; key title element)
@@ -336,7 +336,7 @@ sdd_phase: approved
 
 ### T007 · theory.circle-of-fifths/REQ-003 (S3), REQ-004 (S1, S2, S3), REQ-010 (S1) · Key panel shell and the names view
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/KeyPanel.tsx`, `src/ui/NamesView.tsx`
@@ -363,7 +363,7 @@ sdd_phase: approved
 
 ### T008 · theory.circle-of-fifths/REQ-009 (S3), REQ-010 (S2) · Settings drawer and header
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/SettingsDrawer.tsx`, `src/ui/Header.tsx`
@@ -390,7 +390,7 @@ sdd_phase: approved
 
 ### T009 · theory.circle-of-fifths/REQ-003 (S1, S2), REQ-007 (S1, S2), REQ-011 (pills) · The hand-drawn stave, spans, and VexFlow removal
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/StaveView.tsx`
@@ -417,7 +417,7 @@ sdd_phase: approved
 
 ### T010 · theory.instruments/REQ-001 (S2), REQ-003 (S2) — unchanged spec, new surface · Instrument bottom sheet
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/InstrumentSheet.tsx`
@@ -444,7 +444,7 @@ sdd_phase: approved
 
 ### T011 · theory.circle-of-fifths/REQ-008 (S1, S2, S3, S4) · Final wiring: persistence, layout column, footer
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/App.tsx` (persist all preferences; centred 390px column on wide screens; dashed footer placeholder `PLAY ALONG · DRONE · TEMPO`; body background `#ddd6c7` outside the column, `#efe9dc` inside), `src/ui/main.tsx` (if the column wrapper lives there)
@@ -467,7 +467,7 @@ sdd_phase: approved
 
 ### T012 · — · The design-review loop, run to convergence
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `changes/002-circle-redesign/notes.md` (findings per round), any `src/ui/*.tsx` file a visible difference traces to
@@ -486,7 +486,7 @@ sdd_phase: approved
 
 ### T013 · — · Edge sweep, checks, acceptance hand-off
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: existing suites (extend only if a gap is found)
@@ -501,6 +501,140 @@ sdd_phase: approved
 
 **Verify** — `pnpm check` → exit 0; `./scripts/check-scenarios.sh --change changes/002-circle-redesign` → no gaps; acceptance walk-through present with verdict pending
 
+### T014 · — · Remove the play-along footer placeholder (user decision 2026-09-21) · `Trivial`
+
+**Status:** done
+
+**Files**
+- Modify: `src/ui/App.tsx` (delete the footer placeholder block and every constant only it uses)
+- Modify: `scripts/design-shots.mjs` only if a state driver depends on the footer (it should not)
+
+**Interfaces**
+- Consumes / Produces: nothing — pure removal
+
+**Steps**
+- [ ] 1. `grep -rn "PLAY ALONG\|footer" src tests scripts` — list every reference; confirm no test asserts on the footer (if one does, stop and report rather than deleting the assertion)
+- [ ] 2. Delete the footer placeholder JSX block from `src/ui/App.tsx` and every `FOOTER_*` (or similarly named) constant that only it used; keep the column layout (max-width 390px, min-height 100vh, position relative, overflow hidden) exactly as is
+- [ ] 3. Run `pnpm check` — expect green, 52 tests; run `pnpm build` — expect success
+- [ ] 4. `grep -rn "PLAY ALONG" src` — expect no matches
+
+**Verify** — `pnpm check` → exit 0; `grep -rn "PLAY ALONG" src` → no output
+
+## Phase 7 — Convergence follow-ups (audit 2026-09-21: 0 critical, 4 warnings)
+
+### T015 · theory.circle-of-fifths/REQ-009 (S4), REQ-010 (S3) · Minor keys: the arc names and numbers the notes where they really are (W1)
+
+**Status:** done
+
+**Files**
+- Modify: `src/theory/domain/arc.ts`
+- Test: `tests/theory/scenarios/arc.test.ts` (add two scenario tests)
+
+**Interfaces**
+- Consumes: `Key`, `scaleNotesOf`, `circleOfFifths`, `spelledMajorAt` (as today)
+- Produces: `arcOf(key: Key, preference: SpellingPreference): readonly ArcPosition[]` — signature UNCHANGED; semantics corrected for `mode: 'naturalMinor'`:
+  - the seven positions are unchanged (signed steps -1…5 around the selected wedge's position index — a minor key shares its index, and its seven notes, with its relative major);
+  - `degree` for a minor key maps steps (-1,0,1,2,3,4,5) → (6,3,7,4,1,5,2) — the note at each position numbered from the minor tonic (major keys keep 4,1,5,2,6,3,7);
+  - `scaleName` stays `scaleNotesOf(key)[degree - 1]` (with the corrected degree it IS the note at that position);
+  - `wedgeName` is ALWAYS the outer (major) wedge's tonic under the spelling preference — for both modes — because the outer ring is where the notes live; `differsFromWedge` compares `scaleName` with it (the design reference's own rule, `spelled !== majorAt(i)`).
+
+**Steps**
+- [ ] 1. RED — scenarios theory.circle-of-fifths/REQ-009/S4 and theory.circle-of-fifths/REQ-010/S3 appended to `tests/theory/scenarios/arc.test.ts` (reuse the file's `spell` helper):
+  ```ts
+  const eMinor = { tonic: { letter: 'E', accidental: 'natural' }, mode: 'naturalMinor' } as const
+  test('theory.circle-of-fifths/REQ-009/S4 — a minor key’s arc names the notes where they are', () => {
+    const arc = arcOf(eMinor, 'sharp')
+    expect(arc).toHaveLength(7)
+    const nameAt = (index: number) => spell(arc.find((position) => position.positionIndex === index)!.scaleName)
+    expect([0, 1, 2, 3, 4, 5, 6].map(nameAt)).toEqual(['C', 'G', 'D', 'A', 'E', 'B', 'F#'])
+    expect(arc.every((position) => position.differsFromWedge === false)).toBe(true)
+  })
+  test('theory.circle-of-fifths/REQ-010/S3 — a minor key numbers from its own tonic', () => {
+    const arc = arcOf(eMinor, 'sharp')
+    const degreeAt = (index: number) => arc.find((position) => position.positionIndex === index)!.degree
+    expect([0, 1, 2, 3, 4, 5, 6].map(degreeAt)).toEqual([6, 3, 7, 4, 1, 5, 2])
+  })
+  ```
+- [ ] 2. Run `pnpm vitest run tests/theory/scenarios/arc.test.ts` — expect FAIL: position 0 reads `A` (degree 4), not `C` (degree 6)
+- [ ] 3. GREEN — in `arc.ts` select the step→degree map by `key.mode`; take `wedgeName` from `spelledMajorAt` for both modes; name the two maps for what they are (e.g. `MAJOR_DEGREE_BY_SIGNED_STEP`, `NATURAL_MINOR_DEGREE_BY_SIGNED_STEP`) with a why-comment: relative keys share one arc, numbered from different tonics
+- [ ] 4. Run the same command — expect PASS (5 passed); `pnpm check` — green (the existing major-key scenarios REQ-009/S1, S2 and REQ-010/S1 must pass unchanged)
+- [ ] 5. REFACTOR — none
+
+**Verify** — `pnpm vitest run tests/theory/scenarios/arc.test.ts` → `5 passed`; `pnpm check` → exit 0
+
+### T016 · theory.circle-of-fifths/REQ-003 (S1), REQ-004 (S1, S2) · The centre-disc key signature is actually asserted (W2)
+
+**Status:** done
+
+**Files**
+- Test: `tests/ui/scenarios/centre-signature.test.tsx` (new)
+
+**Interfaces**
+- Consumes: the rendered `App`; `data-testid="signature-glyph"` elements in the circle's centre disc, each with `data-accented="true|false"` (from T006)
+
+**Steps**
+- [ ] 1. RED-by-construction (the behaviour exists; the test must be able to fail): in `tests/ui/scenarios/centre-signature.test.tsx` add tests named `theory.circle-of-fifths/REQ-003/S1 — the centre disc carries G major’s one-sharp signature`, `theory.circle-of-fifths/REQ-004/S1 — G major’s F♯ glyph is the accented one in the centre`, `theory.circle-of-fifths/REQ-004/S2 — B♭ major accents its second flat in the centre`: render `App` (empty storage), click `G major` → exactly 1 `signature-glyph`, text `♯`, `data-accented="true"`; click `B♭ major` → exactly 2 glyphs, both `♭`, only the LAST `data-accented="true"`; click `C major` → 0 glyphs
+- [ ] 2. Prove each test can fail: temporarily invert the accent condition in `src/ui/CircleOfFifths.tsx`, run the file, confirm the REQ-004 tests FAIL, then restore the source exactly (`git diff --stat src/` must be empty afterwards)
+- [ ] 3. Run `pnpm vitest run tests/ui/scenarios/centre-signature.test.tsx` — expect PASS (3 passed); `pnpm check` — green
+
+**Verify** — `pnpm vitest run tests/ui/scenarios/centre-signature.test.tsx` → `3 passed`; `git diff --stat src/` → empty
+
+### T017 · — · Stale citation and dead code from the rebuild (W3, W4) · `Trivial`
+
+**Status:** done
+
+**Files**
+- Modify: `tests/theory/scenarios/circle.test.ts`, `src/ui/theme.ts`, `src/ui/overlay.tsx`, `src/theory/domain/key-view.ts`, `src/theory/published/index.ts` (only if an export goes), `tests/theory/scenarios/key-view.test.ts`
+
+**Steps**
+- [ ] 1. W3 — `tests/theory/scenarios/circle.test.ts`: the test titled `theory.circle-of-fifths/REQ-002/S1 — six o’clock offers both F# and Gb major` cites a scenario whose v0.2.0 meaning is the global spelling preference (covered in `tests/ui/scenarios/circle-spelling.test.tsx`). Keep the assertion (the theory still exposes both spellings at dual positions) but retitle it WITHOUT a scenario ID: `circleOfFifths() exposes both spellings at the six o’clock position (theory supports the spelling preference)`
+- [ ] 2. W4a — `src/ui/theme.ts`: delete the `dash` token (zero references since the footer was removed)
+- [ ] 3. W4b — `src/ui/overlay.tsx`: stop exporting what nothing imports (`OverlayCloseButton` and the constants used only inside the file become module-private); delete anything wholly unused
+- [ ] 4. W4c — `KeyView.relative`: REQ-003 no longer names the relative key and no UI reads the field. Remove `relative` from `KeyView` and from `keyView()` in `src/theory/domain/key-view.ts`; in `tests/theory/scenarios/key-view.test.ts` replace the two `view.relative` assertions with direct calls to the still-published `relativeOf(key)` so the relative-key theory stays tested
+- [ ] 5. Run `pnpm check` — green; `./scripts/check-scenarios.sh --change changes/002-circle-redesign` — every scenario still cited
+
+**Verify** — `pnpm check` → exit 0; `grep -rn "paper.dash\|dash:" src/ui/theme.ts` → no output; `grep -rn "\.relative" src tests` → no output
+
+## Phase 8 — Acceptance findings
+
+### T018 · theory.circle-of-fifths/REQ-001 · Selected wedge labels always fit inside their wedge (user finding, 2026-09-21)
+
+**Status:** done
+
+**Files**
+- Modify: `src/ui/CircleOfFifths.tsx`
+- Test: `tests/ui/scenarios/circle-interaction.test.tsx` (one guard test)
+
+**Interfaces**
+- Consumes / Produces: no signature changes — presentation only
+
+**Context** — the design reference enlarges the selected wedge's label (major 19→23px weight 700; minor 14→17px weight 700). Three-character minor labels (`C♯m`, `F♯m`, `G♯m`, `D♯m`, `A♯m`, `B♭m`, `E♭m`, `A♭m`) overflow the inner wedge when selected, worst on the slanted wedges at the sides of the circle. The user asked for this fixed; it deliberately overrides the reference's literal selected sizes where they do not fit (docs/decisions.md 2026-09-21).
+
+**Steps**
+- [ ] 1. Evidence first: write a throwaway Playwright script under `.sdd/design-review/` (not committed) that loads the running app and, for BOTH spelling preferences, selects each of the 12 minor wedges and each of the 12 major wedges in turn, screenshotting the circle each time into `.sdd/design-review/fit/`. Read the shots and list which selected labels overflow or touch their wedge edge
+- [ ] 2. RED — guard test in `tests/ui/scenarios/circle-interaction.test.tsx` named `a selected wedge label never uses a larger font than fits its label length`: select `C♯ minor` and assert the selected label's computed font size (expose it as `data-font-size` on the label element, or read the inline style) is smaller than the font size used for selected `A minor`; and that selected `A minor` still uses the reference's 17
+- [ ] 3. GREEN — in `CircleOfFifths.tsx` make the SELECTED label size a function of the label's character count, per ring: keep the reference's size (minor 17, major 23) for labels that fit, and step down for longer labels to the largest size at which NO wedge position overflows in the step-1 sweep (expected shape: minor 2 chars → 17, 3 chars → about 14–15; major 1 char → 23, 2 chars → whatever the sweep shows fits, possibly unchanged). Named constants with a why-comment citing this decision; unselected sizes (19 / 14) unchanged
+- [ ] 4. Re-run the step-1 sweep; Read every shot; confirm no selected label overflows or touches an edge at any of the 24 wedges under either preference. `pnpm check` green
+- [ ] 5. REFACTOR — none
+
+**Verify** — `pnpm check` → exit 0; the sweep shots in `.sdd/design-review/fit/` show every selected label inside its wedge
+
+### T019 · — · No tap-highlight flash on touch devices (user finding, 2026-09-21) · `Trivial`
+
+**Status:** done
+
+**Files**
+- Modify: `src/ui/global.css`
+
+**Context** — on the user's phone, tapping a circle segment flashes a blue box for a moment: the mobile browser's default tap highlight, painted over the bounding rectangle of the tapped focusable element (the wedges are focusable SVG shapes, so the highlight is a rectangle, not the wedge).
+
+**Steps**
+- [ ] 1. In `src/ui/global.css` add `-webkit-tap-highlight-color: transparent;` to the existing `.circle-wedge` rule, and add the same declaration to the existing `button` rule so the pills, header pill, sheet rows and drawer switches do not flash either. One why-comment: the app gives its own selected/pressed feedback, and the default highlight paints a rectangle over non-rectangular wedges
+- [ ] 2. Keyboard accessibility must be unaffected: do NOT touch `outline` or the focus-ring overlay
+- [ ] 3. Run `pnpm check` — green (59 tests); `pnpm build` — succeeds
+
+**Verify** — `grep -c "tap-highlight-color" src/ui/global.css` → `2`; `pnpm check` → exit 0. Final proof is the user's phone (headless desktop Chromium does not paint tap highlights)
+
 ## Coverage
 
 | Requirement | Tasks | Covered |
@@ -511,8 +645,8 @@ sdd_phase: approved
 | theory.circle-of-fifths/REQ-004 (M) | T007 (S1, S2, S3) | ✅ |
 | theory.circle-of-fifths/REQ-007 (M) | T009 (S1, S2) | ✅ |
 | theory.circle-of-fifths/REQ-008 (M) | T011 (S1–S4); store mechanics T005 | ✅ |
-| theory.circle-of-fifths/REQ-009 (A) | T003 (S1, S2), T008 (S3) | ✅ |
-| theory.circle-of-fifths/REQ-010 (A) | T003 (S1 arc), T007 (S1 names), T008 (S2) | ✅ |
+| theory.circle-of-fifths/REQ-009 (A) | T003 (S1, S2), T008 (S3), T015 (S4) | ✅ |
+| theory.circle-of-fifths/REQ-010 (A) | T003 (S1 arc), T007 (S1 names), T008 (S2), T015 (S3) | ✅ |
 | theory.circle-of-fifths/REQ-011 (A) | T004 (S1, S2, S3), T009 (pill rendering) | ✅ |
 | theory.circle-of-fifths/REQ-005, REQ-006 (untouched) | guard: existing tests must stay green throughout; T004 asserts span ⊆ range | ✅ |
 | theory.instruments (untouched) | T010 re-expresses S2 scenarios against the sheet | ✅ |
@@ -533,7 +667,6 @@ sdd_phase: approved
 ## Deferred
 
 - Wide/desktop layout — decision 2026-09-20; a later change.
-- Removing the dashed footer placeholder — it leaves with change 003's real
-  play-along bar.
+- ~~Removing the dashed footer placeholder with change 003~~ — superseded: the user removed it in this change (T014, decision 2026-09-21).
 - The vendored design's other studies (1a, 1b, colour studies) — reference
   history only; 1c is the binding design.

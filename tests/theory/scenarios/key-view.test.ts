@@ -1,5 +1,9 @@
 import { expect, test } from "vitest";
-import { builtInCatalogue, keyView } from "../../../src/theory/published";
+import {
+  builtInCatalogue,
+  keyView,
+  relativeOf,
+} from "../../../src/theory/published";
 import type { Variant, VariantId } from "../../../src/theory/published";
 const variants = () =>
   builtInCatalogue().instruments.flatMap((instrument) => instrument.variants);
@@ -47,7 +51,7 @@ test("theory.circle-of-fifths/REQ-003/S1 — G major on the flute (acceptance)",
       .filter((entry) => entry.isRoot)
       .map((entry) => label(entry.note)),
   ).toEqual(["G4", "G5", "G6"]);
-  expect(view.relative).toEqual({
+  expect(relativeOf(gMajor)).toEqual({
     tonic: { letter: "E", accidental: "natural" },
     mode: "naturalMinor",
   });
@@ -80,7 +84,12 @@ test("theory.circle-of-fifths/REQ-001/S2 — E minor stands on its own", () => {
   expect(
     view.notes.some((entry) => entry.isRoot && entry.note.letter === "E"),
   ).toBe(true);
-  expect(view.relative).toEqual(gMajor);
+  expect(
+    relativeOf({
+      tonic: { letter: "E", accidental: "natural" },
+      mode: "naturalMinor",
+    }),
+  ).toEqual(gMajor);
 });
 test("theory.circle-of-fifths/REQ-002/S2 — Gb major spells flat, F# major spells sharp", () => {
   const flute = byId("flute-concert");

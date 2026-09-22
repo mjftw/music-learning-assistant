@@ -2,6 +2,16 @@
 
 Chronological history of this bundle. Newest date first.
 
+## 2026-09-22
+
+- Roadmap `docs/roadmap.md` → approved (human:merlin-webster)
+- Glossary `docs/glossary.md` → approved (human:merlin-webster)
+- Capability Spec `specs/theory/circle-of-fifths.md` → current (human:merlin-webster)
+
+## 2026-09-21
+
+- Spec Delta `changes/002-circle-redesign/delta/theory/circle-of-fifths.md` → approved (human:merlin-webster)
+
 ## 2026-09-20
 
 - Task List `changes/002-circle-redesign/tasks.md` → approved (human:merlin-webster)

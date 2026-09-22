@@ -20,13 +20,14 @@ test("theory.instruments/REQ-001/S2 — completing a selection names a variant",
       selectionStore={localStorageSelectionStore(localStorage)}
     />,
   );
-  await userEvent.selectOptions(
-    screen.getByRole("combobox", { name: "Instrument" }),
-    "ocarina-alto-c",
-  );
+  await userEvent.click(screen.getByRole("button", { name: "Instrument" }));
+  await userEvent.click(screen.getByRole("button", { name: "Ocarina Alto C" }));
   expect(screen.getByTestId("current-variant").textContent).toBe(
-    "Ocarina — Alto C",
+    "Ocarina Alto C",
   );
+  expect(
+    screen.queryByRole("button", { name: "Close instrument picker" }),
+  ).toBeNull();
 });
 
 test("theory.instruments/REQ-003/S2 — the notice interrupts nothing", async () => {

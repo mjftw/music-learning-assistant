@@ -2,7 +2,7 @@ import type { Key } from "./keys";
 import { scaleNotesOf } from "./keys";
 import type { Note, PitchClass } from "./notes";
 import { pitchPosition } from "./notes";
-import { newAccidentalOf, relativeOf, signatureOf } from "./signatures";
+import { newAccidentalOf, signatureOf } from "./signatures";
 import type { Signature } from "./signatures";
 import type { Variant } from "../instruments/catalogue";
 
@@ -15,7 +15,6 @@ export interface KeyView {
   readonly signature: Signature;
   readonly notes: readonly KeyViewNote[];
   readonly newAccidental: PitchClass | null;
-  readonly relative: Key;
 }
 
 function samePitchClass(a: PitchClass, b: PitchClass): boolean {
@@ -46,6 +45,5 @@ export function keyView(key: Key, variant: Variant): KeyView {
     signature: signatureOf(key),
     notes,
     newAccidental: newAccidentalOf(key),
-    relative: relativeOf(key),
   };
 }

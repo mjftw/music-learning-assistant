@@ -15,6 +15,8 @@ verified:
     at: 2026-09-19T15:48:37Z
   - by: human:merlin-webster
     at: 2026-09-20T18:53:54Z
+  - by: human:merlin-webster
+    at: 2026-09-22T16:33:44Z
 sdd_phase: approved
 ---
 
@@ -44,6 +46,7 @@ sdd_phase: approved
 | Temperament | `theory` | The tuning system giving each note its pitch: just or equal | — | intent-product |
 | NoteSequence | `theory` | The concrete list of notes produced by fitting a scale/arpeggio traversal to an instrument's range | Traversal — the recipe, not the result | domain map |
 | Traversal | `theory` | How a scale or arpeggio is walked: 1 or 2 octaves, up and/or down | NoteSequence — the resulting notes | intent-product |
+| Span | `theory` | Which part of the key's in-range notes the stave shows: a whole-octave run up from a tonic, or the full range | Traversal — how playback walks a scale (change 003); a span has no direction | 002-circle-redesign |
 | Session | `practice` | One run of practising: instrument, key, traversal, mode, tempo, and the position within the sequence | — | domain map |
 | Mode | `practice` | Who leads: tool leads (it plays, learner follows) or learner leads (it shows the target, listens, advances) | Musical mode (Dorian etc.) — not used in this product yet | intent-product |
 | Target note | `practice` | The note the learner should be playing right now | — | domain map |
@@ -55,3 +58,4 @@ sdd_phase: approved
 | Cents | shared | 1/100 of a semitone; the unit of sharp/flat offset everywhere | Hz — the raw frequency unit, used only inside `listening` | domain map |
 | Stave | UI | The five-line notation display showing the current scale's notes | Sheet music — displaying songs is out of scope | intent-product |
 | Tooltip | UI | A small explanation of the theory behind what is on screen, available on demand and never interrupting | Notifications or pop-ups — forbidden by Article VI | intent-product |
+| Distance ring | UI | The arc over the key's seven circle positions, coloured by distance from the selected key (warm sharpward, cool flatward), carrying the scale degrees and the key's own names for those notes | The wedges — which keep their fixed labels and hues regardless of selection | 002-circle-redesign |

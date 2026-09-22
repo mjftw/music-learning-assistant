@@ -1,0 +1,41 @@
+/* Page background outside the app column — verbatim from the vendored
+   visual reference (changes/002-circle-redesign/design/
+   Circle 1c Function Paper.dc.html)'s `body{margin:0;background:#ddd6c7}`.
+   The column itself carries the paper frame colour (`#efe9dc`, see
+   App.tsx's COLUMN_BACKGROUND); this is only what shows either side of it
+   on a viewport wider than the column. */
+/* Suppress tap highlight on mobile; inherited, so it covers every tappable
+   element in the app (wedges, buttons, the overlay scrim). The app
+   supplies its own pressed/selected feedback. */
+body {
+  margin: 0;
+  background: #ddd6c7;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Circle wedges (src/ui/CircleOfFifths.tsx) are keyboard-activatable
+   (role="button" tabIndex={0}). The browser's default focus outline is
+   suppressed entirely — not just for pointer focus — because Chromium
+   renders `outline` on a non-rectangular SVG <path> as a partial fragment
+   bleeding into the neighbouring wedge, never a full ring (confirmed with
+   keyboard-focus screenshots, T012 fixer round). CircleOfFifths.tsx paints
+   the actual keyboard-focus ring itself instead, as a same-shaped overlay
+   <path> stroked in the theme accent — the single source of that colour,
+   so it isn't duplicated here. */
+.circle-wedge {
+  outline: none;
+}
+
+/* The browser's UA stylesheet gives <button> its own system font instead of
+   inheriting the page's (App.tsx sets fontFamily: fonts.body on the root
+   column) — the vendored reference has no such gap, since its interactive
+   elements are plain <div onClick> rather than real buttons. Round 1 of the
+   design-review loop (002 T012) found every button rendering in Arial
+   instead of Public Sans/JetBrains Mono once fonts were served fairly on
+   both sides (design-shots' font fulfilment). `font: inherit` restores the
+   inheritance; each button's own inline fontSize/fontWeight still wins
+   where set, since inline style beats any stylesheet rule regardless of
+   this selector's specificity. */
+button {
+  font: inherit;
+}

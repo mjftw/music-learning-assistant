@@ -3,60 +3,144 @@ import {
   circleOfFifths,
   keyId as keyIdOf,
   keyView,
+  spanChoicesOf,
+  spanNotesOf,
+  spelledMajorAt,
+  spelledMinorAt,
   type Catalogue,
   type Key,
-  type Signature,
+  type KeyView,
+  type Mode,
+  type Span,
+  type SpellingPreference,
   type Variant,
 } from "../theory/published";
 import { findVariantById } from "./catalogue-lookup";
-import { CircleOfFifths } from "./CircleOfFifths";
-import { InstrumentSelector } from "./InstrumentSelector";
-import { keyLabel, pitchClassLabel } from "./key-label";
-import { KeyViewStave } from "./KeyViewStave";
+import { CircleOfFifths, locateSpelledKey } from "./CircleOfFifths";
+import { Header } from "./Header";
+import { InstrumentSheet } from "./InstrumentSheet";
+import { keyLabel, noteLabel, pitchClassLabel } from "./key-label";
+import { KeyPanel, type SpanChoicePill } from "./KeyPanel";
+import { NamesView } from "./NamesView";
 import { Notices } from "./Notices";
-import type { SelectionStore, StoredSelection } from "./selection-store";
+import {
+  firstRunDefaults,
+  type SelectionStore,
+  type StoredSelection,
+  type StoredSpan,
+} from "./selection-store";
+import { SettingsDrawer } from "./SettingsDrawer";
+import { StaveView } from "./StaveView";
+import { fonts, paper } from "./theme";
 
 const DEFAULT_VARIANT_ID = "flute-concert";
 const DEFAULT_KEY_ID = "C-major";
-const DEFAULT_NOTE_NAMES_VISIBLE = true;
 
-function findKeyById(keyId: string): Key | undefined {
-  for (const position of circleOfFifths()) {
-    for (const key of [...position.majors, ...position.minors]) {
-      if (keyIdOf(key) === keyId) return key;
-    }
+// Geometry and colour below are copied verbatim from the vendored visual
+// reference (changes/002-circle-redesign/design/Circle 1c Function Paper.dc.html
+// — the outer frame, key-name row and circle wrapper blocks) — named here
+// rather than re-derived by eye. The reference fixes the frame at 390×844
+// (one phone screenshot); this column keeps the same 390px width but grows
+// with the viewport (`min-height: 100vh`) instead of a fixed height.
+const COLUMN_MAX_WIDTH = 390;
+const COLUMN_MIN_HEIGHT = "100vh";
+const COLUMN_BACKGROUND = paper.frame;
+
+const KEY_NAME_ROW_PADDING = "6px 16px 0";
+const KEY_NAME_FONT_SIZE = 46;
+
+const CIRCLE_WRAPPER_MARGIN = "0 auto";
+// Not from the reference (a fixed 390×844 screenshot has no wider viewport
+// to centre within) — this app's own choice for how the column behaves on
+// a viewport wider than 390px.
+const COLUMN_CENTERING_MARGIN = "0 auto";
+
+function headerInstrumentLabel(variant: Variant): string {
+  return `${variant.instrumentName} ${variant.variantName}`;
+}
+
+function headerRangeLabel(variant: Variant): string {
+  return `${noteLabel(variant.range.lowest)}–${noteLabel(variant.range.highest)}`;
+}
+
+// Maps the store's stringly-typed span (`'full' | 'oct-1'…'oct-4'`) to and
+// from the `Span` sum type published/consumed by the theory context (T004's
+// `spanChoicesOf`/`spanNotesOf`) — see .sdd/briefs/002-circle-redesign/
+// T009.md's additional context.
+function spanFromStored(stored: StoredSpan): Span {
+  if (stored === "full") return { kind: "full" };
+  const count = Number(stored.slice("oct-".length));
+  if (count !== 1 && count !== 2 && count !== 3 && count !== 4) {
+    throw new Error(`unreachable: invalid stored span "${stored}"`);
   }
-  return undefined;
+  return { kind: "octaves", count };
 }
 
-function variantLabel(variant: Variant): string {
-  return `${variant.instrumentName} — ${variant.variantName}`;
+function storedFromSpan(span: Span): StoredSpan {
+  return span.kind === "full" ? "full" : (`oct-${span.count}` as StoredSpan);
 }
 
-function relativeKeyLabel(key: Key, relative: Key): string {
-  const relativeModeLabel = key.mode === "major" ? "minor" : "major";
-  return `Relative ${relativeModeLabel}: ${keyLabel(relative)}`;
+function spanEquals(a: Span, b: Span): boolean {
+  if (a.kind === "full" || b.kind === "full") return a.kind === b.kind;
+  return a.count === b.count;
 }
 
-function signatureSummary(signature: Signature): string {
-  if (signature.kind === "none") return "no accidentals";
-  const singularKind = signature.kind === "sharps" ? "sharp" : "flat";
-  const kindLabel = signature.count === 1 ? singularKind : signature.kind;
-  const accidentalsLabel = signature.accidentals.map(pitchClassLabel).join(" ");
-  return `${signature.count} ${kindLabel} (${accidentalsLabel})`;
+function spanPillLabel(span: Span): string {
+  return span.kind === "full" ? "full" : `${span.count} oct`;
 }
 
+// "22 notes · C4–C7" — the full in-range note count and extremes
+// (theory.circle-of-fifths/REQ-003), independent of the chosen span.
+function rangeSummaryText(view: KeyView): string {
+  const first = view.notes[0];
+  const last = view.notes[view.notes.length - 1];
+  if (first === undefined || last === undefined)
+    return "no notes of this key in range";
+  return `${view.notes.length} notes · ${noteLabel(first.note)}–${noteLabel(last.note)}`;
+}
+
+// "1 oct from G · 8" / "all 22 in range" (theory.circle-of-fifths/REQ-011).
+function spanCaptionText(
+  span: Span,
+  tonic: Key["tonic"],
+  shownNoteCount: number,
+): string {
+  return span.kind === "full"
+    ? `all ${shownNoteCount} in range`
+    : `${span.count} oct from ${pitchClassLabel(tonic)} · ${shownNoteCount}`;
+}
+
+// The selection is kept keyed by circle position, not by key id — a
+// respell (theory.circle-of-fifths/REQ-002/S2) then falls out of re-deriving
+// the key from the same position under the new spelling, rather than the UI
+// having to special-case it.
 interface Selection {
   readonly variantId: string;
-  readonly keyId: string;
-  readonly noteNamesVisible: boolean;
+  readonly positionIndex: number;
+  readonly mode: Mode;
+  readonly spelling: SpellingPreference;
+  readonly view: "names" | "stave";
+  readonly span: Span;
+  readonly degreesEnabled: boolean;
+  readonly distanceRingEnabled: boolean;
+  readonly staveNamesEnabled: boolean;
 }
 
 function defaultSelection(): Selection {
+  const located = locateSpelledKey(DEFAULT_KEY_ID, firstRunDefaults.spelling);
+  if (located === undefined) {
+    throw new Error("unreachable: default key is not on the circle of fifths");
+  }
   return {
     variantId: DEFAULT_VARIANT_ID,
-    keyId: DEFAULT_KEY_ID,
-    noteNamesVisible: DEFAULT_NOTE_NAMES_VISIBLE,
+    positionIndex: located.position.index,
+    mode: located.key.mode,
+    spelling: firstRunDefaults.spelling,
+    view: firstRunDefaults.view,
+    span: spanFromStored(firstRunDefaults.span),
+    degreesEnabled: firstRunDefaults.degreesEnabled,
+    distanceRingEnabled: firstRunDefaults.distanceRingEnabled,
+    staveNamesEnabled: firstRunDefaults.staveNamesEnabled,
   };
 }
 
@@ -67,12 +151,18 @@ function initialSelection(
   const stored = selectionStore.load();
   if (stored === null) return defaultSelection();
   const variant = findVariantById(catalogue, stored.variantId);
-  const key = findKeyById(stored.keyId);
-  if (variant === undefined || key === undefined) return defaultSelection();
+  const located = locateSpelledKey(stored.keyId, stored.spelling);
+  if (variant === undefined || located === undefined) return defaultSelection();
   return {
     variantId: stored.variantId,
-    keyId: stored.keyId,
-    noteNamesVisible: stored.noteNamesVisible,
+    positionIndex: located.position.index,
+    mode: located.key.mode,
+    spelling: stored.spelling,
+    view: stored.view,
+    span: spanFromStored(stored.span),
+    degreesEnabled: stored.degreesEnabled,
+    distanceRingEnabled: stored.distanceRingEnabled,
+    staveNamesEnabled: stored.staveNamesEnabled,
   };
 }
 
@@ -84,82 +174,201 @@ export function App(props: {
   const [selection, setSelection] = useState<Selection>(() =>
     initialSelection(catalogue, selectionStore),
   );
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [instrumentSheetOpen, setInstrumentSheetOpen] = useState(false);
+
+  const position = circleOfFifths()[selection.positionIndex];
+  if (position === undefined) {
+    throw new Error("unreachable: selection position index out of range");
+  }
+  const selectedKey =
+    selection.mode === "major"
+      ? spelledMajorAt(position, selection.spelling)
+      : spelledMinorAt(position, selection.spelling);
+
+  // initialSelection already resolved variantId to a value that exists in
+  // this catalogue (falling back to the default when it didn't), so this
+  // always resolves; no further fallback is needed here.
+  const variant = findVariantById(catalogue, selection.variantId);
 
   useEffect(() => {
     const toSave: StoredSelection = {
-      schemaVersion: 1,
+      ...firstRunDefaults,
       variantId: selection.variantId,
-      keyId: selection.keyId,
-      noteNamesVisible: selection.noteNamesVisible,
+      keyId: keyIdOf(selectedKey),
+      spelling: selection.spelling,
+      view: selection.view,
+      span: storedFromSpan(selection.span),
+      degreesEnabled: selection.degreesEnabled,
+      distanceRingEnabled: selection.distanceRingEnabled,
+      staveNamesEnabled: selection.staveNamesEnabled,
     };
     selectionStore.save(toSave);
-  }, [selection, selectionStore]);
+  }, [selection, selectedKey, selectionStore]);
 
-  // initialSelection already resolved variantId/keyId to values that exist
-  // in this catalogue/circle before this state was set (falling back to the
-  // default when they didn't), so these always resolve; no further fallback
-  // is needed here.
-  const variant = findVariantById(catalogue, selection.variantId);
-  const key = findKeyById(selection.keyId);
+  // theory.circle-of-fifths/REQ-011: once the key or variant changes, a
+  // span the user had chosen may no longer fit — reset to full rather than
+  // showing a span the pills no longer offer.
+  useEffect(() => {
+    if (variant === undefined) return;
+    const stillOffered = spanChoicesOf(selectedKey, variant).some((choice) =>
+      spanEquals(choice.span, selection.span),
+    );
+    if (stillOffered) return;
+    setSelection((current) => ({ ...current, span: { kind: "full" } }));
+  }, [keyIdOf(selectedKey), selection.variantId, variant, selection.span]);
+
   const view =
-    key === undefined || variant === undefined
-      ? undefined
-      : keyView(key, variant);
+    variant === undefined ? undefined : keyView(selectedKey, variant);
+  const spanChoices: readonly SpanChoicePill[] =
+    variant === undefined
+      ? []
+      : spanChoicesOf(selectedKey, variant).map((choice) => ({
+          key: spanPillLabel(choice.span),
+          label: spanPillLabel(choice.span),
+          active: spanEquals(choice.span, selection.span),
+          onSelect: () =>
+            setSelection((current) => ({ ...current, span: choice.span })),
+        }));
+  const shownSpanNoteCount =
+    variant === undefined
+      ? 0
+      : spanNotesOf(selectedKey, variant, selection.span).length;
 
   return (
-    <div>
+    <div
+      style={{
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        maxWidth: COLUMN_MAX_WIDTH,
+        minHeight: COLUMN_MIN_HEIGHT,
+        margin: COLUMN_CENTERING_MARGIN,
+        overflow: "hidden",
+        background: COLUMN_BACKGROUND,
+        color: paper.ink,
+        fontFamily: fonts.body,
+      }}
+    >
+      <Header
+        variantLabel={
+          variant === undefined ? "" : headerInstrumentLabel(variant)
+        }
+        rangeLabel={variant === undefined ? "" : headerRangeLabel(variant)}
+        onOpenPicker={() => setInstrumentSheetOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
       <Notices notices={catalogue.notices} />
-      <InstrumentSelector
+      <div style={{ margin: CIRCLE_WRAPPER_MARGIN, flex: "none" }}>
+        <CircleOfFifths
+          selectedKeyId={keyIdOf(selectedKey)}
+          spelling={selection.spelling}
+          degreesEnabled={selection.degreesEnabled}
+          distanceRingEnabled={selection.distanceRingEnabled}
+          onSelectKey={(selectedWedgeKey) => {
+            const located = locateSpelledKey(
+              keyIdOf(selectedWedgeKey),
+              selection.spelling,
+            );
+            if (located === undefined) return;
+            setSelection((current) => ({
+              ...current,
+              positionIndex: located.position.index,
+              mode: located.key.mode,
+            }));
+          }}
+          onSelectSpelling={(preference) =>
+            setSelection((current) => ({ ...current, spelling: preference }))
+          }
+        />
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: KEY_NAME_ROW_PADDING,
+        }}
+      >
+        <div
+          data-testid="current-key"
+          style={{
+            fontFamily: fonts.display,
+            fontSize: KEY_NAME_FONT_SIZE,
+            lineHeight: 1,
+            color: paper.ink,
+          }}
+        >
+          {keyLabel(selectedKey)}
+        </div>
+      </div>
+      <KeyPanel
+        view={selection.view}
+        onSelectView={(selectedView) =>
+          setSelection((current) => ({ ...current, view: selectedView }))
+        }
+        rangeSummary={view === undefined ? "" : rangeSummaryText(view)}
+        spanCaption={spanCaptionText(
+          selection.span,
+          selectedKey.tonic,
+          shownSpanNoteCount,
+        )}
+        spanChoices={spanChoices}
+      >
+        {selection.view === "names" ? (
+          <NamesView
+            key_={selectedKey}
+            degreesEnabled={selection.degreesEnabled}
+          />
+        ) : (
+          variant !== undefined && (
+            <StaveView
+              key_={selectedKey}
+              variant={variant}
+              span={selection.span}
+              staveNamesEnabled={selection.staveNamesEnabled}
+            />
+          )
+        )}
+      </KeyPanel>
+      <SettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        staveNamesEnabled={selection.staveNamesEnabled}
+        degreesEnabled={selection.degreesEnabled}
+        distanceRingEnabled={selection.distanceRingEnabled}
+        onToggleStaveNames={() =>
+          setSelection((current) => ({
+            ...current,
+            staveNamesEnabled: !current.staveNamesEnabled,
+          }))
+        }
+        onToggleDegrees={() =>
+          setSelection((current) => ({
+            ...current,
+            degreesEnabled: !current.degreesEnabled,
+          }))
+        }
+        onToggleRing={() =>
+          setSelection((current) => ({
+            ...current,
+            distanceRingEnabled: !current.distanceRingEnabled,
+          }))
+        }
+      />
+      <InstrumentSheet
+        open={instrumentSheetOpen}
         catalogue={catalogue}
         selectedVariantId={selection.variantId}
-        onSelect={(selectedVariant) =>
+        onSelect={(selectedVariant) => {
           setSelection((current) => ({
             ...current,
             variantId: selectedVariant.variantId,
-          }))
-        }
+          }));
+          setInstrumentSheetOpen(false);
+        }}
+        onClose={() => setInstrumentSheetOpen(false)}
       />
-      <p data-testid="current-key">{key === undefined ? "" : keyLabel(key)}</p>
-      <p data-testid="current-variant">
-        {variant === undefined ? "" : variantLabel(variant)}
-      </p>
-      <p data-testid="relative-key">
-        {key === undefined || view === undefined
-          ? ""
-          : relativeKeyLabel(key, view.relative)}
-      </p>
-      <p data-testid="signature-summary">
-        {view === undefined ? "" : signatureSummary(view.signature)}
-      </p>
-      <CircleOfFifths
-        selectedKeyId={selection.keyId}
-        onSelect={(selectedKey) =>
-          setSelection((current) => ({
-            ...current,
-            keyId: keyIdOf(selectedKey),
-          }))
-        }
-      />
-      {view === undefined ? null : (
-        <KeyViewStave
-          view={view}
-          noteNamesVisible={selection.noteNamesVisible}
-        />
-      )}
-      <button
-        type="button"
-        role="switch"
-        aria-checked={selection.noteNamesVisible}
-        aria-label="Note names"
-        onClick={() =>
-          setSelection((current) => ({
-            ...current,
-            noteNamesVisible: !current.noteNamesVisible,
-          }))
-        }
-      >
-        Note names
-      </button>
     </div>
   );
 }
