@@ -38,11 +38,16 @@ function isTaggedCommand(command: SoundCommand): command is TaggedCommand {
 
 export class FakeSound implements SoundPort {
   frame = 0;
+  // How many times start() has been called — practice.session/REQ-010/S2
+  // asserts this is 0 before the session's start() runs: no sound and no
+  // permission prompt before the first gesture.
+  startCalls = 0;
   readonly posted: SoundCommand[] = [];
   failWith: SoundUnavailable | null = null;
   private readonly listeners = new Set<(report: OnsetReport) => void>();
 
   start(): Promise<Result<void, SoundUnavailable>> {
+    this.startCalls += 1;
     if (this.failWith !== null) {
       return Promise.resolve({ ok: false, error: this.failWith });
     }

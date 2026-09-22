@@ -59,6 +59,9 @@ test("practice.session/REQ-002/S1 — G major up and down (acceptance)", async (
   const firstTone = sound.posted.filter(isTone)[0]!;
   expect(firstTone.hz).toBeCloseTo(392.0, 1);
   expect(firstTone.tag).toBe(0);
+  // The caption follows the tone's onset (practice.session/REQ-006), not
+  // the moment the lookahead scheduler posts it.
+  sound.fireOnset(firstTone.tag);
   expect(session.snapshot().caption).toBe("G4 · 1 of 29");
 
   advanceUntil(clock, () => sound.posted.filter(isTone).length >= 30);
@@ -76,7 +79,12 @@ test("practice.session/REQ-002/S2 — stop returns to the top", async () => {
   );
 
   await flushStart(session);
-  advanceUntil(clock, () => session.snapshot().caption.includes("· 12 of 29"));
+  // "at note 12" (REQ-002/S2's Given) is position 11 — the transport
+  // advances on the scheduler's own ticks, independently of any onset.
+  advanceUntil(clock, () => {
+    const transport = session.snapshot().transport;
+    return transport.kind === "playing" && transport.position === 11;
+  });
 
   session.stop();
 
@@ -124,7 +132,12 @@ test("practice.session/REQ-007/S1 — a new key mid-scale", async () => {
   );
 
   await flushStart(session);
-  advanceUntil(clock, () => session.snapshot().caption.includes("· 9 of 29"));
+  // "note 9" (REQ-007/S1's Given) is position 8 — the transport advances
+  // on the scheduler's own ticks, independently of any onset.
+  advanceUntil(clock, () => {
+    const transport = session.snapshot().transport;
+    return transport.kind === "playing" && transport.position === 8;
+  });
 
   const tonesBefore = sound.posted.filter(isTone).length;
 
@@ -139,6 +152,8 @@ test("practice.session/REQ-007/S1 — a new key mid-scale", async () => {
   const tones = sound.posted.filter(isTone);
   const nextTone = tones[tones.length - 1]!;
   expect(nextTone.hz).toBeCloseTo(293.66, 1);
+  // The caption follows the new sequence's first note's onset.
+  sound.fireOnset(nextTone.tag);
   expect(session.snapshot().caption).toMatch(/^D4 · 1 of \d+$/);
 });
 

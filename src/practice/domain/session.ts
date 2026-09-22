@@ -119,7 +119,7 @@ export function createSession(
   settings: SessionSettings,
   deps: SessionDeps,
 ): Session {
-  const { sound, clock, wakeLock } = deps;
+  const { sound, clock, wakeLock, visibility } = deps;
   const scheduler = createLookaheadScheduler(sound, clock);
 
   let currentContext = context;
@@ -171,6 +171,43 @@ export function createSession(
     );
   }
 
+  function nextClickTag(): number {
+    const tag = CLICK_TAG_BASE + clickCounter;
+    clickCounter += 1;
+    return tag;
+  }
+
+  // The single source of "a position is now sounding" — reached either from
+  // the onset report of whichever command carried that position's tag, or
+  // (REQ-005/S2) from a timer for a tick with nothing to sound at all.
+  // `sequence` is read live, not captured, so a stale report arriving after
+  // a restart (REQ-007) still resolves to the position's current note.
+  function applyTargetAdvance(position: number, atFrame: number): void {
+    const target = sequence[position];
+    if (target === undefined) return;
+    soundingPosition = position;
+    const advancedEvent: TargetAdvanced = {
+      note: target.note,
+      position,
+      length: sequence.length,
+      atFrame,
+    };
+    for (const listener of targetAdvancedListeners) listener(advancedEvent);
+    notifyChange();
+  }
+
+  const unsubscribeOnset = sound.onOnset((report) => {
+    // A position tag (< CLICK_TAG_BASE) is the tag of the sequence position
+    // it belongs to; a click's own tag (count-in, rest bar, or a click that
+    // merely accompanies an already-tagged tone) carries nothing to apply.
+    if (report.tag >= CLICK_TAG_BASE) return;
+    applyTargetAdvance(report.tag, report.actualFrame);
+  });
+
+  const unsubscribeVisibility = visibility.onHidden(() => {
+    stop();
+  });
+
   function next(onsetFrame: number): TickPlan | null {
     if (pendingAdvance) {
       transport = advance(transport, currentSettings, sequence.length);
@@ -179,6 +216,7 @@ export function createSession(
 
     if (transport.kind === "idle") {
       wakeLock.release();
+      soundingPosition = null;
       notifyChange();
       return null;
     }
@@ -187,39 +225,63 @@ export function createSession(
     const durationFrames = tickFramesOf(tick.durationBeats);
     const commands: SoundCommand[] = [];
 
-    if (tick.click !== null) {
-      commands.push({
-        kind: "click",
-        tag: CLICK_TAG_BASE + clickCounter,
-        accent: tick.click.accent,
-        onsetFrame,
-      });
-      clickCounter += 1;
-    }
-
-    if (tick.tonePosition !== null) {
-      const target = sequence[tick.tonePosition];
-      if (target === undefined) {
-        throw new Error("unreachable: tonePosition out of range");
-      }
-      commands.push({
-        kind: "tone",
-        tag: tick.tonePosition,
-        hz: pitchHzOf(target.note),
-        onsetFrame,
-        durationFrames,
-      });
-      // T009 moves this to the onset report.
-      soundingPosition = tick.tonePosition;
-      const advancedEvent: TargetAdvanced = {
-        note: target.note,
-        position: tick.tonePosition,
-        length: sequence.length,
-        atFrame: onsetFrame,
-      };
-      for (const listener of targetAdvancedListeners) listener(advancedEvent);
-    } else if (transport.kind !== "playing") {
+    if (transport.kind !== "playing") {
+      // Count-in and rest bar: click only, never a position — REQ-006/S3,
+      // nothing highlighted while idle or counting.
       soundingPosition = null;
+      if (tick.click !== null) {
+        commands.push({
+          kind: "click",
+          tag: nextClickTag(),
+          accent: tick.click.accent,
+          onsetFrame,
+        });
+      }
+    } else {
+      const position = transport.position;
+      // The tick's first sounding command carries the position's tag; any
+      // second command (a click alongside a tone) gets an ordinary click
+      // tag so only one onset resolves this position.
+      let positionTagged = false;
+
+      if (tick.tonePosition !== null) {
+        const target = sequence[tick.tonePosition];
+        if (target === undefined) {
+          throw new Error("unreachable: tonePosition out of range");
+        }
+        commands.push({
+          kind: "tone",
+          tag: position,
+          hz: pitchHzOf(target.note),
+          onsetFrame,
+          durationFrames,
+        });
+        positionTagged = true;
+      }
+
+      if (tick.click !== null) {
+        commands.push({
+          kind: "click",
+          tag: positionTagged ? nextClickTag() : position,
+          accent: tick.click.accent,
+          onsetFrame,
+        });
+        positionTagged = true;
+      }
+
+      if (!positionTagged) {
+        // Nothing sounds this tick (metronome mode, ♪, an off-beat position
+        // — REQ-005/S2) — advance on a timer at the tick's own onset time
+        // rather than never at all.
+        const delayMs = Math.max(
+          ((onsetFrame - sound.currentFrame()) * 1000) / sound.sampleRate(),
+          0,
+        );
+        clock.setTimeout(
+          () => applyTargetAdvance(position, onsetFrame),
+          delayMs,
+        );
+      }
     }
 
     notifyChange();
@@ -319,6 +381,8 @@ export function createSession(
 
   function dispose(): void {
     scheduler.stop();
+    unsubscribeOnset();
+    unsubscribeVisibility();
     changeListeners.clear();
     targetAdvancedListeners.clear();
   }
