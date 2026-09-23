@@ -17,7 +17,7 @@ verified:
     at: 2026-09-22T17:27:31Z
 sdd_id: 003-hear-the-scale
 sdd_context: practice
-sdd_phase: complete
+sdd_phase: in-progress
 ---
 
 # Tasks: Hear the scale
@@ -802,6 +802,26 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 **Verify** — three consecutive `pnpm test:timing` PASS; `pnpm check` → exit 0
 
+### T029 · practice.session/REQ-006 (S3, S4, S5) · The highlight fires from the scheduled onset, not the report
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/domain/session.ts` (per scheduled playing tick with a position tag: `clock.setTimeout` aimed at `(onsetFrame − sound.currentFrame()) / sampleRate · 1000` ms, clamped ≥ 0, that applies the target advance for that position with `atFrame = onsetFrame`; onset reports still apply it — first arrival per position wins; all pending timers cancelled on `stop()`, restart and `dispose()`)
+- Test: `tests/practice/scenarios/session-target.test.ts` (REQ-006/S3: with no `fireOnset` at all, advancing the fake clock to the first tone's onset time makes `soundingPosition 0` and emits one `TargetAdvanced` with `atFrame` = that onset; advancing further never emits a duplicate when `fireOnset(0)` follows; `stop()` cancels: advance past the next onset → no event), `tests/practice/invariants/target-in-sequence.test.ts` (unchanged semantics — must still pass)
+
+**Interfaces**
+- Consumes: `ClockPort.setTimeout`, `SoundPort.currentFrame/sampleRate`, `TickPlan` from the lookahead scheduler
+- Produces: no new published surface; `TargetAdvanced.atFrame` is the scheduled onset frame when the timer fires first
+
+**Steps**
+- [ ] 1. RED — the S3 timer test above (currently `soundingPosition` stays `null` until `fireOnset`) → FAIL
+- [ ] 2. GREEN — timers per tagged tick; dedupe by position; cancel set on stop/restart/dispose → PASS; the invariant test and every existing session test stay green (some existing tests call `fireOnset` explicitly — with the clock also advancing they now dedupe; adjust only assertions that asserted "null until fireOnset" *after* the onset time)
+- [ ] 3. `source ~/.cargo/env && pnpm test:timing` three times → highlights well under 30 ms with ≥ 10 ms headroom on every row (expect single-digit ms: timer jitter + `flushSync` commit); paste all three; thresholds untouched
+- [ ] 4. `pnpm check` → green
+
+**Verify** — three consecutive `pnpm test:timing` PASS with max highlight ≤ 20 ms; `pnpm check` → exit 0
+
 ## Coverage
 
 | Requirement | Tasks | Covered |
@@ -817,7 +837,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 | practice.session/REQ-003 | T007 (S1–S3), T015 (toggles UI) | ✅ |
 | practice.session/REQ-004 | T006 (S1–S3), T023 (S4 amended), T014, T015 (UI) | ✅ |
 | practice.session/REQ-005 | T007 (S1–S3), T009 (S2 session-level), T010 (S4) | ✅ |
-| practice.session/REQ-006 | T013 (S1, S2), T009 (S3, S5), T018 (S4) | ✅ |
+| practice.session/REQ-006 | T013 (S1, S2), T009 (S3, S5), T018 (S4), T029 (S3, S4 timer-driven) | ✅ |
 | practice.session/REQ-007 | T008 (S1–S3), T016 (S3 UI) | ✅ |
 | practice.session/REQ-008 | T018 (S1) | ✅ |
 | practice.session/REQ-009 | T009 (S1, S2) | ✅ |
@@ -850,7 +870,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ## Deferred
 
-- **W5 (converge round 1)** — highlight budget met with 0.3 ms headroom (29.70 ms of 30 at 40 bpm, headless laptop). Accepted by name for the laptop; re-measured on the phone at the acceptance walk; if it fails there, pre-warm the first tick (schedule it one quantum ahead). T024 (one warm AudioContext) is expected to help.
+- **W5 (converge round 1)** — superseded: round 2 found the 30 ms bound *exceeded* on some runs (C1) → T029 fires the highlight from the scheduled onset. The phone re-measurement at the acceptance walk still stands.
 
 - Wide/laptop layout — carried from 002; the design has none.
 - Per-instrument timbre, volume control, metres other than 4/4, pause — out of scope by the proposal.

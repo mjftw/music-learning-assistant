@@ -64,15 +64,15 @@ sdd_phase: approved
 The practice context gets a **pure transport**: a state machine
 (`idle → countingIn → playing → resting → …`) that, given the session
 settings and the theory sequence, yields the next beat's events — a click,
-a tone, a `TargetAdvanced` — as data. A **lookahead scheduler** adapter
+a tone, a `TargetAdvanced` — as data (`Tick`). A **lookahead scheduler** adapter
 runs that machine ~200 ms ahead of the audio clock and posts each tone and
 click, stamped with its audio-frame onset, to a **sound engine**: a new
 Rust-owned `sound` context compiled to WebAssembly and running inside an
 `AudioWorkletProcessor`, where it renders the plain tone and the woody click
 sample-accurately. The worklet reports back the moment each onset actually
-renders; practice turns that into `TargetAdvanced`, which the UI uses to
-light the note — so highlight timing is measured from the audio thread, not
-guessed from a timer. Theory replaces `span.ts` with `traversal.ts`
+renders (the timing harness's onset column); practice lights the note from a
+clock timer aimed at the onset it scheduled, with the report as confirmation
+— so the highlight never waits on a cross-thread message. Theory replaces `span.ts` with `traversal.ts`
 (fitting counts, run, sequence) and gains `temperament.ts` (equal, A440).
 The UI adds `TransportCard`, `TraversalSheet` and `TempoSheet` from the
 prototype, drops the span row, and threads the sounding note into
@@ -172,41 +172,56 @@ sequenceOf(run, direction): NoteSequence                  // REQ-012 sequence
 pitchHzOf(note): number                                   // theory.temperament/REQ-001
 ```
 
-**`practice/published`:**
+**`practice/published`** (as built — amended 2026-09-23 after converge round 2, W2):
 ```ts
-createSession(deps: { theory: TheoryLookups; sound: SoundPort; clock: ClockPort; wake: WakeLockPort; visibility: VisibilityPort }): Session
+createSession(context: SessionContext, traversal: Traversal, settings: SessionSettings, deps: SessionDeps): Session
+SessionContext = { key: Key; variant: Variant }
+SessionDeps    = { sound: SoundPort; clock: ClockPort; wakeLock: WakeLockPort; visibility: VisibilityPort }
 Session {
-  state(): SessionSnapshot     // transport state, caption, progress 0..1, effective octaves, summary line, tempo term
-  start(): void; stop(): void
-  setTraversal(t); setSettings(s); setTempo(bpm); stepTempo(±2); pickTempoTerm(name)
-  setContext(key, variant)     // from the UI's selection; restarts per REQ-007
-  onTargetAdvanced(listener: (e: TargetAdvanced) => void): Unsubscribe
-  onChange(listener): Unsubscribe
+  snapshot(): SessionSnapshot   // transport, traversal, effectiveOctaves, fittingCounts, settings, run, sequence, caption, progress 0..1, summaryLine, tempoTerm, soundingPosition, notice
+  start(): void; stop(): void; dispose(): void
+  setContext(c); setTraversal(t); setSettings(s)        // tempo changes go through setSettings; the UI composes steppedTempo / tempoForTerm
+  onTargetAdvanced(listener: (e: TargetAdvanced) => void): () => void
+  onChange(listener: () => void): () => void
 }
-TargetAdvanced = { note: Note; position: number; length: number; at: AudioTime }   // Zod: practice/published/target-advanced.schema.ts
-TEMPO_TERMS, tempoTermFor(bpm), summaryLineOf(traversal, settings)
+TargetAdvanced = { note: Note; position: number; length: number; atFrame: number }   // Zod: practice/published/target-advanced.schema.ts
+TEMPO_TERMS, tempoTermFor(bpm), steppedTempo(bpm, ±2), tempoForTerm(term), summaryLineOf(traversal, effectiveOctaves, settings), FIRST_TICK_LEAD_MS
+// adapters, also published: webAudioSound, silentSound, fallbackSound, screenWakeLock, pageVisibility, browserClock; port types re-exported for test fakes
 ```
-Errors: `start()` never throws; if `sound.start()` returns
-`{ ok:false, reason: SoundUnavailable }` the session raises a `Notice`
-(`'sound-unavailable'`) through `onChange` and runs on `SilentSound`.
+Errors: `start()` never throws; a `{ ok: false }` **or a thrown** `sound.start()`
+raises the notice (`'sound-unavailable'`) through `onChange`; in the app
+`fallbackSound(webAudioSound, silentSound)` switches to the silent port so the
+run still walks.
 
-**Ports (practice/ports):**
+**Sounding note → highlight (amended after converge round 2, C1):** the
+session knows every tick's onset frame when it schedules it (200 ms ahead).
+It fires `TargetAdvanced` from a `ClockPort` timeout aimed at that onset
+(frames → ms via `sound.sampleRate()` and `sound.currentFrame()`), so the
+highlight never waits on the worklet → main-thread `OnsetReport` message
+(measured ~21 ms floor, occasional >30 ms). The `OnsetReport` still confirms
+the onset for the timing harness (`atFrame`, the ±5 ms column) and dedupes:
+whichever of timer/report arrives first for a position wins; timers are
+cancelled on stop, restart and dispose. The first tick leads ▶ by
+`FIRST_TICK_LEAD_MS = 20` so the worklet's warm-up never delays it.
+
+**Ports (practice/ports, as built):**
 ```ts
-SoundPort      { start(): Promise<Result<void, SoundUnavailable>>; now(): AudioTime; schedule(cmd: SoundCommand): void; stopAll(): void; onOnset(cb: (report: OnsetReport) => void) }
-ClockPort      { setTimeout(fn, ms): Cancel }        // the lookahead tick; faked in tests
+SoundPort      { start(): Promise<Result<void, SoundUnavailable>>; sampleRate(): number; currentFrame(): number; post(cmd: SoundCommand): void; onOnset(cb: (report: OnsetReport) => void): () => void; dispose(): void }
+ClockPort      { setTimeout(fn, ms): () => void }    // lookahead polls and highlight timers; faked in tests
 WakeLockPort   { acquire(): Promise<void>; release(): void }
-VisibilityPort { onHidden(cb): Unsubscribe }
+VisibilityPort { onHidden(cb): () => void }
 ```
 
 **`sound/published`** — the seam between practice and the audio thread,
 schema-first (Zod `sound-command.schema.ts`, mirrored by serde):
 ```
-SoundCommand = { kind:'tone'; hz: number; onsetFrame: number; durationFrames: number }
-             | { kind:'click'; accent: boolean; onsetFrame: number }
+SoundCommand = { kind:'tone'; tag: number; hz: number; onsetFrame: number; durationFrames: number }   // tag: sequence position for the first sounding command of a playing tick; ≥1_000_000 for count-in/rest clicks
+             | { kind:'click'; tag: number; accent: boolean; onsetFrame: number }
              | { kind:'stopAll' }
-OnsetReport  = { onsetFrame: number; actualFrame: number }          // posted back per rendered onset
+OnsetReport  = { tag: number; onsetFrame: number; actualFrame: number }   // posted back per rendered onset
+SoundProblem = { reason: 'invalid-command' | 'voice-pool-full' | 'invalid-onset-report'; detail: string }   // surfaced, logged once at the adapter
 createSoundEngine(context: AudioContext): Promise<Result<SoundEngine, SoundUnavailable>>
-SoundEngine  { sampleRate; currentFrame(); post(cmd); onOnset(cb); dispose() }
+SoundEngine  { sampleRate; currentFrame(); post(cmd); onOnset(cb); onProblem(cb); dispose() }
 ```
 Rust ABI (`extern "C"`): `init(sample_rate)`, `push_tone(hz, onset, frames)`,
 `push_click(accent, onset)`, `stop_all()`, `render(out_ptr, frames, now_frame) -> reports_written`,
@@ -272,7 +287,7 @@ add `src/sound/` to the roots and let `IMPORT_RE` cover Rust `use` (it does).
 | practice.session/REQ-003 | `transport.ts` countingIn/resting branches; clicks always planned in those states | S1–S3 |
 | practice.session/REQ-004 | `tempo.ts`; `TempoSheet`; scheduler recomputes beat length from the next beat | S1–S4; band contiguity property |
 | practice.session/REQ-005 | `BeatPlan` tone/click selection by sound mode (TS); tone and click shape (Rust) | S1–S3 on planned commands; S4 in `cargo test` (envelope ends before next onset) |
-| practice.session/REQ-006 | `OnsetReport → TargetAdvanced`; `StaveView`/`NamesView` highlight props | S1–S3 UI scenarios; S4 measured in `test:timing`; S5 invariant over all sequences |
+| practice.session/REQ-006 | highlight timer at the scheduled onset (`OnsetReport` confirms/dedupes) → `TargetAdvanced`; `StaveView`/`NamesView` highlight props | S1–S3 UI scenarios; S4 measured in `test:timing`; S5 invariant over all sequences |
 | practice.session/REQ-007 | `session.setContext/setTraversal` restart rules; UI never calls `stop()` on overlay open | S1–S3 |
 | practice.session/REQ-008 | Lookahead scheduler + sample-accurate worklet | S1 measured in `test:timing`: 6 configs × 60 s in parallel pages; deterministic unit test that the scheduler never starves the lookahead with a slow fake clock |
 | practice.session/REQ-009 | `page-visibility` adapter → `stop()`; `screen-wake-lock` adapter around playing | S1 via fake visibility port; S2 asserted at the wake-lock port (acquire on start, release on stop) — dimming itself not observable |
