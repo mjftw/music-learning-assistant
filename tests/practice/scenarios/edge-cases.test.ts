@@ -53,12 +53,21 @@ test("practice.session/REQ-007 — key changed during a count-in continues the c
     beatsLeft: 4,
   });
 
+  // Advance past the first count-in tick before the key change — otherwise
+  // both the before and after read "countingIn 4", which a regression that
+  // restarted the count on setContext would also satisfy.
+  clock.advance(600);
+  expect(session.snapshot().transport).toEqual({
+    kind: "countingIn",
+    beatsLeft: 3,
+  });
+
   session.setContext({ key: keyOf("D"), variant: variantOf("flute-concert") });
 
   // The count-in is untouched by the key change.
   expect(session.snapshot().transport).toEqual({
     kind: "countingIn",
-    beatsLeft: 4,
+    beatsLeft: 3,
   });
 
   advanceUntil(clock, () => sound.posted.some(isTone));

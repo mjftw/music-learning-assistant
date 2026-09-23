@@ -135,10 +135,8 @@ runtime network dependencies.
   (a test call site, a `published/` re-export). List and touch it anyway,
   and say so in the report — don't leave the ripple undone to stay inside
   the list (recurred at T010, T022).
-- Citing a scenario in a test name or comment without its context prefix
-  (`REQ-004/S3` instead of `practice.session/REQ-004/S3`) — the scenario
-  checker matches qualified ids only, so an unqualified citation reads as no
-  citation at all (recurred at T012).
+- Test names cite scenario IDs fully qualified (`practice.session/REQ-011/S1`),
+  or `check-scenarios.sh` cannot attribute them (T012).
 
 ## Never
 
