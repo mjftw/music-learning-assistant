@@ -49,6 +49,8 @@ export function silentSound(now: () => number): SoundPort {
     start: () => Promise.resolve({ ok: true, value: undefined }),
     sampleRate: () => SAMPLE_RATE,
     currentFrame,
+    // No destination, no output latency to fold in.
+    outputLatencyMs: () => 0,
     post,
     onOnset: (listener) => {
       listeners.add(listener);

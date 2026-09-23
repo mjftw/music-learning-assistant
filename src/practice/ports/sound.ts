@@ -12,6 +12,12 @@ export interface SoundPort {
   start(): Promise<Result<void, SoundUnavailable>>;
   sampleRate(): number;
   currentFrame(): number;
+  // The delay, in ms, between a command's scheduled onset and the instant
+  // it is actually audible (the destination's output latency) — 0 before
+  // start() has ever produced a context. practice.session/REQ-006's
+  // highlight timer adds this to its delay so the highlight aims at the
+  // audible onset, not merely the scheduled one (T030).
+  outputLatencyMs(): number;
   post(command: SoundCommand): void;
   onOnset(listener: (report: OnsetReport) => void): () => void;
   // Releases whatever start() acquired (an AudioContext, pending timers) —

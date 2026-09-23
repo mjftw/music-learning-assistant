@@ -89,6 +89,13 @@ export function webAudioSound(
     start,
     sampleRate: () => engine?.sampleRate ?? 0,
     currentFrame: () => engine?.currentFrame() ?? 0,
+    // `outputLatency` is the modern figure; `baseLatency` is the fallback
+    // for a browser that lacks it (Safari — T030). 0 before start() has
+    // ever created a context, same as sampleRate()/currentFrame() above.
+    outputLatencyMs: () =>
+      audioContext === null
+        ? 0
+        : (audioContext.outputLatency ?? audioContext.baseLatency ?? 0) * 1000,
     post: (command: SoundCommand) => engine?.post(command),
     onOnset: (listener: (report: OnsetReport) => void) => {
       listeners.add(listener);

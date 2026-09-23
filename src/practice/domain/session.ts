@@ -144,6 +144,17 @@ export function createSession(
   let soundingPosition: number | null = null;
   let notice: "sound-unavailable" | null = null;
   let clickCounter = 0;
+  // Identifies which run a playing tick's tag belongs to (`positionTag`,
+  // below) — -1 is a pre-run sentinel, never itself used as a tag: bumped
+  // to 0 by the very first start(), and again by every later start() or
+  // restartIfPlaying(), so no two runs (including across a stop→start
+  // cycle, not only a REQ-007 restart) ever share a generation. An
+  // OnsetReport whose generation is not this one is a stale message from a
+  // run this session has already moved past, and is ignored outright
+  // (T030, the REQ-007/S1 race) rather than lighting the wrong instant or
+  // marking a position the current run hasn't reached yet as already
+  // fired.
+  let generation = -1;
   // Positions already advanced-to for their current scheduled occurrence —
   // whichever of the highlight timer or the onset report arrives first for
   // a position adds it here and the other is a no-op (converge C1: the
@@ -210,6 +221,23 @@ export function createSession(
     return tag;
   }
 
+  // A playing tick's tag packs the run's generation with the sequence
+  // position: generation · GENERATION_TAG_MULTIPLIER + position — decoded
+  // the same way by the onset listener, below. Sequence positions are
+  // always comfortably under the multiplier (the longest catalogued
+  // traversal is far short of 1_000 notes) and it stays well under
+  // CLICK_TAG_BASE, so a position tag and a click tag never collide.
+  const GENERATION_TAG_MULTIPLIER = 1_000;
+
+  function positionTag(position: number): number {
+    if (position >= GENERATION_TAG_MULTIPLIER) {
+      throw new Error(
+        `unreachable: sequence position ${position} exceeds the tag encoding's capacity`,
+      );
+    }
+    return generation * GENERATION_TAG_MULTIPLIER + position;
+  }
+
   // The single source of "a position is now sounding" — reached either from
   // a highlight timer aimed at the tick's own scheduled onset
   // (`scheduleHighlight`, below — converge C1: the highlight must not wait
@@ -234,9 +262,11 @@ export function createSession(
   }
 
   // Schedules the highlight for a playing tick's tagged position at its own
-  // scheduled onset — a `ClockPort` timeout, not the cross-thread onset
+  // *audible* onset — a `ClockPort` timeout, not the cross-thread onset
   // report, so the highlight never waits on that message (converge C1:
-  // measured ~21 ms floor, occasionally >30 ms). `firedPositions.delete`
+  // measured ~21 ms floor, occasionally >30 ms), aimed at the graph onset
+  // plus the port's output latency so it lands when the note is actually
+  // heard, not merely when it was scheduled (T030). `firedPositions.delete`
   // first: a looped run reaches the same position again long after its
   // previous occurrence already fired, and this is the fresh occurrence's
   // guard, not the old one's.
@@ -245,7 +275,7 @@ export function createSession(
     const framesUntilOnset = onsetFrame - sound.currentFrame();
     const msUntilOnset = Math.max(
       0,
-      (framesUntilOnset * 1000) / sound.sampleRate(),
+      (framesUntilOnset * 1000) / sound.sampleRate() + sound.outputLatencyMs(),
     );
     const cancel = clock.setTimeout(() => {
       pendingHighlightCancels.delete(cancel);
@@ -265,9 +295,18 @@ export function createSession(
     // it belongs to; a click's own tag (count-in, rest bar, or a click that
     // merely accompanies an already-tagged tone) carries nothing to apply.
     if (report.tag >= CLICK_TAG_BASE) return;
+    // A report whose generation is not the current one belongs to a run
+    // this session has already moved past (a REQ-007 restart, or a
+    // stop→start cycle) — a message that was still in flight when it was
+    // superseded. Ignored outright, before it can touch `firedPositions`,
+    // so it neither lights the wrong instant nor marks a position the
+    // current run hasn't reached yet as already fired (T030, REQ-007/S1).
+    const reportGeneration = Math.floor(report.tag / GENERATION_TAG_MULTIPLIER);
+    if (reportGeneration !== generation) return;
+    const position = report.tag % GENERATION_TAG_MULTIPLIER;
     // Already lit by its own timer — the report is only a confirmation.
-    if (firedPositions.has(report.tag)) return;
-    applyTargetAdvance(report.tag, report.actualFrame);
+    if (firedPositions.has(position)) return;
+    applyTargetAdvance(position, report.actualFrame);
   });
 
   const unsubscribeVisibility = visibility.onHidden(() => {
@@ -320,7 +359,7 @@ export function createSession(
         }
         commands.push({
           kind: "tone",
-          tag: position,
+          tag: positionTag(position),
           hz: pitchHzOf(target.note),
           onsetFrame,
           durationFrames,
@@ -331,7 +370,7 @@ export function createSession(
       if (tick.click !== null) {
         commands.push({
           kind: "click",
-          tag: positionTagged ? nextClickTag() : position,
+          tag: positionTagged ? nextClickTag() : positionTag(position),
           accent: tick.click.accent,
           onsetFrame,
         });
@@ -373,6 +412,7 @@ export function createSession(
 
   function start(): void {
     notice = null;
+    generation += 1;
     transport = startTransport(currentSettings);
     pendingAdvance = false;
     soundingPosition = null;
@@ -426,6 +466,7 @@ export function createSession(
     sound.post({ kind: "stopAll" });
     scheduler.stop();
     cancelPendingHighlights();
+    generation += 1;
     transport = { kind: "playing", position: 0 };
     pendingAdvance = false;
     soundingPosition = null;

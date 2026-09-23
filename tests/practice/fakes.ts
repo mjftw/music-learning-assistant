@@ -52,6 +52,11 @@ export class FakeSound implements SoundPort {
   // exercises the session's and fallbackSound's last-resort handling of a
   // sound port that rejects instead of resolving `{ ok: false }`.
   throwOnStart: Error | null = null;
+  // The port's reported output latency in ms — settable per test (T030),
+  // default 0 (no latency, matching a context with neither
+  // `outputLatency` nor `baseLatency`). Backs outputLatencyMs() below, the
+  // same split as `frame` backing currentFrame().
+  latencyMs = 0;
   private readonly listeners = new Set<(report: OnsetReport) => void>();
 
   start(): Promise<Result<void, SoundUnavailable>> {
@@ -71,6 +76,10 @@ export class FakeSound implements SoundPort {
 
   currentFrame(): number {
     return this.frame;
+  }
+
+  outputLatencyMs(): number {
+    return this.latencyMs;
   }
 
   post(command: SoundCommand): void {

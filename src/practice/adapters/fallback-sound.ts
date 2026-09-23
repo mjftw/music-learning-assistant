@@ -65,6 +65,7 @@ export function fallbackSound(
     start,
     sampleRate: () => active.sampleRate(),
     currentFrame: () => active.currentFrame(),
+    outputLatencyMs: () => active.outputLatencyMs(),
     post: (command: SoundCommand) => active.post(command),
     onOnset: (listener: (report: OnsetReport) => void) => {
       listeners.add(listener);

@@ -201,16 +201,24 @@ function measureInPage({ seconds, graceMs, pairingGapMs }) {
     const noteKey = JSON.stringify(event.note);
     if (noteKey === lastNoteKey) return;
     lastNoteKey = noteKey;
-    // `atFrame` is the onset's *actual* rendered frame (REQ-008/S1 already
-    // shows this equals the scheduled frame in steady state), on the same
-    // `context.currentTime`-based clock `onsetFrame`/`currentFrame()` use
-    // (src/sound/published/index.ts) — not `getOutputTimestamp()`'s output
-    // clock, which trails it by the destination's output latency and would
-    // bias every prediction by that amount.
+    // `atFrame` is the tick's *scheduled* onset frame — the session's
+    // highlight timer (src/practice/domain/session.ts) aims at this frame
+    // plus the port's output latency, not at the worklet's rendered frame
+    // (T030) — on the same `context.currentTime`-based clock
+    // `onsetFrame`/`currentFrame()` use (src/sound/published/index.ts) —
+    // not `getOutputTimestamp()`'s output clock, which trails it by the
+    // destination's output latency and would bias every prediction by
+    // that amount. `context.outputLatency` is added below for the same
+    // reason the session's own timer adds it: without it the prediction
+    // would be the *scheduled* onset, not the *audible* one the highlight
+    // actually aims at, understating the highlight's real lateness by
+    // exactly that latency.
     const perfNow = performance.now();
     const contextNow = context.currentTime;
     predictedHighlightPerfMs.push(
-      perfNow + (event.atFrame / sampleRate - contextNow) * 1000,
+      perfNow +
+        (event.atFrame / sampleRate - contextNow) * 1000 +
+        context.outputLatency * 1000,
     );
   });
 

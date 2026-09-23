@@ -12,7 +12,7 @@ import {
 import { targetAdvancedSchema } from "../../../src/practice/published/target-advanced.schema";
 import type { SoundCommand } from "../../../src/sound/published/sound-command.schema";
 import type { Traversal } from "../../../src/theory/published";
-import { advanceUntil, sessionOn } from "../fakes";
+import { advanceUntil, keyOf, sessionOn, variantOf } from "../fakes";
 
 function isTone(
   command: SoundCommand,
@@ -40,7 +40,7 @@ async function flushStart(session: Session): Promise<void> {
   await Promise.resolve();
 }
 
-test("practice.session/REQ-006/S3 — the highlight fires from the scheduled onset, not the report", async () => {
+test("practice.session/REQ-006/S3 — nothing lit when nothing sounds", async () => {
   const settings = { ...defaultSessionSettings, tempoBpm: 120 };
   const { session, sound, clock } = sessionOn(
     "G",
@@ -98,6 +98,86 @@ test("practice.session/REQ-006/S3 — the highlight fires from the scheduled ons
 
   expect(session.snapshot().soundingPosition).toBeNull();
   expect(events).toHaveLength(1);
+});
+
+test("practice.session/REQ-006/S4 — the highlight timer aims at the audible onset (scheduled frame + outputLatencyMs)", async () => {
+  const settings = { ...defaultSessionSettings, tempoBpm: 120 };
+  const { session, sound, clock } = sessionOn(
+    "G",
+    "flute-concert",
+    GMajorTwoOctaves,
+    settings,
+  );
+  sound.latencyMs = 40;
+
+  await flushStart(session);
+  advanceUntil(clock, () => sound.posted.some(isTone));
+
+  expect(session.snapshot().soundingPosition).toBeNull();
+
+  const firstTone = sound.posted.filter(isTone)[0]!;
+  const framesUntilGraphOnset = firstTone.onsetFrame - sound.frame;
+  const msUntilGraphOnset = (framesUntilGraphOnset * 1000) / sound.sampleRate();
+
+  // At the graph (scheduled) onset itself the highlight has not fired yet
+  // — the timer is still waiting out the port's 40 ms output latency.
+  clock.advance(msUntilGraphOnset);
+  expect(session.snapshot().soundingPosition).toBeNull();
+
+  // 39 ms further (1 ms short of the 40 ms latency) — still not fired.
+  clock.advance(39);
+  expect(session.snapshot().soundingPosition).toBeNull();
+
+  // The 40th ms — the timer fires, aimed at the audible instant.
+  clock.advance(1);
+  expect(session.snapshot().soundingPosition).toBe(0);
+});
+
+test("practice.session/REQ-007/S1 — a stale report from the superseded run does not light anything or suppress the new run's timer", async () => {
+  const settings = { ...defaultSessionSettings, tempoBpm: 120 };
+  const { session, sound, clock } = sessionOn(
+    "G",
+    "flute-concert",
+    GMajorTwoOctaves,
+    settings,
+  );
+  const events: TargetAdvanced[] = [];
+  session.onTargetAdvanced((event) => events.push(event));
+
+  await flushStart(session);
+  advanceUntil(clock, () => session.snapshot().transport.kind === "playing");
+
+  // The G-major run's own first tone (position 0) — already posted,
+  // tagged for the run it belongs to. A real worklet can still deliver its
+  // OnsetReport after stopAll (a message already in flight when the
+  // command landed), so this is the tag REQ-007/S1's race arrives on —
+  // its raw position (0) coincides with the very position the new run's
+  // own timer is about to reach, so a report that is not correctly
+  // discarded would both light the wrong instant now and mark position 0
+  // as already fired, suppressing the new run's own highlight later.
+  const staleTone = sound.posted.filter(isTone)[0]!;
+
+  session.setContext({
+    key: keyOf("D"),
+    variant: variantOf("flute-concert"),
+  });
+  expect(session.snapshot().transport).toEqual({
+    kind: "playing",
+    position: 0,
+  });
+
+  const soundingBeforeStaleReport = session.snapshot().soundingPosition;
+  const eventCountBeforeStaleReport = events.length;
+
+  sound.fireOnset(staleTone.tag);
+
+  expect(session.snapshot().soundingPosition).toBe(soundingBeforeStaleReport);
+  expect(events).toHaveLength(eventCountBeforeStaleReport);
+
+  // The new run's own timer for position 0 still fires normally — the
+  // stale report above did not suppress it.
+  advanceUntil(clock, () => session.snapshot().soundingPosition === 0);
+  expect(session.snapshot().caption).toBe("D4 · 1 of 29");
 });
 
 test("practice.session/REQ-009/S1 — hidden means stopped", async () => {
