@@ -3,7 +3,16 @@ import { scaleNotesOf } from "./keys";
 import type { KeyViewNote } from "./key-view";
 import { keyView } from "./key-view";
 import type { Note } from "./notes";
+import type { Scale } from "./scales";
+import { scaleById } from "./scales";
 import type { Variant } from "../instruments/catalogue";
+
+// The diatonic scale for the key's own mode — a stand-in for the chosen
+// scale until the caller can pass one through (T004 threads the learner's
+// actual choice; `runOf`/`sequenceOf` are removed at that point).
+function diatonicScaleOf(key: Key): Scale {
+  return scaleById(key.mode === "major" ? "major" : "natural-minor");
+}
 
 export type Direction = "up" | "down" | "updown";
 export type Shape = "scale" | "arpeggio";
@@ -43,7 +52,7 @@ export function fittingOctaveCounts(
   key: Key,
   variant: Variant,
 ): readonly OctaveCount[] {
-  const notes = keyView(key, variant).notes;
+  const notes = keyView(key, variant, diatonicScaleOf(key)).notes;
   return OCTAVE_COUNTS.filter(
     (count) => lowestTonicIndexFor(notes, count) !== undefined,
   );
@@ -57,7 +66,7 @@ export function effectiveOctavesOf(
   octaves: Octaves,
 ): Octaves {
   if (octaves.kind === "full") return octaves;
-  const notes = keyView(key, variant).notes;
+  const notes = keyView(key, variant, diatonicScaleOf(key)).notes;
   if (lowestTonicIndexFor(notes, octaves.count) !== undefined) return octaves;
 
   const fitting = fittingOctaveCounts(key, variant);
@@ -87,7 +96,7 @@ export function runOf(
   variant: Variant,
   traversal: Traversal,
 ): readonly KeyViewNote[] {
-  const view = keyView(key, variant);
+  const view = keyView(key, variant, diatonicScaleOf(key));
   const effective = effectiveOctavesOf(key, variant, traversal.octaves);
   const scaleRun =
     effective.kind === "full"

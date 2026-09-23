@@ -4,6 +4,7 @@ import {
   circleOfFifths,
   keyId as keyIdOf,
   keyView,
+  scaleById,
   spelledMajorAt,
   spelledMinorAt,
   type Catalogue,
@@ -328,7 +329,13 @@ export function App(props: {
   ]);
 
   const view =
-    variant === undefined ? undefined : keyView(selectedKey, variant);
+    variant === undefined
+      ? undefined
+      : keyView(
+          selectedKey,
+          variant,
+          scaleById(selectedKey.mode === "major" ? "major" : "natural-minor"),
+        );
 
   const soundingSequenceNote =
     snapshot === null || snapshot.soundingPosition === null

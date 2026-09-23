@@ -4,6 +4,7 @@ import {
   circleOfFifths,
   keyView,
   pitchPosition,
+  scaleById,
 } from "../../../src/theory/published";
 
 test("theory.circle-of-fifths/REQ-005/S1 — no displayed note ever leaves the range", () => {
@@ -19,7 +20,8 @@ test("theory.circle-of-fifths/REQ-005/S1 — no displayed note ever leaves the r
   for (const key of keys) {
     for (const variant of variants) {
       pairsChecked += 1;
-      for (const entry of keyView(key, variant).notes) {
+      const scale = scaleById(key.mode === "major" ? "major" : "natural-minor");
+      for (const entry of keyView(key, variant, scale).notes) {
         expect(pitchPosition(entry.note)).toBeGreaterThanOrEqual(
           pitchPosition(variant.range.lowest),
         );
