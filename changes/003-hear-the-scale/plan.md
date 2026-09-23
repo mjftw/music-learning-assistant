@@ -95,7 +95,7 @@ everything else.
 | Rust synthesis inside `practice` as an adapter | Makes `practice` bilingual, which ADR 0001 forbids; the remedy the ADR itself names is a whole capability moving across the map — hence the `sound` context |
 | wasm-bindgen / wasm-pack glue | Generated JS glue does not load cleanly inside an `AudioWorkletGlobalScope` (no `fetch`, no ES module imports of glue); a bare `extern "C"` ABI over a shared `Float32Array` is ~60 lines of hand-written host code, zero npm dependencies, and easier to read |
 | `setTimeout`-driven note onsets | Jitter 4–50 ms in background tabs and on phones; fails ±5 ms |
-| Highlight from a UI timer at the scheduled time | Diverges from what is heard on devices with high output latency; the worklet's onset report is the truth |
+| Highlight strictly from the worklet's onset report | Rejected after converge rounds 2–3: the cross-thread message adds a ~20 ms floor and occasional >30 ms spikes; the session already knows every onset, so a clock timer aimed at the *audible* onset (scheduled frame + `outputLatency`) drives the highlight and the report only confirms (T029, T030) |
 | Play the tone in the note's octave via a sampled instrument | Out of scope (proposal); Article VII/VIII |
 | Store session settings in a separate localStorage key | Two keys to migrate and keep consistent; one v3 record, one parse |
 
@@ -152,7 +152,7 @@ TransportState  = { kind:'idle' }
                 | { kind:'countingIn'; beatsLeft: 4|3|2|1 }
                 | { kind:'playing';   position: number }        // 0-based into NoteSequence
                 | { kind:'resting';   beatsLeft: 4|3|2|1 }
-Tick            = { click: { accent } | null; tonePosition: number | null }   // one beat per tick; frames from tempo alone
+Tick            = { click: { accent } | null; tonePosition: number | null }   // one beat per tick; frames from tempo alone (was `BeatPlan` in the first draft)
 TempoTerm       = { name; fromBpm; toBpm; gloss }   // the eight bands, contiguous 40–200 (test)
 ```
 
@@ -195,8 +195,9 @@ run still walks.
 
 **Sounding note → highlight (amended after converge round 2, C1):** the
 session knows every tick's onset frame when it schedules it (200 ms ahead).
-It fires `TargetAdvanced` from a `ClockPort` timeout aimed at that onset
-(frames → ms via `sound.sampleRate()` and `sound.currentFrame()`), so the
+It fires `TargetAdvanced` from a `ClockPort` timeout aimed at that onset's
+*audible* instant (frames → ms via `sound.sampleRate()` and
+`sound.currentFrame()`, plus `sound.outputLatencyMs()` — T030), so the
 highlight never waits on the worklet → main-thread `OnsetReport` message
 (measured ~21 ms floor, occasional >30 ms). The `OnsetReport` still confirms
 the onset for the timing harness (`atFrame`, the ±5 ms column) and dedupes:
@@ -331,7 +332,7 @@ Removed REQ-011 (Span): `span.ts`, `SpanChoicePill`, span tests deleted;
 | WASM inside the AudioWorklet fails on the user's phone browser (module transfer, memory) | medium | No sound on the device that matters | T-early spike task: worklet + WASM sine on the phone before any UI work; if it fails, switch the `SoundPort` adapter to Web Audio nodes (the rejected-but-ready alternative) and move Rust to 005 — spec unchanged |
 | Rust toolchain not installed / unfamiliar wasm build friction | certain today | `pnpm check` cannot run | User installs rustup + target (Open question 1); `build-sound.sh` fails fast with the install hint |
 | `test:timing` flaky in headless Chromium (no real device; throttling) | medium | False failures | Run with `--autoplay-policy=no-user-gesture-required`, compare in audio frames not wall time, retry once, report the max deviation |
-| Output latency makes the highlight *look* early on some phones | low | Cosmetic mismatch | Report onsets from the audio thread (truth); note in acceptance |
+| Output latency makes the highlight *look* early on some phones | low | Cosmetic mismatch | The highlight timer adds `SoundPort.outputLatencyMs()` (T030) so it aims at the audible onset; the timing harness measures against the same instant; confirm on the phone |
 | Two audio architectures if the fallback is taken later | low | Split effort | The fallback is the same `SoundPort`; the `sound` context is deleted, not kept alongside |
 | v3 migration mistake loses 002 preferences | low | Annoyance | REQ-008/S4 test covers v1, v2 and corrupt inputs |
 
