@@ -4,6 +4,8 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-23
 
+- Architecture Decision Record `docs/adr/0004-scale-layers-on-the-key.md` → accepted (human:merlin-webster)
+- Implementation Plan `changes/005-scale-selection/plan.md` → approved (human:merlin-webster)
 - Spec Delta `changes/005-scale-selection/delta/theory/circle-of-fifths.md` → approved (human:merlin-webster)
 - Spec Delta `changes/005-scale-selection/delta/practice/session.md` → approved (human:merlin-webster)
 - Change Proposal `changes/005-scale-selection/proposal.md` → approved (human:merlin-webster)

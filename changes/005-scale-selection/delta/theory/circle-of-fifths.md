@@ -35,12 +35,16 @@ sdd_phase: approved
 WHEN a key is selected
 THE SYSTEM SHALL display that key's signature — in the circle's centre and
 on the stave view's stave — and, in the stave view, the traversal's run
-(`REQ-012`) ordered lowest to highest with every occurrence of the root
-visually emphasised and an inline accidental on any note the chosen scale
-alters from the tonic's own major or natural-minor form, together with a
-summary of how many in-range notes the run has and their extremes; and, in
-the names view, the chosen scale's own notes rooted on the key's tonic, in
-scale order
+(`REQ-012`) ordered lowest to highest (for a scale with its own descending
+form: the ascending form for ↑, the descending form for ↓, and for ↑↓ the
+sequence written out in playing order so the descent shows its own notes)
+with every occurrence of the root visually emphasised and an inline
+accidental on any note whose accidental differs from the signature's, or
+from an earlier inline accidental at the same pitch in the run — an inline
+accidental holds for the rest of the run, as in one bar — together with a
+summary of how many in-range notes the chosen scale has and their
+extremes; and, in the names view, the chosen scale's own notes rooted on
+the key's tonic, in scale order
 
 **Scenarios**
 - **REQ-003/S1 — G major on the flute (acceptance)**
@@ -71,7 +75,19 @@ scale order
   Given G major selected, Major pentatonic chosen, names view
   When the panel is read
   Then it shows the five notes G A B D E, and, in stave view at 2 oct
-  scale, the run is the ten notes G4 A4 B4 D5 E5 G5 A5 B5 D6 E6
+  scale, the run is the eleven notes G4 A4 B4 D5 E5 G5 A5 B5 D6 E6 G6
+- **REQ-003/S6 — a split-direction scale is written out, accidentals held**
+  Given G melodic minor · classical on flute Concert, 1 oct, scale, ↑↓,
+  stave view
+  When the stave is read
+  Then it shows the fifteen notes G4 A4 B♭4 C5 D5 E5 F♯5 G5 F5 E♭5 D5 C5
+  B♭4 A4 G4 left to right in playing order; E5 and F♯5 carry inline ♮ and
+  ♯ (the signature's two flats give E♭ and no F♯), the descending F5 and
+  E♭5 carry inline ♮ and ♭ because the raised notes' accidentals were
+  still in effect, and B♭4 carries no inline accidental at all (it is in
+  the signature); with ↑ alone the stave shows the eight ascending notes,
+  with ↓ alone the eight notes of the natural-minor form G4 … G5 lowest to
+  highest
 
 **Was:**
 > WHEN a key is selected

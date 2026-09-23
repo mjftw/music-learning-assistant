@@ -75,6 +75,39 @@ scale
   degree's E (raised ascending, natural minor's E♭ descending) and ↓F
   under the 7th degree's F♯ (raised ascending, natural minor's F
   descending) — and no alternative row shows for the other five degrees
+- **REQ-012/S5 — every formula in the catalogue, as the sheet shows it**
+  Given G major selected (a sharp key, outer ring)
+  When the Scale sheet is read
+  Then its rows read, in this order:
+  | Scale | Formula |
+  |---|---|
+  | Major | 1 2 3 4 5 6 7 |
+  | Major pentatonic | 1 2 3 5 6 |
+  | Lydian | 1 2 3 ♯4 5 6 7 |
+  | Mixolydian | 1 2 3 4 5 6 ♭7 |
+  | Harmonic major | 1 2 3 4 5 ♭6 7 |
+  | Whole tone | 1 2 3 ♯4 ♭6 ♭7 |
+  | Chromatic | 1 ♯1 2 ♯2 3 4 ♯4 5 ♯5 6 ♯6 7 |
+  and given E minor selected instead (a sharp key, inner ring) they read:
+  | Scale | Formula |
+  |---|---|
+  | Natural minor | 1 2 3 4 5 6 7 |
+  | Harmonic minor | 1 2 3 4 5 6 ♯7 |
+  | Melodic minor · classical | 1 2 3 4 5 ♯6 ♯7 · ↓ natural |
+  | Melodic minor · jazz | 1 2 3 4 5 ♯6 ♯7 · both ways |
+  | Minor pentatonic | 1 3 4 5 7 |
+  | Blues | 1 3 4 ♭5 5 7 |
+  | Dorian | 1 2 3 4 5 ♯6 7 |
+  | Phrygian | 1 ♭2 3 4 5 6 7 |
+  | Locrian | 1 ♭2 3 4 ♭5 6 7 |
+  | Whole tone | 1 2 ♯3 ♯4 6 7 |
+  | Chromatic | 1 ♯1 2 ♯2 ♯3 4 ♯4 5 ♯5 ♯6 ♯♯6 ♯7 |
+  and Chromatic alone follows the signature: on F major (one flat) it reads
+  "1 ♭2 2 ♭3 3 4 ♭5 5 ♭6 6 ♭7 7" and on D minor "1 ♭2 2 3 ♯3 4 ♭5 5 6 ♯6 7
+  ♯7"; every other formula is the same on every key of its ring. (Degree
+  labels are relative to the ring's own home scale — major or natural
+  minor — which is why Natural minor reads 1–7 and Harmonic minor ♯7, and
+  why Whole tone and Chromatic read differently on the two rings.)
 
 **Was:** _(none — this requirement is new)_
 

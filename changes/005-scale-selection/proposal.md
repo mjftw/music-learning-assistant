@@ -59,7 +59,7 @@ at once.
   Lydian, Mixolydian, Harmonic major), minor family (Natural minor,
   Harmonic minor, Melodic minor · classical, Melodic minor · jazz, Minor
   pentatonic, Blues, Dorian, Phrygian, Locrian), and, from either ring,
-  Whole tone and Chromatic — 15 entries total.
+  Whole tone and Chromatic — 16 entries total (5 + 9 + 2).
 - The formula (scale-degree numbers, with an accidental prefix on any
   degree the scale alters from the tonic's own major/natural-minor form),
   shown in the sheet and next to the key name.
