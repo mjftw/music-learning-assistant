@@ -11,6 +11,7 @@
 import { chromium } from "playwright";
 import { spawn } from "node:child_process";
 import { mkdir, readFile } from "node:fs/promises";
+import net from "node:net";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -24,7 +25,9 @@ const PROTOTYPE_PATH = path.join(
   "design",
   "hear-the-scale.dc.html",
 );
-const APP_URL = "http://localhost:5173";
+// The dev server is HTTPS (self-signed) so AudioWorklet works over the LAN;
+// Playwright must ignore the certificate.
+const APP_URL = "https://localhost:5173";
 const VIEWPORT = { width: 390, height: 844 };
 const DEVICE_SCALE_FACTOR = 2;
 const DEV_SERVER_POLL_INTERVAL_MS = 500;
@@ -224,13 +227,18 @@ function validateStateNames(names) {
   }
 }
 
-async function isDevServerUp() {
-  try {
-    const response = await fetch(APP_URL);
-    return response.ok;
-  } catch {
-    return false;
-  }
+// A TCP probe, not a fetch: Node's fetch rejects the dev server's
+// self-signed certificate, which would read as "down".
+function isDevServerUp() {
+  const { port, hostname } = new URL(APP_URL);
+  return new Promise((resolve) => {
+    const socket = net.connect({ port: Number(port), host: hostname });
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("error", () => resolve(false));
+  });
 }
 
 async function waitForDevServer(deadline) {
@@ -297,6 +305,7 @@ async function fulfillGoogleFontRequests(page) {
 
 async function screenshotPrototype(browser, stateName) {
   const context = await browser.newContext({
+    ignoreHTTPSErrors: true,
     viewport: VIEWPORT,
     deviceScaleFactor: DEVICE_SCALE_FACTOR,
   });
@@ -322,6 +331,7 @@ async function screenshotPrototype(browser, stateName) {
 
 async function screenshotApp(browser, stateName) {
   const context = await browser.newContext({
+    ignoreHTTPSErrors: true,
     viewport: VIEWPORT,
     deviceScaleFactor: DEVICE_SCALE_FACTOR,
   });

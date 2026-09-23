@@ -21,12 +21,15 @@
 
 import { chromium } from "playwright";
 import { spawn } from "node:child_process";
+import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
-const APP_URL = "http://localhost:5173";
+// The dev server is HTTPS (self-signed) so AudioWorklet works over the LAN;
+// Playwright must ignore the certificate.
+const APP_URL = "https://localhost:5173";
 const DEV_SERVER_POLL_INTERVAL_MS = 500;
 // `predev` compiles the sound crate to WebAssembly via cargo, which can take
 // a while on a cold build — generous headroom over design-shots.mjs's 30 s
@@ -59,13 +62,18 @@ function parseSecondsArgument(argv) {
   return value;
 }
 
-async function isDevServerUp() {
-  try {
-    const response = await fetch(APP_URL);
-    return response.ok;
-  } catch {
-    return false;
-  }
+// A TCP probe, not a fetch: Node's fetch rejects the dev server's
+// self-signed certificate, which would read as "down".
+function isDevServerUp() {
+  const { port, hostname } = new URL(APP_URL);
+  return new Promise((resolve) => {
+    const socket = net.connect({ port: Number(port), host: hostname });
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("error", () => resolve(false));
+  });
 }
 
 async function waitForDevServer(deadline) {
@@ -360,7 +368,7 @@ function measureInPage({ seconds, graceMs, pairingGapMs }) {
 // to delay every measured onset by several ms; running it afterwards, in a
 // separate browser process, removes it from the measurement path entirely.
 async function preflightAudioContextCount(browser) {
-  const context = await browser.newContext();
+  const context = await browser.newContext({ ignoreHTTPSErrors: true });
   const page = await context.newPage();
   try {
     await page.addInitScript(() => {
@@ -402,7 +410,7 @@ async function preflightAudioContextCount(browser) {
 }
 
 async function measureTempo(browser, bpm, seconds) {
-  const context = await browser.newContext();
+  const context = await browser.newContext({ ignoreHTTPSErrors: true });
   const page = await context.newPage();
   try {
     await page.goto(APP_URL);
