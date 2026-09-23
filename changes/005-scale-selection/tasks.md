@@ -200,7 +200,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T003 · theory.circle-of-fifths/REQ-003 · `keyView` takes the chosen scale; notes carry degree, label and altered
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/theory/domain/key-view.ts:9-49`
