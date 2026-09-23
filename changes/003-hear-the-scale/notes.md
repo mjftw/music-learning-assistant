@@ -85,3 +85,4 @@ Not converged — 0 critical, 3 warning. Reviewer measured (28/28 events coincid
 
 ## Converge round 5 (2026-09-23, opus, commit e50cd9a)
 Not converged — 0 critical, 2 warning. Timing run PASS (vs audible 28.0/16.3/22.7). **W1 (real bug from T031's idle cancel):** with output latency ≳ beat − 200 ms and loop off, the last note's highlight is cancelled at lookahead time (200 bpm/150 ms: 7 of 8 highlights) → T033 times the idle transition to the last note's audible end. **W2:** plan mapping row lagged → amended. Info: proposal NFR row updated to the two-sided wording; REQ-007 coverage row; generation-tag comments corrected in T033; finish-gate items unchanged.
+- T033 done — idle transition timed to the last note's audible end; review PASS/PASS. Minor: `msUntilFrame` duplication between the highlight and idle timers; restart-during-tail verified by trace, not a dedicated test.

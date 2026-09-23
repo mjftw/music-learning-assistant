@@ -17,7 +17,7 @@ verified:
     at: 2026-09-22T17:27:31Z
 sdd_id: 003-hear-the-scale
 sdd_context: practice
-sdd_phase: in-progress
+sdd_phase: complete
 ---
 
 # Tasks: Hear the scale
@@ -872,7 +872,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T033 · practice.session/REQ-002 (S3), REQ-006 (S3) · The end of a run is timed to the last note's audible end
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (when `next()` finds no tick after the last one with looping off, do not go idle at once: arm an idle timer via `clock.setTimeout` aimed at the last tick's audible end — `lastOnsetFrame + lastTickFrames` → ms + `outputLatencyMs()`; the transport stays `playing` (snapshot unchanged) until it fires; when it fires: transport `idle`, `soundingPosition = null`, cancel any remaining highlight timers, release the wake lock, notify. The scheduler still stops immediately (`next()` returns null). `stop()`, `restartIfPlaying()`, hidden and `dispose()` cancel the idle timer too. Remove the misleading comment claiming the idle cancel never removes a live timer. Also drop the two comments claiming the harness decodes generation tags (it does not; the tags still label reports).)
