@@ -412,7 +412,10 @@ export function createSession(
 
   function start(): void {
     notice = null;
-    generation += 1;
+    // Wrap generation at 1_000: stale reports from 1_000 runs ago cannot exist
+    // (they arrive within milliseconds), so wrapping is safe and keeps
+    // position tags below CLICK_TAG_BASE (1_000_000).
+    generation = (generation + 1) % 1_000;
     transport = startTransport(currentSettings);
     pendingAdvance = false;
     soundingPosition = null;
@@ -466,7 +469,10 @@ export function createSession(
     sound.post({ kind: "stopAll" });
     scheduler.stop();
     cancelPendingHighlights();
-    generation += 1;
+    // Wrap generation at 1_000: stale reports from 1_000 runs ago cannot exist
+    // (they arrive within milliseconds), so wrapping is safe and keeps
+    // position tags below CLICK_TAG_BASE (1_000_000).
+    generation = (generation + 1) % 1_000;
     transport = { kind: "playing", position: 0 };
     pendingAdvance = false;
     soundingPosition = null;

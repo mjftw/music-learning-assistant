@@ -40,7 +40,7 @@ async function flushStart(session: Session): Promise<void> {
   await Promise.resolve();
 }
 
-test("practice.session/REQ-006/S3 — nothing lit when nothing sounds", async () => {
+test("practice.session/REQ-006 — the highlight fires from the scheduled onset; the report confirms", async () => {
   const settings = { ...defaultSessionSettings, tempoBpm: 120 };
   const { session, sound, clock } = sessionOn(
     "G",
@@ -98,6 +98,27 @@ test("practice.session/REQ-006/S3 — nothing lit when nothing sounds", async ()
 
   expect(session.snapshot().soundingPosition).toBeNull();
   expect(events).toHaveLength(1);
+});
+
+test("practice.session/REQ-006/S3 — nothing lit when nothing sounds", async () => {
+  const settings = { ...defaultSessionSettings, tempoBpm: 120 };
+  const { session, clock } = sessionOn(
+    "G",
+    "flute-concert",
+    GMajorTwoOctaves,
+    settings,
+  );
+
+  expect(session.snapshot().soundingPosition).toBeNull();
+
+  session.start();
+  await Promise.resolve();
+  await Promise.resolve();
+
+  clock.advance(300);
+
+  expect(session.snapshot().soundingPosition).toBeNull();
+  expect(session.snapshot().transport.kind).toBe("countingIn");
 });
 
 test("practice.session/REQ-006/S4 — the highlight timer aims at the audible onset (scheduled frame + outputLatencyMs)", async () => {
