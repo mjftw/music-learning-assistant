@@ -127,12 +127,12 @@ New dependencies, each with a justification (Article VIII):
 ```
 StoredSelection v3 = v2 − span + {
   traversal: { direction: 'up'|'down'|'updown', octaves: 'full'|1|2|3|4, shape: 'scale'|'arpeggio' }
-  session:   { noteLength: 'crotchet'|'quaver', soundMode: 'notes'|'both'|'metronome',
+  session:   { soundMode: 'notes'|'both'|'metronome',
                loop: boolean, countIn: boolean, restBar: boolean, tempoBpm: 40..200 step 2 }
 }
 ```
 Migration: v1 → v2 (existing) → v3: drop `span`, add both groups at the
-prototype defaults (↑↓, 1, scale; crotchet, both, true, true, false, 96).
+prototype defaults (↑↓, 1, scale; both, true, true, false, 96).
 Unreadable → first-run defaults. Reversal: an older build sees
 `schemaVersion: 3`, fails the union parse, falls back to first-run — REQ-008/S3
 behaviour, no data loss that matters (settings only).
@@ -147,12 +147,12 @@ NoteSequence= readonly SequenceNote[]           // playing order; { note, runInd
 
 **Practice (pure values):**
 ```
-SessionSettings = { noteLength; soundMode; loop; countIn; restBar; tempoBpm }
+SessionSettings = { soundMode; loop; countIn; restBar; tempoBpm }   // note length removed 2026-09-22 (user): crotchets only
 TransportState  = { kind:'idle' }
                 | { kind:'countingIn'; beatsLeft: 4|3|2|1 }
                 | { kind:'playing';   position: number }        // 0-based into NoteSequence
                 | { kind:'resting';   beatsLeft: 4|3|2|1 }
-BeatPlan        = { at: AudioTime; click?: { accent: boolean }; tone?: { hz; durationS }; target?: { note; position } }
+Tick            = { click: { accent } | null; tonePosition: number | null }   // one beat per tick; frames from tempo alone
 TempoTerm       = { name; fromBpm; toBpm; gloss }   // the eight bands, contiguous 40–200 (test)
 ```
 

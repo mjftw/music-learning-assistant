@@ -720,6 +720,69 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 **Verify** — `.sdd/reports/003-hear-the-scale/converge.md` ends with `Converged`
 
+## Phase 7 — Converge round 1 findings
+
+### T024 · practice.session/REQ-002, REQ-010 (W1) · One AudioContext for the life of the session
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/adapters/web-audio-sound.ts`, `src/practice/adapters/fallback-sound.ts`, `src/practice/ports/sound.ts` (add `dispose(): void`), `src/practice/adapters/silent-sound.ts`, `src/practice/domain/session.ts` (`dispose()` → `sound.dispose()`), `tests/practice/fakes.ts` (`FakeSound.dispose`, `disposeCalls`), `scripts/timing-test.mjs` (pre-flight check)
+- Test: `tests/practice/scenarios/session-target.test.ts` (dispose reaches the port), `scripts/timing-test.mjs` (contexts constructed after four ▶/❚❚ cycles === 1)
+
+**Interfaces**
+- Produces: `SoundPort.dispose(): void`; `webAudioSound.start()` creates the `AudioContext` + engine **once** and on later calls only `await context.resume()`; `dispose()` calls `engine.dispose()` and `context.close()`; `fallbackSound.dispose()` forwards to whichever port is active
+
+**Steps**
+- [ ] 1. RED — session: `session.dispose()` → `sound.disposeCalls === 1` (fake); harness: add a pre-flight in `timing-test.mjs` that wraps `window.AudioContext` in a counting proxy before load, does four Play/Stop cycles and fails with `AudioContexts constructed: N (expected 1)` when N ≠ 1. Run the pre-flight (`pnpm test:timing --seconds 5`) → FAIL with 4
+- [ ] 2. GREEN — keep `context`/`engine` in the adapter's closure; `start()` returns the cached `ok` after resuming; `dispose()` closes; session's `dispose()` calls it → PASS; `pnpm test:timing --seconds 5` → pre-flight passes, then run the full 60 s and paste the table (expect the first-onset settle to shrink now the worklet is warm on repeat presses)
+- [ ] 3. `source ~/.cargo/env && pnpm check` → green
+
+**Verify** — `pnpm test:timing` → exit 0 with `AudioContexts constructed: 1`; `pnpm check` → exit 0
+
+### T025 · practice.session/REQ-010 (S1) (W2) · A thrown sound failure still gives the notice and the silent walk
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/adapters/web-audio-sound.ts` (try/catch around `createContext()`/`resume()`/`createSoundEngine` → `{ ok: false, error: { reason: "no-audio-context" | "worklet-failed" | "wasm-failed", detail } }`), `src/practice/adapters/fallback-sound.ts` (a throwing primary counts as failed), `src/practice/domain/session.ts` (`start()`'s async body gets a `.catch` that sets the notice and starts the scheduler anyway)
+- Test: `tests/practice/scenarios/session-target.test.ts` (`FakeSound.throwOnStart = new Error("boom")` → `notice === "sound-unavailable"`, transport still advances), `tests/practice/scenarios/fallback-sound.test.ts` (throwing primary → fallback active, `start()` resolves `{ ok: false }`)
+
+**Steps**
+- [ ] 1. RED — the two tests above → FAIL (unhandled rejection / transport stuck at `countingIn 4`)
+- [ ] 2. GREEN — as in Files; errors as values at the adapter, a last-resort `.catch` in the session → PASS
+- [ ] 3. `source ~/.cargo/env && pnpm check` → green
+
+**Verify** — `pnpm vitest run tests/practice` → all passed; `pnpm check` → exit 0
+
+### T026 · — (W3, I1, I2) · Ports published for fakes; stale comment and dead export removed
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/published/index.ts` (re-export `SoundPort`, `ClockPort`, `WakeLockPort`, `VisibilityPort`, `Result` types), `tests/practice/fakes.ts` (import them from `../../src/practice/published`), `src/practice/domain/session.ts:315-316` (delete the "lands in T009" comment), `src/practice/domain/tempo.ts` + `published/index.ts` (remove `TEMPO_STEP_BPM`; `steppedTempo` keeps its `-2 | 2` delta)
+
+**Steps**
+- [ ] 1. Make the edits; `grep -rn "practice/ports" tests` → nothing; `grep -rn TEMPO_STEP_BPM src tests` → nothing
+- [ ] 2. `source ~/.cargo/env && pnpm check` → green; `./scripts/check-contexts.sh` → ✅
+
+**Verify** — the two greps empty; `pnpm check` → exit 0
+
+### T027 · — (W6) · Sound-boundary failures are surfaced, not swallowed
+
+**Status:** todo
+
+**Files**
+- Modify: `src/sound/published/processor.ts` (post `{ type: "problem", reason: "invalid-command" | "voice-pool-full", detail }` when Zod rejects a command or `push_tone`/`push_click` returns 0), `src/sound/published/index.ts` (validate `onset` reports → on failure emit `problem` `invalid-onset-report`; `SoundEngine.onProblem(listener): () => void`), `src/practice/adapters/web-audio-sound.ts` (subscribe; `console.warn` once per distinct reason with the detail — engineering §11 "logged once with full context at the boundary")
+- Test: Rust unchanged; `tests/practice/scenarios/web-audio-problems.test.ts` with a fake engine factory injected via a new optional second argument `webAudioSound(createContext, createEngine = createSoundEngine)` — a problem message reaches `console.warn` exactly once per reason (spy on `console.warn`)
+
+**Steps**
+- [ ] 1. RED — the test above → FAIL (no `onProblem`)
+- [ ] 2. GREEN — as in Files → PASS
+- [ ] 3. `source ~/.cargo/env && pnpm check` → green; re-run `?`-free headless smoke: `pnpm test:timing --seconds 5` still passes
+
+**Verify** — `pnpm vitest run tests/practice` → all passed; `pnpm check` → exit 0
+
 ## Coverage
 
 | Requirement | Tasks | Covered |
@@ -767,6 +830,8 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 | T016 | `window.__session` (dev), `App(props)` | T018 |
 
 ## Deferred
+
+- **W5 (converge round 1)** — highlight budget met with 0.3 ms headroom (29.70 ms of 30 at 40 bpm, headless laptop). Accepted by name for the laptop; re-measured on the phone at the acceptance walk; if it fails there, pre-warm the first tick (schedule it one quantum ahead). T024 (one warm AudioContext) is expected to help.
 
 - Wide/laptop layout — carried from 002; the design has none.
 - Per-instrument timbre, volume control, metres other than 4/4, pause — out of scope by the proposal.
