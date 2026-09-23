@@ -783,6 +783,25 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 **Verify** — `pnpm vitest run tests/practice` → all passed; `pnpm check` → exit 0
 
+### T028 · practice.session/REQ-008 (S1), REQ-006 (S4) · Timing headroom: first tick leads by 20 ms; onset commits flush synchronously
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/domain/session.ts` (first onset frame = `sound.currentFrame() + FIRST_TICK_LEAD_MS · sampleRate / 1000`, `FIRST_TICK_LEAD_MS = 20`, applied on `start()` and on restart), `src/ui/App.tsx` (the `onTargetAdvanced` path commits with `flushSync` from `react-dom` so the highlight paints in the current frame)
+- Test: `tests/practice/scenarios/session-transport.test.ts` (first posted command's `onsetFrame === frameAtStart + 960` at 48 kHz; REQ-003/S3 "at once" still holds within 20 ms), `tests/ui/scenarios/app-session.test.tsx` (after `sound.fireOnset(0)` the halo/`data-sounding` is present synchronously, before any `await`)
+
+**Interfaces**
+- Produces: `FIRST_TICK_LEAD_MS = 20` exported from `src/practice/published` (documented: the audio thread's warm-up after the worklet is created; a human hears 20 ms as "at once")
+
+**Steps**
+- [ ] 1. RED — the two tests above → FAIL (onset at `frameAtStart`; highlight only after a flush)
+- [ ] 2. GREEN — lead the first tick; `flushSync` the onset-driven snapshot update (only that path — `onChange` for other changes stays batched) → PASS
+- [ ] 3. `source ~/.cargo/env && pnpm test:timing` three times in a row → all PASS with max onset dev ≤ 2.67 ms and highlights with ≥ 5 ms headroom; paste all three tables. If the first onset is still late, report the numbers — do not tune thresholds
+- [ ] 4. `pnpm check` → green
+
+**Verify** — three consecutive `pnpm test:timing` PASS; `pnpm check` → exit 0
+
 ## Coverage
 
 | Requirement | Tasks | Covered |
