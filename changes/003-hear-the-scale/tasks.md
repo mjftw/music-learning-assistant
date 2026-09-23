@@ -757,7 +757,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T026 · — (W3, I1, I2) · Ports published for fakes; stale comment and dead export removed
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/published/index.ts` (re-export `SoundPort`, `ClockPort`, `WakeLockPort`, `VisibilityPort`, `Result` types), `tests/practice/fakes.ts` (import them from `../../src/practice/published`), `src/practice/domain/session.ts:315-316` (delete the "lands in T009" comment), `src/practice/domain/tempo.ts` + `published/index.ts` (remove `TEMPO_STEP_BPM`; `steppedTempo` keeps its `-2 | 2` delta)
@@ -770,7 +770,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T027 · — (W6) · Sound-boundary failures are surfaced, not swallowed
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/sound/published/processor.ts` (post `{ type: "problem", reason: "invalid-command" | "voice-pool-full", detail }` when Zod rejects a command or `push_tone`/`push_click` returns 0), `src/sound/published/index.ts` (validate `onset` reports → on failure emit `problem` `invalid-onset-report`; `SoundEngine.onProblem(listener): () => void`), `src/practice/adapters/web-audio-sound.ts` (subscribe; `console.warn` once per distinct reason with the detail — engineering §11 "logged once with full context at the boundary")
