@@ -1,18 +1,10 @@
 import type { Key } from "./keys";
-import { scaleNotesOf } from "./keys";
 import type { KeyViewNote } from "./key-view";
 import { keyView } from "./key-view";
 import type { Note } from "./notes";
 import type { Scale } from "./scales";
-import { scaleById } from "./scales";
+import { spelledScaleOf } from "./scales";
 import type { Variant } from "../instruments/catalogue";
-
-// The diatonic scale for the key's own mode — a stand-in for the chosen
-// scale until the caller can pass one through (T004 threads the learner's
-// actual choice; `runOf`/`sequenceOf` are removed at that point).
-function diatonicScaleOf(key: Key): Scale {
-  return scaleById(key.mode === "major" ? "major" : "natural-minor");
-}
 
 export type Direction = "up" | "down" | "updown";
 export type Shape = "scale" | "arpeggio";
@@ -29,18 +21,22 @@ export interface Traversal {
 
 const OCTAVE_COUNTS: readonly OctaveCount[] = [1, 2, 3, 4];
 
-// Degree indices (0-based, into scaleNotesOf) kept by the arpeggio shape —
-// the 1st, 3rd and 5th degrees, i.e. the triad.
-const ARPEGGIO_DEGREES = new Set([0, 2, 4]);
+// How many notes the chosen scale has per octave — the literal 7 the
+// diatonic-only version of this module used, generalised to any catalogued
+// scale (REQ-012).
+function notesPerOctaveOf(key: Key, scale: Scale): number {
+  return spelledScaleOf(key, scale).ascending.length;
+}
 
-// An n-octave run is 7*n + 1 consecutive notes starting at a tonic
-// (isRoot) — the index of the lowest tonic for which the run still fits
-// within the key view's notes, or undefined if no tonic supports it.
+// An n-octave run is notesPerOctave*n + 1 consecutive notes starting at a
+// tonic (isRoot) — the index of the lowest tonic for which the run still
+// fits within the key view's notes, or undefined if no tonic supports it.
 function lowestTonicIndexFor(
   notes: readonly KeyViewNote[],
   octaveCount: number,
+  notesPerOctave: number,
 ): number | undefined {
-  const runLength = 7 * octaveCount;
+  const runLength = notesPerOctave * octaveCount;
   for (let index = 0; index < notes.length; index += 1) {
     if (!notes[index]!.isRoot) continue;
     if (index + runLength <= notes.length - 1) return index;
@@ -51,10 +47,12 @@ function lowestTonicIndexFor(
 export function fittingOctaveCounts(
   key: Key,
   variant: Variant,
+  scale: Scale,
 ): readonly OctaveCount[] {
-  const notes = keyView(key, variant, diatonicScaleOf(key)).notes;
+  const notes = keyView(key, variant, scale).notes;
+  const notesPerOctave = notesPerOctaveOf(key, scale);
   return OCTAVE_COUNTS.filter(
-    (count) => lowestTonicIndexFor(notes, count) !== undefined,
+    (count) => lowestTonicIndexFor(notes, count, notesPerOctave) !== undefined,
   );
 }
 
@@ -63,50 +61,28 @@ export function fittingOctaveCounts(
 export function effectiveOctavesOf(
   key: Key,
   variant: Variant,
+  scale: Scale,
   octaves: Octaves,
 ): Octaves {
   if (octaves.kind === "full") return octaves;
-  const notes = keyView(key, variant, diatonicScaleOf(key)).notes;
-  if (lowestTonicIndexFor(notes, octaves.count) !== undefined) return octaves;
+  const notes = keyView(key, variant, scale).notes;
+  const notesPerOctave = notesPerOctaveOf(key, scale);
+  if (lowestTonicIndexFor(notes, octaves.count, notesPerOctave) !== undefined)
+    return octaves;
 
-  const fitting = fittingOctaveCounts(key, variant);
+  const fitting = fittingOctaveCounts(key, variant, scale);
   if (fitting.length === 0) return { kind: "full" };
   return { kind: "count", count: fitting[fitting.length - 1]! };
-}
-
-function degreeIndexOf(key: Key, note: KeyViewNote): number {
-  return scaleNotesOf(key).findIndex(
-    (pitchClass) =>
-      pitchClass.letter === note.note.letter &&
-      pitchClass.accidental === note.note.accidental,
-  );
 }
 
 function countRunOf(
   notes: readonly KeyViewNote[],
   octaveCount: OctaveCount,
+  notesPerOctave: number,
 ): readonly KeyViewNote[] {
-  const startIndex = lowestTonicIndexFor(notes, octaveCount);
+  const startIndex = lowestTonicIndexFor(notes, octaveCount, notesPerOctave);
   if (startIndex === undefined) return notes; // effectiveOctavesOf already clamped to a count that fits
-  return notes.slice(startIndex, startIndex + 7 * octaveCount + 1);
-}
-
-export function runOf(
-  key: Key,
-  variant: Variant,
-  traversal: Traversal,
-): readonly KeyViewNote[] {
-  const view = keyView(key, variant, diatonicScaleOf(key));
-  const effective = effectiveOctavesOf(key, variant, traversal.octaves);
-  const scaleRun =
-    effective.kind === "full"
-      ? view.notes
-      : countRunOf(view.notes, effective.count);
-
-  if (traversal.shape === "scale") return scaleRun;
-  return scaleRun.filter((note) =>
-    ARPEGGIO_DEGREES.has(degreeIndexOf(key, note)),
-  );
+  return notes.slice(startIndex, startIndex + notesPerOctave * octaveCount + 1);
 }
 
 export interface SequenceNote {
@@ -119,7 +95,7 @@ export interface SequenceNote {
 // ascending then descending without repeating the top note for updown
 // (2n-1 notes for an n-note run). runIndex is always the note's position
 // in the ascending run, whichever direction the sequence plays it in.
-export function sequenceOf(
+function sequenceFromRun(
   run: readonly KeyViewNote[],
   direction: Direction,
 ): readonly SequenceNote[] {
@@ -134,4 +110,37 @@ export function sequenceOf(
   if (direction === "down") return descending;
 
   return [...ascending, ...descending.slice(1)];
+}
+
+export interface TraversalNotes {
+  readonly run: readonly KeyViewNote[];
+  readonly sequence: readonly SequenceNote[];
+}
+
+// REQ-012 — the run fitted to the instrument and the chosen scale, and the
+// sequence it is played in. The descending form a scale defines for itself
+// (REQ-012/S6) is T005's job; until then `sequence` is derived from `run`
+// exactly as this module's direction logic always has.
+export function traversalOf(
+  key: Key,
+  variant: Variant,
+  scale: Scale,
+  traversal: Traversal,
+): TraversalNotes {
+  const view = keyView(key, variant, scale);
+  const notesPerOctave = notesPerOctaveOf(key, scale);
+  const effective = effectiveOctavesOf(key, variant, scale, traversal.octaves);
+  const scaleRun =
+    effective.kind === "full"
+      ? view.notes
+      : countRunOf(view.notes, effective.count, notesPerOctave);
+
+  const run =
+    traversal.shape === "scale"
+      ? scaleRun
+      : scaleRun.filter(
+          (note) => note.degree === 1 || note.degree === 3 || note.degree === 5,
+        );
+
+  return { run, sequence: sequenceFromRun(run, traversal.direction) };
 }

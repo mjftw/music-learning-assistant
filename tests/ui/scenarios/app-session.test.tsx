@@ -13,6 +13,7 @@ import type { SoundCommand } from "../../../src/sound/published/sound-command.sc
 import {
   builtInCatalogue,
   effectiveOctavesOf,
+  scaleById,
 } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
@@ -156,6 +157,7 @@ test("practice.session/REQ-011/S3 (app) — a stored v2 payload keeps the select
     effectiveOctavesOf(
       keyOf("Bb"),
       variantOf("ocarina-bass-c"),
+      scaleById("major"),
       defaultTraversal.octaves,
     ),
     defaultSessionSettings,

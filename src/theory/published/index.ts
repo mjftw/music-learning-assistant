@@ -33,12 +33,12 @@ export type {
   SequenceNote,
   Shape,
   Traversal,
+  TraversalNotes,
 } from "../domain/traversal";
 export {
   effectiveOctavesOf,
   fittingOctaveCounts,
-  runOf,
-  sequenceOf,
+  traversalOf,
 } from "../domain/traversal";
 export { pitchClassLabel, noteLabel } from "../domain/labels";
 export { pitchHzOf, REFERENCE_A4_HZ } from "../domain/temperament";

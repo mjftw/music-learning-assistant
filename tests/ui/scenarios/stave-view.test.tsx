@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test } from "vitest";
 import {
   builtInCatalogue,
-  runOf,
+  scaleById,
+  traversalOf,
   type Key,
 } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
@@ -48,11 +49,11 @@ const flute = () =>
     .find((variant) => variant.variantId === "flute-concert")!;
 
 test("theory.circle-of-fifths/REQ-003/S1 — G major on the flute (acceptance)", () => {
-  const notes = runOf(gMajor, flute(), {
+  const notes = traversalOf(gMajor, flute(), scaleById("major"), {
     direction: "updown",
     octaves: { kind: "full" },
     shape: "scale",
-  });
+  }).run;
 
   render(
     <StaveView
@@ -82,11 +83,11 @@ test("theory.circle-of-fifths/REQ-003/S1 — G major on the flute (acceptance)",
 });
 
 test("theory.circle-of-fifths/REQ-003/S4 — the stave shows the traversal's run, the summary the key", () => {
-  const notes = runOf(gMajor, flute(), {
+  const notes = traversalOf(gMajor, flute(), scaleById("major"), {
     direction: "updown",
     octaves: { kind: "count", count: 2 },
     shape: "arpeggio",
-  });
+  }).run;
 
   render(
     <StaveView
@@ -112,11 +113,11 @@ test("theory.circle-of-fifths/REQ-003/S4 — the stave shows the traversal's run
 });
 
 test("practice.session/REQ-006/S1 — the sounding note is accented, enlarged and haloed; the rest are dimmed", () => {
-  const notes = runOf(gMajor, flute(), {
+  const notes = traversalOf(gMajor, flute(), scaleById("major"), {
     direction: "updown",
     octaves: { kind: "count", count: 2 },
     shape: "arpeggio",
-  });
+  }).run;
 
   const { rerender } = render(
     <StaveView

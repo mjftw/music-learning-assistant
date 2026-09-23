@@ -89,7 +89,7 @@ function headerRangeLabel(variant: Variant): string {
 
 // Maps the store's stringly-typed octave count (`'full' | 1 | 2 | 3 | 4`) to
 // and from the `Octaves` sum type published/consumed by the theory context's
-// `runOf` (T003/T004) — the traversal's direction and shape carry over
+// `traversalOf` (T003/T004) — the traversal's direction and shape carry over
 // unchanged, so only the octaves need translating.
 function octavesFromStored(stored: StoredOctaves): Octaves {
   return stored === "full"

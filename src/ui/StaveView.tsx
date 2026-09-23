@@ -304,7 +304,7 @@ function buildStave(
 // when enabled (REQ-007). `variant` is carried in the props for interface
 // parity with the rest of the key view even though this component no longer
 // derives the run itself — the caller (App.tsx) already fits it to the
-// variant via `runOf` before passing `notes` down.
+// variant via `traversalOf` before passing `notes` down.
 export function StaveView(props: {
   readonly key_: Key;
   readonly variant: Variant;

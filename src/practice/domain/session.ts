@@ -14,6 +14,7 @@ import type {
   Note,
   OctaveCount,
   Octaves,
+  Scale,
   SequenceNote,
   Traversal,
   Variant,
@@ -23,8 +24,8 @@ import {
   fittingOctaveCounts,
   noteLabel,
   pitchHzOf,
-  runOf,
-  sequenceOf,
+  scaleById,
+  traversalOf,
 } from "../../theory/published";
 import type { TickPlan } from "../adapters/lookahead-scheduler";
 import { createLookaheadScheduler } from "../adapters/lookahead-scheduler";
@@ -232,17 +233,34 @@ export function createSession(
   const changeListeners = new Set<() => void>();
   const targetAdvancedListeners = new Set<(event: TargetAdvanced) => void>();
 
+  // T004 stand-in: the key's own diatonic scale, until the learner's actual
+  // scale choice can be threaded through (T009 wires it via setScaleChoice).
+  function currentScale(): Scale {
+    return scaleById(
+      currentContext.key.mode === "major" ? "major" : "natural-minor",
+    );
+  }
+
   function recompute(): void {
-    run = runOf(currentContext.key, currentContext.variant, currentTraversal);
-    sequence = sequenceOf(run, currentTraversal.direction);
+    const scale = currentScale();
+    const traversalNotes = traversalOf(
+      currentContext.key,
+      currentContext.variant,
+      scale,
+      currentTraversal,
+    );
+    run = traversalNotes.run;
+    sequence = traversalNotes.sequence;
     effectiveOctaves = effectiveOctavesOf(
       currentContext.key,
       currentContext.variant,
+      scale,
       currentTraversal.octaves,
     );
     fittingCounts = fittingOctaveCounts(
       currentContext.key,
       currentContext.variant,
+      scale,
     );
   }
 

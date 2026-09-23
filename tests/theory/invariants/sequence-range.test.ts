@@ -4,9 +4,9 @@ import {
   circleOfFifths,
   fittingOctaveCounts,
   pitchPosition,
-  runOf,
+  scaleById,
   scaleNotesOf,
-  sequenceOf,
+  traversalOf,
 } from "../../../src/theory/published";
 import type {
   Direction,
@@ -34,11 +34,16 @@ test("theory.circle-of-fifths/REQ-012/S5 — the sequence never leaves the range
 
   let count = 0;
   for (const key of keys) {
+    // T004 stand-in (matches practice.session's own recompute()): the key's
+    // own diatonic scale — major or natural minor — is what `scaleNotesOf`
+    // below already assumes for the arpeggio-membership check, so the run
+    // must be built from that same scale, not an arbitrary catalogued one.
+    const scale = scaleById(key.mode === "major" ? "major" : "natural-minor");
     for (const variant of variants) {
       const lowest = pitchPosition(variant.range.lowest);
       const highest = pitchPosition(variant.range.highest);
       const octaveChoices: readonly Octaves[] = [
-        ...fittingOctaveCounts(key, variant).map((count_): Octaves => ({
+        ...fittingOctaveCounts(key, variant, scale).map((count_): Octaves => ({
           kind: "count",
           count: count_,
         })),
@@ -49,8 +54,11 @@ test("theory.circle-of-fifths/REQ-012/S5 — the sequence never leaves the range
         for (const shape of SHAPES) {
           for (const direction of DIRECTIONS) {
             count += 1;
-            const run = runOf(key, variant, { direction, octaves, shape });
-            const sequence = sequenceOf(run, direction);
+            const { sequence } = traversalOf(key, variant, scale, {
+              direction,
+              octaves,
+              shape,
+            });
 
             for (const entry of sequence) {
               const position = pitchPosition(entry.note);

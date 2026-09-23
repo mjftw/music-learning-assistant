@@ -13,6 +13,7 @@ import {
   builtInCatalogue,
   circleOfFifths,
   fittingOctaveCounts,
+  scaleById,
 } from "../../../src/theory/published";
 import type {
   Direction,
@@ -38,12 +39,18 @@ test("practice.session/REQ-006/S5 — the target is always in the sequence (inva
   let count = 0;
 
   for (const key of keys) {
+    // T004 stand-in (matches practice.session's own recompute()) — which
+    // fitting counts these keys fit for is scale-independent (REQ-012), but
+    // the scale used here still mirrors the one the session itself picks.
+    const scale = scaleById(key.mode === "major" ? "major" : "natural-minor");
     for (const variant of variants) {
       const octaveChoices: readonly Octaves[] = [
-        ...fittingOctaveCounts(key, variant).map((octaveCount): Octaves => ({
-          kind: "count",
-          count: octaveCount,
-        })),
+        ...fittingOctaveCounts(key, variant, scale).map(
+          (octaveCount): Octaves => ({
+            kind: "count",
+            count: octaveCount,
+          }),
+        ),
         { kind: "full" },
       ];
 

@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
 import {
   builtInCatalogue,
-  runOf,
-  sequenceOf,
+  scaleById,
+  traversalOf,
 } from "../../../src/theory/published";
 
 const variantById = (id: string) =>
@@ -17,11 +17,16 @@ const label = (note: { letter: string; accidental: string; octave: number }) =>
   `${note.letter}${note.accidental === "sharp" ? "#" : note.accidental === "flat" ? "b" : ""}${note.octave}`;
 
 test("theory.circle-of-fifths/REQ-012/S1 — two octaves of G major on the flute", () => {
-  const run = runOf(major("G"), variantById("flute-concert"), {
-    direction: "updown",
-    octaves: { kind: "count", count: 2 },
-    shape: "scale",
-  });
+  const { run, sequence } = traversalOf(
+    major("G"),
+    variantById("flute-concert"),
+    scaleById("major"),
+    {
+      direction: "updown",
+      octaves: { kind: "count", count: 2 },
+      shape: "scale",
+    },
+  );
   expect(run.map((n) => label(n.note))).toEqual([
     "G4",
     "A4",
@@ -39,7 +44,7 @@ test("theory.circle-of-fifths/REQ-012/S1 — two octaves of G major on the flute
     "F#6",
     "G6",
   ]);
-  const seq = sequenceOf(run, "updown").map((n) => label(n.note));
+  const seq = sequence.map((n) => label(n.note));
   expect(seq).toHaveLength(29);
   expect(seq).toEqual([...seq].reverse());
   expect(seq[0]).toBe("G4");
@@ -48,13 +53,20 @@ test("theory.circle-of-fifths/REQ-012/S1 — two octaves of G major on the flute
 });
 
 test("theory.circle-of-fifths/REQ-012/S4 — down", () => {
-  const run = runOf(major("G"), variantById("flute-concert"), {
+  const majorScale = scaleById("major");
+  const flute = variantById("flute-concert");
+  const traversal = {
+    octaves: { kind: "count" as const, count: 2 as const },
+    shape: "scale" as const,
+  };
+  const up = traversalOf(major("G"), flute, majorScale, {
+    ...traversal,
     direction: "up",
-    octaves: { kind: "count", count: 2 },
-    shape: "scale",
-  });
-  const up = sequenceOf(run, "up").map((n) => label(n.note));
-  const down = sequenceOf(run, "down").map((n) => label(n.note));
+  }).sequence.map((n) => label(n.note));
+  const down = traversalOf(major("G"), flute, majorScale, {
+    ...traversal,
+    direction: "down",
+  }).sequence.map((n) => label(n.note));
   expect(down).toEqual([...up].reverse());
   expect(down).toHaveLength(15);
 });
