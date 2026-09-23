@@ -144,6 +144,19 @@ export function createSession(
   let soundingPosition: number | null = null;
   let notice: "sound-unavailable" | null = null;
   let clickCounter = 0;
+  // Positions already advanced-to for their current scheduled occurrence —
+  // whichever of the highlight timer or the onset report arrives first for
+  // a position adds it here and the other is a no-op (converge C1: the
+  // timer, not the cross-thread report, drives the highlight; the report
+  // still confirms it). Cleared per-position the moment a fresh occurrence
+  // of that position is scheduled (`scheduleHighlight`, below), so a
+  // looped run's repeat of the same position highlights again.
+  const firedPositions = new Set<number>();
+  // Cancel functions for every highlight timer not yet fired — stop(),
+  // restartIfPlaying() and dispose() clear this wholesale so a timer for a
+  // superseded run never fires after its session has moved on (the gap
+  // T009's review carried and T023 only closed by deleting the feature).
+  const pendingHighlightCancels = new Set<() => void>();
   // Whether `transport` needs to move on to the state after it before the
   // next tick is built. false right after start() (or a restart) — the
   // very next tick uses `transport` as it stands, not the one after it —
@@ -198,13 +211,17 @@ export function createSession(
   }
 
   // The single source of "a position is now sounding" — reached either from
-  // the onset report of whichever command carried that position's tag, or
-  // (REQ-005/S2) from a timer for a tick with nothing to sound at all.
-  // `sequence` is read live, not captured, so a stale report arriving after
-  // a restart (REQ-007) still resolves to the position's current note.
+  // a highlight timer aimed at the tick's own scheduled onset
+  // (`scheduleHighlight`, below — converge C1: the highlight must not wait
+  // on the worklet → main-thread message) or from the onset report of
+  // whichever command carried that position's tag, confirming it — first
+  // arrival wins (`firedPositions`). `sequence` is read live, not captured,
+  // so a stale report arriving after a restart (REQ-007) still resolves to
+  // the position's current note.
   function applyTargetAdvance(position: number, atFrame: number): void {
     const target = sequence[position];
     if (target === undefined) return;
+    firedPositions.add(position);
     soundingPosition = position;
     const advancedEvent: TargetAdvanced = {
       note: target.note,
@@ -216,11 +233,40 @@ export function createSession(
     notifyChange();
   }
 
+  // Schedules the highlight for a playing tick's tagged position at its own
+  // scheduled onset — a `ClockPort` timeout, not the cross-thread onset
+  // report, so the highlight never waits on that message (converge C1:
+  // measured ~21 ms floor, occasionally >30 ms). `firedPositions.delete`
+  // first: a looped run reaches the same position again long after its
+  // previous occurrence already fired, and this is the fresh occurrence's
+  // guard, not the old one's.
+  function scheduleHighlight(position: number, onsetFrame: number): void {
+    firedPositions.delete(position);
+    const framesUntilOnset = onsetFrame - sound.currentFrame();
+    const msUntilOnset = Math.max(
+      0,
+      (framesUntilOnset * 1000) / sound.sampleRate(),
+    );
+    const cancel = clock.setTimeout(() => {
+      pendingHighlightCancels.delete(cancel);
+      if (firedPositions.has(position)) return;
+      applyTargetAdvance(position, onsetFrame);
+    }, msUntilOnset);
+    pendingHighlightCancels.add(cancel);
+  }
+
+  function cancelPendingHighlights(): void {
+    for (const cancel of pendingHighlightCancels) cancel();
+    pendingHighlightCancels.clear();
+  }
+
   const unsubscribeOnset = sound.onOnset((report) => {
     // A position tag (< CLICK_TAG_BASE) is the tag of the sequence position
     // it belongs to; a click's own tag (count-in, rest bar, or a click that
     // merely accompanies an already-tagged tone) carries nothing to apply.
     if (report.tag >= CLICK_TAG_BASE) return;
+    // Already lit by its own timer — the report is only a confirmation.
+    if (firedPositions.has(report.tag)) return;
     applyTargetAdvance(report.tag, report.actualFrame);
   });
 
@@ -291,6 +337,8 @@ export function createSession(
         });
         positionTagged = true;
       }
+
+      if (positionTagged) scheduleHighlight(position, onsetFrame);
     }
 
     notifyChange();
@@ -328,6 +376,7 @@ export function createSession(
     transport = startTransport(currentSettings);
     pendingAdvance = false;
     soundingPosition = null;
+    firedPositions.clear();
     notifyChange();
 
     void (async () => {
@@ -359,6 +408,7 @@ export function createSession(
 
   function stop(): void {
     scheduler.stop();
+    cancelPendingHighlights();
     sound.post({ kind: "stopAll" });
     transport = { kind: "idle" };
     soundingPosition = null;
@@ -375,9 +425,11 @@ export function createSession(
     // the new sequence's first note begins at once.
     sound.post({ kind: "stopAll" });
     scheduler.stop();
+    cancelPendingHighlights();
     transport = { kind: "playing", position: 0 };
     pendingAdvance = false;
     soundingPosition = null;
+    firedPositions.clear();
     scheduler.start(sound.currentFrame() + firstTickLeadFrames(), next);
   }
 
@@ -414,6 +466,7 @@ export function createSession(
 
   function dispose(): void {
     scheduler.stop();
+    cancelPendingHighlights();
     unsubscribeOnset();
     unsubscribeVisibility();
     sound.dispose();

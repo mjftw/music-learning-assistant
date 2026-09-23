@@ -40,7 +40,7 @@ async function flushStart(session: Session): Promise<void> {
   await Promise.resolve();
 }
 
-test("practice.session/REQ-006/S3 — nothing lit when nothing sounds, until the onset", async () => {
+test("practice.session/REQ-006/S3 — the highlight fires from the scheduled onset, not the report", async () => {
   const settings = { ...defaultSessionSettings, tempoBpm: 120 };
   const { session, sound, clock } = sessionOn(
     "G",
@@ -63,9 +63,12 @@ test("practice.session/REQ-006/S3 — nothing lit when nothing sounds, until the
   const firstTone = sound.posted.filter(isTone)[0]!;
   expect(firstTone.tag).toBe(0);
 
-  sound.fireOnset(0);
+  // With no fireOnset at all, advancing the fake clock to the first tone's
+  // scheduled onset is enough to light it — the timer aimed at that onset
+  // drives the highlight, not the worklet's cross-thread report (converge
+  // C1).
+  advanceUntil(clock, () => session.snapshot().soundingPosition === 0);
 
-  expect(session.snapshot().soundingPosition).toBe(0);
   expect(session.snapshot().caption).toBe("G4 · 1 of 29");
   expect(events).toHaveLength(1);
 
@@ -77,6 +80,24 @@ test("practice.session/REQ-006/S3 — nothing lit when nothing sounds, until the
   });
   expect(parsed.position).toBe(0);
   expect(parsed.length).toBe(29);
+  expect(parsed.atFrame).toBe(firstTone.onsetFrame);
+
+  // The onset report for the same position, arriving after the timer
+  // already fired, confirms rather than duplicates.
+  sound.fireOnset(0);
+
+  expect(session.snapshot().soundingPosition).toBe(0);
+  expect(events).toHaveLength(1);
+
+  // stop() cancels every pending highlight timer — once the second tone is
+  // posted (its own timer scheduled, still ahead of its onset), stopping
+  // and advancing past that onset must not resurrect a highlight.
+  advanceUntil(clock, () => sound.posted.filter(isTone).length >= 2);
+  session.stop();
+  clock.advance(1000);
+
+  expect(session.snapshot().soundingPosition).toBeNull();
+  expect(events).toHaveLength(1);
 });
 
 test("practice.session/REQ-009/S1 — hidden means stopped", async () => {
