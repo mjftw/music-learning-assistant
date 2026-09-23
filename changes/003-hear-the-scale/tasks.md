@@ -724,7 +724,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T024 · practice.session/REQ-002, REQ-010 (W1) · One AudioContext for the life of the session
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/adapters/web-audio-sound.ts`, `src/practice/adapters/fallback-sound.ts`, `src/practice/ports/sound.ts` (add `dispose(): void`), `src/practice/adapters/silent-sound.ts`, `src/practice/domain/session.ts` (`dispose()` → `sound.dispose()`), `tests/practice/fakes.ts` (`FakeSound.dispose`, `disposeCalls`), `scripts/timing-test.mjs` (pre-flight check)
@@ -742,7 +742,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T025 · practice.session/REQ-010 (S1) (W2) · A thrown sound failure still gives the notice and the silent walk
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/adapters/web-audio-sound.ts` (try/catch around `createContext()`/`resume()`/`createSoundEngine` → `{ ok: false, error: { reason: "no-audio-context" | "worklet-failed" | "wasm-failed", detail } }`), `src/practice/adapters/fallback-sound.ts` (a throwing primary counts as failed), `src/practice/domain/session.ts` (`start()`'s async body gets a `.catch` that sets the notice and starts the scheduler anyway)
@@ -785,7 +785,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T028 · practice.session/REQ-008 (S1), REQ-006 (S4) · Timing headroom: first tick leads by 20 ms; onset commits flush synchronously
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (first onset frame = `sound.currentFrame() + FIRST_TICK_LEAD_MS · sampleRate / 1000`, `FIRST_TICK_LEAD_MS = 20`, applied on `start()` and on restart), `src/ui/App.tsx` (the `onTargetAdvanced` path commits with `flushSync` from `react-dom` so the highlight paints in the current frame)
