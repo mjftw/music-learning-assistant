@@ -87,7 +87,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T002 · theory.circle-of-fifths/REQ-003, practice.session/REQ-012 · The scale catalogue and `spelledScaleOf`
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/theory/domain/scales.ts`
