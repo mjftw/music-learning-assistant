@@ -1,5 +1,6 @@
 export type NoteLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G";
-export type Accidental = "natural" | "sharp" | "flat";
+export type Accidental =
+  "doubleFlat" | "flat" | "natural" | "sharp" | "doubleSharp";
 
 export interface PitchClass {
   readonly letter: NoteLetter;
@@ -21,9 +22,11 @@ export const LETTER_SEMITONE: Record<NoteLetter, number> = {
 };
 
 export const ACCIDENTAL_OFFSET: Record<Accidental, number> = {
+  doubleFlat: -2,
   flat: -1,
   natural: 0,
   sharp: 1,
+  doubleSharp: 2,
 };
 
 export function pitchPosition(note: Note): number {
@@ -67,7 +70,7 @@ export function parseNoteString(input: string): Note | null {
 
 // Internal helper shared by keys.ts and circle.ts — not part of the
 // published surface. Finds the single accidental that spells `letter` at
-// `targetSemitone` (0-11), or throws if no natural/sharp/flat reaches it.
+// `targetSemitone` (0-11), or throws if none of the five reaches it.
 export function accidentalForTarget(
   letter: NoteLetter,
   targetSemitone: number,
@@ -77,6 +80,8 @@ export function accidentalForTarget(
   if (diff === 0) return "natural";
   if (diff === 1) return "sharp";
   if (diff === 11) return "flat";
+  if (diff === 2) return "doubleSharp";
+  if (diff === 10) return "doubleFlat";
   throw new Error(
     `cannot spell letter ${letter} to reach semitone ${targetSemitone} with a single accidental`,
   );

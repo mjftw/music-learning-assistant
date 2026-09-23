@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   keyId,
+  pitchClassLabel,
   pitchPosition,
   scaleNotesOf,
 } from "../../../src/theory/published";
@@ -51,5 +52,19 @@ describe("theory primitives", () => {
     ).not.toBe(
       keyId({ tonic: { letter: "G", accidental: "flat" }, mode: "major" }),
     );
+  });
+  test("theory.circle-of-fifths/REQ-003 — double accidentals spell and label (F𝄪, B𝄫)", () => {
+    expect(pitchClassLabel({ letter: "F", accidental: "doubleSharp" })).toBe(
+      "F𝄪",
+    );
+    expect(pitchClassLabel({ letter: "B", accidental: "doubleFlat" })).toBe(
+      "B𝄫",
+    );
+    expect(
+      pitchPosition({ letter: "F", accidental: "doubleSharp", octave: 4 }),
+    ).toBe(pitchPosition({ letter: "G", accidental: "natural", octave: 4 }));
+    expect(
+      pitchPosition({ letter: "B", accidental: "doubleFlat", octave: 3 }),
+    ).toBe(pitchPosition({ letter: "A", accidental: "natural", octave: 3 }));
   });
 });
