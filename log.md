@@ -4,6 +4,7 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-23
 
+- Intent `changes/005-scale-selection/intent.md` → resolved (human:merlin-webster)
 - Domain Map `docs/domain.md` → approved (human:merlin-webster)
 - Glossary `docs/glossary.md` → approved (human:merlin-webster)
 - Capability Spec `specs/theory/temperament.md` → current (human:merlin-webster)
