@@ -17,7 +17,7 @@ verified:
     at: 2026-09-22T17:27:31Z
 sdd_id: 003-hear-the-scale
 sdd_context: practice
-sdd_phase: complete
+sdd_phase: in-progress
 ---
 
 # Tasks: Hear the scale
@@ -870,6 +870,21 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 **Verify** — three `pnpm test:timing` tables pasted; `pnpm check` → exit 0
 
+### T033 · practice.session/REQ-002 (S3), REQ-006 (S3) · The end of a run is timed to the last note's audible end
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/domain/session.ts` (when `next()` finds no tick after the last one with looping off, do not go idle at once: arm an idle timer via `clock.setTimeout` aimed at the last tick's audible end — `lastOnsetFrame + lastTickFrames` → ms + `outputLatencyMs()`; the transport stays `playing` (snapshot unchanged) until it fires; when it fires: transport `idle`, `soundingPosition = null`, cancel any remaining highlight timers, release the wake lock, notify. The scheduler still stops immediately (`next()` returns null). `stop()`, `restartIfPlaying()`, hidden and `dispose()` cancel the idle timer too. Remove the misleading comment claiming the idle cancel never removes a live timer. Also drop the two comments claiming the harness decodes generation tags (it does not; the tags still label reports).)
+- Test: `tests/practice/scenarios/session-target.test.ts` — at 200 bpm (tick 300 ms) with `latencyMs = 150` and loop off, count-in off: the last position's `TargetAdvanced` still fires and the caption reads `<last note> · N of N` while playing; the transport becomes idle only at last onset + 300 ms + 150 ms (± one poll), never earlier; after idle `soundingPosition === null` (REQ-006/S3) and no later event; `stop()` during that window cancels it (idle at once, no later transition). `session-transport.test.ts` REQ-002/S3 "once through" still holds (idle after the 29th note — now after its end, not at lookahead time)
+
+**Steps**
+- [ ] 1. RED — the 200 bpm / 150 ms test → FAIL (last highlight cancelled; idle early)
+- [ ] 2. GREEN → PASS; all existing tests green (adjust only assertions that assumed idle at lookahead time — say which)
+- [ ] 3. `source ~/.cargo/env && pnpm check` → green; `pnpm test:timing --seconds 10` still PASS (paste)
+
+**Verify** — `pnpm vitest run tests/practice` → all passed; `pnpm check` → exit 0
+
 ## Coverage
 
 | Requirement | Tasks | Covered |
@@ -881,12 +896,12 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 | theory.circle-of-fifths/REQ-012 (A) | T003 (S2, S3), T004 (S1, S4, S5) | ✅ |
 | theory.temperament/REQ-001 (A) | T005 | ✅ |
 | practice.session/REQ-001 | T006 (S2), T008 (S1, S3, S4), T015 (UI) | ✅ |
-| practice.session/REQ-002 | T008 (S1–S4), T014 (UI), T022 (caption amended) | ✅ |
+| practice.session/REQ-002 | T008 (S1–S4), T014 (UI), T022 (caption amended), T033 (S3 timed end) | ✅ |
 | practice.session/REQ-003 | T007 (S1–S3), T015 (toggles UI) | ✅ |
 | practice.session/REQ-004 | T006 (S1–S3), T023 (S4 amended), T014, T015 (UI) | ✅ |
 | practice.session/REQ-005 | T007 (S1–S3), T009 (S2 session-level), T010 (S4) | ✅ |
 | practice.session/REQ-006 | T013 (S1, S2), T009 (S3, S5), T018 (S4), T029/T030/T031 (timer-driven highlight at the audible onset; S4 two-sided) | ✅ |
-| practice.session/REQ-007 | T008 (S1–S3), T016 (S3 UI) | ✅ |
+| practice.session/REQ-007 | T008 (S1–S3), T016 (S3 UI), T030 (stale-report race), T031 | ✅ |
 | practice.session/REQ-008 | T018 (S1) | ✅ |
 | practice.session/REQ-009 | T009 (S1, S2) | ✅ |
 | practice.session/REQ-010 | T009 (S1, S2), T016 (S1 UI) | ✅ |

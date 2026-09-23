@@ -291,7 +291,7 @@ add `src/sound/` to the roots and let `IMPORT_RE` cover Rust `use` (it does).
 | practice.session/REQ-003 | `transport.ts` countingIn/resting branches; clicks always planned in those states | S1–S3 |
 | practice.session/REQ-004 | `tempo.ts`; `TempoSheet`; scheduler recomputes beat length from the next beat | S1–S4; band contiguity property |
 | practice.session/REQ-005 | `Tick` tone/click selection by sound mode (TS); tone and click shape (Rust) | S1–S3 on planned commands; S4 in `cargo test` (envelope ends before next onset) |
-| practice.session/REQ-006 | highlight timer at the scheduled onset (`OnsetReport` confirms/dedupes) → `TargetAdvanced`; `StaveView`/`NamesView` highlight props | S1–S3 UI scenarios; S4 measured in `test:timing`; S5 invariant over all sequences |
+| practice.session/REQ-006 | highlight timer aimed at the audible onset (scheduled frame + `outputLatencyMs`), authoritative; the `OnsetReport` only feeds the timing harness → `TargetAdvanced`; `StaveView`/`NamesView` highlight props | S1–S3 UI scenarios; S4 measured in `test:timing`; S5 invariant over all sequences |
 | practice.session/REQ-007 | `session.setContext/setTraversal` restart rules; UI never calls `stop()` on overlay open | S1–S3 |
 | practice.session/REQ-008 | Lookahead scheduler + sample-accurate worklet | S1 measured in `test:timing`: 6 configs × 60 s in parallel pages; deterministic unit test that the scheduler never starves the lookahead with a slow fake clock |
 | practice.session/REQ-009 | `page-visibility` adapter → `stop()`; `screen-wake-lock` adapter around playing | S1 via fake visibility port; S2 asserted at the wake-lock port (acquire on start, release on stop) — dimming itself not observable |

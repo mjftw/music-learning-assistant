@@ -149,7 +149,7 @@ Andante, and play along.
 | Concern | Requirement | How measured |
 |---|---|---|
 | Timing | Every note onset within ±5 ms of its scheduled time, at every tempo 40–200, over at least 60 s of looping | Automated test compares actual onset times against the schedule (practice.session/REQ-008) |
-| Sight matches sound | The current-note highlight is shown within 30 ms of the note's onset | Automated test measures onset → highlight (practice.session/REQ-006/S4) |
+| Sight matches sound | The current-note highlight is shown within 30 ms either side of the note's audible onset (scheduled onset + the device's reported output latency) | Automated test measures audible onset ↔ highlight, two-sided (practice.session/REQ-006/S4) |
 | Stop | ❚❚ silences within 50 ms | Test: no audio output after 50 ms |
 | Privacy / data retention | Nothing personal stored; only settings, locally, as REQ-008 | Inspection of stored state |
 | Accessibility | Every transport and sheet control has an accessible name; the sounding note is announced no more often than once per note | Assertion in UI tests |
