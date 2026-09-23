@@ -89,3 +89,8 @@ Not converged — 0 critical, 2 warning. Timing run PASS (vs audible 28.0/16.3/2
 
 ## Converge round 6 (2026-09-23, opus, commit 8acbaf2) — **Converged**
 0 critical, 0 warning. T033 verified (last highlight at every measured latency; stop/restart/dispose cancel the idle timer). Timing: onsets 0.00, vs audible 20.0/15.8/17.4 ms. Info I1a (a second `start()` during the tail left the stale idle timer live — unreachable via the UI) fixed as a one-liner with a test (`a81c8af`). Standing info: S4/REQ-008 credited by citation tests (the harness is the evidence); restart/dispose-during-tail by probe only; plan silent on the idle timer; finish-gate items (AGENTS.md healthy block, glossary rows); §11 refinement proposed, not applied; adapter tests import by path.
+
+## Phone acceptance (2026-09-23, in progress)
+- HTTPS needed over the LAN (secure context for AudioWorklet) → `pnpm dev:phone`.
+- Crackle on the phone → `c564e08`: Zod parsing moved off the audio thread, output view hoisted, `stop_all` fades 5 ms, Rust step-size tests (13 Rust tests). `latencyHint: 'playback'` tried and reverted (`4cee739`): it raised the reported outputLatency and the highlight landed 44 ms late on the laptop.
+- Highlight lagging the sound on the phone → `4cee739`: `HIGHLIGHT_LEAD_MS = 20` subtracted from the highlight aim (never from the idle timer). Harness's highlight column is max-|Δ| (unsigned); laptop reads 17–27 ms. Phone re-test pending for both.
