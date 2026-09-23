@@ -17,7 +17,7 @@ verified:
     at: 2026-09-22T17:27:31Z
 sdd_id: 003-hear-the-scale
 sdd_context: practice
-sdd_phase: in-progress
+sdd_phase: complete
 ---
 
 # Tasks: Hear the scale
@@ -840,7 +840,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T031 · practice.session/REQ-006 (S3, S4, S5) · The timer is authoritative; the report only measures
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (the onset-report listener no longer calls `applyTargetAdvance`; `firedPositions`/generation stay for the harness? — no: remove the report→highlight coupling and the dedupe set; keep run-generation tags (they still label reports for the harness); cancel pending highlight timers on the idle transition as well), `scripts/timing-test.mjs` (predict the audible onset as now; **gate** `|observed − audible| ≤ 30` two-sided; print an extra informational column `vs scheduled (ms)`; PASS line text updated), `AGENTS.md` (healthy timing example updated)
@@ -856,7 +856,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T032 · practice.session/REQ-006 (S4) · Playback does not re-render the circle; the session notifies only on material change
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/App.tsx` (stable handlers with `useCallback`; the circle, header, settings drawer, instrument sheet, traversal sheet and tempo sheet receive only props that are stable during playback), `src/ui/CircleOfFifths.tsx`, `src/ui/Header.tsx`, `src/ui/SettingsDrawer.tsx`, `src/ui/InstrumentSheet.tsx`, `src/ui/TraversalSheet.tsx`, `src/ui/TempoSheet.tsx`, `src/ui/TraversalRow.tsx` (wrap each export in `React.memo`), `src/practice/domain/session.ts` (`notifyChange()` only when the snapshot's UI-visible fields changed: transport kind/position/beatsLeft, soundingPosition, caption, progress, notice, settings, traversal, run identity — compare against the last notified snapshot; the scheduler's `next()` must not notify at all when it only posted commands)
@@ -919,7 +919,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 ## Deferred
 
 - **Round 3 W1 (accepted by name)** — Article V's "late feedback is suppressed, not shown late" is not applied to the sounding-note highlight: the Article governs feedback on the learner's playing (`listening`, 005/006); the intent adopted only its numbered-budget-and-measurement discipline for playback (Q5). REQ-006 "SHALL always highlight" stands — an unlit note is worse than one a few ms late. Controller decision under the user's pre-approval; for the user to confirm at acceptance.
-- **Round 3 W3 (accepted by name)** — remaining highlight headroom on the headless laptop (worst 26.87 ms) is a beat-correlated main-thread wake-up delay that a control timer shows identically; not attributable to product code. The phone measurement at acceptance is the number that counts.
+- **Round 3 W3 / rounds 4–5 (accepted by name)** — with the timer authoritative (T031) and the two-sided ±30 ms gate around the audible onset, this headless laptop measures the highlight 21–28 ms after the audible onset with occasional single samples at 30.1–30.6 ms (onsets exact, 0.00 ms; render work removed by T032 did not move it; a control timer lags identically). Not attributable to product code on this box. The harness stays strict. **Open for the user:** whether 30 ms is the right number, decided after the phone measurement at acceptance.
 
 - **W5 (converge round 1)** — superseded: round 2 found the 30 ms bound *exceeded* on some runs (C1) → T029 fires the highlight from the scheduled onset. The phone re-measurement at the acceptance walk still stands.
 
