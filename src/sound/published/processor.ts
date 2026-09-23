@@ -50,7 +50,8 @@ class SoundProcessor extends AudioWorkletProcessor {
       const result = soundCommandSchema.safeParse(event.data);
       if (!result.success) {
         this.port.postMessage({
-          type: "invalid",
+          type: "problem",
+          reason: "invalid-command",
           detail: result.error.message,
         });
         return;
@@ -58,21 +59,39 @@ class SoundProcessor extends AudioWorkletProcessor {
 
       const command = result.data;
       switch (command.kind) {
-        case "tone":
-          this.#exports.push_tone(
+        case "tone": {
+          // 0 = all 64 voice slots in use; the tone is dropped rather than
+          // queued (src/sound/src/lib.rs's push_tone).
+          const queued = this.#exports.push_tone(
             command.tag,
             command.hz,
             command.onsetFrame,
             command.durationFrames,
           );
+          if (queued === 0) {
+            this.port.postMessage({
+              type: "problem",
+              reason: "voice-pool-full",
+              detail: `tone dropped: 64-voice pool full (tag=${command.tag}, onsetFrame=${command.onsetFrame})`,
+            });
+          }
           break;
-        case "click":
-          this.#exports.push_click(
+        }
+        case "click": {
+          const queued = this.#exports.push_click(
             command.tag,
             command.accent ? 1 : 0,
             command.onsetFrame,
           );
+          if (queued === 0) {
+            this.port.postMessage({
+              type: "problem",
+              reason: "voice-pool-full",
+              detail: `click dropped: 64-voice pool full (tag=${command.tag}, onsetFrame=${command.onsetFrame})`,
+            });
+          }
           break;
+        }
         case "stopAll":
           this.#exports.stop_all();
           break;
