@@ -16,7 +16,7 @@ verified:
     at: 2026-09-23T23:22:44Z
 sdd_id: 005-scale-selection
 sdd_context: practice
-sdd_phase: approved
+sdd_phase: in-progress
 ---
 
 # Tasks: scale-selection
@@ -54,7 +54,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T001 · — · `Accidental` widens to five values
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/theory/domain/notes.ts:2` (`Accidental`), `:23-27` (`ACCIDENTAL_OFFSET`), `:71-83` (`accidentalForTarget`)
