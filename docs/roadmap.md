@@ -40,7 +40,7 @@ sdd_phase: approved
 
 | # | Change | Context | Capability (creates / modifies) | Outcome (one line) | Depends on | Status | Dir |
 |---|---|---|---|---|---|---|---|
-| 005 | `scale-selection` | `practice` | `practice.session` (modifies), `theory.circle-of-fifths` (modifies) | Choose from many scale types (modes, pentatonics, blues, chromatic, melodic minor) to hear and play, not just the diatonic major/minor of the key | 003 | grilling | |
+| 005 | `scale-selection` | `practice` | `practice.session` (modifies), `theory.circle-of-fifths` (modifies) | Choose from many scale types (modes, pentatonics, blues, chromatic, melodic minor) to hear and play, not just the diatonic major/minor of the key | 003 | specified | |
 | 004 | `the-drone` | `practice` | `practice.drone` (creates) | Hold a drone on any note for wind pitching and string tuning | 001 | proposed | |
 | 006 | `hear-me` | `listening` | `listening.pitch-detection` (creates) | Live pitch readout — sharp/flat in cents, inside the latency budget — useful alone as a tuner | — | proposed | |
 | 007 | `learner-leads` | `practice` | `practice.session` (modifies) | The tool shows the target note, listens, and advances when it is held in tune for the required duration | 003, 006 | proposed | |

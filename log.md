@@ -4,6 +4,9 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-23
 
+- Spec Delta `changes/005-scale-selection/delta/theory/circle-of-fifths.md` → approved (human:merlin-webster)
+- Spec Delta `changes/005-scale-selection/delta/practice/session.md` → approved (human:merlin-webster)
+- Change Proposal `changes/005-scale-selection/proposal.md` → approved (human:merlin-webster)
 - Intent `changes/005-scale-selection/intent.md` → resolved (human:merlin-webster)
 - Domain Map `docs/domain.md` → approved (human:merlin-webster)
 - Glossary `docs/glossary.md` → approved (human:merlin-webster)
