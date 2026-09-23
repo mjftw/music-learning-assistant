@@ -308,6 +308,56 @@ function measureInPage({ seconds, graceMs, pairingGapMs }) {
   });
 }
 
+// Pre-flight — T024: exactly one AudioContext for the life of a session.
+// Wraps `window.AudioContext` in a counting subclass before the app's own
+// scripts run (`page.addInitScript`, so it is in place before `main.tsx`'s
+// module-scope `new AudioContext()` call can fire), then drives four
+// ▶/❚❚ cycles through the same button the app renders (its `aria-label`
+// toggles between "Play" and "Stop" — practice.session's transport button,
+// src/ui/TransportCard.tsx) and reads the count back. Runs once, on its own
+// page, before the three measurement pages below start.
+async function preflightAudioContextCount(browser) {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  try {
+    await page.addInitScript(() => {
+      const OriginalAudioContext = window.AudioContext;
+      let constructedCount = 0;
+      class CountingAudioContext extends OriginalAudioContext {
+        constructor(...args) {
+          super(...args);
+          constructedCount += 1;
+        }
+      }
+      window.AudioContext = CountingAudioContext;
+      Object.defineProperty(window, "__audioContextsConstructed", {
+        get: () => constructedCount,
+      });
+    });
+
+    await page.goto(APP_URL);
+    await page.waitForFunction(
+      () => window.__session !== undefined && window.__sound !== undefined,
+    );
+
+    for (let cycle = 0; cycle < 4; cycle += 1) {
+      await page.click('button[aria-label="Play"]');
+      await page.click('button[aria-label="Stop"]');
+    }
+
+    const constructedCount = await page.evaluate(
+      () => window.__audioContextsConstructed,
+    );
+    if (constructedCount !== 1) {
+      throw new Error(
+        `AudioContexts constructed: ${constructedCount} (expected 1)`,
+      );
+    }
+  } finally {
+    await context.close();
+  }
+}
+
 async function measureTempo(browser, bpm, seconds) {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -406,7 +456,15 @@ async function main() {
   });
 
   let allPassed = true;
+  // Anything thrown here is a harness fault, not a per-tempo measurement
+  // failure (those are already caught individually below into ERROR rows)
+  // — the pre-flight's own AudioContext-count check is the only thing that
+  // throws through to this catch.
+  let fatalError = null;
   try {
+    await preflightAudioContextCount(browser);
+    console.log("pre-flight: AudioContexts constructed: 1 (expected 1) — PASS");
+
     const outcomes = await Promise.all(
       TEMPOS_BPM.map(async (bpm) => {
         try {
@@ -429,9 +487,19 @@ async function main() {
     allPassed = outcomes.every(
       ({ result, error }) => error === undefined && !rowFailed(result),
     );
+  } catch (error) {
+    fatalError = error;
   } finally {
     await browser.close();
     stopDevServer(devServerChild);
+  }
+
+  if (fatalError !== null) {
+    console.error(
+      `test:timing: FAIL — ${fatalError instanceof Error ? fatalError.message : String(fatalError)}`,
+    );
+    process.exitCode = 1;
+    return;
   }
 
   if (!allPassed) {

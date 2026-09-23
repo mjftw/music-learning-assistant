@@ -10,11 +10,12 @@ import type { SoundPort } from "../ports/sound";
 
 // The real SoundPort — practice.session/REQ-002, REQ-005, REQ-010. The
 // AudioContext is created only inside start() (never before the first ▶ —
-// REQ-010/S2) and handed to sound/published's synthesiser; a failed load is
-// reported as a Result rather than thrown, so the session can carry on with
-// a notice instead of crashing. `context()` exposes the AudioContext for
-// T018's timing harness only — nothing in this module's own contract needs
-// it.
+// REQ-010/S2), once for the life of the session (T024) — later start()
+// calls (each ❚❚ → ▶ cycle) only resume it — and handed to sound/published's
+// synthesiser; a failed load is reported as a Result rather than thrown, so
+// the session can carry on with a notice instead of crashing. `context()`
+// exposes the AudioContext for T018's timing harness only — nothing in this
+// module's own contract needs it.
 export function webAudioSound(
   createContext: () => AudioContext,
 ): SoundPort & { context(): AudioContext | null } {
@@ -23,17 +24,20 @@ export function webAudioSound(
   const listeners = new Set<(report: OnsetReport) => void>();
 
   async function start(): Promise<Result<void, SoundUnavailable>> {
-    const context = createContext();
-    audioContext = context;
-    await context.resume();
-    const outcome = await createSoundEngine(context);
-    if (!outcome.ok) {
-      return { ok: false, error: outcome.error };
+    if (audioContext === null) {
+      audioContext = createContext();
     }
-    engine = outcome.engine;
-    engine.onOnset((report) => {
-      for (const listener of listeners) listener(report);
-    });
+    await audioContext.resume();
+    if (engine === null) {
+      const outcome = await createSoundEngine(audioContext);
+      if (!outcome.ok) {
+        return { ok: false, error: outcome.error };
+      }
+      engine = outcome.engine;
+      engine.onOnset((report) => {
+        for (const listener of listeners) listener(report);
+      });
+    }
     return { ok: true, value: undefined };
   }
 
@@ -47,5 +51,11 @@ export function webAudioSound(
       return () => listeners.delete(listener);
     },
     context: () => audioContext,
+    dispose: () => {
+      engine?.dispose();
+      void audioContext?.close();
+      engine = null;
+      audioContext = null;
+    },
   };
 }

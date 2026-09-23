@@ -8,11 +8,11 @@ import type { SoundPort } from "../ports/sound";
 
 // The SoundPort main.tsx actually wires up — practice.session/REQ-010. Try
 // the real engine first; if it cannot start, hand every later call
-// (sampleRate, currentFrame, post, onOnset) to the silent fallback so the
-// run still shows, while still returning the real engine's failure so the
-// session raises its notice. Both ports' onset reports are subscribed to up
-// front, not lazily on the first onOnset call, because the session
-// subscribes once at creation, before start() ever runs — a lazy
+// (sampleRate, currentFrame, post, onOnset, dispose) to the silent fallback
+// so the run still shows, while still returning the real engine's failure
+// so the session raises its notice. Both ports' onset reports are
+// subscribed to up front, not lazily on the first onOnset call, because the
+// session subscribes once at creation, before start() ever runs — a lazy
 // subscription would still be bound to the primary after the switch to the
 // fallback.
 //
@@ -57,5 +57,6 @@ export function fallbackSound(
       return () => listeners.delete(listener);
     },
     context: () => active.context?.() ?? null,
+    dispose: () => active.dispose(),
   };
 }

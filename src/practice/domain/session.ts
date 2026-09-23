@@ -380,6 +380,7 @@ export function createSession(
     scheduler.stop();
     unsubscribeOnset();
     unsubscribeVisibility();
+    sound.dispose();
     changeListeners.clear();
     targetAdvancedListeners.clear();
   }

@@ -12,7 +12,8 @@ const FRAMES_PER_MS = SAMPLE_RATE / 1000;
 // frame clock (48 kHz, driven by the injected `now()` in ms) closely enough
 // that a posted tone or click still reports its onset at the scheduled
 // frame, via setTimeout, so the caption, progress and highlight keep moving
-// in time.
+// in time. dispose() reuses stopAll() to clear whatever timeouts are still
+// pending, the only thing this port ever needs to release (T024).
 export function silentSound(now: () => number): SoundPort {
   const listeners = new Set<(report: OnsetReport) => void>();
   const pending = new Map<number, ReturnType<typeof setTimeout>>();
@@ -53,5 +54,6 @@ export function silentSound(now: () => number): SoundPort {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
+    dispose: stopAll,
   };
 }

@@ -164,6 +164,21 @@ test("practice.session/REQ-010/S2 — nothing before the gesture", async () => {
   expect(sound.startCalls).toBe(1);
 });
 
+test("T024 — session.dispose() reaches the sound port", () => {
+  const { session, sound } = sessionOn(
+    "G",
+    "flute-concert",
+    GMajorTwoOctaves,
+    defaultSessionSettings,
+  );
+
+  expect(sound.disposeCalls).toBe(0);
+
+  session.dispose();
+
+  expect(sound.disposeCalls).toBe(1);
+});
+
 test("practice.session/REQ-005/S2 — metronome-only advances on the click's onset", async () => {
   const settings = {
     ...defaultSessionSettings,

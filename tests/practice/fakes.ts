@@ -42,6 +42,10 @@ export class FakeSound implements SoundPort {
   // asserts this is 0 before the session's start() runs: no sound and no
   // permission prompt before the first gesture.
   startCalls = 0;
+  // How many times dispose() has been called — T024 asserts this is 1 after
+  // session.dispose(), proving the session releases its sound port rather
+  // than leaking it.
+  disposeCalls = 0;
   readonly posted: SoundCommand[] = [];
   failWith: SoundUnavailable | null = null;
   private readonly listeners = new Set<(report: OnsetReport) => void>();
@@ -69,6 +73,10 @@ export class FakeSound implements SoundPort {
   onOnset(listener: (report: OnsetReport) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  dispose(): void {
+    this.disposeCalls += 1;
   }
 
   // Reports the onset of the posted command carrying `tag`, at the frame

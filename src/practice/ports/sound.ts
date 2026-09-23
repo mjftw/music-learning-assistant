@@ -14,4 +14,8 @@ export interface SoundPort {
   currentFrame(): number;
   post(command: SoundCommand): void;
   onOnset(listener: (report: OnsetReport) => void): () => void;
+  // Releases whatever start() acquired (an AudioContext, pending timers) —
+  // called once, when the session that owns this port is torn down
+  // (practice.session/REQ-002, T024).
+  dispose(): void;
 }
