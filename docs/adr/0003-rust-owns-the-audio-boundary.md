@@ -3,7 +3,7 @@ type: Architecture Decision Record
 title: ADR 0003 — Rust owns the audio boundary
 description: Amends ADR 0001 — a fourth bounded context, sound (synthesis), joins listening as Rust compiled to WebAssembly running in the browser's audio thread; the language split still follows the context map.
 resource: /docs/adr/0003-rust-owns-the-audio-boundary.md
-status: draft
+status: stable
 tags: [sdd, adr, architecture, "change:003-hear-the-scale"]
 sources:
   - resource: /changes/003-hear-the-scale/plan.md
@@ -12,7 +12,9 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-09-22T18:10:00Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-09-23T07:43:37Z
 sdd_phase: accepted
 ---
 

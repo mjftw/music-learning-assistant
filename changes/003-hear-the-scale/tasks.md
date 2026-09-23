@@ -710,6 +710,9 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 **Status:** todo
 
+**Files**
+- Output: `.sdd/reports/003-hear-the-scale/converge.md`, `changes/003-hear-the-scale/notes.md`
+
 **Steps**
 - [ ] 1. `pnpm check` green; `pnpm test:timing` green (paste both into `notes.md`)
 - [ ] 2. Run `sdd-converge` (reviewer subagent, opus) against the target specs of `merge_delta.py preview`; append gaps as tasks; loop until Converged
