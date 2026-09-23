@@ -669,7 +669,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T018 · practice.session/REQ-008 (S1), REQ-006 (S4) · The measured timing test
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `scripts/timing-test.mjs`
@@ -699,7 +699,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 **Steps**
 - [ ] 1. One test per row of proposal › Edge cases not already covered by a scenario test, named after the row (plus, from T009's review: `silent-tick timeout is cancelled by stop` — metronome + quaver, `stop()` during a silent odd tick → no later `TargetAdvanced` and `soundingPosition` stays null): `first run defaults` (already REQ-011/S2 — cite, no new test); `▶ tapped while playing is stop` (session: `start(); start()` → second call is a no-op? No — `App.onTogglePlay` maps to `stop()` when not idle: test at App level, `Play` then `Stop` → `stopAll` posted); `key changed during a count-in continues the count` (session: `setContext` while `countingIn 3` → still `countingIn 3`, new sequence afterwards); `tempo at 40 and 200` (already REQ-004/S3 — cite); `corrupt stored state` (already REQ-008/S3 — cite); `oversized octave count clamped` (already REQ-001/S4 — cite)
-- [ ] 2. Remove the spike block from `main.tsx`; `grep -c 'sound-spike' src/ui/main.tsx` → `0`
+- [ ] 2. Remove the spike block from `main.tsx`; `grep -c 'sound-spike' src/ui/main.tsx` → `0`. Also cite `practice.session/REQ-005/S4` in the Rust test `tone_is_silent_before_its_next_onset` (a doc comment `// practice.session/REQ-005/S4` above the `#[test]`) and extend `scripts/check-scenarios.sh`'s search to `*.rs` if it does not already scan them, so the scenario checker attributes it
 - [ ] 3. Run `pnpm check`; paste its last ~8 lines (vitest summary + cargo `test result`) into `AGENTS.md › Healthy output`, replacing the stale 17-files/52-tests block
 - [ ] 4. Add to `AGENTS.md › Things agents get wrong here` one line for anything a T00x review flagged twice during this change (leave the section unchanged if nothing recurred; say so in the report)
 - [ ] 5. `./scripts/check-scenarios.sh --change changes/003-hear-the-scale` → every ADDED/MODIFIED scenario has a test; `./scripts/check-specs.sh` → clean

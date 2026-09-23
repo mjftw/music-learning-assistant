@@ -4,6 +4,7 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-22
 
+- Domain Map `docs/domain.md` → approved (human:merlin-webster)
 - Task List `changes/003-hear-the-scale/tasks.md` → approved (human:merlin-webster)
 - Implementation Plan `changes/003-hear-the-scale/plan.md` → approved (human:merlin-webster)
 - Domain Map `docs/domain.md` → approved (human:merlin-webster)
