@@ -4,6 +4,11 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-23
 
+- Domain Map `docs/domain.md` → approved (human:merlin-webster)
+- Glossary `docs/glossary.md` → approved (human:merlin-webster)
+- Capability Spec `specs/theory/temperament.md` → current (human:merlin-webster)
+- Capability Spec `specs/theory/circle-of-fifths.md` → current (human:merlin-webster)
+- Capability Spec `specs/practice/session.md` → current (human:merlin-webster)
 - Architecture Decision Record `docs/adr/0003-rust-owns-the-audio-boundary.md` → accepted (human:merlin-webster)
 
 ## 2026-09-22

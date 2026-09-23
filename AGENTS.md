@@ -66,8 +66,8 @@ Healthy output looks like (last ~8 lines of `pnpm check`: vitest summary,
 then cargo's `test result`):
 
 ```
- Test Files  37 passed (37)
-      Tests  122 passed (122)
+ Test Files  39 passed (39)
+      Tests  137 passed (137)
    Start at  08:39:02
    Duration  4.34s (environment 43%, tests 35%, import 11%, transform 10%)
 

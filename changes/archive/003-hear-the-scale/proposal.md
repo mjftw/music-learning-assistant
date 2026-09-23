@@ -18,7 +18,7 @@ verified:
     at: 2026-09-22T17:09:58Z
 sdd_id: 003-hear-the-scale
 sdd_context: practice
-sdd_phase: approved
+sdd_phase: merged
 sdd_constitution: 1.0.0
 ---
 

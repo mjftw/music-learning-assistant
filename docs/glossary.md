@@ -17,6 +17,8 @@ verified:
     at: 2026-09-20T18:53:54Z
   - by: human:merlin-webster
     at: 2026-09-22T16:33:44Z
+  - by: human:merlin-webster
+    at: 2026-09-23T13:44:18Z
 sdd_phase: approved
 ---
 
@@ -44,13 +46,17 @@ sdd_phase: approved
 | Circle of fifths | `theory` | The arrangement of keys a fifth apart; neighbouring keys differ by exactly one accidental. The user's primary mental model and the UI's organising display | A mere picker widget — it is also the teaching surface | intent-product |
 | Accidental | `theory` | The sharp or flat a key introduces; each step round the circle adds exactly one | — | product brief |
 | Temperament | `theory` | The tuning system giving each note its pitch: just or equal | — | intent-product |
-| NoteSequence | `theory` | The concrete list of notes produced by fitting a scale/arpeggio traversal to an instrument's range | Traversal — the recipe, not the result | domain map |
-| Traversal | `theory` | How a scale or arpeggio is walked: 1 or 2 octaves, up and/or down | NoteSequence — the resulting notes | intent-product |
-| Span | `theory` | Which part of the key's in-range notes the stave shows: a whole-octave run up from a tonic, or the full range | Traversal — how playback walks a scale (change 003); a span has no direction | 002-circle-redesign |
-| Session | `practice` | One run of practising: instrument, key, traversal, mode, tempo, and the position within the sequence | — | domain map |
+| NoteSequence | `theory` | The concrete list of notes produced by fitting a traversal to an instrument's range, in playing order with direction applied (a ↑↓ run of 8 notes is a 15-note sequence) | Traversal — the recipe, not the result; the run — the ascending set the stave shows | domain map; 003-hear-the-scale |
+| Traversal | `theory` | How a scale or arpeggio is walked: direction (↑, ↓ or ↑↓), octaves (1–4 whole octaves from the lowest fitting tonic, or the full range) and shape (scale or arpeggio) — the recipe for the NoteSequence | NoteSequence — the resulting notes; Session settings — how the sequence is played | intent-product; widened in 003-hear-the-scale |
+| Session | `practice` | One run of practising: instrument, key, traversal, mode, tempo, the session settings, and the position within the sequence | — | domain map |
 | Mode | `practice` | Who leads: tool leads (it plays, learner follows) or learner leads (it shows the target, listens, advances) | Musical mode (Dorian etc.) — not used in this product yet | intent-product |
 | Target note | `practice` | The note the learner should be playing right now | — | domain map |
 | Tempo | `practice` | The speed notes are played or expected, as chosen for the session | — | intent-product |
+| Session setting | `practice` | How the sequence is played, as distinct from which notes: sound mode (notes, both, metronome), loop, count-in, rest bar, tempo | Traversal — which notes | 003-hear-the-scale |
+| Count-in | `practice` | One bar of four clicks, counted down before the first note of a run | Rest bar — between loops | 003-hear-the-scale |
+| Rest bar | `practice` | One bar of four clicks between one loop of the sequence and the next | Count-in — before the first | 003-hear-the-scale |
+| Tempo term | `practice` | The Italian name for a band of tempos (Largo 40–59 … Presto 176–200); picking one lands on the middle of its band | Tempo — the number itself | 003-hear-the-scale |
+| Audible onset | `practice` | The instant a scheduled note reaches the listener: its scheduled onset plus the device's reported output latency; the sounding-note highlight is timed to it | Scheduled onset — the audio graph's time | 003-hear-the-scale |
 | Drone | `practice` | A continuously sounding note held for pitching a wind instrument or tuning a stringed one | — | intent-product |
 | Judgement | `practice` | The verdict on a detected pitch against the target note: sharp, flat, or in tune, with the offset in cents | Raw detected pitch — judgement only exists relative to a target | domain map |
 | In tune | `practice` | Close enough to the target note's pitch to count as correct | Nailed — colloquial, not used | glossary |
