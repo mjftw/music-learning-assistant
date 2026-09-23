@@ -854,6 +854,22 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 **Verify** — two consecutive `pnpm test:timing` PASS with the two-sided gate; `pnpm check` → exit 0
 
+### T032 · practice.session/REQ-006 (S4) · Playback does not re-render the circle; the session notifies only on material change
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/App.tsx` (stable handlers with `useCallback`; the circle, header, settings drawer, instrument sheet, traversal sheet and tempo sheet receive only props that are stable during playback), `src/ui/CircleOfFifths.tsx`, `src/ui/Header.tsx`, `src/ui/SettingsDrawer.tsx`, `src/ui/InstrumentSheet.tsx`, `src/ui/TraversalSheet.tsx`, `src/ui/TempoSheet.tsx`, `src/ui/TraversalRow.tsx` (wrap each export in `React.memo`), `src/practice/domain/session.ts` (`notifyChange()` only when the snapshot's UI-visible fields changed: transport kind/position/beatsLeft, soundingPosition, caption, progress, notice, settings, traversal, run identity — compare against the last notified snapshot; the scheduler's `next()` must not notify at all when it only posted commands)
+- Test: `tests/ui/scenarios/app-session.test.tsx` — render `App`, count renders of `CircleOfFifths` via a `data-render-count` probe? No — use React's `Profiler` wrapper in the test around `<App>` and assert that during 10 clock-advanced beats of playback the circle's `id` does not commit (Profiler `onRender` phase list for the `CircleOfFifths` subtree stays empty) while the transport card commits; `tests/practice/scenarios/session-target.test.ts` — `onChange` fires exactly once per beat while playing (count listener calls across `advanceUntil` of three beats), not once per 25 ms poll
+
+**Steps**
+- [ ] 1. RED — the two tests → FAIL (the circle re-renders every beat; onChange fires per poll)
+- [ ] 2. GREEN — memoise; stable callbacks; material-change notify → PASS; every existing test green
+- [ ] 3. `source ~/.cargo/env && pnpm test:timing` three times → paste all three; report the `vs audible` column plainly (expect it to drop well below 25 ms if the beat-time render was the cause; if it does not move, say so — the design is still worth keeping for the phone)
+- [ ] 4. `pnpm check` → green
+
+**Verify** — three `pnpm test:timing` tables pasted; `pnpm check` → exit 0
+
 ## Coverage
 
 | Requirement | Tasks | Covered |
