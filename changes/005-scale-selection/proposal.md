@@ -69,9 +69,11 @@ at once.
 - Classical melodic minor's separate ascending (raised 6th/7th) and
   descending (natural minor) forms, and its "both ways" direction using
   each.
-- The arpeggio shape available only where the chosen scale defines degrees
-  1, 3 and 5; falling back to "scale" for the two pentatonics, blues, whole
-  tone and chromatic.
+- The arpeggio shape available only where the catalogue marks the chosen
+  scale as offering one — every scale but the two pentatonics, blues, whole
+  tone and chromatic, which fall back to "scale". (This is a catalogued
+  flag, not derived from degree presence: the pentatonics and blues do
+  contain a 1st, 3rd and 5th degree yet are still excluded.)
 - Persisting the chosen scale per mode (major-ring choice and minor-ring
   choice independently), and restarting the sequence at once (no count-in)
   when it changes while playing — the same pattern as every other
@@ -162,7 +164,7 @@ slice and continue to apply to whichever scale is playing.
 | Situation | Expected behaviour | Requirement |
 |---|---|---|
 | The chosen scale's tonic has no in-range occurrence at all | Same fallback as today: the octave-fitting reports no whole-octave count fits, full range is offered, and if even full range is empty the caption reads "no notes of this key in range" | `theory.circle-of-fifths/REQ-012`, `practice.session/REQ-002` |
-| Arpeggio is selected, then a scale with no degree 1/3/5 is chosen while playing | Shape falls back to "scale" and the sequence restarts at once, no count-in, like any other traversal change | `practice.session/REQ-012` (new), `REQ-007` |
+| Arpeggio is selected, then an arpeggio-ineligible scale (a pentatonic, blues, whole tone, chromatic) is chosen while playing | Shape falls back to "scale" and the sequence restarts at once, no count-in, like any other traversal change | `practice.session/REQ-012` (new), `REQ-007` |
 | Stored state predates this change (no scale choice recorded) | Major-ring scale defaults to Major, minor-ring scale defaults to Natural minor; every other stored setting restores as before | `practice.session/REQ-011` |
 
 ## Assumptions

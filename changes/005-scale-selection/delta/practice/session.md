@@ -36,9 +36,12 @@ lists each option's name and formula (its scale-degree numbers, with an
 accidental prefix on any degree the scale alters from the tonic's own major
 or natural-minor form) and marks the current choice; SHALL show the chosen
 scale's name beside the key name and its formula on the row that opens the
-sheet; and WHERE the chosen scale's formula does not define degrees 1, 3
-and 5 THE SYSTEM SHALL make the arpeggio option in the Traversal sheet
-unavailable, falling back to scale
+sheet; and WHERE the chosen scale is not one the catalogue marks as
+offering an arpeggio (every scale but the two pentatonics, blues, whole
+tone and chromatic — some of which do contain a 1st, 3rd or 5th degree,
+but not as a triad idiomatic enough to arpeggiate) THE SYSTEM SHALL make
+the arpeggio option in the Traversal sheet unavailable, falling back to
+scale
 
 **Scenarios**
 - **REQ-012/S1 — choosing a scale**
@@ -56,8 +59,10 @@ unavailable, falling back to scale
   instead, it lists Natural minor, Harmonic minor, Melodic minor ·
   classical, Melodic minor · jazz, Minor pentatonic, Blues, Dorian,
   Phrygian, Locrian, Whole tone and Chromatic, with Natural minor ticked
-- **REQ-012/S3 — arpeggio unavailable for a scale with no 1, 3, 5**
-  Given G major pentatonic chosen, the Traversal sheet open
+- **REQ-012/S3 — arpeggio unavailable for a scale the catalogue excludes**
+  Given G major pentatonic chosen (its formula does include degrees 1, 3
+  and 5, but the catalogue still marks it arpeggio-ineligible), the
+  Traversal sheet open
   When the Shape row is read
   Then arpeggio is shown unavailable and scale is selected; choosing Lydian
   from the Scale sheet re-enables arpeggio without changing the shape
@@ -80,9 +85,9 @@ unavailable, falling back to scale
 THE SYSTEM SHALL let the learner choose a traversal — direction (↑, ↓ or
 ↑↓), octaves (each whole-octave count from 1 to 4 that fits the selected
 key on the selected variant, plus full range) and shape (scale, or
-arpeggio WHERE the chosen scale defines degrees 1, 3 and 5) — in the
-Traversal sheet, SHALL summarise the traversal and session settings in one
-line on the row that opens the sheet, and IF the chosen octave count does
+arpeggio WHERE the catalogue marks the chosen scale as offering one) — in
+the Traversal sheet, SHALL summarise the traversal and session settings in
+one line on the row that opens the sheet, and IF the chosen octave count does
 not fit the selected variant THEN THE SYSTEM SHALL use the largest count
 that fits (or full range if none does) without changing the stored choice
 
