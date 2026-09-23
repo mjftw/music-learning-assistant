@@ -58,7 +58,7 @@ pnpm dev
 pnpm check
 # test (one file):
 pnpm vitest run <path/to/file.test.ts>
-# measured timing budget (Playwright/Chromium, ~70 s) — required at converge and finish, not per task:
+# measured timing budget (Playwright/Chromium, ~3 min, sequential tempos) — required at converge and finish, not per task:
 pnpm test:timing
 ```
 
@@ -76,7 +76,10 @@ running 8 tests
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 ```
 
-`pnpm test:timing` healthy output ends:
+`pnpm test:timing` prints `measuring 3 tempos sequentially, N s each` first
+— the three tempos run one page at a time, then a separate pre-flight
+browser, so the whole thing takes ~3 minutes, not a hang — and healthy
+output ends:
 
 ```
 bpm  onsets  max onset dev (ms)  drift (ms, |slope·span|)  highlights  max highlight (ms)  status

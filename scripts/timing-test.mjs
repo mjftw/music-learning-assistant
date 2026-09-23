@@ -4,7 +4,9 @@
 // stave's highlight never later than 30 ms after the onset it follows).
 // Playwright, headless Chromium, the real WebAudio engine (a null sink is
 // fine — the AudioContext still runs in real time headless). Not part of
-// `pnpm check` (~70 s); AGENTS.md requires it at every converge and finish.
+// `pnpm check` (~3 min — the three tempos run sequentially, T024-fix1, plus
+// a separate pre-flight browser); AGENTS.md requires it at every converge
+// and finish.
 //
 // 003-hear-the-scale/T023 removed note length from the settings model, so
 // the six configurations this test was specified against (three tempos ×
@@ -314,8 +316,12 @@ function measureInPage({ seconds, graceMs, pairingGapMs }) {
 // module-scope `new AudioContext()` call can fire), then drives four
 // ▶/❚❚ cycles through the same button the app renders (its `aria-label`
 // toggles between "Play" and "Stop" — practice.session's transport button,
-// src/ui/TransportCard.tsx) and reads the count back. Runs once, on its own
-// page, before the three measurement pages below start.
+// src/ui/TransportCard.tsx) and reads the count back. T024-fix1: runs once,
+// on its own page, in its own `chromium.launch()` instance, after the three
+// measurement pages below have already run and closed — a pre-flight page
+// sharing Chromium with the measurement pages was found (converge, T024)
+// to delay every measured onset by several ms; running it afterwards, in a
+// separate browser process, removes it from the measurement path entirely.
 async function preflightAudioContextCount(browser) {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -449,11 +455,13 @@ function printTable(rows) {
 async function main() {
   const seconds = parseSecondsArgument(process.argv.slice(2));
 
+  // T024-fix1: three sequential ~`seconds`-long measurement pages plus a
+  // separate pre-flight browser run to ~3 minutes total, up from the ~70 s
+  // the parallel version took — this note says so up front so the wait is
+  // expected, not mistaken for a hang.
+  console.log(`measuring 3 tempos sequentially, ${seconds} s each`);
+
   const devServerChild = await ensureDevServer();
-  const browser = await chromium.launch({
-    headless: true,
-    args: ["--autoplay-policy=no-user-gesture-required"],
-  });
 
   let allPassed = true;
   // Anything thrown here is a harness fault, not a per-tempo measurement
@@ -462,22 +470,47 @@ async function main() {
   // throws through to this catch.
   let fatalError = null;
   try {
-    await preflightAudioContextCount(browser);
-    console.log("pre-flight: AudioContexts constructed: 1 (expected 1) — PASS");
-
-    const outcomes = await Promise.all(
-      TEMPOS_BPM.map(async (bpm) => {
+    // Sequential, one page at a time — not `Promise.all`. Running the three
+    // tempos concurrently made them contend for the same CPU/audio-worklet
+    // budget, swinging highlight latency 22–33 ms run to run and straddling
+    // the 30 ms budget (converge finding, T024-fix1: measurement
+    // contention, not the product).
+    const measurementBrowser = await chromium.launch({
+      headless: true,
+      args: ["--autoplay-policy=no-user-gesture-required"],
+    });
+    const outcomes = [];
+    try {
+      for (const bpm of TEMPOS_BPM) {
         try {
-          const result = await measureTempo(browser, bpm, seconds);
-          return { bpm, result };
+          const result = await measureTempo(measurementBrowser, bpm, seconds);
+          outcomes.push({ bpm, result });
         } catch (error) {
-          return {
+          outcomes.push({
             bpm,
             error: error instanceof Error ? error.message : String(error),
-          };
+          });
         }
-      }),
-    );
+      }
+    } finally {
+      await measurementBrowser.close();
+    }
+
+    // The pre-flight runs last, in its own freshly-launched browser, closed
+    // again before the table/summary print below — see
+    // preflightAudioContextCount's own comment for why.
+    const preflightBrowser = await chromium.launch({
+      headless: true,
+      args: ["--autoplay-policy=no-user-gesture-required"],
+    });
+    try {
+      await preflightAudioContextCount(preflightBrowser);
+      console.log(
+        "pre-flight: AudioContexts constructed: 1 (expected 1) — PASS",
+      );
+    } finally {
+      await preflightBrowser.close();
+    }
 
     const rows = outcomes.map(({ bpm, result, error }) =>
       formatRow(bpm, { result, error }),
@@ -490,7 +523,6 @@ async function main() {
   } catch (error) {
     fatalError = error;
   } finally {
-    await browser.close();
     stopDevServer(devServerChild);
   }
 
