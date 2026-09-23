@@ -486,3 +486,34 @@ test("T033 — stop() during the last note's tail cancels the pending idle timer
 
   expect(wake.acquired).toBe(true);
 });
+
+test("T033 — start() during the last note's tail cancels the pending idle timer", async () => {
+  const settings = {
+    ...defaultSessionSettings,
+    tempoBpm: 200,
+    loop: false,
+    countIn: false,
+  };
+  const { session, sound, clock, wake } = sessionOn(
+    "G",
+    "flute-concert",
+    GMajorTwoOctaves,
+    settings,
+  );
+  sound.latencyMs = 150;
+
+  await flushStart(session);
+  advanceUntil(clock, () => session.snapshot().soundingPosition === 28);
+
+  // Start a new run directly without stopping first — if start() does not
+  // cancel the previous run's idle timer, it will fire mid-way through the
+  // new run and release the wake lock out from under it.
+  session.start();
+  await Promise.resolve();
+  await Promise.resolve();
+
+  clock.advance(1000);
+
+  expect(session.snapshot().transport.kind).toBe("playing");
+  expect(wake.acquired).toBe(true);
+});

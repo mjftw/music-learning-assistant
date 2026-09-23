@@ -511,6 +511,7 @@ export function createSession(
   function start(): void {
     invalidateSnapshot();
     notice = null;
+    cancelIdleTimer(); // Cancel any pending idle timer from the previous run
     // Wrap generation at 1_000: stale reports from 1_000 runs ago cannot exist
     // (they arrive within milliseconds), so wrapping is safe and keeps
     // position tags below CLICK_TAG_BASE (1_000_000).
