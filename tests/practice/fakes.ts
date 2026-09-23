@@ -3,15 +3,15 @@
 // them. Fakes only, never mocks asserting on internal calls
 // (docs/engineering.md §7).
 
-import type { ClockPort } from "../../src/practice/ports/clock";
-import type { Result } from "../../src/practice/ports/result";
-import type { SoundPort } from "../../src/practice/ports/sound";
-import type { VisibilityPort } from "../../src/practice/ports/visibility";
-import type { WakeLockPort } from "../../src/practice/ports/wake-lock";
 import type {
+  ClockPort,
+  Result,
   Session,
   SessionDeps,
   SessionSettings,
+  SoundPort,
+  VisibilityPort,
+  WakeLockPort,
 } from "../../src/practice/published";
 import { createSession } from "../../src/practice/published";
 import type {

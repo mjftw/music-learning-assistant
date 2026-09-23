@@ -2,7 +2,6 @@ export type { TempoTerm } from "../domain/tempo";
 export {
   TEMPO_MAX_BPM,
   TEMPO_MIN_BPM,
-  TEMPO_STEP_BPM,
   TEMPO_TERMS,
   steppedTempo,
   tempoForTerm,
@@ -24,6 +23,14 @@ export type {
   TargetAdvanced,
 } from "../domain/session";
 export { createSession, FIRST_TICK_LEAD_MS } from "../domain/session";
+// Port types — published so consumers (including test fakes) depend on
+// practice/published rather than reaching into practice/ports directly
+// (docs/engineering.md §6: contexts communicate only through published/).
+export type { ClockPort } from "../ports/clock";
+export type { Result } from "../ports/result";
+export type { SoundPort } from "../ports/sound";
+export type { VisibilityPort } from "../ports/visibility";
+export type { WakeLockPort } from "../ports/wake-lock";
 // Adapters — the UI may only import published/, so every SessionDeps
 // implementation main.tsx needs to wire up (T016) is re-exported here.
 export { fallbackSound } from "../adapters/fallback-sound";

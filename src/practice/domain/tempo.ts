@@ -22,7 +22,6 @@ export const TEMPO_TERMS: readonly TempoTerm[] = [
 
 export const TEMPO_MIN_BPM = 40;
 export const TEMPO_MAX_BPM = 200;
-export const TEMPO_STEP_BPM = 2;
 
 export function tempoTermFor(bpm: number): TempoTerm {
   const term = TEMPO_TERMS.find((t) => bpm >= t.fromBpm && bpm <= t.toBpm);
