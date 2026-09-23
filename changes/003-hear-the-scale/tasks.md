@@ -17,7 +17,7 @@ verified:
     at: 2026-09-22T17:27:31Z
 sdd_id: 003-hear-the-scale
 sdd_context: practice
-sdd_phase: in-progress
+sdd_phase: complete
 ---
 
 # Tasks: Hear the scale
@@ -804,7 +804,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T029 · practice.session/REQ-006 (S3, S4, S5) · The highlight fires from the scheduled onset, not the report
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (per scheduled playing tick with a position tag: `clock.setTimeout` aimed at `(onsetFrame − sound.currentFrame()) / sampleRate · 1000` ms, clamped ≥ 0, that applies the target advance for that position with `atFrame = onsetFrame`; onset reports still apply it — first arrival per position wins; all pending timers cancelled on `stop()`, restart and `dispose()`)
