@@ -62,22 +62,18 @@ pnpm vitest run <path/to/file.test.ts>
 pnpm test:timing
 ```
 
-Healthy output looks like:
+Healthy output looks like (last ~8 lines of `pnpm check`: vitest summary,
+then cargo's `test result`):
 
 ```
-> music-learning-assistant@0.0.0 check /home/merlin/projects/music-learning-assistant
-> prettier --check . && eslint . && tsc --noEmit && vitest run
+ Test Files  37 passed (37)
+      Tests  122 passed (122)
+   Start at  08:39:02
+   Duration  4.34s (environment 43%, tests 35%, import 11%, transform 10%)
 
-Checking formatting...
-All matched files use Prettier code style!
-
- RUN  v5.0.1 /home/merlin/projects/music-learning-assistant
-
-
- Test Files  17 passed (17)
-      Tests  52 passed (52)
-   Start at  15:18:33
-   Duration  2.29s (environment 56%, tests 20%, import 14%, transform 10%)
+running 8 tests
+...
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 ```
 
 `pnpm test:timing` healthy output ends:
@@ -135,6 +131,14 @@ runtime network dependencies.
 - Duplicating a private helper instead of extracting it, because the natural
   home file isn't in the task's Files list. Extract within the same context
   and say so in the report; don't copy-paste (failed T002 and T004 reviews).
+- A brief's Files list can omit a file the change necessarily ripples into
+  (a test call site, a `published/` re-export). List and touch it anyway,
+  and say so in the report — don't leave the ripple undone to stay inside
+  the list (recurred at T010, T022).
+- Citing a scenario in a test name or comment without its context prefix
+  (`REQ-004/S3` instead of `practice.session/REQ-004/S3`) — the scenario
+  checker matches qualified ids only, so an unqualified citation reads as no
+  citation at all (recurred at T012).
 
 ## Never
 

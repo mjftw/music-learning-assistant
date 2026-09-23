@@ -63,6 +63,7 @@ mod tests {
 
     const SAMPLE_RATE: f32 = 48000.0;
 
+    // practice.session/REQ-005/S4
     #[test]
     fn tone_is_silent_before_its_next_onset() {
         let mut tone = Tone::new(440.0);
