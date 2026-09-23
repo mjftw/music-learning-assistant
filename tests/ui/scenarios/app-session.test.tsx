@@ -186,12 +186,11 @@ test("practice.session/REQ-010/S1 (UI) — a notice appears, nothing modal opens
   expect(screen.queryByRole("dialog")).toBeNull();
 
   act(() => {
-    advanceUntil(clock, () => sound.posted.some(isTone));
-  });
-  const firstTone = sound.posted.find(isTone);
-  if (firstTone === undefined) throw new Error("unreachable: no tone posted");
-  act(() => {
-    sound.fireOnset(firstTone.tag);
+    advanceUntil(
+      clock,
+      () =>
+        screen.getByTestId("position-caption").textContent === "C4 · 1 of 15",
+    );
   });
 
   expect(screen.getByTestId("position-caption").textContent).toBe(
@@ -253,14 +252,18 @@ test("practice.session/REQ-006/S4 (UI) — the onset-driven highlight commits sy
   });
   const firstTone = sound.posted.find(isTone);
   if (firstTone === undefined) throw new Error("unreachable: no tone posted");
+  const msUntilOnset =
+    ((firstTone.onsetFrame - sound.frame) * 1000) / sound.sampleRate() +
+    sound.outputLatencyMs();
 
-  // Fired directly, the way a real onset report arrives from the audio
-  // thread — not from a React event, and deliberately not wrapped in
-  // `act()` — so the very next line proves the highlight is already in the
-  // DOM without needing an `await` or a flush of its own
-  // (practice.session/REQ-006's 30 ms budget: `onTargetAdvanced` commits
-  // with `flushSync`, unlike the batched `onChange` path).
-  sound.fireOnset(firstTone.tag);
+  // Advanced directly, the way the highlight timer's own callback fires —
+  // not from a React event, and deliberately not wrapped in `act()` — so
+  // the very next line proves the highlight is already in the DOM without
+  // needing an `await` or a flush of its own (practice.session/REQ-006's
+  // 30 ms budget: `onTargetAdvanced` commits with `flushSync`, unlike the
+  // batched `onChange` path; T031: the timer itself, not an onset report,
+  // drives it).
+  clock.advance(msUntilOnset);
 
   const columns = screen.getAllByTestId("names-column");
   expect(columns.some((column) => column.dataset.sounding === "true")).toBe(
@@ -316,12 +319,11 @@ test("practice.session/REQ-009 (app) — under StrictMode the session still play
   expect(sound.startCalls).toBe(1);
 
   act(() => {
-    advanceUntil(clock, () => sound.posted.some(isTone));
-  });
-  const firstTone = sound.posted.find(isTone);
-  if (firstTone === undefined) throw new Error("unreachable: no tone posted");
-  act(() => {
-    sound.fireOnset(firstTone.tag);
+    advanceUntil(
+      clock,
+      () =>
+        screen.getByTestId("position-caption").textContent === "C4 · 1 of 15",
+    );
   });
 
   expect(screen.getByTestId("position-caption").textContent).toBe(

@@ -82,12 +82,17 @@ browser, so the whole thing takes ~3 minutes, not a hang — and healthy
 output ends:
 
 ```
-bpm  onsets  max onset dev (ms)  drift (ms, |slope·span|)  highlights  max highlight (ms)  status
-40   82      2.67                0.37                      40          24.33               PASS
-96   194     2.67                0.16                      94          25.20               PASS
-200  402     2.67                0.08                      195         22.47               PASS
-test:timing: PASS — every onset ≤5 ms, drift (|slope·span|) ≤1 ms, highlight ≤30 ms
+bpm  onsets  max onset dev (ms)  drift (ms, |slope·span|)  highlights  vs audible (ms)  vs scheduled (ms)  status
+40   82      0.00                0.00                      40          28.00            66.67              PASS
+96   194     0.00                0.00                      94          26.43            68.00              PASS
+200  402     0.00                0.00                      195         28.00            70.77              PASS
+test:timing: PASS — every onset ≤5 ms, drift (|slope·span|) ≤1 ms, |highlight − audible onset| ≤30 ms
 ```
+
+`vs audible (ms)` is what REQ-006/S4's ±30 ms budget gates (two-sided — either
+side of the audible onset counts); `vs scheduled (ms)` is printed for
+information only, never gated, and normally sits near the port's reported
+output latency.
 
 Run `check` before calling any task done, and paste the output.
 

@@ -148,24 +148,17 @@ export function createSession(
   // below) — -1 is a pre-run sentinel, never itself used as a tag: bumped
   // to 0 by the very first start(), and again by every later start() or
   // restartIfPlaying(), so no two runs (including across a stop→start
-  // cycle, not only a REQ-007 restart) ever share a generation. An
-  // OnsetReport whose generation is not this one is a stale message from a
-  // run this session has already moved past, and is ignored outright
-  // (T030, the REQ-007/S1 race) rather than lighting the wrong instant or
-  // marking a position the current run hasn't reached yet as already
-  // fired.
+  // cycle, not only a REQ-007 restart) ever share a generation. The
+  // highlight no longer consults it (T031: the highlight timer is
+  // authoritative) — it survives purely to label the `SoundCommand.tag` a
+  // run's `OnsetReport`s carry back, so the timing harness's own
+  // `window.__sound.onOnset` subscription can tell which run (and
+  // position) a report belongs to.
   let generation = -1;
-  // Positions already advanced-to for their current scheduled occurrence —
-  // whichever of the highlight timer or the onset report arrives first for
-  // a position adds it here and the other is a no-op (converge C1: the
-  // timer, not the cross-thread report, drives the highlight; the report
-  // still confirms it). Cleared per-position the moment a fresh occurrence
-  // of that position is scheduled (`scheduleHighlight`, below), so a
-  // looped run's repeat of the same position highlights again.
-  const firedPositions = new Set<number>();
   // Cancel functions for every highlight timer not yet fired — stop(),
-  // restartIfPlaying() and dispose() clear this wholesale so a timer for a
-  // superseded run never fires after its session has moved on (the gap
+  // restartIfPlaying(), dispose() and the idle transition (T031: the end of
+  // a non-looping run) clear this wholesale so a timer for a superseded (or
+  // finished) run never fires after its session has moved on (the gap
   // T009's review carried and T023 only closed by deleting the feature).
   const pendingHighlightCancels = new Set<() => void>();
   // Whether `transport` needs to move on to the state after it before the
@@ -222,9 +215,10 @@ export function createSession(
   }
 
   // A playing tick's tag packs the run's generation with the sequence
-  // position: generation · GENERATION_TAG_MULTIPLIER + position — decoded
-  // the same way by the onset listener, below. Sequence positions are
-  // always comfortably under the multiplier (the longest catalogued
+  // position: generation · GENERATION_TAG_MULTIPLIER + position — for the
+  // timing harness to decode from the resulting `OnsetReport` (T031: the
+  // session itself no longer reads its own tags back). Sequence positions
+  // are always comfortably under the multiplier (the longest catalogued
   // traversal is far short of 1_000 notes) and it stays well under
   // CLICK_TAG_BASE, so a position tag and a click tag never collide.
   const GENERATION_TAG_MULTIPLIER = 1_000;
@@ -238,18 +232,20 @@ export function createSession(
     return generation * GENERATION_TAG_MULTIPLIER + position;
   }
 
-  // The single source of "a position is now sounding" — reached either from
-  // a highlight timer aimed at the tick's own scheduled onset
-  // (`scheduleHighlight`, below — converge C1: the highlight must not wait
-  // on the worklet → main-thread message) or from the onset report of
-  // whichever command carried that position's tag, confirming it — first
-  // arrival wins (`firedPositions`). `sequence` is read live, not captured,
-  // so a stale report arriving after a restart (REQ-007) still resolves to
-  // the position's current note.
+  // The single source of "a position is now sounding" — reached only from
+  // the highlight timer aimed at the tick's own scheduled onset
+  // (`scheduleHighlight`, below). The timer is authoritative (T031): the
+  // worklet's cross-thread `OnsetReport` never reaches here — it feeds only
+  // the timing harness's own `window.__sound.onOnset` subscription, so the
+  // highlight lands at the audible instant rather than whenever that
+  // message happens to arrive. `sequence` is read live, not captured, so a
+  // timer belonging to the current run always resolves to the position's
+  // current note; a timer belonging to a superseded run can never reach
+  // here at all — `cancelPendingHighlights()` cancels it outright at
+  // stop(), restartIfPlaying(), dispose() and the idle transition, below.
   function applyTargetAdvance(position: number, atFrame: number): void {
     const target = sequence[position];
     if (target === undefined) return;
-    firedPositions.add(position);
     soundingPosition = position;
     const advancedEvent: TargetAdvanced = {
       note: target.note,
@@ -262,16 +258,10 @@ export function createSession(
   }
 
   // Schedules the highlight for a playing tick's tagged position at its own
-  // *audible* onset — a `ClockPort` timeout, not the cross-thread onset
-  // report, so the highlight never waits on that message (converge C1:
-  // measured ~21 ms floor, occasionally >30 ms), aimed at the graph onset
-  // plus the port's output latency so it lands when the note is actually
-  // heard, not merely when it was scheduled (T030). `firedPositions.delete`
-  // first: a looped run reaches the same position again long after its
-  // previous occurrence already fired, and this is the fresh occurrence's
-  // guard, not the old one's.
+  // *audible* onset — a `ClockPort` timeout, aimed at the graph onset plus
+  // the port's output latency so it lands when the note is actually heard,
+  // not merely when it was scheduled (T030).
   function scheduleHighlight(position: number, onsetFrame: number): void {
-    firedPositions.delete(position);
     const framesUntilOnset = onsetFrame - sound.currentFrame();
     const msUntilOnset = Math.max(
       0,
@@ -279,7 +269,6 @@ export function createSession(
     );
     const cancel = clock.setTimeout(() => {
       pendingHighlightCancels.delete(cancel);
-      if (firedPositions.has(position)) return;
       applyTargetAdvance(position, onsetFrame);
     }, msUntilOnset);
     pendingHighlightCancels.add(cancel);
@@ -289,25 +278,6 @@ export function createSession(
     for (const cancel of pendingHighlightCancels) cancel();
     pendingHighlightCancels.clear();
   }
-
-  const unsubscribeOnset = sound.onOnset((report) => {
-    // A position tag (< CLICK_TAG_BASE) is the tag of the sequence position
-    // it belongs to; a click's own tag (count-in, rest bar, or a click that
-    // merely accompanies an already-tagged tone) carries nothing to apply.
-    if (report.tag >= CLICK_TAG_BASE) return;
-    // A report whose generation is not the current one belongs to a run
-    // this session has already moved past (a REQ-007 restart, or a
-    // stop→start cycle) — a message that was still in flight when it was
-    // superseded. Ignored outright, before it can touch `firedPositions`,
-    // so it neither lights the wrong instant nor marks a position the
-    // current run hasn't reached yet as already fired (T030, REQ-007/S1).
-    const reportGeneration = Math.floor(report.tag / GENERATION_TAG_MULTIPLIER);
-    if (reportGeneration !== generation) return;
-    const position = report.tag % GENERATION_TAG_MULTIPLIER;
-    // Already lit by its own timer — the report is only a confirmation.
-    if (firedPositions.has(position)) return;
-    applyTargetAdvance(position, report.actualFrame);
-  });
 
   const unsubscribeVisibility = visibility.onHidden(() => {
     stop();
@@ -320,8 +290,15 @@ export function createSession(
     pendingAdvance = true;
 
     if (transport.kind === "idle") {
+      // A non-looping run's last tick already scheduled its own highlight
+      // timer, aimed at its audible onset — ordinarily long past by the
+      // time the lookahead scheduler catches up to discover there is no
+      // tick after it (T031). Cancelling here is a defensive backstop, not
+      // how the last note gets highlighted: it only ever removes a timer
+      // that failed to fire on its own, never a live one still due.
       wakeLock.release();
       soundingPosition = null;
+      cancelPendingHighlights();
       notifyChange();
       return null;
     }
@@ -419,7 +396,6 @@ export function createSession(
     transport = startTransport(currentSettings);
     pendingAdvance = false;
     soundingPosition = null;
-    firedPositions.clear();
     notifyChange();
 
     void (async () => {
@@ -476,7 +452,6 @@ export function createSession(
     transport = { kind: "playing", position: 0 };
     pendingAdvance = false;
     soundingPosition = null;
-    firedPositions.clear();
     scheduler.start(sound.currentFrame() + firstTickLeadFrames(), next);
   }
 
@@ -514,7 +489,6 @@ export function createSession(
   function dispose(): void {
     scheduler.stop();
     cancelPendingHighlights();
-    unsubscribeOnset();
     unsubscribeVisibility();
     sound.dispose();
     changeListeners.clear();

@@ -40,7 +40,7 @@ async function flushStart(session: Session): Promise<void> {
   await Promise.resolve();
 }
 
-test("practice.session/REQ-006 — the highlight fires from the scheduled onset; the report confirms", async () => {
+test("practice.session/REQ-006 — the highlight fires from the scheduled onset; a report has no effect", async () => {
   const settings = { ...defaultSessionSettings, tempoBpm: 120 };
   const { session, sound, clock } = sessionOn(
     "G",
@@ -82,8 +82,9 @@ test("practice.session/REQ-006 — the highlight fires from the scheduled onset;
   expect(parsed.length).toBe(29);
   expect(parsed.atFrame).toBe(firstTone.onsetFrame);
 
-  // The onset report for the same position, arriving after the timer
-  // already fired, confirms rather than duplicates.
+  // The timer is authoritative (T031): the onset report for the same
+  // position, arriving after the timer already fired, has no effect at all
+  // — it is not consulted for the highlight.
   sound.fireOnset(0);
 
   expect(session.snapshot().soundingPosition).toBe(0);
@@ -121,7 +122,7 @@ test("practice.session/REQ-006/S3 — nothing lit when nothing sounds", async ()
   expect(session.snapshot().transport.kind).toBe("countingIn");
 });
 
-test("practice.session/REQ-006/S4 — the highlight timer aims at the audible onset (scheduled frame + outputLatencyMs)", async () => {
+test("practice.session/REQ-006/S4 — a report before the timer does not light; the timer then fires aimed at the audible onset (scheduled frame + outputLatencyMs)", async () => {
   const settings = { ...defaultSessionSettings, tempoBpm: 120 };
   const { session, sound, clock } = sessionOn(
     "G",
@@ -137,6 +138,12 @@ test("practice.session/REQ-006/S4 — the highlight timer aims at the audible on
   expect(session.snapshot().soundingPosition).toBeNull();
 
   const firstTone = sound.posted.filter(isTone)[0]!;
+
+  // A cross-thread onset report can arrive well before its own timer — the
+  // timer is authoritative (T031), not the report: nothing lights yet.
+  sound.fireOnset(firstTone.tag);
+  expect(session.snapshot().soundingPosition).toBeNull();
+
   const framesUntilGraphOnset = firstTone.onsetFrame - sound.frame;
   const msUntilGraphOnset = (framesUntilGraphOnset * 1000) / sound.sampleRate();
 
@@ -262,12 +269,11 @@ test("practice.session/REQ-010/S1 — silent but not stuck", async () => {
     position: 0,
   });
 
-  // The fake still delivers onsets on the same SoundPort — the highlight
-  // walks the sequence at tempo even though sound could not start.
-  const tone = sound.posted.find(isTone);
-  expect(tone).toBeDefined();
-  sound.fireOnset(tone!.tag);
-  expect(session.snapshot().soundingPosition).toBe(0);
+  // The highlight timer runs off the same SoundPort regardless of whether
+  // sound could actually start — the highlight walks the sequence at tempo
+  // even though sound could not.
+  expect(sound.posted.find(isTone)).toBeDefined();
+  advanceUntil(clock, () => session.snapshot().soundingPosition === 0);
 });
 
 test("T025 — a thrown sound failure still gives the notice and the silent walk", async () => {
@@ -335,7 +341,7 @@ test("practice.session/REQ-005/S2 — metronome-only advances on the click's ons
     countIn: false,
     soundMode: "metronome" as const,
   };
-  const { session, sound } = sessionOn(
+  const { session, sound, clock } = sessionOn(
     "G",
     "flute-concert",
     GMajorTwoOctaves,
@@ -349,8 +355,7 @@ test("practice.session/REQ-005/S2 — metronome-only advances on the click's ons
   expect(firstClick.tag).toBe(0);
   expect(session.snapshot().soundingPosition).toBeNull();
 
-  sound.fireOnset(0);
+  advanceUntil(clock, () => session.snapshot().soundingPosition === 0);
 
-  expect(session.snapshot().soundingPosition).toBe(0);
   expect(session.snapshot().caption).toBe("G4 · 1 of 29");
 });

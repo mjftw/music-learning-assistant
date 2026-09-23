@@ -73,11 +73,11 @@ test("practice.session/REQ-006/S5 — the target is always in the sequence (inva
 
             const sequence = session.snapshot().sequence;
             const beatMs = 60_000 / defaultSessionSettings.tempoBpm; // one beat per note, unmodified tempo
+            // The highlight timer is authoritative (T031) — advancing the
+            // clock through every tick's own scheduled onset is what lights
+            // each position; the sound port's onset reports are not
+            // consulted for this at all.
             clock.advance(sequence.length * beatMs + 5_000);
-
-            for (let position = 0; position < sequence.length; position += 1) {
-              sound.fireOnset(position);
-            }
 
             expect(events).toHaveLength(sequence.length);
             for (const event of events) {

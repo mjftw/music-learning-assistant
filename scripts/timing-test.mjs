@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Measured timing budget — practice.session/REQ-008/S1 (every onset within
 // ±5 ms of its schedule, drift ≤1 ms over the run) and REQ-006/S4 (the
-// stave's highlight never later than 30 ms after the onset it follows).
+// stave's highlight never more than 30 ms either side of the note's audible
+// onset — two-sided; T031 also prints, for information only, how the
+// highlight compares to the bare scheduled onset).
 // Playwright, headless Chromium, the real WebAudio engine (a null sink is
 // fine — the AudioContext still runs in real time headless). Not part of
 // `pnpm check` (~3 min — the three tempos run sequentially, T024-fix1, plus
@@ -156,7 +158,14 @@ function measureInPage({ seconds, graceMs, pairingGapMs }) {
 
   const deviationsMs = [];
   const onsetTimesS = [];
-  const predictedHighlightPerfMs = [];
+  // Two predictions per `TargetAdvanced`, from the same `atFrame`: the
+  // *audible* instant (scheduled onset + output latency) the session's
+  // highlight timer is actually aimed at (T031, gated below), and the bare
+  // *scheduled* onset (no latency added), printed only for information —
+  // it shows roughly `+outputLatency` once the timer is authoritative,
+  // rather than clustering near 0 the way the audible column does.
+  const predictedAudibleHighlightPerfMs = [];
+  const predictedScheduledHighlightPerfMs = [];
   // `context()`/`sampleRate()` are only meaningful once `sound.start()` has
   // run (REQ-010/S2: no AudioContext before the first ▶) — clicking "Play"
   // below is what triggers that, so both are read lazily, from inside the
@@ -215,10 +224,11 @@ function measureInPage({ seconds, graceMs, pairingGapMs }) {
     // exactly that latency.
     const perfNow = performance.now();
     const contextNow = context.currentTime;
-    predictedHighlightPerfMs.push(
-      perfNow +
-        (event.atFrame / sampleRate - contextNow) * 1000 +
-        context.outputLatency * 1000,
+    const scheduledPerfMs =
+      perfNow + (event.atFrame / sampleRate - contextNow) * 1000;
+    predictedScheduledHighlightPerfMs.push(scheduledPerfMs);
+    predictedAudibleHighlightPerfMs.push(
+      scheduledPerfMs + context.outputLatency * 1000,
     );
   });
 
@@ -265,22 +275,32 @@ function measureInPage({ seconds, graceMs, pairingGapMs }) {
           // missing or a spurious highlight) into a shorter, misleadingly
           // clean pairing instead of failing on it.
           if (
-            predictedHighlightPerfMs.length !== observedHighlightPerfMs.length
+            predictedAudibleHighlightPerfMs.length !==
+            observedHighlightPerfMs.length
           ) {
             throw new Error(
-              `highlights: predicted ${predictedHighlightPerfMs.length}, observed ${observedHighlightPerfMs.length}`,
+              `highlights: predicted ${predictedAudibleHighlightPerfMs.length}, observed ${observedHighlightPerfMs.length}`,
             );
           }
 
+          // vs audible (ms): observed minus the audible prediction — what
+          // REQ-006/S4's ±30 ms budget gates, two-sided (T031: the timer is
+          // authoritative, so this should now sit near 0 either side of
+          // it). vs scheduled (ms): observed minus the bare scheduled
+          // prediction (no output latency added) — informational only, not
+          // gated; expected to sit near +outputLatency once the timer (not
+          // the report) drives the highlight.
           const highlightLatenciesMs = [];
+          const scheduledLatenciesMs = [];
           let droppedHighlightCount = 0;
           for (
             let index = 0;
-            index < predictedHighlightPerfMs.length;
+            index < predictedAudibleHighlightPerfMs.length;
             index += 1
           ) {
             const latencyMs =
-              observedHighlightPerfMs[index] - predictedHighlightPerfMs[index];
+              observedHighlightPerfMs[index] -
+              predictedAudibleHighlightPerfMs[index];
             // Equal counts alone do not prove the pairing is right — a
             // dropped highlight and a spurious one could cancel out in the
             // count while still misaligning every latency after them. A
@@ -292,6 +312,10 @@ function measureInPage({ seconds, graceMs, pairingGapMs }) {
               continue;
             }
             highlightLatenciesMs.push(latencyMs);
+            scheduledLatenciesMs.push(
+              observedHighlightPerfMs[index] -
+                predictedScheduledHighlightPerfMs[index],
+            );
           }
           if (droppedHighlightCount > 0) {
             throw new Error(
@@ -306,8 +330,13 @@ function measureInPage({ seconds, graceMs, pairingGapMs }) {
             onsetCount: deviationsMs.length,
             maxOnsetDeviationMs: Math.max(...deviationsMs.map(Math.abs)),
             driftMs: Math.abs(slopeMsPerS) * spanS,
-            highlightCount: predictedHighlightPerfMs.length,
-            maxHighlightLatencyMs: Math.max(...highlightLatenciesMs),
+            highlightCount: predictedAudibleHighlightPerfMs.length,
+            maxHighlightLatencyMs: Math.max(
+              ...highlightLatenciesMs.map(Math.abs),
+            ),
+            maxScheduledLatencyMs: Math.max(
+              ...scheduledLatenciesMs.map(Math.abs),
+            ),
           });
         } catch (error) {
           reject(error);
@@ -415,6 +444,12 @@ async function measureTempo(browser, bpm, seconds) {
   }
 }
 
+// REQ-006/S4's gate is two-sided (T031, |highlight − audible onset| ≤
+// MAX_HIGHLIGHT_LATENCY_MS): `maxHighlightLatencyMs` is already an absolute
+// value (measureInPage), so a single `>` comparison here covers both a
+// highlight that lands too early and one that lands too late.
+// `maxScheduledLatencyMs` (the "vs scheduled" column) is informational
+// only — never gated.
 function rowFailed(result) {
   return (
     result.maxOnsetDeviationMs > MAX_ONSET_DEVIATION_MS ||
@@ -425,7 +460,7 @@ function rowFailed(result) {
 
 function formatRow(bpm, outcome) {
   if (outcome.error !== undefined) {
-    return [String(bpm), "ERROR", outcome.error, "", "", "", "FAIL"];
+    return [String(bpm), "ERROR", outcome.error, "", "", "", "", "FAIL"];
   }
   const { result } = outcome;
   return [
@@ -435,6 +470,7 @@ function formatRow(bpm, outcome) {
     result.driftMs.toFixed(2),
     String(result.highlightCount),
     result.maxHighlightLatencyMs.toFixed(2),
+    result.maxScheduledLatencyMs.toFixed(2),
     rowFailed(result) ? "FAIL" : "PASS",
   ];
 }
@@ -446,7 +482,8 @@ function printTable(rows) {
     "max onset dev (ms)",
     "drift (ms, |slope·span|)",
     "highlights",
-    "max highlight (ms)",
+    "vs audible (ms)",
+    "vs scheduled (ms)",
     "status",
   ];
   const table = [header, ...rows];
@@ -544,13 +581,13 @@ async function main() {
 
   if (!allPassed) {
     console.error(
-      `test:timing: FAIL — an onset exceeded ${MAX_ONSET_DEVIATION_MS} ms, drift (|slope·span|) exceeded ${MAX_DRIFT_MS} ms, or a highlight exceeded ${MAX_HIGHLIGHT_LATENCY_MS} ms`,
+      `test:timing: FAIL — an onset exceeded ${MAX_ONSET_DEVIATION_MS} ms, drift (|slope·span|) exceeded ${MAX_DRIFT_MS} ms, or |highlight − audible onset| exceeded ${MAX_HIGHLIGHT_LATENCY_MS} ms`,
     );
     process.exitCode = 1;
     return;
   }
   console.log(
-    `test:timing: PASS — every onset ≤${MAX_ONSET_DEVIATION_MS} ms, drift (|slope·span|) ≤${MAX_DRIFT_MS} ms, highlight ≤${MAX_HIGHLIGHT_LATENCY_MS} ms`,
+    `test:timing: PASS — every onset ≤${MAX_ONSET_DEVIATION_MS} ms, drift (|slope·span|) ≤${MAX_DRIFT_MS} ms, |highlight − audible onset| ≤${MAX_HIGHLIGHT_LATENCY_MS} ms`,
   );
 }
 

@@ -68,9 +68,10 @@ test("practice.session/REQ-002/S1 — G major up and down (acceptance)", async (
   const firstTone = sound.posted.filter(isTone)[0]!;
   expect(firstTone.hz).toBeCloseTo(392.0, 1);
   expect(firstTone.tag).toBe(0);
-  // The caption follows the tone's onset (practice.session/REQ-006), not
-  // the moment the lookahead scheduler posts it.
-  sound.fireOnset(firstTone.tag);
+  // The caption follows the highlight timer's own audible onset
+  // (practice.session/REQ-006, T031), not the moment the lookahead
+  // scheduler posts it.
+  advanceUntil(clock, () => session.snapshot().soundingPosition === 0);
   expect(session.snapshot().caption).toBe("G4 · 1 of 29");
 
   advanceUntil(clock, () => sound.posted.filter(isTone).length >= 30);
@@ -195,8 +196,9 @@ test("practice.session/REQ-007/S1 — a new key mid-scale", async () => {
     expect(command.onsetFrame).toBeGreaterThanOrEqual(frameAtRestart);
   }
 
-  // The caption follows the new sequence's first note's onset.
-  sound.fireOnset(nextTone.tag);
+  // The caption follows the new sequence's first note's own highlight
+  // timer, aimed at its audible onset (T031).
+  advanceUntil(clock, () => session.snapshot().soundingPosition === 0);
   expect(session.snapshot().caption).toMatch(/^D4 · 1 of \d+$/);
 });
 
