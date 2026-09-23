@@ -17,7 +17,7 @@ verified:
     at: 2026-09-22T17:27:31Z
 sdd_id: 003-hear-the-scale
 sdd_context: practice
-sdd_phase: in-progress
+sdd_phase: complete
 ---
 
 # Tasks: Hear the scale
@@ -824,7 +824,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T030 · practice.session/REQ-006 (S4), REQ-007 (S1) · Highlight aims at the audible onset; stale reports from a superseded run are ignored
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/ports/sound.ts` (`outputLatencyMs(): number`), `src/practice/adapters/web-audio-sound.ts` (`(context.outputLatency ?? context.baseLatency ?? 0) · 1000`; 0 before start), `src/practice/adapters/silent-sound.ts` and `fallback-sound.ts` (0 / forward), `tests/practice/fakes.ts` (`FakeSound.outputLatencyMs` settable, default 0), `src/practice/domain/session.ts` (timer delay += `sound.outputLatencyMs()`; tags carry a run generation: `tag = generation · 1_000 + position` for playing ticks, `generation` incremented on start/restart, reports whose generation is not current are ignored — count-in/rest clicks stay ≥ 1_000_000), `scripts/timing-test.mjs` (predicted audible onset = graph onset + `context.outputLatency`; fix the comment that calls `atFrame` the actual rendered frame), `tests/practice/scenarios/session-target.test.ts` (rename the S3 test back to its scenario title `practice.session/REQ-006/S3 — nothing lit when nothing sounds`; add: with `outputLatencyMs = 40` the timer fires 40 ms after the graph onset; and the REQ-007/S1 race: after `setContext` mid-play, a report for the *old* run's position does not light anything or suppress the new run's timer)
