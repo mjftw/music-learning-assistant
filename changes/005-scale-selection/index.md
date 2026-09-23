@@ -4,4 +4,4 @@
 - [005-scale-selection — notes](notes.md) — Implementation Notes — Decisions taken during implementation that the plan did not cover.
 - [scale-selection — plan](plan.md) — Implementation Plan · approved — A theory scale catalogue layered on the unchanged circle key; run-fitting generalised by notes-per-octave; a practice Scale choice persisted per ring in store v4
 - [scale-selection](proposal.md) — Change Proposal · approved — Choose a scale type (modes, pentatonics, blues, whole tone, chromatic, melodic minor) to hear and play from the selected key, not just its diatonic major/minor
-- [<Feature name> — tasks](tasks.md) — Task List · draft — <one sentence — N tasks across M phases>
+- [scale-selection — tasks](tasks.md) — Task List · approved — 19 tasks across 5 phases — theory catalogue and generalised run-fitting, practice Scale choice, UI sheet/views/store v4, hardening
