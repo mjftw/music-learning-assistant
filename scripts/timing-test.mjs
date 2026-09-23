@@ -27,9 +27,10 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
-// The dev server is HTTPS (self-signed) so AudioWorklet works over the LAN;
-// Playwright must ignore the certificate.
-const APP_URL = "https://localhost:5173";
+// `pnpm dev` is plain HTTP on localhost (a secure context already). If a
+// `pnpm dev:phone` (HTTPS) server holds the port instead, run with
+// APP_URL=https://localhost:5173 — the contexts ignore its self-signed cert.
+const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
 const DEV_SERVER_POLL_INTERVAL_MS = 500;
 // `predev` compiles the sound crate to WebAssembly via cargo, which can take
 // a while on a cold build — generous headroom over design-shots.mjs's 30 s

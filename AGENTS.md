@@ -52,10 +52,12 @@ If 4 conflicts with 1–3, stop and say so. Do not pick silently.
 # install (once): rustup — https://rustup.rs — then:
 rustup target add wasm32-unknown-unknown
 pnpm install
-# run (dev): HTTPS with a self-signed cert — AudioWorklet needs a secure context, and a LAN
-#            address is not one; on the phone open https://<laptop-ip>:5173 and accept the warning once
-#            (builds src/sound/pkg/sound.wasm first)
-pnpm dev --host
+# run (dev):                       (builds src/sound/pkg/sound.wasm first)
+pnpm dev
+# run for the phone: HTTPS (self-signed) on the LAN — AudioWorklet needs a secure context and a LAN
+# address is not one; open https://<laptop-ip>:5173 on the phone, accept the warning once.
+# The harnesses below assume plain `pnpm dev`; against dev:phone set APP_URL=https://localhost:5173
+pnpm dev:phone
 # check (all — prettier, eslint, tsc, vitest, cargo fmt/clippy/test, one command):
 pnpm check
 # test (one file):

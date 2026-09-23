@@ -25,9 +25,10 @@ const PROTOTYPE_PATH = path.join(
   "design",
   "hear-the-scale.dc.html",
 );
-// The dev server is HTTPS (self-signed) so AudioWorklet works over the LAN;
-// Playwright must ignore the certificate.
-const APP_URL = "https://localhost:5173";
+// `pnpm dev` is plain HTTP on localhost (a secure context already). If a
+// `pnpm dev:phone` (HTTPS) server holds the port instead, run with
+// APP_URL=https://localhost:5173 — the contexts ignore its self-signed cert.
+const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
 const VIEWPORT = { width: 390, height: 844 };
 const DEVICE_SCALE_FACTOR = 2;
 const DEV_SERVER_POLL_INTERVAL_MS = 500;

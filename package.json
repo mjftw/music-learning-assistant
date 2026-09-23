@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:phone": "pnpm build:sound && DEV_HTTPS=1 vite --host",
     "predev": "pnpm build:sound",
     "build": "tsc --noEmit && vite build",
     "prebuild": "pnpm build:sound",
