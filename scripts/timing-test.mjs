@@ -32,6 +32,11 @@ const DEFAULT_SECONDS = 60;
 // Lets the last beat's onset report and its matching highlight settle after
 // the measurement window closes, so neither array is truncated mid-pair.
 const COLLECTION_GRACE_MS = 300;
+// How far apart a predicted highlight (from `TargetAdvanced`) and its
+// observed `sounding-halo` mutation may be and still count as the same
+// event, not a dropped highlight — generous next to REQ-006/S4's 30 ms
+// budget so it only catches a genuine miss, not a slow-but-real pairing.
+const MAX_HIGHLIGHT_PAIRING_GAP_MS = 200;
 
 const TEMPOS_BPM = [40, 96, 200];
 
@@ -102,7 +107,7 @@ function stopDevServer(child) {
 // boundary per event, which would add its own jitter to exactly what this
 // test measures. `window.__session`/`window.__sound` are dev-only hooks
 // main.tsx exposes (T016, T018).
-function measureInPage({ seconds, graceMs }) {
+function measureInPage({ seconds, graceMs, pairingGapMs }) {
   const sound = window.__sound;
   const session = window.__session;
   if (sound === undefined || session === undefined) {
@@ -126,7 +131,29 @@ function measureInPage({ seconds, graceMs }) {
     button.click();
   }
 
+  // REQ-008/S1's "the deviation does not grow over the minute" is a trend
+  // over the whole run, not an endpoint difference — the first onset of a
+  // run settles by one audio quantum (an artefact of the very first render,
+  // not growth) and then locks to 0, so comparing only the first and last
+  // deviation misses growth that happens mid-run and reverses, or that
+  // starts early (a negative slope). The least-squares slope of deviation
+  // (ms) against onset time (s) across every onset captures growth over the
+  // whole run wherever it happens.
+  function leastSquaresSlope(xs, ys) {
+    const n = xs.length;
+    const meanX = xs.reduce((sum, x) => sum + x, 0) / n;
+    const meanY = ys.reduce((sum, y) => sum + y, 0) / n;
+    let numerator = 0;
+    let denominator = 0;
+    for (let index = 0; index < n; index += 1) {
+      numerator += (xs[index] - meanX) * (ys[index] - meanY);
+      denominator += (xs[index] - meanX) ** 2;
+    }
+    return denominator === 0 ? 0 : numerator / denominator;
+  }
+
   const deviationsMs = [];
+  const onsetTimesS = [];
   const predictedHighlightPerfMs = [];
   // `context()`/`sampleRate()` are only meaningful once `sound.start()` has
   // run (REQ-010/S2: no AudioContext before the first ▶) — clicking "Play"
@@ -147,6 +174,7 @@ function measureInPage({ seconds, graceMs }) {
     deviationsMs.push(
       ((report.actualFrame - report.onsetFrame) / sampleRate) * 1000,
     );
+    onsetTimesS.push(report.onsetFrame / sampleRate);
   });
 
   // REQ-006/S4's highlight is driven by `TargetAdvanced`
@@ -220,22 +248,55 @@ function measureInPage({ seconds, graceMs }) {
             throw new Error("no sounding-halo insertions observed");
           }
 
-          const pairedCount = Math.min(
-            predictedHighlightPerfMs.length,
-            observedHighlightPerfMs.length,
-          );
-          const highlightLatenciesMs = [];
-          for (let index = 0; index < pairedCount; index += 1) {
-            highlightLatenciesMs.push(
-              observedHighlightPerfMs[index] - predictedHighlightPerfMs[index],
+          // The palindrome-seam rule above (predict only when
+          // `TargetAdvanced.note` changes) means predicted and observed
+          // counts must be equal in a correct run; zipping by
+          // `Math.min(...)` would silently truncate a real mismatch (a
+          // missing or a spurious highlight) into a shorter, misleadingly
+          // clean pairing instead of failing on it.
+          if (
+            predictedHighlightPerfMs.length !== observedHighlightPerfMs.length
+          ) {
+            throw new Error(
+              `highlights: predicted ${predictedHighlightPerfMs.length}, observed ${observedHighlightPerfMs.length}`,
             );
           }
+
+          const highlightLatenciesMs = [];
+          let droppedHighlightCount = 0;
+          for (
+            let index = 0;
+            index < predictedHighlightPerfMs.length;
+            index += 1
+          ) {
+            const latencyMs =
+              observedHighlightPerfMs[index] - predictedHighlightPerfMs[index];
+            // Equal counts alone do not prove the pairing is right — a
+            // dropped highlight and a spurious one could cancel out in the
+            // count while still misaligning every latency after them. A
+            // real pair's observed mutation follows its predicted onset
+            // closely; anything this far apart is a dropped highlight, not
+            // a slow one (REQ-006/S4's own budget is 30 ms).
+            if (Math.abs(latencyMs) > pairingGapMs) {
+              droppedHighlightCount += 1;
+              continue;
+            }
+            highlightLatenciesMs.push(latencyMs);
+          }
+          if (droppedHighlightCount > 0) {
+            throw new Error(
+              `highlights: ${droppedHighlightCount} dropped (no observed partner within ${pairingGapMs} ms)`,
+            );
+          }
+
+          const spanS = onsetTimesS[onsetTimesS.length - 1] - onsetTimesS[0];
+          const slopeMsPerS = leastSquaresSlope(onsetTimesS, deviationsMs);
 
           resolve({
             onsetCount: deviationsMs.length,
             maxOnsetDeviationMs: Math.max(...deviationsMs.map(Math.abs)),
-            driftMs: deviationsMs[deviationsMs.length - 1] - deviationsMs[0],
-            highlightCount: pairedCount,
+            driftMs: Math.abs(slopeMsPerS) * spanS,
+            highlightCount: predictedHighlightPerfMs.length,
             maxHighlightLatencyMs: Math.max(...highlightLatenciesMs),
           });
         } catch (error) {
@@ -283,6 +344,7 @@ async function measureTempo(browser, bpm, seconds) {
     return await page.evaluate(measureInPage, {
       seconds,
       graceMs: COLLECTION_GRACE_MS,
+      pairingGapMs: MAX_HIGHLIGHT_PAIRING_GAP_MS,
     });
   } finally {
     await context.close();
@@ -318,7 +380,7 @@ function printTable(rows) {
     "bpm",
     "onsets",
     "max onset dev (ms)",
-    "drift (ms)",
+    "drift (ms, |slope·span|)",
     "highlights",
     "max highlight (ms)",
     "status",
@@ -374,13 +436,13 @@ async function main() {
 
   if (!allPassed) {
     console.error(
-      `test:timing: FAIL — an onset exceeded ${MAX_ONSET_DEVIATION_MS} ms, drift exceeded ${MAX_DRIFT_MS} ms, or a highlight exceeded ${MAX_HIGHLIGHT_LATENCY_MS} ms`,
+      `test:timing: FAIL — an onset exceeded ${MAX_ONSET_DEVIATION_MS} ms, drift (|slope·span|) exceeded ${MAX_DRIFT_MS} ms, or a highlight exceeded ${MAX_HIGHLIGHT_LATENCY_MS} ms`,
     );
     process.exitCode = 1;
     return;
   }
   console.log(
-    `test:timing: PASS — every onset ≤${MAX_ONSET_DEVIATION_MS} ms, drift ≤${MAX_DRIFT_MS} ms, highlight ≤${MAX_HIGHLIGHT_LATENCY_MS} ms`,
+    `test:timing: PASS — every onset ≤${MAX_ONSET_DEVIATION_MS} ms, drift (|slope·span|) ≤${MAX_DRIFT_MS} ms, highlight ≤${MAX_HIGHLIGHT_LATENCY_MS} ms`,
   );
 }
 

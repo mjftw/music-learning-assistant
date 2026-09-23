@@ -83,11 +83,11 @@ All matched files use Prettier code style!
 `pnpm test:timing` healthy output ends:
 
 ```
-bpm  onsets  max onset dev (ms)  drift (ms)  highlights  max highlight (ms)  status
-40   82      2.67                -2.67       40          25.67               PASS
-96   194     0.00                0.00        94          27.17               PASS
-200  402     0.00                0.00        195         24.27               PASS
-test:timing: PASS — every onset ≤5 ms, drift ≤1 ms, highlight ≤30 ms
+bpm  onsets  max onset dev (ms)  drift (ms, |slope·span|)  highlights  max highlight (ms)  status
+40   82      2.67                0.37                      40          24.33               PASS
+96   194     2.67                0.16                      94          25.20               PASS
+200  402     2.67                0.08                      195         22.47               PASS
+test:timing: PASS — every onset ≤5 ms, drift (|slope·span|) ≤1 ms, highlight ≤30 ms
 ```
 
 Run `check` before calling any task done, and paste the output.
