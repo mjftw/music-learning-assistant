@@ -691,7 +691,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T019 · — · Edge cases, spike removal, AGENTS.md healthy output
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/main.tsx` (remove the `?sound-spike` block), `AGENTS.md` (Commands healthy output; "Things agents get wrong here")
@@ -708,7 +708,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 ### T020 · — · Converge
 
-**Status:** todo
+**Status:** in-progress
 
 **Files**
 - Output: `.sdd/reports/003-hear-the-scale/converge.md`, `changes/003-hear-the-scale/notes.md`
