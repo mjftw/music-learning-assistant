@@ -11,6 +11,22 @@ export { arcOf, spelledMajorAt, spelledMinorAt } from "../domain/arc";
 export type { KeyView, KeyViewNote } from "../domain/key-view";
 export { keyView } from "../domain/key-view";
 export type {
+  Degree,
+  Formula,
+  Scale,
+  ScaleDegree,
+  ScaleFamily,
+  ScaleId,
+  ScaleNote,
+  SpelledScale,
+} from "../domain/scales";
+export {
+  SCALES,
+  scaleById,
+  scalesForMode,
+  spelledScaleOf,
+} from "../domain/scales";
+export type {
   Direction,
   Octaves,
   OctaveCount,
