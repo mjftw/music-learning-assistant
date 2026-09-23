@@ -4,7 +4,10 @@
 // change. Pure domain logic (transport.ts, settings.ts, tempo.ts) stays
 // pure; this is the imperative shell around it (docs/engineering.md §2).
 
-import type { SoundCommand } from "../../sound/published/sound-command.schema";
+import type {
+  SoundCommand,
+  SoundUnavailable,
+} from "../../sound/published/sound-command.schema";
 import type {
   Key,
   KeyViewNote,
@@ -26,6 +29,7 @@ import {
 import type { TickPlan } from "../adapters/lookahead-scheduler";
 import { createLookaheadScheduler } from "../adapters/lookahead-scheduler";
 import type { ClockPort } from "../ports/clock";
+import type { Result } from "../ports/result";
 import type { SoundPort } from "../ports/sound";
 import type { VisibilityPort } from "../ports/visibility";
 import type { WakeLockPort } from "../ports/wake-lock";
@@ -311,9 +315,25 @@ export function createSession(
     notifyChange();
 
     void (async () => {
-      const result = await sound.start();
-      // REQ-010 (the visible notice and the silent walk-through) lands in
-      // T009; here we only record the failure and keep going.
+      // REQ-010: a returned `{ ok: false }` and a thrown/rejected
+      // sound.start() (T025 — a last-resort backstop; every real SoundPort
+      // is typed never to throw, but a broken adapter must not leave the
+      // session stuck at "countingIn 4" forever) both mean "sound cannot be
+      // produced" — either way the notice is raised and the walk-through
+      // still starts, on the fake's own clock. try/catch here (rather than
+      // sound.start().catch(...)) keeps the success path's microtask timing
+      // unchanged — an extra `.catch()` link on the promise chain would add
+      // a microtask hop even when start() resolves, throwing off the fixed
+      // "two flushes" other scenario tests rely on.
+      let result: Result<void, SoundUnavailable>;
+      try {
+        result = await sound.start();
+      } catch (cause) {
+        result = {
+          ok: false,
+          error: { reason: "no-audio-context", detail: String(cause) },
+        };
+      }
       if (!result.ok) notice = "sound-unavailable";
       await wakeLock.acquire();
       scheduler.start(sound.currentFrame(), next);

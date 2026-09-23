@@ -48,10 +48,17 @@ export class FakeSound implements SoundPort {
   disposeCalls = 0;
   readonly posted: SoundCommand[] = [];
   failWith: SoundUnavailable | null = null;
+  // A thrown (rather than returned-as-a-value) start() failure — T025
+  // exercises the session's and fallbackSound's last-resort handling of a
+  // sound port that rejects instead of resolving `{ ok: false }`.
+  throwOnStart: Error | null = null;
   private readonly listeners = new Set<(report: OnsetReport) => void>();
 
   start(): Promise<Result<void, SoundUnavailable>> {
     this.startCalls += 1;
+    if (this.throwOnStart !== null) {
+      return Promise.reject(this.throwOnStart);
+    }
     if (this.failWith !== null) {
       return Promise.resolve({ ok: false, error: this.failWith });
     }

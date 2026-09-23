@@ -7,12 +7,13 @@ import type { Result } from "../ports/result";
 import type { SoundPort } from "../ports/sound";
 
 // The SoundPort main.tsx actually wires up — practice.session/REQ-010. Try
-// the real engine first; if it cannot start, hand every later call
-// (sampleRate, currentFrame, post, onOnset, dispose) to the silent fallback
-// so the run still shows, while still returning the real engine's failure
-// so the session raises its notice. Both ports' onset reports are
-// subscribed to up front, not lazily on the first onOnset call, because the
-// session subscribes once at creation, before start() ever runs — a lazy
+// the real engine first; if it cannot start — whether it resolves
+// `{ ok: false }` or throws (T025) — hand every later call (sampleRate,
+// currentFrame, post, onOnset, dispose) to the silent fallback so the run
+// still shows, while still returning the real engine's failure so the
+// session raises its notice. Both ports' onset reports are subscribed to up
+// front, not lazily on the first onOnset call, because the session
+// subscribes once at creation, before start() ever runs — a lazy
 // subscription would still be bound to the primary after the switch to the
 // fallback.
 //
@@ -37,7 +38,20 @@ export function fallbackSound(
   fallback.onOnset((report) => forwardFrom(fallback, report));
 
   async function start(): Promise<Result<void, SoundUnavailable>> {
-    const result = await primary.start();
+    // `webAudioSound.start()` never throws (it turns every failure it knows
+    // about into a `Result`), but this composite is also handed whatever
+    // primary a caller supplies — a throwing primary counts as failed just
+    // as a `{ ok: false }` one does (REQ-010, T025), rather than rejecting
+    // and leaving the session's own last-resort catch as the only backstop.
+    let result: Result<void, SoundUnavailable>;
+    try {
+      result = await primary.start();
+    } catch (cause) {
+      result = {
+        ok: false,
+        error: { reason: "no-audio-context", detail: String(cause) },
+      };
+    }
     if (result.ok) {
       active = primary;
       return result;

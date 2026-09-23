@@ -148,6 +148,33 @@ test("practice.session/REQ-010/S1 — silent but not stuck", async () => {
   expect(session.snapshot().soundingPosition).toBe(0);
 });
 
+test("T025 — a thrown sound failure still gives the notice and the silent walk", async () => {
+  const settings = { ...defaultSessionSettings, tempoBpm: 120 };
+  const { session, sound, clock } = sessionOn(
+    "G",
+    "flute-concert",
+    GMajorTwoOctaves,
+    settings,
+  );
+  sound.throwOnStart = new Error("boom");
+
+  await flushStart(session);
+
+  expect(session.snapshot().notice).toBe("sound-unavailable");
+  expect(session.snapshot().transport).toEqual({
+    kind: "countingIn",
+    beatsLeft: 4,
+  });
+
+  // The transport keeps advancing on the fake's own onset reports even
+  // though sound.start() threw — the silent walk-through REQ-010 requires.
+  advanceUntil(clock, () => session.snapshot().transport.kind === "playing");
+  expect(session.snapshot().transport).toEqual({
+    kind: "playing",
+    position: 0,
+  });
+});
+
 test("practice.session/REQ-010/S2 — nothing before the gesture", async () => {
   const { session, sound } = sessionOn(
     "G",

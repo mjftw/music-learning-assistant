@@ -36,6 +36,25 @@ test("practice.session/REQ-010 — primary fails: start() reports the failure, p
   expect(events).toEqual([{ tag: 7, onsetFrame: 480, actualFrame: 480 }]);
 });
 
+test("practice.session/REQ-010 (T025) — a throwing primary counts as failed, fallback becomes active", async () => {
+  const primary = new FakeSound();
+  primary.throwOnStart = new Error("boom");
+  const fallback = new FakeSound();
+  const sound = fallbackSound(primary, fallback);
+
+  const result = await sound.start();
+
+  expect(result.ok).toBe(false);
+  expect(primary.startCalls).toBe(1);
+  expect(fallback.startCalls).toBe(1);
+
+  sound.post({ kind: "click", tag: 3, accent: false, onsetFrame: 100 });
+  expect(fallback.posted).toEqual([
+    { kind: "click", tag: 3, accent: false, onsetFrame: 100 },
+  ]);
+  expect(primary.posted).toEqual([]);
+});
+
 // T018 dev-only harness plumbing — main.tsx exposes `window.__sound` (this
 // composite port) so the timing test can read `sampleRate()`/`onOnset()`
 // and reach the real `AudioContext` behind `context()` (only `webAudioSound`
