@@ -71,6 +71,16 @@ export function fallbackSound(
       return () => listeners.delete(listener);
     },
     context: () => active.context?.() ?? null,
-    dispose: () => active.dispose(),
+    // Disposes both ports, not just the active one — if primary.start()
+    // created (and resumed) an AudioContext before failing later (e.g. at
+    // createEngine()), the fallback becomes active but the primary's
+    // context is still open; disposing only `active` would leak it (a
+    // narrow recurrence of W1). Each adapter's dispose() is safe to call
+    // even when it acquired nothing (webAudioSound: null checks;
+    // silentSound: stopAll() on an empty map).
+    dispose: () => {
+      primary.dispose();
+      fallback.dispose();
+    },
   };
 }

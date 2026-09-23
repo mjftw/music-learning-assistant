@@ -55,6 +55,19 @@ test("practice.session/REQ-010 (T025) — a throwing primary counts as failed, f
   expect(primary.posted).toEqual([]);
 });
 
+test("practice.session/REQ-010 — dispose() releases both ports once the fallback has taken over", async () => {
+  const primary = new FakeSound();
+  primary.failWith = { reason: "worklet-failed", detail: "" };
+  const fallback = new FakeSound();
+  const sound = fallbackSound(primary, fallback);
+
+  await sound.start();
+  sound.dispose();
+
+  expect(primary.disposeCalls).toBe(1);
+  expect(fallback.disposeCalls).toBe(1);
+});
+
 // T018 dev-only harness plumbing — main.tsx exposes `window.__sound` (this
 // composite port) so the timing test can read `sampleRate()`/`onOnset()`
 // and reach the real `AudioContext` behind `context()` (only `webAudioSound`

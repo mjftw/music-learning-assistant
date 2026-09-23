@@ -97,7 +97,9 @@ export function webAudioSound(
     context: () => audioContext,
     dispose: () => {
       engine?.dispose();
-      void audioContext?.close();
+      audioContext
+        ?.close()
+        .catch((cause) => console.warn("sound: context close failed", cause));
       engine = null;
       audioContext = null;
     },
