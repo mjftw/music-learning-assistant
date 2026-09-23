@@ -1,4 +1,4 @@
-import type { CSSProperties, JSX, ReactNode } from "react";
+import { memo, type CSSProperties, type JSX, type ReactNode } from "react";
 import type {
   Direction,
   Octaves,
@@ -199,7 +199,11 @@ function TogglePill(props: {
 
 // Never opens itself (Article VI) — `open` is driven entirely by the
 // caller's state; this component only ever asks to close, via `onClose`.
-export function TraversalSheet(props: {
+// Wrapped in `React.memo` (T032) — `traversal`/`settings`/`effectiveOctaves`/
+// `fittingCounts` are the session's own values, only reassigned when they
+// actually change, and the handlers are `useCallback`-stabilised, so this
+// never re-renders during playback.
+function TraversalSheetComponent(props: {
   readonly open: boolean;
   readonly traversal: Traversal;
   readonly effectiveOctaves: Octaves;
@@ -319,3 +323,5 @@ export function TraversalSheet(props: {
     </>
   );
 }
+
+export const TraversalSheet = memo(TraversalSheetComponent);

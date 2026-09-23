@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react";
+import { memo, useState, type JSX } from "react";
 import {
   arcOf,
   circleOfFifths,
@@ -327,7 +327,12 @@ function isSameWedge(a: FocusedWedgeKey | null, b: FocusedWedgeKey): boolean {
   return a !== null && a.positionIndex === b.positionIndex && a.ring === b.ring;
 }
 
-export function CircleOfFifths(props: {
+// Wrapped in `React.memo` (T032) — every prop is either a primitive
+// (selectedKeyId, spelling, degreesEnabled, distanceRingEnabled), stable in
+// value during playback, or a handler App keeps stable with `useCallback`,
+// so the default shallow prop comparison correctly skips re-rendering the
+// circle on every beat.
+function CircleOfFifthsComponent(props: {
   readonly selectedKeyId: string;
   readonly spelling: SpellingPreference;
   readonly degreesEnabled: boolean;
@@ -841,3 +846,5 @@ export function CircleOfFifths(props: {
     </div>
   );
 }
+
+export const CircleOfFifths = memo(CircleOfFifthsComponent);

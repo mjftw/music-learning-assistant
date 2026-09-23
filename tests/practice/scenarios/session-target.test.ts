@@ -359,3 +359,39 @@ test("practice.session/REQ-005/S2 — metronome-only advances on the click's ons
 
   expect(session.snapshot().caption).toBe("G4 · 1 of 29");
 });
+
+test("T032 — onChange fires exactly once per beat while playing, not once per 25 ms lookahead poll", async () => {
+  const settings = {
+    ...defaultSessionSettings,
+    tempoBpm: 120,
+    countIn: false,
+  };
+  const { session, clock } = sessionOn(
+    "G",
+    "flute-concert",
+    GMajorTwoOctaves,
+    settings,
+  );
+
+  const advancedEvents: TargetAdvanced[] = [];
+  session.onTargetAdvanced((event) => advancedEvents.push(event));
+
+  await flushStart(session);
+
+  // Subscribed only after start() so this count reflects exactly the
+  // steady-state playing beats below, not the transport's own idle→playing
+  // transition (a separate, single notify start() already issued).
+  let changeCount = 0;
+  session.onChange(() => {
+    changeCount += 1;
+  });
+
+  const BEATS_TO_OBSERVE = 3;
+  advanceUntil(clock, () => advancedEvents.length >= BEATS_TO_OBSERVE);
+
+  // The lookahead scheduler polls every 25 ms and posts commands up to
+  // 200 ms ahead of each beat's audible onset — several polls (and at
+  // 120 bpm, several lookahead-window fills) happen per beat. onChange must
+  // still fire exactly once per beat sounded, not once per poll.
+  expect(changeCount).toBe(BEATS_TO_OBSERVE);
+});

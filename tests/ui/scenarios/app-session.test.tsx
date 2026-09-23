@@ -1,11 +1,12 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { StrictMode } from "react";
+import { Profiler, StrictMode } from "react";
 import { afterEach, expect, test } from "vitest";
 import {
   defaultSessionSettings,
   defaultTraversal,
   summaryLineOf,
+  type Session,
   type SessionDeps,
 } from "../../../src/practice/published";
 import type { SoundCommand } from "../../../src/sound/published/sound-command.schema";
@@ -329,4 +330,71 @@ test("practice.session/REQ-009 (app) — under StrictMode the session still play
   expect(screen.getByTestId("position-caption").textContent).toBe(
     "C4 · 1 of 15",
   );
+});
+
+// T032 — the lookahead scheduler polls every 25 ms and posts commands up to
+// 200 ms ahead of each beat's audible onset, so a poll-driven re-render (or
+// a session that notifies on every poll) would commit App many times per
+// beat. Counting root commits with React's own Profiler over ten
+// clock-advanced beats — rather than probing whether any one child
+// (e.g. the circle) re-rendered — is the one measurement that can't be
+// fooled by a child bailing out of an unchanged tree while the root still
+// commits needlessly.
+test("T032 — App commits about once per beat during playback, not once per lookahead poll", async () => {
+  localStorage.clear();
+  const sound = new FakeSound();
+  const { sessionDeps, clock } = testSessionDeps(sound);
+  let session: Session | null = null;
+  let commits = 0;
+
+  render(
+    <Profiler
+      id="app"
+      onRender={() => {
+        commits += 1;
+      }}
+    >
+      <App
+        catalogue={builtInCatalogue()}
+        selectionStore={localStorageSelectionStore(localStorage)}
+        sessionDeps={sessionDeps}
+        onSessionReady={(readySession) => {
+          session = readySession;
+        }}
+      />
+    </Profiler>,
+  );
+  if (session === null) throw new Error("unreachable: session not ready");
+  const readySession: Session = session;
+
+  await userEvent.click(screen.getByRole("button", { name: "Play" }));
+  act(() => {
+    // Past the count-in, to the sequence's first note.
+    advanceUntil(clock, () => sound.posted.some(isTone));
+  });
+
+  const BEATS_TO_OBSERVE = 10;
+  let beats = 0;
+  const unsubscribe = readySession.onTargetAdvanced(() => {
+    beats += 1;
+  });
+  commits = 0;
+
+  // Each poll (25 ms) and each highlight timer fires as its own separate
+  // task in production — a single `act()` around the whole span would let
+  // React's automatic batching coalesce every one of those into a single
+  // commit, hiding exactly the regression this test exists to catch. One
+  // `act()` per 5 ms step (finer than the scheduler's own 25 ms poll)
+  // keeps poll-driven and highlight-driven updates in separate React
+  // flushes, the way separate `setTimeout` callbacks would be in a real
+  // browser.
+  const STEP_MS = 5;
+  while (beats < BEATS_TO_OBSERVE) {
+    act(() => {
+      clock.advance(STEP_MS);
+    });
+  }
+  unsubscribe();
+
+  expect(commits).toBeLessThanOrEqual(BEATS_TO_OBSERVE + 1);
 });

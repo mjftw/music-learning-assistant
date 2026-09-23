@@ -128,6 +128,46 @@ function captionOf(
   }
 }
 
+// Structural equality for the transport (T032) — `advance()` always returns
+// a fresh object, so `notifyChange()`'s material-change check compares its
+// fields, not its identity.
+function transportEqual(a: TransportState, b: TransportState): boolean {
+  switch (a.kind) {
+    case "idle":
+      return b.kind === "idle";
+    case "countingIn":
+      return b.kind === "countingIn" && a.beatsLeft === b.beatsLeft;
+    case "resting":
+      return b.kind === "resting" && a.beatsLeft === b.beatsLeft;
+    case "playing":
+      return b.kind === "playing" && a.position === b.position;
+  }
+}
+
+// The fields a listener can actually observe (T032) — everything else on
+// `SessionSnapshot` (effectiveOctaves, fittingCounts, sequence, summaryLine,
+// tempoTerm) is derived from `settings`/`traversal`/`run`, already compared
+// here, so it can never disagree without one of these disagreeing too.
+// `settings`, `traversal` and `run` compare by reference: each is only ever
+// reassigned by `setSettings`/`setTraversal`/`recompute()`, never mutated in
+// place, so a changed reference always means a real change and an unchanged
+// one always means none.
+function snapshotsMateriallyEqual(
+  a: SessionSnapshot,
+  b: SessionSnapshot,
+): boolean {
+  return (
+    transportEqual(a.transport, b.transport) &&
+    a.soundingPosition === b.soundingPosition &&
+    a.caption === b.caption &&
+    a.progress === b.progress &&
+    a.notice === b.notice &&
+    a.settings === b.settings &&
+    a.traversal === b.traversal &&
+    a.run === b.run
+  );
+}
+
 export function createSession(
   context: SessionContext,
   traversal: Traversal,
@@ -193,7 +233,35 @@ export function createSession(
 
   recompute();
 
+  // `snapshot()` caches its last build, invalidated by `invalidateSnapshot()`
+  // wherever anything it reads might have changed (T032). Two calls with no
+  // invalidation in between return the identical object — so a consumer
+  // that calls `snapshot()` twice for the same beat (once from
+  // `onTargetAdvanced`, once from `onChange` — see `applyTargetAdvance`,
+  // below) and stores it with a reference-equality bail-out (e.g. React's
+  // `useState`) renders once, not twice.
+  let cachedSnapshot: SessionSnapshot | null = null;
+
+  function invalidateSnapshot(): void {
+    cachedSnapshot = null;
+  }
+
+  // The last snapshot a listener was actually notified with — `notifyChange`
+  // compares this against the current one and only calls `changeListeners`
+  // when a UI-visible field disagrees (T032): the scheduler's lookahead
+  // poll calls `next()` well ahead of an onset, often with nothing to show
+  // for it yet, and every call used to notify regardless.
+  let lastNotified: SessionSnapshot | null = null;
+
   function notifyChange(): void {
+    const current = snapshot();
+    if (
+      lastNotified !== null &&
+      snapshotsMateriallyEqual(current, lastNotified)
+    ) {
+      return;
+    }
+    lastNotified = current;
     for (const listener of changeListeners) listener();
   }
 
@@ -246,6 +314,7 @@ export function createSession(
   function applyTargetAdvance(position: number, atFrame: number): void {
     const target = sequence[position];
     if (target === undefined) return;
+    invalidateSnapshot();
     soundingPosition = position;
     const advancedEvent: TargetAdvanced = {
       note: target.note,
@@ -284,6 +353,7 @@ export function createSession(
   });
 
   function next(onsetFrame: number): TickPlan | null {
+    invalidateSnapshot();
     if (pendingAdvance) {
       transport = advance(transport, currentSettings, sequence.length);
     }
@@ -319,6 +389,11 @@ export function createSession(
           onsetFrame,
         });
       }
+      // Count-in and rest beats have no later highlight-fire event to
+      // notify from — a click tick never schedules one below — so this is
+      // the only point that can carry the beatsLeft countdown to a
+      // listener, once per beat (T032).
+      notifyChange();
     } else {
       const position = transport.position;
       // The tick's first sounding command carries the position's tag; any
@@ -354,15 +429,18 @@ export function createSession(
         positionTagged = true;
       }
 
+      // No notifyChange() here: this branch only posts commands, up to
+      // LOOKAHEAD_MS ahead of the beat's audible onset — `scheduleHighlight`
+      // → `applyTargetAdvance` is the sole notifier for a playing beat, so
+      // a listener hears about it once, at the audible instant, not once
+      // per lookahead poll (T032).
       if (positionTagged) scheduleHighlight(position, onsetFrame);
     }
-
-    notifyChange();
 
     return { commands, durationFrames };
   }
 
-  function snapshot(): SessionSnapshot {
+  function buildSnapshot(): SessionSnapshot {
     return {
       transport,
       traversal: currentTraversal,
@@ -387,7 +465,13 @@ export function createSession(
     };
   }
 
+  function snapshot(): SessionSnapshot {
+    if (cachedSnapshot === null) cachedSnapshot = buildSnapshot();
+    return cachedSnapshot;
+  }
+
   function start(): void {
+    invalidateSnapshot();
     notice = null;
     // Wrap generation at 1_000: stale reports from 1_000 runs ago cannot exist
     // (they arrive within milliseconds), so wrapping is safe and keeps
@@ -421,11 +505,13 @@ export function createSession(
       if (!result.ok) notice = "sound-unavailable";
       await wakeLock.acquire();
       scheduler.start(sound.currentFrame() + firstTickLeadFrames(), next);
+      invalidateSnapshot();
       notifyChange();
     })();
   }
 
   function stop(): void {
+    invalidateSnapshot();
     scheduler.stop();
     cancelPendingHighlights();
     sound.post({ kind: "stopAll" });
@@ -437,6 +523,7 @@ export function createSession(
 
   function restartIfPlaying(): void {
     if (transport.kind !== "playing") return;
+    invalidateSnapshot();
     // The superseded sequence's tones and clicks already posted inside the
     // scheduler's lookahead window must never sound (REQ-007/S1) — silence
     // them, then rebuild the schedule anchored at the current frame rather
@@ -456,6 +543,7 @@ export function createSession(
   }
 
   function setContext(newContext: SessionContext): void {
+    invalidateSnapshot();
     currentContext = newContext;
     recompute();
     restartIfPlaying();
@@ -463,6 +551,7 @@ export function createSession(
   }
 
   function setTraversal(newTraversal: Traversal): void {
+    invalidateSnapshot();
     currentTraversal = newTraversal;
     recompute();
     restartIfPlaying();
@@ -470,6 +559,7 @@ export function createSession(
   }
 
   function setSettings(newSettings: SessionSettings): void {
+    invalidateSnapshot();
     currentSettings = newSettings;
     notifyChange();
   }

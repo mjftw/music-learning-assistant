@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { memo, type JSX } from "react";
 import type { Catalogue, Variant } from "../theory/published";
 import { noteLabel } from "./key-label";
 import { fonts, paper } from "./theme";
@@ -42,7 +42,10 @@ function rangeLabel(variant: Variant): string {
 // Never opens itself (Article VI) — `open` is driven entirely by the
 // caller's state; this component only ever asks to close, via `onClose`
 // (and `onSelect`, which the caller also treats as a close).
-export function InstrumentSheet(props: {
+// Wrapped in `React.memo` (T032) — `catalogue` is a stable reference from
+// App's own props, `selectedVariantId` a primitive, and the handlers are
+// `useCallback`-stabilised, so this never re-renders during playback.
+function InstrumentSheetComponent(props: {
   readonly open: boolean;
   readonly catalogue: Catalogue;
   readonly selectedVariantId: string;
@@ -150,3 +153,5 @@ export function InstrumentSheet(props: {
     </>
   );
 }
+
+export const InstrumentSheet = memo(InstrumentSheetComponent);

@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { memo, type JSX } from "react";
 import type { TempoTerm } from "../practice/published";
 import { TEMPO_TERMS, tempoTermFor } from "../practice/published";
 import { fonts, paper } from "./theme";
@@ -42,7 +42,11 @@ function bandLabelOf(term: TempoTerm): string {
 // Never opens itself (Article VI) — `open` is driven entirely by the
 // caller's state; this component only ever asks to close, via `onClose`
 // (and `onPick`, which the caller also treats as a close).
-export function TempoSheet(props: {
+// Wrapped in `React.memo` (T032) — `tempoBpm` is a primitive and the
+// handlers are `useCallback`-stabilised, so this never re-renders during
+// playback (`tempoBpm` itself only changes on a tempo change, not per
+// beat).
+function TempoSheetComponent(props: {
   readonly open: boolean;
   readonly tempoBpm: number;
   readonly onPick: (term: TempoTerm) => void;
@@ -169,3 +173,5 @@ export function TempoSheet(props: {
     </>
   );
 }
+
+export const TempoSheet = memo(TempoSheetComponent);

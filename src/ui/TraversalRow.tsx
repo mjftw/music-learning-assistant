@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { memo, type JSX } from "react";
 import { fonts, paper } from "./theme";
 
 // Geometry and colour below are copied verbatim from the vendored visual
@@ -22,7 +22,11 @@ const EDIT_FONT_WEIGHT = 600;
 
 // Never opens itself (Article VI) — the sheet's `open` state lives with the
 // caller; this row only ever asks to open it, via `onOpen`.
-export function TraversalRow(props: {
+// Wrapped in `React.memo` (T032) — `summaryLine` is a string (compared by
+// value; only changes when the traversal or session settings actually do)
+// and `onOpen` is `useCallback`-stabilised, so this never re-renders
+// during playback.
+function TraversalRowComponent(props: {
   readonly summaryLine: string;
   readonly onOpen: () => void;
 }): JSX.Element {
@@ -74,3 +78,5 @@ export function TraversalRow(props: {
     </button>
   );
 }
+
+export const TraversalRow = memo(TraversalRowComponent);

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type JSX } from "react";
+import { useCallback, useEffect, useRef, useState, type JSX } from "react";
 import { flushSync } from "react-dom";
 import {
   circleOfFifths,
@@ -7,6 +7,7 @@ import {
   spelledMajorAt,
   spelledMinorAt,
   type Catalogue,
+  type Key,
   type KeyView,
   type Mode,
   type Octaves,
@@ -23,6 +24,7 @@ import {
   type SessionDeps,
   type SessionSettings,
   type SessionSnapshot,
+  type TempoTerm,
 } from "../practice/published";
 import { findVariantById } from "./catalogue-lookup";
 import { CircleOfFifths, locateSpelledKey } from "./CircleOfFifths";
@@ -242,10 +244,21 @@ export function App(props: {
       sessionDeps,
     );
     sessionRef.current = session;
-    setSnapshot(session.snapshot());
-    const unsubscribeChange = session.onChange(() =>
-      setSnapshot(session.snapshot()),
-    );
+    // The last snapshot reference actually applied to React state.
+    // `session.snapshot()` caches its build and only changes reference when
+    // something in it actually changed (practice.session/REQ-006, T032), so
+    // comparing against this lets `onChange` recognise a beat
+    // `onTargetAdvanced`'s `flushSync` already committed moments earlier
+    // (below) and skip applying it again — App commits once per beat, not
+    // twice.
+    let lastAppliedSnapshot = session.snapshot();
+    setSnapshot(lastAppliedSnapshot);
+    const unsubscribeChange = session.onChange(() => {
+      const next = session.snapshot();
+      if (next === lastAppliedSnapshot) return;
+      lastAppliedSnapshot = next;
+      setSnapshot(next);
+    });
     // practice.session/REQ-006/S4 — the sounding note's highlight must land
     // within 30 ms of its onset. This listener fires from the sound
     // engine's onset report, not a React event, so a plain `setState` here
@@ -254,7 +267,9 @@ export function App(props: {
     // paints straight away. Only this path does — `onChange` above covers
     // every other change and stays batched.
     const unsubscribeTargetAdvanced = session.onTargetAdvanced(() => {
-      flushSync(() => setSnapshot(session.snapshot()));
+      const next = session.snapshot();
+      lastAppliedSnapshot = next;
+      flushSync(() => setSnapshot(next));
     });
     onSessionReady?.(session);
 
@@ -338,6 +353,113 @@ export function App(props: {
     }
   }
 
+  // Stable handlers (T032) — every one of these is passed to a
+  // `React.memo`-wrapped component (the circle, header, settings drawer,
+  // instrument sheet, traversal sheet, tempo sheet, traversal row) whose
+  // other props are already stable during playback (primitives, or objects
+  // the session only reassigns when they actually change). An inline arrow
+  // here would recreate a new function identity — and so force a re-render
+  // — on every unrelated App render, including every beat.
+  const handleOpenInstrumentSheet = useCallback(
+    () => setInstrumentSheetOpen(true),
+    [],
+  );
+  const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
+  const handleOpenTraversalSheet = useCallback(
+    () => setTraversalSheetOpen(true),
+    [],
+  );
+  const handleOpenTempoSheet = useCallback(() => setTempoSheetOpen(true), []);
+
+  const handleSelectKey = useCallback((selectedWedgeKey: Key) => {
+    setSelection((current) => {
+      const located = locateSpelledKey(
+        keyIdOf(selectedWedgeKey),
+        current.spelling,
+      );
+      if (located === undefined) return current;
+      return {
+        ...current,
+        positionIndex: located.position.index,
+        mode: located.key.mode,
+      };
+    });
+  }, []);
+
+  const handleSelectSpelling = useCallback(
+    (preference: SpellingPreference) =>
+      setSelection((current) => ({ ...current, spelling: preference })),
+    [],
+  );
+
+  const handleCloseSettings = useCallback(() => setSettingsOpen(false), []);
+  const handleToggleStaveNames = useCallback(
+    () =>
+      setSelection((current) => ({
+        ...current,
+        staveNamesEnabled: !current.staveNamesEnabled,
+      })),
+    [],
+  );
+  const handleToggleDegrees = useCallback(
+    () =>
+      setSelection((current) => ({
+        ...current,
+        degreesEnabled: !current.degreesEnabled,
+      })),
+    [],
+  );
+  const handleToggleRing = useCallback(
+    () =>
+      setSelection((current) => ({
+        ...current,
+        distanceRingEnabled: !current.distanceRingEnabled,
+      })),
+    [],
+  );
+
+  const handleSelectInstrument = useCallback((selectedVariant: Variant) => {
+    setSelection((current) => ({
+      ...current,
+      variantId: selectedVariant.variantId,
+    }));
+    setInstrumentSheetOpen(false);
+  }, []);
+  const handleCloseInstrumentSheet = useCallback(
+    () => setInstrumentSheetOpen(false),
+    [],
+  );
+
+  const handleCloseTraversalSheet = useCallback(
+    () => setTraversalSheetOpen(false),
+    [],
+  );
+  // `session` only ever changes once, from null to the instance the
+  // session-creating effect above creates — reading it live from the
+  // session (rather than closing over `snapshot`) means these never need
+  // the per-beat `snapshot` object as a dependency.
+  const handleTraversal = useCallback(
+    (nextTraversal: Traversal) => session?.setTraversal(nextTraversal),
+    [session],
+  );
+  const handleSessionSettings = useCallback(
+    (nextSettings: SessionSettings) => session?.setSettings(nextSettings),
+    [session],
+  );
+
+  const handleCloseTempoSheet = useCallback(() => setTempoSheetOpen(false), []);
+  const handlePickTempo = useCallback(
+    (term: TempoTerm) => {
+      if (session === null) return;
+      session.setSettings({
+        ...session.snapshot().settings,
+        tempoBpm: tempoForTerm(term),
+      });
+      setTempoSheetOpen(false);
+    },
+    [session],
+  );
+
   return (
     <div
       style={{
@@ -358,8 +480,8 @@ export function App(props: {
           variant === undefined ? "" : headerInstrumentLabel(variant)
         }
         rangeLabel={variant === undefined ? "" : headerRangeLabel(variant)}
-        onOpenPicker={() => setInstrumentSheetOpen(true)}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenPicker={handleOpenInstrumentSheet}
+        onOpenSettings={handleOpenSettings}
       />
       <Notices
         notices={catalogue.notices}
@@ -373,21 +495,8 @@ export function App(props: {
           spelling={selection.spelling}
           degreesEnabled={selection.degreesEnabled}
           distanceRingEnabled={selection.distanceRingEnabled}
-          onSelectKey={(selectedWedgeKey) => {
-            const located = locateSpelledKey(
-              keyIdOf(selectedWedgeKey),
-              selection.spelling,
-            );
-            if (located === undefined) return;
-            setSelection((current) => ({
-              ...current,
-              positionIndex: located.position.index,
-              mode: located.key.mode,
-            }));
-          }}
-          onSelectSpelling={(preference) =>
-            setSelection((current) => ({ ...current, spelling: preference }))
-          }
+          onSelectKey={handleSelectKey}
+          onSelectSpelling={handleSelectSpelling}
         />
       </div>
       <div
@@ -455,51 +564,30 @@ export function App(props: {
                 tempoBpm: steppedTempo(snapshot.settings.tempoBpm, delta),
               })
             }
-            onOpenTempo={() => setTempoSheetOpen(true)}
+            onOpenTempo={handleOpenTempoSheet}
           />
           <TraversalRow
             summaryLine={snapshot.summaryLine}
-            onOpen={() => setTraversalSheetOpen(true)}
+            onOpen={handleOpenTraversalSheet}
           />
         </div>
       )}
       <SettingsDrawer
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        onClose={handleCloseSettings}
         staveNamesEnabled={selection.staveNamesEnabled}
         degreesEnabled={selection.degreesEnabled}
         distanceRingEnabled={selection.distanceRingEnabled}
-        onToggleStaveNames={() =>
-          setSelection((current) => ({
-            ...current,
-            staveNamesEnabled: !current.staveNamesEnabled,
-          }))
-        }
-        onToggleDegrees={() =>
-          setSelection((current) => ({
-            ...current,
-            degreesEnabled: !current.degreesEnabled,
-          }))
-        }
-        onToggleRing={() =>
-          setSelection((current) => ({
-            ...current,
-            distanceRingEnabled: !current.distanceRingEnabled,
-          }))
-        }
+        onToggleStaveNames={handleToggleStaveNames}
+        onToggleDegrees={handleToggleDegrees}
+        onToggleRing={handleToggleRing}
       />
       <InstrumentSheet
         open={instrumentSheetOpen}
         catalogue={catalogue}
         selectedVariantId={selection.variantId}
-        onSelect={(selectedVariant) => {
-          setSelection((current) => ({
-            ...current,
-            variantId: selectedVariant.variantId,
-          }));
-          setInstrumentSheetOpen(false);
-        }}
-        onClose={() => setInstrumentSheetOpen(false)}
+        onSelect={handleSelectInstrument}
+        onClose={handleCloseInstrumentSheet}
       />
       {snapshot !== null && session !== null && (
         <>
@@ -509,21 +597,15 @@ export function App(props: {
             effectiveOctaves={snapshot.effectiveOctaves}
             fittingCounts={snapshot.fittingCounts}
             settings={snapshot.settings}
-            onTraversal={(traversal) => session.setTraversal(traversal)}
-            onSettings={(settings) => session.setSettings(settings)}
-            onClose={() => setTraversalSheetOpen(false)}
+            onTraversal={handleTraversal}
+            onSettings={handleSessionSettings}
+            onClose={handleCloseTraversalSheet}
           />
           <TempoSheet
             open={tempoSheetOpen}
             tempoBpm={snapshot.settings.tempoBpm}
-            onPick={(term) => {
-              session.setSettings({
-                ...snapshot.settings,
-                tempoBpm: tempoForTerm(term),
-              });
-              setTempoSheetOpen(false);
-            }}
-            onClose={() => setTempoSheetOpen(false)}
+            onPick={handlePickTempo}
+            onClose={handleCloseTempoSheet}
           />
         </>
       )}
