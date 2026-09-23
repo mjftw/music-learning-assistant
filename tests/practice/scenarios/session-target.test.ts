@@ -6,6 +6,7 @@
 import { expect, test } from "vitest";
 import {
   defaultSessionSettings,
+  HIGHLIGHT_LEAD_MS,
   type Session,
   type TargetAdvanced,
 } from "../../../src/practice/published";
@@ -122,7 +123,7 @@ test("practice.session/REQ-006/S3 — nothing lit when nothing sounds", async ()
   expect(session.snapshot().transport.kind).toBe("countingIn");
 });
 
-test("practice.session/REQ-006/S4 — a report before the timer does not light; the timer then fires aimed at the audible onset (scheduled frame + outputLatencyMs)", async () => {
+test("practice.session/REQ-006/S4 — a report before the timer does not light; the timer then fires aimed at the audible onset (scheduled frame + outputLatencyMs − HIGHLIGHT_LEAD_MS)", async () => {
   const settings = { ...defaultSessionSettings, tempoBpm: 120 };
   const { session, sound, clock } = sessionOn(
     "G",
@@ -146,17 +147,20 @@ test("practice.session/REQ-006/S4 — a report before the timer does not light; 
 
   const framesUntilGraphOnset = firstTone.onsetFrame - sound.frame;
   const msUntilGraphOnset = (framesUntilGraphOnset * 1000) / sound.sampleRate();
+  // The timer's aim nets latencyMs (40) minus the 20 ms lead — 20 ms past
+  // the graph onset (practice.session/REQ-006).
+  const netDelayMs = sound.latencyMs - HIGHLIGHT_LEAD_MS;
 
   // At the graph (scheduled) onset itself the highlight has not fired yet
-  // — the timer is still waiting out the port's 40 ms output latency.
+  // — the timer is still waiting out the net (latency-minus-lead) delay.
   clock.advance(msUntilGraphOnset);
   expect(session.snapshot().soundingPosition).toBeNull();
 
-  // 39 ms further (1 ms short of the 40 ms latency) — still not fired.
-  clock.advance(39);
+  // 1 ms short of the net delay — still not fired.
+  clock.advance(netDelayMs - 1);
   expect(session.snapshot().soundingPosition).toBeNull();
 
-  // The 40th ms — the timer fires, aimed at the audible instant.
+  // The final ms — the timer fires, 20 ms ahead of the raw output latency.
   clock.advance(1);
   expect(session.snapshot().soundingPosition).toBe(0);
 });

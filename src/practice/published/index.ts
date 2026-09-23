@@ -22,7 +22,11 @@ export type {
   SessionSnapshot,
   TargetAdvanced,
 } from "../domain/session";
-export { createSession, FIRST_TICK_LEAD_MS } from "../domain/session";
+export {
+  createSession,
+  FIRST_TICK_LEAD_MS,
+  HIGHLIGHT_LEAD_MS,
+} from "../domain/session";
 // Port types — published so consumers (including test fakes) depend on
 // practice/published rather than reaching into practice/ports directly
 // (docs/engineering.md §6: contexts communicate only through published/).

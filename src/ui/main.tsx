@@ -49,11 +49,16 @@ function exposeSoundForTiming(sound: ReturnType<typeof fallbackSound>): void {
 }
 
 const sound = fallbackSound(
-  // "playback" trades latency for a larger, safer output buffer: session.ts
-  // already schedules every onset 200 ms ahead and the highlight
-  // compensates with outputLatencyMs() (T030), so the extra buffering costs
-  // nothing here and avoids underruns (crackles) on phones.
-  webAudioSound(() => new AudioContext({ latencyHint: "playback" })),
+  // The default `AudioContext` (no `latencyHint`), not "playback": the
+  // browser's reported `outputLatency` is only an estimate and tends to run
+  // high, and "playback" grows it further — on the laptop it measured the
+  // highlight landing 44 ms *after* the audible onset (practice.session/
+  // REQ-006). session.ts's highlight timer already trims its aim by
+  // HIGHLIGHT_LEAD_MS to stay ahead of that estimate; the other crackle
+  // fixes (no parsing on the audio thread, the hoisted output view,
+  // stop_all's fade) do the rest of the underrun-avoidance work that
+  // "playback" used to buy.
+  webAudioSound(() => new AudioContext()),
   silentSound(() => performance.now()),
 );
 exposeSoundForTiming(sound);

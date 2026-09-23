@@ -102,6 +102,15 @@ const CLICK_TAG_BASE = 1_000_000;
 // in" both stay true).
 export const FIRST_TICK_LEAD_MS = 20;
 
+// practice.session/REQ-006 — the highlight timer's aim is trimmed by this
+// many ms. The browser's `outputLatency` is only an estimate and tends to
+// run high (on the laptop, `latencyHint: "playback"` alone put the
+// highlight 44 ms *after* the audible onset), and painting the highlight
+// itself costs another 10–25 ms on a phone — so the timer aims 20 ms ahead
+// of the audible onset it is chasing. Sound must never precede the
+// highlight; a lead this small is imperceptible.
+export const HIGHLIGHT_LEAD_MS = 20;
+
 function captionOf(
   transport: TransportState,
   run: readonly KeyViewNote[],
@@ -335,12 +344,18 @@ export function createSession(
   // Schedules the highlight for a playing tick's tagged position at its own
   // *audible* onset — a `ClockPort` timeout, aimed at the graph onset plus
   // the port's output latency so it lands when the note is actually heard,
-  // not merely when it was scheduled (T030).
+  // not merely when it was scheduled (T030), less HIGHLIGHT_LEAD_MS: the
+  // browser's `outputLatency` is an estimate that tends to run high, and
+  // paint adds 10–25 ms on a phone, so the timer aims 20 ms ahead of the
+  // audible onset — sound must never precede the highlight; a lead this
+  // small is imperceptible.
   function scheduleHighlight(position: number, onsetFrame: number): void {
     const framesUntilOnset = onsetFrame - sound.currentFrame();
     const msUntilOnset = Math.max(
       0,
-      (framesUntilOnset * 1000) / sound.sampleRate() + sound.outputLatencyMs(),
+      (framesUntilOnset * 1000) / sound.sampleRate() +
+        sound.outputLatencyMs() -
+        HIGHLIGHT_LEAD_MS,
     );
     const cancel = clock.setTimeout(() => {
       pendingHighlightCancels.delete(cancel);
