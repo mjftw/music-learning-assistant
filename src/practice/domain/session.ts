@@ -91,6 +91,17 @@ export interface Session {
 // (a sequence position, always small).
 const CLICK_TAG_BASE = 1_000_000;
 
+// practice.session/REQ-008 — the very first tick of a run (a fresh start()
+// or a REQ-007 restart) is scheduled this many milliseconds after
+// `sound.currentFrame()`, not at it: the audio thread's first renders lag
+// right after the worklet node is created, so an onset scheduled exactly at
+// the current frame arrives a few quanta late. Every later tick in the same
+// run is anchored to the one before it (`durationFrames`, not
+// `sound.currentFrame()`), so only the first ever needs the lead. A human
+// hears 20 ms as "at once" (REQ-002/S1's count-in and REQ-003/S3's "straight
+// in" both stay true).
+export const FIRST_TICK_LEAD_MS = 20;
+
 function captionOf(
   transport: TransportState,
   run: readonly KeyViewNote[],
@@ -173,6 +184,11 @@ export function createSession(
   // (every note is a crotchet)".
   function tickFramesOf(): number {
     return Math.round((60 * sound.sampleRate()) / currentSettings.tempoBpm);
+  }
+
+  // REQ-008 — see FIRST_TICK_LEAD_MS above.
+  function firstTickLeadFrames(): number {
+    return Math.round((FIRST_TICK_LEAD_MS * sound.sampleRate()) / 1000);
   }
 
   function nextClickTag(): number {
@@ -336,7 +352,7 @@ export function createSession(
       }
       if (!result.ok) notice = "sound-unavailable";
       await wakeLock.acquire();
-      scheduler.start(sound.currentFrame(), next);
+      scheduler.start(sound.currentFrame() + firstTickLeadFrames(), next);
       notifyChange();
     })();
   }
@@ -362,7 +378,7 @@ export function createSession(
     transport = { kind: "playing", position: 0 };
     pendingAdvance = false;
     soundingPosition = null;
-    scheduler.start(sound.currentFrame(), next);
+    scheduler.start(sound.currentFrame() + firstTickLeadFrames(), next);
   }
 
   function setContext(newContext: SessionContext): void {

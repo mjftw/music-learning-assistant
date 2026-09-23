@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type JSX } from "react";
+import { flushSync } from "react-dom";
 import {
   circleOfFifths,
   keyId as keyIdOf,
@@ -245,10 +246,21 @@ export function App(props: {
     const unsubscribeChange = session.onChange(() =>
       setSnapshot(session.snapshot()),
     );
+    // practice.session/REQ-006/S4 — the sounding note's highlight must land
+    // within 30 ms of its onset. This listener fires from the sound
+    // engine's onset report, not a React event, so a plain `setState` here
+    // would wait for React's next batch/flush and could miss the budget;
+    // `flushSync` commits the snapshot in the current call so the highlight
+    // paints straight away. Only this path does — `onChange` above covers
+    // every other change and stays batched.
+    const unsubscribeTargetAdvanced = session.onTargetAdvanced(() => {
+      flushSync(() => setSnapshot(session.snapshot()));
+    });
     onSessionReady?.(session);
 
     return () => {
       unsubscribeChange();
+      unsubscribeTargetAdvanced();
       session.dispose();
       sessionRef.current = null;
     };

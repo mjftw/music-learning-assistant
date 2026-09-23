@@ -1,5 +1,8 @@
 import { expect, test } from "vitest";
-import { defaultSessionSettings } from "../../../src/practice/published";
+import {
+  defaultSessionSettings,
+  FIRST_TICK_LEAD_MS,
+} from "../../../src/practice/published";
 import type { Session } from "../../../src/practice/published";
 import type { SoundCommand } from "../../../src/sound/published/sound-command.schema";
 import type { Traversal } from "../../../src/theory/published";
@@ -51,6 +54,12 @@ test("practice.session/REQ-002/S1 — G major up and down (acceptance)", async (
   advanceUntil(clock, () => sound.posted.filter(isClick).length >= 4);
   const clicks = sound.posted.filter(isClick);
   expect(clicks).toHaveLength(4);
+  // practice.session/REQ-008 — the first tick of the run leads the frame
+  // ▶ was tapped on (0, here — the fakes' clock hasn't advanced yet) by
+  // FIRST_TICK_LEAD_MS, so the audio thread's first renders (still warming
+  // up right after the worklet node is created) have somewhere to land.
+  const firstTickLeadFrames = (FIRST_TICK_LEAD_MS * sound.sampleRate()) / 1000;
+  expect(clicks[0]!.onsetFrame).toBe(firstTickLeadFrames);
   expect(clicks[1]!.onsetFrame - clicks[0]!.onsetFrame).toBe(24000);
   expect(clicks[2]!.onsetFrame - clicks[1]!.onsetFrame).toBe(24000);
   expect(clicks[3]!.onsetFrame - clicks[2]!.onsetFrame).toBe(24000);
@@ -169,9 +178,20 @@ test("practice.session/REQ-007/S1 — a new key mid-scale", async () => {
   expect(stopAllIndex).toBeLessThan(nextToneIndex);
 
   // The new sequence picks up from the current frame, not from wherever
-  // the superseded G-major schedule had already reached.
-  for (const command of sound.posted.slice(postedCountBeforeRestart)) {
-    if (command.kind === "stopAll") continue;
+  // the superseded G-major schedule had already reached — and (REQ-008)
+  // its own first tick leads that frame by FIRST_TICK_LEAD_MS, same as a
+  // fresh start(); every later tick only ever moves further forward.
+  const firstTickLeadFrames = (FIRST_TICK_LEAD_MS * sound.sampleRate()) / 1000;
+  const postedAfterRestart = sound.posted
+    .slice(postedCountBeforeRestart)
+    .filter((command) => command.kind !== "stopAll");
+  expect(postedAfterRestart[0]!.onsetFrame).toBeGreaterThanOrEqual(
+    frameAtRestart,
+  );
+  expect(postedAfterRestart[0]!.onsetFrame).toBeLessThanOrEqual(
+    frameAtRestart + firstTickLeadFrames,
+  );
+  for (const command of postedAfterRestart) {
     expect(command.onsetFrame).toBeGreaterThanOrEqual(frameAtRestart);
   }
 
@@ -220,6 +240,16 @@ test("practice.session/REQ-004/S4 — a tempo change keeps the place", async () 
   );
 
   await flushStart(session);
+
+  // practice.session/REQ-003/S3 — "off means straight in": with count-in
+  // disabled the first note is the first thing posted, at once — FIRST_TICK_
+  // LEAD_MS (20 ms) later than ▶ was tapped, not delayed further, and a
+  // human hears 20 ms as "at once".
+  const firstTickLeadFrames = (FIRST_TICK_LEAD_MS * sound.sampleRate()) / 1000;
+  const firstPosted = sound.posted[0]!;
+  if (!isTone(firstPosted)) throw new Error("unreachable: expected a tone");
+  expect(firstPosted.onsetFrame).toBe(firstTickLeadFrames);
+
   // "note 6" (REQ-004/S4's Given) is position 5 — the transport advances
   // on the scheduler's own ticks, independently of any onset.
   advanceUntil(clock, () => {

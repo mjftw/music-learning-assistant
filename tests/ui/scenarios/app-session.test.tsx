@@ -233,6 +233,41 @@ test("practice.session/REQ-007/S3, REQ-010/S2 (UI) — no sound before the gestu
   );
 });
 
+test("practice.session/REQ-006/S4 (UI) — the onset-driven highlight commits synchronously, before any await", async () => {
+  localStorage.clear();
+  const sound = new FakeSound();
+  const { sessionDeps, clock } = testSessionDeps(sound);
+
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={sessionDeps}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole("button", { name: "Play" }));
+  act(() => {
+    // Past the count-in, to the sequence's first note.
+    advanceUntil(clock, () => sound.posted.some(isTone));
+  });
+  const firstTone = sound.posted.find(isTone);
+  if (firstTone === undefined) throw new Error("unreachable: no tone posted");
+
+  // Fired directly, the way a real onset report arrives from the audio
+  // thread — not from a React event, and deliberately not wrapped in
+  // `act()` — so the very next line proves the highlight is already in the
+  // DOM without needing an `await` or a flush of its own
+  // (practice.session/REQ-006's 30 ms budget: `onTargetAdvanced` commits
+  // with `flushSync`, unlike the batched `onChange` path).
+  sound.fireOnset(firstTone.tag);
+
+  const columns = screen.getAllByTestId("names-column");
+  expect(columns.some((column) => column.dataset.sounding === "true")).toBe(
+    true,
+  );
+});
+
 // T016 fixer round: the session's effect must be symmetric — created and
 // disposed by the same effect — so a genuine unmount always tears down its
 // subscriptions (practice.session/REQ-009 relies on the visibility

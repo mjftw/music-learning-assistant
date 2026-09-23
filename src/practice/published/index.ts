@@ -23,7 +23,7 @@ export type {
   SessionSnapshot,
   TargetAdvanced,
 } from "../domain/session";
-export { createSession } from "../domain/session";
+export { createSession, FIRST_TICK_LEAD_MS } from "../domain/session";
 // Adapters — the UI may only import published/, so every SessionDeps
 // implementation main.tsx needs to wire up (T016) is re-exported here.
 export { fallbackSound } from "../adapters/fallback-sound";
