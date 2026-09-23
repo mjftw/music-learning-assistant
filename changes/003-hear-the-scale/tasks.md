@@ -17,7 +17,7 @@ verified:
     at: 2026-09-22T17:27:31Z
 sdd_id: 003-hear-the-scale
 sdd_context: practice
-sdd_phase: complete
+sdd_phase: in-progress
 ---
 
 # Tasks: Hear the scale
