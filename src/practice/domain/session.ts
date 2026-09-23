@@ -191,9 +191,8 @@ export function createSession(
   // cycle, not only a REQ-007 restart) ever share a generation. The
   // highlight no longer consults it (T031: the highlight timer is
   // authoritative) — it survives purely to label the `SoundCommand.tag` a
-  // run's `OnsetReport`s carry back, so the timing harness's own
-  // `window.__sound.onOnset` subscription can tell which run (and
-  // position) a report belongs to.
+  // run's `OnsetReport`s carry back, identifying which run and position a
+  // report belongs to, for anyone reading the reports themselves.
   let generation = -1;
   // Cancel functions for every highlight timer not yet fired — stop(),
   // restartIfPlaying(), dispose() and the idle transition (T031: the end of
@@ -201,6 +200,13 @@ export function createSession(
   // finished) run never fires after its session has moved on (the gap
   // T009's review carried and T023 only closed by deleting the feature).
   const pendingHighlightCancels = new Set<() => void>();
+  // Cancel for the pending idle-transition timer (T033) — armed only while
+  // a non-looping run's last tick is still sounding, so the transport stays
+  // "playing" at the last position (and its own highlight still fires) right
+  // up until that note's audible end, instead of going idle as soon as the
+  // scheduler's lookahead discovers there is no tick after it. Cleared
+  // wherever a live run can be superseded or torn down before it fires.
+  let cancelIdle: (() => void) | null = null;
   // Whether `transport` needs to move on to the state after it before the
   // next tick is built. false right after start() (or a restart) — the
   // very next tick uses `transport` as it stands, not the one after it —
@@ -283,12 +289,12 @@ export function createSession(
   }
 
   // A playing tick's tag packs the run's generation with the sequence
-  // position: generation · GENERATION_TAG_MULTIPLIER + position — for the
-  // timing harness to decode from the resulting `OnsetReport` (T031: the
-  // session itself no longer reads its own tags back). Sequence positions
-  // are always comfortably under the multiplier (the longest catalogued
-  // traversal is far short of 1_000 notes) and it stays well under
-  // CLICK_TAG_BASE, so a position tag and a click tag never collide.
+  // position: generation · GENERATION_TAG_MULTIPLIER + position — the tag
+  // that labels the resulting `OnsetReport` for anyone reading it (T031:
+  // the session itself no longer reads its own tags back). Sequence
+  // positions are always comfortably under the multiplier (the longest
+  // catalogued traversal is far short of 1_000 notes) and it stays well
+  // under CLICK_TAG_BASE, so a position tag and a click tag never collide.
   const GENERATION_TAG_MULTIPLIER = 1_000;
 
   function positionTag(position: number): number {
@@ -348,30 +354,62 @@ export function createSession(
     pendingHighlightCancels.clear();
   }
 
+  // Arms the idle transition (T033) for a non-looping run that has just
+  // played its last tick — `endFrame` is that tick's audible end
+  // (`lastOnsetFrame + lastTickFrames`), which is exactly the onset the
+  // lookahead scheduler hands `next()` for the tick it now finds does not
+  // exist (`nextOnset` in lookahead-scheduler.ts is carried forward tick by
+  // tick as `onset + durationFrames`). The delay mirrors `scheduleHighlight`
+  // above: frames to go, converted to ms, plus the port's output latency —
+  // so the transition lands when the note is actually heard to end, not
+  // merely when the scheduler's lookahead ran out of ticks to build
+  // (ordinarily ~200 ms earlier, well before a slow port's output latency
+  // has even elapsed).
+  function armIdleTimer(endFrame: number): void {
+    const framesUntilEnd = endFrame - sound.currentFrame();
+    const msUntilEnd = Math.max(
+      0,
+      (framesUntilEnd * 1000) / sound.sampleRate() + sound.outputLatencyMs(),
+    );
+    cancelIdle = clock.setTimeout(() => {
+      cancelIdle = null;
+      invalidateSnapshot();
+      transport = { kind: "idle" };
+      soundingPosition = null;
+      cancelPendingHighlights();
+      wakeLock.release();
+      notifyChange();
+    }, msUntilEnd);
+  }
+
+  function cancelIdleTimer(): void {
+    cancelIdle?.();
+    cancelIdle = null;
+  }
+
   const unsubscribeVisibility = visibility.onHidden(() => {
     stop();
   });
 
   function next(onsetFrame: number): TickPlan | null {
     invalidateSnapshot();
-    if (pendingAdvance) {
-      transport = advance(transport, currentSettings, sequence.length);
-    }
+    const advanced = pendingAdvance
+      ? advance(transport, currentSettings, sequence.length)
+      : transport;
     pendingAdvance = true;
 
-    if (transport.kind === "idle") {
-      // A non-looping run's last tick already scheduled its own highlight
-      // timer, aimed at its audible onset — ordinarily long past by the
-      // time the lookahead scheduler catches up to discover there is no
-      // tick after it (T031). Cancelling here is a defensive backstop, not
-      // how the last note gets highlighted: it only ever removes a timer
-      // that failed to fire on its own, never a live one still due.
-      wakeLock.release();
-      soundingPosition = null;
-      cancelPendingHighlights();
-      notifyChange();
+    if (advanced.kind === "idle") {
+      // Looping is off and there is no tick after the one `transport` still
+      // holds (its last position) — the run is not over until that tick's
+      // own audible end, so `transport` is deliberately left as it is
+      // (snapshot() keeps reporting "playing" at the last position, with
+      // its caption) and the idle transition is armed on a timer rather
+      // than made now. The scheduler still stops immediately: there is no
+      // further tick to build.
+      armIdleTimer(onsetFrame);
       return null;
     }
+    transport = advanced;
 
     const tick = tickOf(transport, currentSettings);
     const durationFrames = tickFramesOf();
@@ -514,6 +552,7 @@ export function createSession(
     invalidateSnapshot();
     scheduler.stop();
     cancelPendingHighlights();
+    cancelIdleTimer();
     sound.post({ kind: "stopAll" });
     transport = { kind: "idle" };
     soundingPosition = null;
@@ -532,6 +571,7 @@ export function createSession(
     sound.post({ kind: "stopAll" });
     scheduler.stop();
     cancelPendingHighlights();
+    cancelIdleTimer();
     // Wrap generation at 1_000: stale reports from 1_000 runs ago cannot exist
     // (they arrive within milliseconds), so wrapping is safe and keeps
     // position tags below CLICK_TAG_BASE (1_000_000).
@@ -579,6 +619,7 @@ export function createSession(
   function dispose(): void {
     scheduler.stop();
     cancelPendingHighlights();
+    cancelIdleTimer();
     unsubscribeVisibility();
     sound.dispose();
     changeListeners.clear();

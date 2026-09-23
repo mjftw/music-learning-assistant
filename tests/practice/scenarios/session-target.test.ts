@@ -395,3 +395,94 @@ test("T032 — onChange fires exactly once per beat while playing, not once per 
   // still fire exactly once per beat sounded, not once per poll.
   expect(changeCount).toBe(BEATS_TO_OBSERVE);
 });
+
+test("T033 — the end of a non-looping run is timed to the last note's audible end (200 bpm, 150 ms latency)", async () => {
+  const settings = {
+    ...defaultSessionSettings,
+    tempoBpm: 200,
+    loop: false,
+    countIn: false,
+  };
+  const { session, sound, clock } = sessionOn(
+    "G",
+    "flute-concert",
+    GMajorTwoOctaves,
+    settings,
+  );
+  sound.latencyMs = 150;
+
+  const events: TargetAdvanced[] = [];
+  session.onTargetAdvanced((event) => events.push(event));
+
+  await flushStart(session);
+  // Position 28 is the 29th and last note of the once-through sequence
+  // (G4, the palindrome's close) — its own highlight timer, aimed at its
+  // audible onset, must still fire even though there is no tick after it.
+  advanceUntil(clock, () => session.snapshot().soundingPosition === 28);
+
+  expect(session.snapshot().transport).toEqual({
+    kind: "playing",
+    position: 28,
+  });
+  expect(session.snapshot().caption).toBe("G4 · 29 of 29");
+  expect(events).toHaveLength(29);
+
+  const lastTone = sound.posted.filter(isTone).at(-1)!;
+  // One beat at 200 bpm — REQ-004: every note is a crotchet.
+  const tickFrames = Math.round((60 * sound.sampleRate()) / 200);
+  const audibleEndFrame = lastTone.onsetFrame + tickFrames;
+  const msUntilAudibleEnd =
+    ((audibleEndFrame - sound.frame) * 1000) / sound.sampleRate() +
+    sound.latencyMs;
+
+  // Comfortably short of the last note's audible end (onset + one beat +
+  // the port's output latency) — still playing, its highlight still lit:
+  // the idle transition never comes early.
+  clock.advance(msUntilAudibleEnd - 20);
+  expect(session.snapshot().transport).toEqual({
+    kind: "playing",
+    position: 28,
+  });
+  expect(session.snapshot().soundingPosition).toBe(28);
+  expect(events).toHaveLength(29);
+
+  // Past the audible end: idle, nothing lit, no further TargetAdvanced.
+  clock.advance(40);
+  expect(session.snapshot().transport).toEqual({ kind: "idle" });
+  expect(session.snapshot().soundingPosition).toBeNull();
+  expect(session.snapshot().caption).toBe("29 notes · G4–G6");
+  expect(events).toHaveLength(29);
+});
+
+test("T033 — stop() during the last note's tail cancels the pending idle timer", async () => {
+  const settings = {
+    ...defaultSessionSettings,
+    tempoBpm: 200,
+    loop: false,
+    countIn: false,
+  };
+  const { session, sound, clock, wake } = sessionOn(
+    "G",
+    "flute-concert",
+    GMajorTwoOctaves,
+    settings,
+  );
+  sound.latencyMs = 150;
+
+  await flushStart(session);
+  advanceUntil(clock, () => session.snapshot().soundingPosition === 28);
+
+  session.stop();
+  expect(session.snapshot().transport).toEqual({ kind: "idle" });
+
+  // A fresh run, started right away — if stop() had left the previous
+  // run's idle timer armed, it would fire mid-way through this one (it was
+  // aimed at a point roughly one beat after where we stopped) and release
+  // the wake lock out from under it.
+  await flushStart(session);
+  expect(wake.acquired).toBe(true);
+
+  clock.advance(1000);
+
+  expect(wake.acquired).toBe(true);
+});
