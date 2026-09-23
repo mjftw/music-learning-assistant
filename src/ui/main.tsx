@@ -49,7 +49,11 @@ function exposeSoundForTiming(sound: ReturnType<typeof fallbackSound>): void {
 }
 
 const sound = fallbackSound(
-  webAudioSound(() => new AudioContext()),
+  // "playback" trades latency for a larger, safer output buffer: session.ts
+  // already schedules every onset 200 ms ahead and the highlight
+  // compensates with outputLatencyMs() (T030), so the extra buffering costs
+  // nothing here and avoids underruns (crackles) on phones.
+  webAudioSound(() => new AudioContext({ latencyHint: "playback" })),
   silentSound(() => performance.now()),
 );
 exposeSoundForTiming(sound);

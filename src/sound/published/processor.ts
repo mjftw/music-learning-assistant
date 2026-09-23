@@ -1,5 +1,5 @@
 /// <reference types="@types/audioworklet" />
-import { soundCommandSchema, type OnsetReport } from "./sound-command.schema";
+import type { OnsetReport, SoundCommand } from "./sound-command.schema";
 
 /// The render quantum: how many mono frames `render` fills per `process`
 /// call, and how the Web Audio API always calls `process` (mirrors the
@@ -36,6 +36,13 @@ interface SoundProcessorOptions {
 /// synthesiser's C ABI to the render quantum and the command port.
 class SoundProcessor extends AudioWorkletProcessor {
   readonly #exports: SoundExports;
+  // The 128-frame mono output view over WASM linear memory: constructing a
+  // fresh `Float32Array` every `process()` call would be an allocation the
+  // render thread cannot afford, so it is created once here and only
+  // recreated if `memory.buffer`'s identity changes — which happens after a
+  // `memory.grow` detaches the old `ArrayBuffer` (the pointer itself is
+  // otherwise stable).
+  #outputView: Float32Array | null = null;
 
   constructor(options: SoundProcessorOptions) {
     super();
@@ -47,17 +54,21 @@ class SoundProcessor extends AudioWorkletProcessor {
     this.#exports.init(sampleRate);
 
     this.port.onmessage = (event: MessageEvent<unknown>) => {
-      const result = soundCommandSchema.safeParse(event.data);
-      if (!result.success) {
-        this.port.postMessage({
-          type: "problem",
-          reason: "invalid-command",
-          detail: result.error.message,
-        });
+      // No parsing on the audio thread: index.ts's post() validates every
+      // command against soundCommandSchema (Zod) on the main thread before
+      // it reaches this port, and emits the "invalid-command" problem
+      // itself on failure. This is a cheap structural narrow, not
+      // re-validation — trust the shape once `kind` looks right.
+      const data = event.data;
+      if (
+        data === null ||
+        typeof data !== "object" ||
+        typeof (data as { kind?: unknown }).kind !== "string"
+      ) {
         return;
       }
 
-      const command = result.data;
+      const command = data as SoundCommand;
       switch (command.kind) {
         case "tone": {
           // 0 = all 64 voice slots in use; the tone is dropped rather than
@@ -99,15 +110,18 @@ class SoundProcessor extends AudioWorkletProcessor {
     };
   }
 
+  #getOutputView(): Float32Array {
+    const buffer = this.#exports.memory.buffer;
+    if (this.#outputView === null || this.#outputView.buffer !== buffer) {
+      const ptr = this.#exports.output_ptr();
+      this.#outputView = new Float32Array(buffer, ptr, QUANTUM_FRAMES);
+    }
+    return this.#outputView;
+  }
+
   process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
     const n = this.#exports.render(currentFrame);
-    const ptr = this.#exports.output_ptr();
-    const rendered = new Float32Array(
-      this.#exports.memory.buffer,
-      ptr,
-      QUANTUM_FRAMES,
-    );
-    outputs[0]?.[0]?.set(rendered);
+    outputs[0]?.[0]?.set(this.#getOutputView());
 
     if (n > 0) {
       const reportPtr = this.#exports.report_ptr();

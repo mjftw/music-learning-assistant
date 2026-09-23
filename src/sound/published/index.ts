@@ -3,6 +3,7 @@ import wasmUrl from "../pkg/sound.wasm?url";
 import processorUrl from "./processor.ts?worker&url";
 import {
   onsetReportSchema,
+  soundCommandSchema,
   type OnsetReport,
   type SoundCommand,
   type SoundUnavailable,
@@ -19,10 +20,11 @@ export interface SoundEngine {
 
 // A boundary failure that does not stop playback but should not be
 // swallowed either (docs/engineering.md §11, §15 "never silently swallow a
-// recoverable failure"): a command the worklet's Zod schema rejected, a
-// voice dropped because the 64-voice pool was full, or an onset report the
-// host could not parse. `web-audio-sound.ts` is the adapter that turns
-// these into a `console.warn`.
+// recoverable failure"): a command post()'s Zod schema rejected before it
+// ever reached the audio thread, a voice dropped because the 64-voice pool
+// was full, or an onset report the host could not parse.
+// `web-audio-sound.ts` is the adapter that turns these into a
+// `console.warn`.
 export type SoundProblem = {
   readonly reason:
     "invalid-command" | "voice-pool-full" | "invalid-onset-report";
@@ -114,7 +116,22 @@ export async function createSoundEngine(
   const engine: SoundEngine = {
     sampleRate: context.sampleRate,
     currentFrame: () => Math.round(context.currentTime * context.sampleRate),
-    post: (command) => node.port.postMessage(command),
+    // Validated here, on the main thread, before the command ever reaches
+    // the audio thread's port: `soundCommandSchema.safeParse` has no place
+    // running per-message inside the worklet's process() loop. A rejected
+    // command is never posted; the worklet only ever sees shapes this
+    // schema already accepted.
+    post: (command) => {
+      const result = soundCommandSchema.safeParse(command);
+      if (!result.success) {
+        notifyProblem({
+          reason: "invalid-command",
+          detail: result.error.message,
+        });
+        return;
+      }
+      node.port.postMessage(result.data);
+    },
     onOnset: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);

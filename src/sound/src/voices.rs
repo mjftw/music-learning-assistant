@@ -20,6 +20,21 @@ impl VoiceKind {
     }
 }
 
+/// How long a voice fades out when `Voices::stop_all` is called, rather
+/// than being cleared instantly — an abrupt cut is itself a click on the
+/// render thread's output (practice.session/REQ-005).
+const STOP_FADE_S: f32 = 0.005;
+
+/// A voice's stop-fade state: not stopping, stopping but the frame the fade
+/// began at is not yet known (`stop_all` itself never sees `now_frame`), or
+/// stopping from a known frame.
+#[derive(Clone, Copy, PartialEq)]
+enum Fade {
+    None,
+    Requested,
+    Started(f64),
+}
+
 /// A single queued or sounding voice: what to play, and the frame range (in
 /// the global, ever-increasing frame timeline) it sounds across.
 #[derive(Clone, Copy)]
@@ -29,6 +44,7 @@ pub struct Voice {
     pub onset_frame: f64,
     pub duration_frames: u32,
     reported: bool,
+    fade: Fade,
 }
 
 impl Voice {
@@ -39,6 +55,7 @@ impl Voice {
             onset_frame,
             duration_frames,
             reported: false,
+            fade: Fade::None,
         }
     }
 }
@@ -85,9 +102,23 @@ impl Voices {
         false
     }
 
-    /// Drops every queued and sounding voice at once.
+    /// Drops every queued and sounding voice at once, with no fade —
+    /// used only to reset the engine (`init`), never mid-playback.
     pub fn clear_all(&mut self) {
         self.slots = [None; MAX_VOICES];
+    }
+
+    /// Marks every queued and sounding voice to fade out over
+    /// `STOP_FADE_S` rather than being cleared instantly (❚❚, REQ-002 and
+    /// REQ-005: an abrupt cut is itself a click). The fade's start frame is
+    /// filled in by the next `render_into` call, since `stop_all` is called
+    /// from the command port asynchronously with no frame of its own.
+    pub fn stop_all(&mut self) {
+        for voice in self.slots.iter_mut().flatten() {
+            if voice.fade == Fade::None {
+                voice.fade = Fade::Requested;
+            }
+        }
     }
 
     /// Fills `out` (one render quantum) with the sum of every sounding
@@ -109,9 +140,23 @@ impl Voices {
         let quantum_frames = out.len() as f64;
         let mut n = 0;
 
+        let fade_frames = f64::from(STOP_FADE_S) * f64::from(sample_rate);
+
         for slot in slots.iter_mut() {
             let Some(voice) = slot else { continue };
-            let voice_end = voice.onset_frame + f64::from(voice.duration_frames);
+
+            // `stop_all` marks a voice `Requested` from off-thread, with no
+            // frame of its own; the fade starts from whichever frame first
+            // renders it afterwards.
+            if voice.fade == Fade::Requested {
+                voice.fade = Fade::Started(now_frame);
+            }
+
+            let natural_end = voice.onset_frame + f64::from(voice.duration_frames);
+            let voice_end = match voice.fade {
+                Fade::Started(fade_start) => natural_end.min(fade_start + fade_frames),
+                Fade::None | Fade::Requested => natural_end,
+            };
 
             if !voice.reported && voice.onset_frame < now_frame + quantum_frames {
                 reports[n] = OnsetReport {
@@ -129,10 +174,16 @@ impl Voices {
                     continue;
                 }
                 let elapsed = frame - voice.onset_frame;
-                *sample +=
+                let mut value =
                     voice
                         .kind
                         .next_sample(elapsed, f64::from(voice.duration_frames), sample_rate);
+                if let Fade::Started(fade_start) = voice.fade {
+                    let fade_elapsed = (frame - fade_start).max(0.0);
+                    let gain = (1.0 - (fade_elapsed / fade_frames) as f32).clamp(0.0, 1.0);
+                    value *= gain;
+                }
+                *sample += value;
             }
 
             if now_frame + quantum_frames >= voice_end {
