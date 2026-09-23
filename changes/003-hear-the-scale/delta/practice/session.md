@@ -208,9 +208,10 @@ WHILE a note is sounding
 THE SYSTEM SHALL emit `TargetAdvanced` with that note and its position as
 the note begins, SHALL highlight that note in the stave view (its notehead
 in the accent colour, enlarged, with a halo, the other noteheads dimmed)
-and its name column in the names view, within 30 ms of the note's onset,
-and SHALL always highlight a note that belongs to the active sequence;
-WHILE idle or counting THE SYSTEM SHALL highlight nothing
+and its name column in the names view, within 30 ms either side of the
+note's audible onset — its scheduled onset plus the device's reported
+output latency — and SHALL always highlight a note that belongs to the
+active sequence; WHILE idle or counting THE SYSTEM SHALL highlight nothing
 
 **Scenarios**
 - **REQ-006/S1 — the stave follows the sound**
@@ -228,9 +229,10 @@ WHILE idle or counting THE SYSTEM SHALL highlight nothing
   Then no notehead or column is highlighted
 - **REQ-006/S4 — sight matches sound (measured)**
   Given any tempo from 40 to 200
-  When the onset of each note is compared with the moment its highlight is
+  When each note's audible onset (scheduled onset plus the device's
+  reported output latency) is compared with the moment its highlight is
   shown
-  Then the highlight is never later than 30 ms after the onset
+  Then the highlight is never more than 30 ms before or after it
 - **REQ-006/S5 — the target is always in the sequence (invariant)**
   Given every catalogued variant, every selectable key, every traversal
   When the sequence is played through

@@ -152,7 +152,7 @@ TransportState  = { kind:'idle' }
                 | { kind:'countingIn'; beatsLeft: 4|3|2|1 }
                 | { kind:'playing';   position: number }        // 0-based into NoteSequence
                 | { kind:'resting';   beatsLeft: 4|3|2|1 }
-Tick            = { click: { accent } | null; tonePosition: number | null }   // one beat per tick; frames from tempo alone (was `BeatPlan` in the first draft)
+Tick            = { click: { accent } | null; tonePosition: number | null }   // one beat per tick; frames from tempo alone
 TempoTerm       = { name; fromBpm; toBpm; gloss }   // the eight bands, contiguous 40–200 (test)
 ```
 
@@ -198,16 +198,19 @@ session knows every tick's onset frame when it schedules it (200 ms ahead).
 It fires `TargetAdvanced` from a `ClockPort` timeout aimed at that onset's
 *audible* instant (frames → ms via `sound.sampleRate()` and
 `sound.currentFrame()`, plus `sound.outputLatencyMs()` — T030), so the
-highlight never waits on the worklet → main-thread `OnsetReport` message
-(measured ~21 ms floor, occasional >30 ms). The `OnsetReport` still confirms
-the onset for the timing harness (`atFrame`, the ±5 ms column) and dedupes:
-whichever of timer/report arrives first for a position wins; timers are
-cancelled on stop, restart and dispose. The first tick leads ▶ by
+highlight never waits on the worklet → main-thread `OnsetReport` message.
+**The timer is authoritative (T031):** the `OnsetReport` never drives the
+highlight — it feeds the timing harness's onset column only — so the
+highlight lands at the audible instant rather than whenever the message
+happens to arrive. Timers are cancelled on stop, restart, dispose and the
+idle transition. The harness gates |highlight − audible onset| ≤ 30 ms
+(REQ-006/S4, two-sided) and prints the scheduled-relative column for
+information. The first tick leads ▶ by
 `FIRST_TICK_LEAD_MS = 20` so the worklet's warm-up never delays it.
 
 **Ports (practice/ports, as built):**
 ```ts
-SoundPort      { start(): Promise<Result<void, SoundUnavailable>>; sampleRate(): number; currentFrame(): number; post(cmd: SoundCommand): void; onOnset(cb: (report: OnsetReport) => void): () => void; dispose(): void }
+SoundPort      { start(): Promise<Result<void, SoundUnavailable>>; sampleRate(): number; currentFrame(): number; outputLatencyMs(): number; post(cmd: SoundCommand): void; onOnset(cb: (report: OnsetReport) => void): () => void; dispose(): void }
 ClockPort      { setTimeout(fn, ms): () => void }    // lookahead polls and highlight timers; faked in tests
 WakeLockPort   { acquire(): Promise<void>; release(): void }
 VisibilityPort { onHidden(cb): () => void }
@@ -216,7 +219,7 @@ VisibilityPort { onHidden(cb): () => void }
 **`sound/published`** — the seam between practice and the audio thread,
 schema-first (Zod `sound-command.schema.ts`, mirrored by serde):
 ```
-SoundCommand = { kind:'tone'; tag: number; hz: number; onsetFrame: number; durationFrames: number }   // tag: sequence position for the first sounding command of a playing tick; ≥1_000_000 for count-in/rest clicks
+SoundCommand = { kind:'tone'; tag: number; hz: number; onsetFrame: number; durationFrames: number }   // tag = runGeneration·1000 + position (generation wraps mod 1000) for the first sounding command of a playing tick; ≥1_000_000 for count-in/rest clicks
              | { kind:'click'; tag: number; accent: boolean; onsetFrame: number }
              | { kind:'stopAll' }
 OnsetReport  = { tag: number; onsetFrame: number; actualFrame: number }   // posted back per rendered onset
@@ -287,7 +290,7 @@ add `src/sound/` to the roots and let `IMPORT_RE` cover Rust `use` (it does).
 | practice.session/REQ-002 | `transport.ts`, `session.start/stop`, caption in snapshot; `TransportCard` | S1–S4 with FakeSound recording commands and a settable clock; stop ≤50 ms asserted on `stopAll` timing |
 | practice.session/REQ-003 | `transport.ts` countingIn/resting branches; clicks always planned in those states | S1–S3 |
 | practice.session/REQ-004 | `tempo.ts`; `TempoSheet`; scheduler recomputes beat length from the next beat | S1–S4; band contiguity property |
-| practice.session/REQ-005 | `BeatPlan` tone/click selection by sound mode (TS); tone and click shape (Rust) | S1–S3 on planned commands; S4 in `cargo test` (envelope ends before next onset) |
+| practice.session/REQ-005 | `Tick` tone/click selection by sound mode (TS); tone and click shape (Rust) | S1–S3 on planned commands; S4 in `cargo test` (envelope ends before next onset) |
 | practice.session/REQ-006 | highlight timer at the scheduled onset (`OnsetReport` confirms/dedupes) → `TargetAdvanced`; `StaveView`/`NamesView` highlight props | S1–S3 UI scenarios; S4 measured in `test:timing`; S5 invariant over all sequences |
 | practice.session/REQ-007 | `session.setContext/setTraversal` restart rules; UI never calls `stop()` on overlay open | S1–S3 |
 | practice.session/REQ-008 | Lookahead scheduler + sample-accurate worklet | S1 measured in `test:timing`: 6 configs × 60 s in parallel pages; deterministic unit test that the scheduler never starves the lookahead with a slow fake clock |

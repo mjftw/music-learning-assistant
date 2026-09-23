@@ -17,7 +17,7 @@ verified:
     at: 2026-09-22T17:27:31Z
 sdd_id: 003-hear-the-scale
 sdd_context: practice
-sdd_phase: complete
+sdd_phase: in-progress
 ---
 
 # Tasks: Hear the scale
@@ -838,6 +838,22 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 
 **Verify** — two consecutive `pnpm test:timing` PASS; `pnpm check` → exit 0
 
+### T031 · practice.session/REQ-006 (S3, S4, S5) · The timer is authoritative; the report only measures
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/domain/session.ts` (the onset-report listener no longer calls `applyTargetAdvance`; `firedPositions`/generation stay for the harness? — no: remove the report→highlight coupling and the dedupe set; keep run-generation tags (they still label reports for the harness); cancel pending highlight timers on the idle transition as well), `scripts/timing-test.mjs` (predict the audible onset as now; **gate** `|observed − audible| ≤ 30` two-sided; print an extra informational column `vs scheduled (ms)`; PASS line text updated), `AGENTS.md` (healthy timing example updated)
+- Test: every test that used `sound.fireOnset(tag)` to advance the highlight now advances the fake clock to the onset instead (`FakeClock.advance`); `fireOnset` stays only where a report's *non-effect* is asserted; `tests/practice/invariants/target-in-sequence.test.ts` drives by clock; `tests/ui/scenarios/app-session.test.tsx` REQ-006/S4 (UI) test advances the clock to the first onset and asserts the synchronous highlight; add to `session-target.test.ts`: a report arriving *before* the timer does not light (`soundingPosition` still `null`), and the timer then lights at the audible instant (`latencyMs = 40` → 40 ms after the scheduled onset)
+
+**Steps**
+- [ ] 1. RED — the "report does not light" test → FAIL (report currently wins)
+- [ ] 2. GREEN — remove the coupling; migrate the tests to the clock; idle-transition cancel → all green
+- [ ] 3. `source ~/.cargo/env && pnpm test:timing` twice → PASS; the audible column should now sit near 0 ± main-thread jitter, the scheduled column ≈ +outputLatency; paste both tables
+- [ ] 4. `pnpm check` → green
+
+**Verify** — two consecutive `pnpm test:timing` PASS with the two-sided gate; `pnpm check` → exit 0
+
 ## Coverage
 
 | Requirement | Tasks | Covered |
@@ -853,7 +869,7 @@ _Rust workspace, the sound engine loaded in an AudioWorklet, one audible sine on
 | practice.session/REQ-003 | T007 (S1–S3), T015 (toggles UI) | ✅ |
 | practice.session/REQ-004 | T006 (S1–S3), T023 (S4 amended), T014, T015 (UI) | ✅ |
 | practice.session/REQ-005 | T007 (S1–S3), T009 (S2 session-level), T010 (S4) | ✅ |
-| practice.session/REQ-006 | T013 (S1, S2), T009 (S3, S5), T018 (S4), T029 (S3, S4 timer-driven) | ✅ |
+| practice.session/REQ-006 | T013 (S1, S2), T009 (S3, S5), T018 (S4), T029/T030/T031 (timer-driven highlight at the audible onset; S4 two-sided) | ✅ |
 | practice.session/REQ-007 | T008 (S1–S3), T016 (S3 UI) | ✅ |
 | practice.session/REQ-008 | T018 (S1) | ✅ |
 | practice.session/REQ-009 | T009 (S1, S2) | ✅ |
