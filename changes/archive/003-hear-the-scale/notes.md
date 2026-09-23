@@ -94,3 +94,5 @@ Not converged — 0 critical, 2 warning. Timing run PASS (vs audible 28.0/16.3/2
 - HTTPS needed over the LAN (secure context for AudioWorklet) → `pnpm dev:phone`.
 - Crackle on the phone → `c564e08`: Zod parsing moved off the audio thread, output view hoisted, `stop_all` fades 5 ms, Rust step-size tests (13 Rust tests). `latencyHint: 'playback'` tried and reverted (`4cee739`): it raised the reported outputLatency and the highlight landed 44 ms late on the laptop.
 - Highlight lagging the sound on the phone → `4cee739`: `HIGHLIGHT_LEAD_MS = 20` subtracted from the highlight aim (never from the idle timer). Harness's highlight column is max-|Δ| (unsigned); laptop reads 17–27 ms. Phone re-test pending for both.
+
+**User verdict (2026-09-23):** "Perfect. Fixed." — on the phone over `pnpm dev:phone`, after the crackle and highlight-lead fixes. Accepted.
