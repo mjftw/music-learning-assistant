@@ -49,40 +49,64 @@ If 4 conflicts with 1–3, stop and say so. Do not pick silently.
 ## Commands
 
 ```bash
-# install:
+# install (once): rustup — https://rustup.rs — then:
+rustup target add wasm32-unknown-unknown
 pnpm install
-# run (dev):
+# run (dev):                       (builds src/sound/pkg/sound.wasm first)
 pnpm dev
-# check (all — test + lint + typecheck, one command):
+# run for the phone: HTTPS (self-signed) on the LAN — AudioWorklet needs a secure context and a LAN
+# address is not one; open https://<laptop-ip>:5173 on the phone, accept the warning once.
+# The harnesses below assume plain `pnpm dev`; against dev:phone set APP_URL=https://localhost:5173
+pnpm dev:phone
+# check (all — prettier, eslint, tsc, vitest, cargo fmt/clippy/test, one command):
 pnpm check
 # test (one file):
 pnpm vitest run <path/to/file.test.ts>
+# measured timing budget (Playwright/Chromium, ~3 min, sequential tempos) — required at converge and finish, not per task:
+pnpm test:timing
 ```
 
-Healthy output looks like:
+Healthy output looks like (last ~8 lines of `pnpm check`: vitest summary,
+then cargo's `test result`):
 
 ```
-> music-learning-assistant@0.0.0 check /home/merlin/projects/music-learning-assistant
-> prettier --check . && eslint . && tsc --noEmit && vitest run
+ Test Files  39 passed (39)
+      Tests  137 passed (137)
+   Start at  08:39:02
+   Duration  4.34s (environment 43%, tests 35%, import 11%, transform 10%)
 
-Checking formatting...
-All matched files use Prettier code style!
-
- RUN  v5.0.1 /home/merlin/projects/music-learning-assistant
-
-
- Test Files  17 passed (17)
-      Tests  52 passed (52)
-   Start at  15:18:33
-   Duration  2.29s (environment 56%, tests 20%, import 14%, transform 10%)
+running 8 tests
+...
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 ```
+
+`pnpm test:timing` prints `measuring 3 tempos sequentially, N s each` first
+— the three tempos run one page at a time, then a separate pre-flight
+browser, so the whole thing takes ~3 minutes, not a hang — and healthy
+output ends:
+
+```
+bpm  onsets  max onset dev (ms)  drift (ms, |slope·span|)  highlights  vs audible (ms)  vs scheduled (ms)  status
+40   82      0.00                0.00                      40          28.00            66.67              PASS
+96   194     0.00                0.00                      94          26.43            68.00              PASS
+200  402     0.00                0.00                      195         28.00            70.77              PASS
+test:timing: PASS — every onset ≤5 ms, drift (|slope·span|) ≤1 ms, |highlight − audible onset| ≤30 ms
+```
+
+`vs audible (ms)` is what REQ-006/S4's ±30 ms budget gates (two-sided — either
+side of the audible onset counts); `vs scheduled (ms)` is printed for
+information only, never gated, and normally sits near the port's reported
+output latency.
 
 Run `check` before calling any task done, and paste the output.
 
 ## Conventions
 
 - Runtime / language: TypeScript (strict), browser SPA built with Vite.
-  Rust arrives at change 005, scoped to `src/listening/` (ADR 0001).
+  Rust (stable, `wasm32-unknown-unknown`, zero crates) owns the audio
+  boundary — `src/sound/` from change 003 and `src/listening/` from 005
+  (ADR 0001, ADR 0003); the workspace `Cargo.toml` at the root is the
+  accepted root-config exception. Rust tests are `cargo test`.
 - Package manager (only this one): pnpm.
 - Test framework and where tests live: Vitest (+ Testing Library);
   `tests/<context>/scenarios/` one test per spec scenario named by
@@ -94,9 +118,13 @@ Run `check` before calling any task done, and paste the output.
 ## Architecture
 
 A static single-page web app; no server, no runtime services (Article VII).
-Three bounded contexts (docs/domain.md): `src/theory/` (pure functions —
-notes, keys, circle, catalogue), `src/practice/` (sessions; from change 003),
-`src/listening/` (pitch detection; Rust→WASM from change 005, ADR 0001).
+Four bounded contexts (docs/domain.md): `src/theory/` (pure functions —
+notes, keys, circle, traversal, pitch, catalogue), `src/practice/` (the
+session: a pure transport state machine, a lookahead scheduler adapter on
+the audio clock, ports for sound / clock / wake lock / visibility),
+`src/sound/` (Rust→WASM synthesiser in an AudioWorklet plus a ~60-line TS
+host shim in its `published/`; ADR 0003), `src/listening/` (pitch
+detection; Rust→WASM from change 005, ADR 0001).
 `src/ui/` is the view layer over the contexts, not a context itself. Each
 context exposes `published/` and nothing else crosses its boundary
 (scripts/check-contexts.sh). Data files (instrument variants) and stored
@@ -115,6 +143,12 @@ runtime network dependencies.
 - Duplicating a private helper instead of extracting it, because the natural
   home file isn't in the task's Files list. Extract within the same context
   and say so in the report; don't copy-paste (failed T002 and T004 reviews).
+- A brief's Files list can omit a file the change necessarily ripples into
+  (a test call site, a `published/` re-export). List and touch it anyway,
+  and say so in the report — don't leave the ripple undone to stay inside
+  the list (recurred at T010, T022).
+- Test names cite scenario IDs fully qualified (`practice.session/REQ-011/S1`),
+  or `check-scenarios.sh` cannot attribute them (T012).
 
 ## Never
 

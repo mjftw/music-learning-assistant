@@ -4,6 +4,7 @@ import { afterEach, expect, test } from "vitest";
 import { builtInCatalogue } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
+import { testSessionDeps } from "../../practice/fakes";
 
 const storageKey = "music-learning-assistant.selection.v1";
 
@@ -19,6 +20,7 @@ const renderApp = () =>
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps()}
     />,
   );
 
@@ -57,11 +59,6 @@ async function expectFirstRunDefaults() {
   expect(switchChecked("Scale degrees")).toBe("true");
   expect(switchChecked("Distance ring")).toBe("true");
   await userEvent.click(screen.getByRole("button", { name: "Close settings" }));
-
-  // Check full span is active (switch to stave view to verify span)
-  await userEvent.click(screen.getByRole("button", { name: "stave" }));
-  expect(pressed("full")).toBe("true");
-  await userEvent.click(screen.getByRole("button", { name: "names" }));
 }
 
 test("theory.circle-of-fifths/REQ-008/S1 — resuming mid-week practice", async () => {
@@ -89,7 +86,6 @@ test("theory.circle-of-fifths/REQ-008/S1 — resuming mid-week practice", async 
   );
   expect(pressed("stave")).toBe("true");
   expect(pressed("names")).toBe("false");
-  expect(pressed("1 oct")).toBe("true");
   expect(screen.queryAllByTestId("arc-degree")).toHaveLength(0);
   expect(screen.getAllByTestId("arc-name")).toHaveLength(7);
   expect(screen.getAllByTestId("stave-note-name").length).toBeGreaterThan(0);

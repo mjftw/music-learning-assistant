@@ -1,17 +1,7 @@
-import type { Accidental, Key, Note } from "../theory/published";
+import type { Key } from "../theory/published";
+import { pitchClassLabel } from "../theory/published";
 
-const ACCIDENTAL_SYMBOL: Record<Accidental, string> = {
-  flat: "♭",
-  natural: "",
-  sharp: "♯",
-};
-
-export function pitchClassLabel(pitchClass: {
-  readonly letter: string;
-  readonly accidental: Accidental;
-}): string {
-  return `${pitchClass.letter}${ACCIDENTAL_SYMBOL[pitchClass.accidental]}`;
-}
+export { pitchClassLabel, noteLabel } from "../theory/published";
 
 export function keyLabel(key: Key): string {
   const modeLabel = key.mode === "major" ? "major" : "minor";
@@ -25,8 +15,4 @@ export function wedgeLabel(key: Key): string {
   return key.mode === "major"
     ? pitchClassLabel(key.tonic)
     : `${pitchClassLabel(key.tonic)}m`;
-}
-
-export function noteLabel(note: Note): string {
-  return `${pitchClassLabel(note)}${note.octave}`;
 }

@@ -27,7 +27,12 @@ fi
 cited() { # qualified id -> 0 if some test cites it, in either form
   local q="$1" u
   u=$(printf '%s' "$1" | tr './-' '___')
-  [[ -d "$TESTDIR" ]] && grep -rqF -e "$q" -e "$u" "$TESTDIR" 2>/dev/null
+  { [[ -d "$TESTDIR" ]] && grep -rqF -e "$q" -e "$u" "$TESTDIR" 2>/dev/null; } && return 0
+  # Rust unit tests live beside the code they cover (`#[cfg(test)] mod
+  # tests` in src/<context>/src/*.rs), not under $TESTDIR — scan those too,
+  # via a doc comment citing the id above the #[test] fn, so scenarios
+  # proven by `cargo test` are attributed.
+  grep -rqF --include='*.rs' -e "$q" -e "$u" src/*/src 2>/dev/null
 }
 
 # Which capabilities does this change touch? (all, for the standing check)

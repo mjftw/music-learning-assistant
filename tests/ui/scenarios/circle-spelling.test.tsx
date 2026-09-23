@@ -4,6 +4,7 @@ import { afterEach, expect, test } from "vitest";
 import { builtInCatalogue } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
+import { testSessionDeps } from "../../practice/fakes";
 
 afterEach(cleanup);
 
@@ -13,6 +14,7 @@ const renderApp = () => {
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps()}
     />,
   );
 };

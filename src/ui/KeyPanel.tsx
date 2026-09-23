@@ -11,10 +11,8 @@ const CARD_BACKGROUND = paper.card;
 const CARD_BORDER = `1px solid ${paper.borderSoft}`;
 const CARD_RADIUS = 14;
 
-// Shared by both bordered rows below the card's content — the span row
-// (stave view only) and the summary row (always shown) sit on an identical
-// top rule in the vendored visual reference, so one set of constants names
-// it once rather than each row aliasing its own copy.
+// Shared by the summary row below the card's content, which sits on the
+// vendored visual reference's top rule.
 const ROW_MARGIN_TOP = 10;
 const ROW_PADDING_TOP = 9;
 const ROW_BORDER = `1px solid ${paper.hairline}`;
@@ -32,17 +30,7 @@ const PILL_FONT_SIZE = 11;
 const PILL_FONT_WEIGHT = 600;
 const PILL_PADDING = "4px 11px 5px";
 
-// The span row's own pills (theory.circle-of-fifths/REQ-011) sit loose,
-// not inside a shared bordered group like the names/stave pair above —
-// each one is individually rounded, per the vendored visual reference.
-const SPAN_PILL_GAP = 4;
-const SPAN_PILL_PADDING = "4px 8px 5px";
-const SPAN_PILL_BORDER_RADIUS = 999;
-
-// Both pill kinds share colour, weight and line-height; only padding,
-// monospacing and individual rounding (the span pills' loose-pill look)
-// differ per caller.
-function basePillStyle(active: boolean): CSSProperties {
+function pillStyle(active: boolean): CSSProperties {
   return {
     fontSize: PILL_FONT_SIZE,
     fontWeight: PILL_FONT_WEIGHT,
@@ -51,31 +39,8 @@ function basePillStyle(active: boolean): CSSProperties {
     background: active ? PILL_ACTIVE_BACKGROUND : "transparent",
     border: "none",
     cursor: "pointer",
+    padding: PILL_PADDING,
   };
-}
-
-function pillStyle(active: boolean): CSSProperties {
-  return { ...basePillStyle(active), padding: PILL_PADDING };
-}
-
-function spanPillStyle(active: boolean): CSSProperties {
-  return {
-    ...basePillStyle(active),
-    padding: SPAN_PILL_PADDING,
-    fontFamily: fonts.mono,
-    borderRadius: SPAN_PILL_BORDER_RADIUS,
-    whiteSpace: "nowrap",
-  };
-}
-
-// One span choice pill (theory.circle-of-fifths/REQ-011) — the caller
-// (App.tsx) builds these from `spanChoicesOf`, keeping KeyPanel free of any
-// theory import.
-export interface SpanChoicePill {
-  readonly key: string;
-  readonly label: string;
-  readonly active: boolean;
-  readonly onSelect: () => void;
 }
 
 export function KeyPanel(props: {
@@ -83,17 +48,8 @@ export function KeyPanel(props: {
   readonly onSelectView: (view: "names" | "stave") => void;
   readonly children: ReactNode;
   readonly rangeSummary: string;
-  readonly spanCaption: string;
-  readonly spanChoices: readonly SpanChoicePill[];
 }): JSX.Element {
-  const {
-    view,
-    onSelectView,
-    children,
-    rangeSummary,
-    spanCaption,
-    spanChoices,
-  } = props;
+  const { view, onSelectView, children, rangeSummary } = props;
 
   return (
     <div
@@ -106,48 +62,6 @@ export function KeyPanel(props: {
       }}
     >
       {children}
-      {view === "stave" && (
-        <div
-          style={{
-            marginTop: ROW_MARGIN_TOP,
-            paddingTop: ROW_PADDING_TOP,
-            borderTop: ROW_BORDER,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 10,
-          }}
-        >
-          <div
-            data-testid="span-caption"
-            style={{
-              fontFamily: fonts.mono,
-              fontSize: SUMMARY_TEXT_FONT_SIZE,
-              color: SUMMARY_TEXT_INK,
-              whiteSpace: "nowrap",
-              minWidth: 0,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {spanCaption}
-          </div>
-          <div style={{ display: "flex", gap: SPAN_PILL_GAP, flex: "none" }}>
-            {spanChoices.map((choice) => (
-              <button
-                key={choice.key}
-                type="button"
-                data-testid="span-pill"
-                aria-pressed={choice.active}
-                onClick={choice.onSelect}
-                style={spanPillStyle(choice.active)}
-              >
-                {choice.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       <div
         style={{
           marginTop: ROW_MARGIN_TOP,

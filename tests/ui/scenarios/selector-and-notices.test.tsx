@@ -4,6 +4,7 @@ import { afterEach, expect, test } from "vitest";
 import { builtInCatalogue, loadCatalogue } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
+import { testSessionDeps } from "../../practice/fakes";
 
 // No global `afterEach` in scope (vitest globals are off), so
 // @testing-library/react's automatic cleanup never registers itself; without
@@ -18,6 +19,7 @@ test("theory.instruments/REQ-001/S2 — completing a selection names a variant",
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps()}
     />,
   );
   await userEvent.click(screen.getByRole("button", { name: "Instrument" }));
@@ -60,6 +62,7 @@ test("theory.instruments/REQ-003/S2 — the notice interrupts nothing", async ()
     <App
       catalogue={withBroken}
       selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps()}
     />,
   );
   expect(screen.getByRole("status").textContent).toContain("broken.json");

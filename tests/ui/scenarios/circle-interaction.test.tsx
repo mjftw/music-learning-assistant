@@ -4,6 +4,7 @@ import { afterEach, expect, test } from "vitest";
 import { builtInCatalogue } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
+import { testSessionDeps } from "../../practice/fakes";
 
 // No global `afterEach` in scope (vitest globals are off), so
 // @testing-library/react's automatic cleanup never registers itself; without
@@ -29,6 +30,7 @@ test("a selected wedge label never uses a larger font than fits its label length
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps()}
     />,
   );
 
@@ -50,6 +52,7 @@ test("theory.circle-of-fifths/REQ-001/S2 — selecting E minor on the inner ring
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps()}
     />,
   );
   const gMajorWedge = screen.getByRole("button", { name: "G major" });
@@ -78,6 +81,7 @@ test("Tab-focusing a wedge shows a focus ring that follows focus, and disappears
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps()}
     />,
   );
 

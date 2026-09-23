@@ -1,12 +1,10 @@
 import type { JSX } from "react";
 import {
   signatureOf,
-  spanNotesOf,
   type Key,
   type KeyViewNote,
   type Note,
   type NoteLetter,
-  type Span,
   type Variant,
 } from "../theory/published";
 import { noteLabel, pitchClassLabel } from "./key-label";
@@ -88,6 +86,16 @@ const NAME_INK = "#4a4136";
 const SIG_GLYPH_ACCENT = paper.accent;
 const SIG_GLYPH_INK = paper.inkSoft;
 
+// The sounding note's highlight (practice.session/REQ-006) — the same
+// accent colour as the tonic, enlarged with a soft halo behind it; every
+// other notehead and stem dims while a sequence is playing.
+const SOUNDING_INK = paper.accent;
+const SOUNDING_HALO_FILL = "rgba(138,75,42,.13)";
+const SOUNDING_RX_MULTIPLIER = 1.25;
+const SOUNDING_HALO_RADIUS_MULTIPLIER = 2.5;
+const DIM_OPACITY = 0.72;
+const FULL_OPACITY = 1;
+
 function diatonicIndex(note: Note): number {
   return note.octave * 7 + LETTERS.indexOf(note.letter);
 }
@@ -99,9 +107,12 @@ interface StaveHead {
   readonly ry: number;
   readonly tilt: string;
   readonly ink: string;
+  readonly opacity: number;
+  readonly isSounding: boolean;
   readonly stemX: number;
   readonly stemY1: number;
   readonly stemY2: number;
+  readonly stemUp: boolean;
   readonly note: Note;
   readonly isRoot: boolean;
 }
@@ -140,6 +151,7 @@ interface StaveGeometry {
   readonly barTop: number;
   readonly barBottom: number;
   readonly clefY: number;
+  readonly haloRadius: number;
 }
 
 // Mirrors the reference's `buildStave()`: lays a run of notes onto one
@@ -152,6 +164,8 @@ function buildStave(
   signatureGlyphSize: number,
   signatureGlyphYAdjust: number,
   withNames: boolean,
+  soundingRunIndex: number | null,
+  playing: boolean,
 ): StaveGeometry {
   const indices = notes.map((entry) => diatonicIndex(entry.note));
   const highest = Math.max(...indices, PANEL_F5);
@@ -189,7 +203,10 @@ function buildStave(
     const x = x0 + index * step;
     const ny = y(index_);
     const stemUp = index_ < STEM_UP_THRESHOLD_INDEX;
-    const ink = isRoot ? TONIC_INK : NOTE_INK;
+    const isSounding = playing && soundingRunIndex === index;
+    const ink = isSounding ? SOUNDING_INK : isRoot ? TONIC_INK : NOTE_INK;
+    const opacity = playing && !isSounding ? DIM_OPACITY : FULL_OPACITY;
+    const headRx = isSounding ? rx * SOUNDING_RX_MULTIPLIER : rx;
 
     for (let v = LEDGER_LOW_INDEX; v >= index_; v -= 2) {
       ledgers.push({
@@ -209,13 +226,16 @@ function buildStave(
     heads.push({
       x,
       y: ny,
-      rx,
-      ry: rx * NOTEHEAD_RY_RATIO,
+      rx: headRx,
+      ry: headRx * NOTEHEAD_RY_RATIO,
       tilt: `rotate(${NOTEHEAD_TILT_DEGREES} ${x.toFixed(1)} ${ny.toFixed(1)})`,
       ink,
+      opacity,
+      isSounding,
       stemX: stemUp ? x + rx - STEM_X_INSET : x - rx + STEM_X_INSET,
       stemY1: ny,
       stemY2: stemUp ? ny - STEM_LENGTH : ny + STEM_LENGTH,
+      stemUp,
       note,
       isRoot,
     });
@@ -224,7 +244,7 @@ function buildStave(
       names.push({
         x,
         label: pitchClassLabel(note),
-        ink: isRoot ? TONIC_NAME_INK : NAME_INK,
+        ink: isSounding ? SOUNDING_INK : isRoot ? TONIC_NAME_INK : NAME_INK,
       });
     }
   });
@@ -274,23 +294,28 @@ function buildStave(
     barTop: topY,
     barBottom: topY + 4 * PANEL_GAP,
     clefY: topY + 18,
+    haloRadius: rx * SOUNDING_HALO_RADIUS_MULTIPLIER,
   };
 }
 
 // The hand-drawn SVG stave that replaced VexFlow (ADR 0002) — renders the
-// chosen span of the selected key's in-range notes, ordered lowest to
-// highest with the root emphasised (theory.circle-of-fifths/REQ-003), and
-// the note names underneath only when enabled (REQ-007).
+// traversal's run (theory.circle-of-fifths/REQ-003, REQ-012), ordered lowest
+// to highest with the root emphasised, and the note names underneath only
+// when enabled (REQ-007). `variant` is carried in the props for interface
+// parity with the rest of the key view even though this component no longer
+// derives the run itself — the caller (App.tsx) already fits it to the
+// variant via `runOf` before passing `notes` down.
 export function StaveView(props: {
   readonly key_: Key;
   readonly variant: Variant;
-  readonly span: Span;
+  readonly notes: readonly KeyViewNote[];
   readonly staveNamesEnabled: boolean;
+  readonly soundingRunIndex: number | null;
+  readonly playing: boolean;
 }): JSX.Element {
-  const { key_, variant, span, staveNamesEnabled } = props;
+  const { key_, notes, staveNamesEnabled, soundingRunIndex, playing } = props;
 
   const signature = signatureOf(key_);
-  const notes = spanNotesOf(key_, variant, span);
   const isFlat = signature.kind === "flats";
   const staffSteps = isFlat ? FLAT_STAFF_STEPS : SHARP_STAFF_STEPS;
   const signatureGlyph = isFlat ? FLAT_GLYPH_CHAR : SHARP_GLYPH_CHAR;
@@ -307,6 +332,8 @@ export function StaveView(props: {
     signatureGlyphSize,
     signatureGlyphYAdjust,
     staveNamesEnabled,
+    soundingRunIndex,
+    playing,
   );
 
   return (
@@ -364,7 +391,17 @@ export function StaveView(props: {
               y2={head.stemY2}
               stroke={head.ink}
               strokeWidth={STEM_STROKE_WIDTH}
+              opacity={head.opacity}
             />
+            {head.isSounding && (
+              <circle
+                data-testid="sounding-halo"
+                cx={head.x}
+                cy={head.y}
+                r={stave.haloRadius}
+                fill={SOUNDING_HALO_FILL}
+              />
+            )}
             <ellipse
               cx={head.x}
               cy={head.y}
@@ -372,6 +409,7 @@ export function StaveView(props: {
               ry={head.ry}
               transform={head.tilt}
               fill={head.ink}
+              opacity={head.opacity}
             />
           </g>
         ))}

@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { memo, type JSX } from "react";
 import { paper } from "./theme";
 import { OverlayScrim, OverlayHeader } from "./overlay";
 
@@ -116,7 +116,10 @@ function Row(props: {
 
 // Never opens itself (Article VI) — `open` is driven entirely by the
 // caller's state; this component only ever asks to close, via `onClose`.
-export function SettingsDrawer(props: {
+// Wrapped in `React.memo` (T032) — every prop is a primitive or a
+// `useCallback`-stabilised handler from App, so this never re-renders
+// during playback.
+function SettingsDrawerComponent(props: {
   readonly open: boolean;
   readonly onClose: () => void;
   readonly staveNamesEnabled: boolean;
@@ -185,3 +188,5 @@ export function SettingsDrawer(props: {
     </>
   );
 }
+
+export const SettingsDrawer = memo(SettingsDrawerComponent);

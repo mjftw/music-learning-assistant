@@ -10,8 +10,22 @@ export type { ArcPosition, SpellingPreference } from "../domain/arc";
 export { arcOf, spelledMajorAt, spelledMinorAt } from "../domain/arc";
 export type { KeyView, KeyViewNote } from "../domain/key-view";
 export { keyView } from "../domain/key-view";
-export type { Span, SpanChoice } from "../domain/span";
-export { spanChoicesOf, spanNotesOf } from "../domain/span";
+export type {
+  Direction,
+  Octaves,
+  OctaveCount,
+  SequenceNote,
+  Shape,
+  Traversal,
+} from "../domain/traversal";
+export {
+  effectiveOctavesOf,
+  fittingOctaveCounts,
+  runOf,
+  sequenceOf,
+} from "../domain/traversal";
+export { pitchClassLabel, noteLabel } from "../domain/labels";
+export { pitchHzOf, REFERENCE_A4_HZ } from "../domain/temperament";
 export type {
   Catalogue,
   CatalogueNotice,

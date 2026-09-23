@@ -5,9 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:phone": "pnpm build:sound && DEV_HTTPS=1 vite --host",
+    "predev": "pnpm build:sound",
     "build": "tsc --noEmit && vite build",
-    "check": "prettier --check . && eslint . && tsc --noEmit && vitest run",
+    "prebuild": "pnpm build:sound",
+    "build:sound": "./scripts/build-sound.sh",
+    "check": "prettier --check . && eslint . && tsc --noEmit && vitest run && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test",
     "test": "vitest run",
+    "pretest": "pnpm build:sound",
+    "test:timing": "node scripts/timing-test.mjs",
     "design:shots": "node scripts/design-shots.mjs"
   },
   "dependencies": {
@@ -22,9 +28,11 @@
   "devDependencies": {
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
+    "@types/audioworklet": "^0.0.100",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^9.17.0",
     "jsdom": "^25.0.1",

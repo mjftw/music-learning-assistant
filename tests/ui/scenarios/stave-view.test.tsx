@@ -1,9 +1,15 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test } from "vitest";
-import { builtInCatalogue } from "../../../src/theory/published";
+import {
+  builtInCatalogue,
+  runOf,
+  type Key,
+} from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
+import { StaveView } from "../../../src/ui/StaveView";
+import { testSessionDeps } from "../../practice/fakes";
 
 afterEach(() => {
   cleanup();
@@ -15,6 +21,7 @@ const setup = () => {
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps()}
     />,
   );
 };
@@ -31,29 +38,132 @@ const selectVariant = async (rowName: string) => {
   await userEvent.click(screen.getByRole("button", { name: rowName }));
 };
 
-test("theory.circle-of-fifths/REQ-003/S1 — G major on the flute (acceptance)", async () => {
-  setup();
-  await userEvent.click(screen.getByRole("button", { name: "G major" }));
-  await enterStaveView();
+const gMajor: Key = {
+  tonic: { letter: "G", accidental: "natural" },
+  mode: "major",
+};
+const flute = () =>
+  builtInCatalogue()
+    .instruments.flatMap((instrument) => instrument.variants)
+    .find((variant) => variant.variantId === "flute-concert")!;
 
-  const notes = screen.getAllByTestId("stave-note");
-  expect(notes).toHaveLength(22);
-  expect(notes[0]?.getAttribute("data-note")).toBe("C4");
-  expect(notes[notes.length - 1]?.getAttribute("data-note")).toBe("C7");
+test("theory.circle-of-fifths/REQ-003/S1 — G major on the flute (acceptance)", () => {
+  const notes = runOf(gMajor, flute(), {
+    direction: "updown",
+    octaves: { kind: "full" },
+    shape: "scale",
+  });
 
-  const roots = notes
-    .filter((note) => note.getAttribute("data-root") === "true")
-    .map((note) => note.getAttribute("data-note"));
-  expect(roots).toEqual(["G4", "G5", "G6"]);
-
-  expect(screen.getByTestId("range-summary").textContent).toBe(
-    "22 notes · C4–C7",
+  render(
+    <StaveView
+      key_={gMajor}
+      variant={flute()}
+      notes={notes}
+      staveNamesEnabled={false}
+      soundingRunIndex={null}
+      playing={false}
+    />,
   );
+
+  const heads = screen.getAllByTestId("stave-note");
+  expect(heads).toHaveLength(22);
+  expect(heads[0]?.getAttribute("data-note")).toBe("C4");
+  expect(heads[heads.length - 1]?.getAttribute("data-note")).toBe("C7");
+
+  const roots = heads
+    .filter((head) => head.getAttribute("data-root") === "true")
+    .map((head) => head.getAttribute("data-note"));
+  expect(roots).toEqual(["G4", "G5", "G6"]);
 
   const accentedSignatureGlyphs = screen
     .getAllByTestId("stave-signature-glyph")
     .filter((glyph) => glyph.getAttribute("data-accented") === "true");
   expect(accentedSignatureGlyphs).toHaveLength(1);
+});
+
+test("theory.circle-of-fifths/REQ-003/S4 — the stave shows the traversal's run, the summary the key", () => {
+  const notes = runOf(gMajor, flute(), {
+    direction: "updown",
+    octaves: { kind: "count", count: 2 },
+    shape: "arpeggio",
+  });
+
+  render(
+    <StaveView
+      key_={gMajor}
+      variant={flute()}
+      notes={notes}
+      staveNamesEnabled={false}
+      soundingRunIndex={null}
+      playing={false}
+    />,
+  );
+
+  const heads = screen.getAllByTestId("stave-note");
+  expect(heads.map((head) => head.getAttribute("data-note"))).toEqual([
+    "G4",
+    "B4",
+    "D5",
+    "G5",
+    "B5",
+    "D6",
+    "G6",
+  ]);
+});
+
+test("practice.session/REQ-006/S1 — the sounding note is accented, enlarged and haloed; the rest are dimmed", () => {
+  const notes = runOf(gMajor, flute(), {
+    direction: "updown",
+    octaves: { kind: "count", count: 2 },
+    shape: "arpeggio",
+  });
+
+  const { rerender } = render(
+    <StaveView
+      key_={gMajor}
+      variant={flute()}
+      notes={notes}
+      staveNamesEnabled={false}
+      soundingRunIndex={4}
+      playing={true}
+    />,
+  );
+
+  const heads = screen.getAllByTestId("stave-note");
+  const soundingEllipse = heads[4]!.querySelector("ellipse")!;
+  const otherEllipse = heads[0]!.querySelector("ellipse")!;
+
+  expect(soundingEllipse.getAttribute("fill")).toBe("#8a4b2a");
+  expect(soundingEllipse.getAttribute("opacity")).toBe("1");
+  expect(Number(soundingEllipse.getAttribute("rx"))).toBeCloseTo(
+    Number(otherEllipse.getAttribute("rx")) * 1.25,
+  );
+
+  const halos = screen.getAllByTestId("sounding-halo");
+  expect(halos).toHaveLength(1);
+  expect(halos[0]?.getAttribute("cx")).toBe(soundingEllipse.getAttribute("cx"));
+  expect(halos[0]?.getAttribute("cy")).toBe(soundingEllipse.getAttribute("cy"));
+
+  heads.forEach((head, index) => {
+    if (index === 4) return;
+    expect(head.querySelector("ellipse")!.getAttribute("opacity")).toBe("0.72");
+  });
+
+  rerender(
+    <StaveView
+      key_={gMajor}
+      variant={flute()}
+      notes={notes}
+      staveNamesEnabled={false}
+      soundingRunIndex={null}
+      playing={false}
+    />,
+  );
+
+  expect(screen.queryAllByTestId("sounding-halo")).toHaveLength(0);
+  screen.getAllByTestId("stave-note").forEach((head) => {
+    expect(head.querySelector("ellipse")!.getAttribute("opacity")).toBe("1");
+  });
 });
 
 test("theory.circle-of-fifths/REQ-003/S2 — the display follows the variant's range", async () => {
@@ -104,22 +214,4 @@ test("theory.circle-of-fifths/REQ-007/S2 — stave names on demand, and the choi
 
   expect(screen.getAllByTestId("stave-note-name").length).toBeGreaterThan(0);
   expect(screen.getAllByTestId("stave-note").length).toBeGreaterThan(0);
-});
-
-test("theory.circle-of-fifths/REQ-011 — G major on the flute offers 1 oct, 2 oct and full, choosing 1 oct shows 8 notes", async () => {
-  setup();
-  await userEvent.click(screen.getByRole("button", { name: "G major" }));
-  await enterStaveView();
-
-  const pillLabels = screen
-    .getAllByTestId("span-pill")
-    .map((pill) => pill.textContent);
-  expect(pillLabels).toEqual(["1 oct", "2 oct", "full"]);
-
-  await userEvent.click(screen.getByRole("button", { name: "1 oct" }));
-
-  expect(screen.getAllByTestId("stave-note")).toHaveLength(8);
-  expect(screen.getByTestId("span-caption").textContent).toBe(
-    "1 oct from G · 8",
-  );
 });

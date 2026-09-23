@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { memo, type JSX } from "react";
 import { paper } from "./theme";
 
 // Geometry and colour below are copied verbatim from the vendored visual
@@ -35,7 +35,10 @@ const GEAR_GLYPH = "⚙";
 // The instrument pill's accessible name is fixed as "Instrument" — what it
 // opens, not the variant currently shown (that's the visible label/range
 // text inside it).
-export function Header(props: {
+// Wrapped in `React.memo` (T032) — `variantLabel`/`rangeLabel` are strings
+// (compared by value) and the handlers are `useCallback`-stabilised in
+// App, so this never re-renders during playback.
+function HeaderComponent(props: {
   readonly variantLabel: string;
   readonly rangeLabel: string;
   readonly onOpenPicker: () => void;
@@ -115,3 +118,5 @@ export function Header(props: {
     </div>
   );
 }
+
+export const Header = memo(HeaderComponent);
