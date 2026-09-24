@@ -803,7 +803,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T018 · — · `AGENTS.md` architecture, scenario coverage, timing
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `AGENTS.md` (Architecture: `src/theory/` list gains "scales (the catalogue), notation"; the `Healthy output` block is re-pasted from a fresh `pnpm check`)
