@@ -818,10 +818,109 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T019 · — · Converge
 
-**Status:** todo
+**Status:** done
 
 **Steps**
 - [ ] 1. Run `sdd-converge`; append any gap it finds as new tasks here.
+
+**Verify** — the convergence report says Converged, or new tasks exist below.
+
+## Phase 5 — Converge round 1 (2026-09-24, report `.sdd/reports/005-scale-selection/converge.md`)
+
+### T020 · theory.circle-of-fifths/REQ-012, REQ-003 · A split-direction scale's descending run is fitted by its own tonic; ↑↓ never repeats the top
+
+**Status:** todo
+
+**Files**
+- Modify: `src/theory/domain/traversal.ts` (`traversalOf`'s split-direction branch and `splitDirectionOf`)
+- Test: `tests/theory/invariants/sequence-range.test.ts` (new invariant test in the same file), `tests/theory/scenarios/traversal-sequence.test.ts`
+
+**Interfaces**
+- Consumes: `traversalOf(key, variant, scale, traversal): TraversalNotes`, `lowestTonicIndexFor(notes, octaveCount, notesPerOctave)`, `countRunOf(notes, octaveCount, startIndex)`, `rangedNotesOf`, `pitchPosition`, `SCALES`, `circleOfFifths`, `builtInCatalogue`, `fittingOctaveCounts`
+- Produces: the same `traversalOf`, now: the descending form's run `D` is fitted **by its own notes** — for a count n, `countRunOf(descendingNotes, n, lowestTonicIndexFor(descendingNotes, n, notesPerOctave))` (never the ascending form's index); for full range, every in-range descending note. `↓`: `run = D`, sequence = `D` reversed. `↑↓`: `run = [...A, ...reverse(D).filter((note) => pitchPosition(note.note) < pitchPosition(topOfA.note))]` where `topOfA` is the last note of `A` — the descent restarts strictly below the note just played, so no pitch is repeated whether or not the two forms share their highest in-range note; `sequence` is `run` in order. Shapes other than split-direction are untouched.
+
+**Steps**
+- [ ] 1. RED — theory.circle-of-fifths/REQ-012 (converge C1): append to `tests/theory/scenarios/traversal-sequence.test.ts`:
+  ```ts
+  test("theory.circle-of-fifths/REQ-012 (converge C1) — a split-direction run starts and ends on the tonic on every key", () => {
+    const cSharpMinor: Key = { tonic: { letter: "C", accidental: "sharp" }, mode: "naturalMinor" };
+    const down = traversalOf(cSharpMinor, variantById("flute-concert"), scaleById("melodic-minor-classical"), oneOct("down"));
+    expect(down.sequence.map((n) => noteLabel(n.note))).toEqual(["C♯5", "B4", "A4", "G♯4", "F♯4", "E4", "D♯4", "C♯4"]);
+    const both = traversalOf(cSharpMinor, variantById("flute-concert"), scaleById("melodic-minor-classical"), oneOct("updown"));
+    expect(both.sequence.map((n) => noteLabel(n.note))).toEqual(["C♯4", "D♯4", "E4", "F♯4", "G♯4", "A♯4", "B♯4", "C♯5", "B4", "A4", "G♯4", "F♯4", "E4", "D♯4", "C♯4"]);
+  });
+
+  test("theory.circle-of-fifths/REQ-012 (converge C2) — ↑↓ over the full range never repeats a pitch when the forms' tops differ", () => {
+    const aMinor: Key = { tonic: { letter: "A", accidental: "natural" }, mode: "naturalMinor" };
+    const { sequence } = traversalOf(aMinor, variantById("ocarina-alto-c"), scaleById("melodic-minor-classical"), { direction: "updown", octaves: { kind: "full" }, shape: "scale" });
+    const labels = sequence.map((n) => noteLabel(n.note));
+    for (let i = 1; i < labels.length; i += 1) expect(labels[i]).not.toBe(labels[i - 1]);
+    expect(labels.slice(0, 3)).toEqual(["B4", "C5", "D5"]);
+    expect(labels[labels.length - 1]).toBe("B4");
+  });
+  ```
+  and to `tests/theory/invariants/sequence-range.test.ts` a second `test(...)`:
+  ```ts
+  test("theory.circle-of-fifths/REQ-012 (invariant) — every whole-octave run is tonic to tonic and no ↑↓ sequence repeats a pitch", () => {
+    // Given every circle key × catalogued variant × catalogued scale × fitting count (+ full for ↑↓)
+    // Then a count run's first and last notes are the tonic's pitch class, its span is exactly count octaves,
+    //      and adjacent notes of an ↑↓ sequence never share a pitch (by pitchPosition).
+  });
+  ```
+  — write the enumeration in the same shape as the file's existing invariant (loops over `circleOfFifths()` keys, `builtInCatalogue()` variants, `SCALES`, `fittingOctaveCounts`, three directions), asserting `run[0]` and `run[run.length-1]` have the tonic's letter+accidental and `pitchPosition(last) - pitchPosition(first) === 12 * count` for every count run, and for every `↑↓` sequence (count and full) that `pitchPosition(sequence[i]) !== pitchPosition(sequence[i-1])`.
+- [ ] 2. Run `pnpm vitest run tests/theory/scenarios/traversal-sequence.test.ts tests/theory/invariants/sequence-range.test.ts` — expect FAIL: C♯ minor ↓ begins `D♯5`; A minor full ↑↓ has `E6, E6`; the invariant reports the 27 wrong combinations.
+- [ ] 3. GREEN — implement the rule in Interfaces; `splitDirectionOf` takes `A`, `D` and the direction and no longer assumes the runs align.
+- [ ] 4. Run `pnpm vitest run tests/theory` — expect PASS (S1–S7 unchanged). `pnpm check` — green.
+- [ ] 5. REFACTOR — none.
+
+**Verify** — `pnpm vitest run tests/theory` → all passed; the invariant's enumeration prints no failure.
+
+### T021 · practice.session/REQ-006 · The target-in-sequence invariant over every scale
+
+**Status:** todo
+
+**Files**
+- Test: `tests/practice/invariants/target-in-sequence.test.ts`
+
+**Interfaces**
+- Consumes: `sessionOn(keyLetter, variantId, traversal, settings, scaleChoice)`, `SCALES`, `scaleById`, `advanceUntil` (existing fixtures)
+
+**Steps**
+- [ ] 1. RED — practice.session/REQ-006/S5 (converge W1): extend the existing enumeration so that, for each key/variant/traversal already iterated, it also iterates every scale of `scalesForMode(mode)` (passing `{ major: id, minor: id }` as the session's scale choice — the ring the key is on picks it up), keeping the same assertion (every `TargetAdvanced` carries a note that is a member of the sequence at its position). Keep the run time under 30 s: if it exceeds that, iterate scales for the flute only and note why in the test.
+- [ ] 2. Run `pnpm vitest run tests/practice/invariants/target-in-sequence.test.ts` — expect PASS on the first run (it is an invariant); if it fails, stop and report the combination.
+- [ ] 3. `pnpm check` — green.
+
+**Verify** — `pnpm vitest run tests/practice/invariants/target-in-sequence.test.ts` → `1 passed`, duration printed.
+
+### T022 · theory.circle-of-fifths/REQ-003 · The names view shows a five-note scale (S5's names half)
+
+**Status:** todo
+
+**Files**
+- Test: `tests/ui/scenarios/names-view.test.tsx`
+
+**Interfaces**
+- Consumes: `NamesView({ key_, scale, degreesEnabled, soundingPitchClass })`, `scaleById`, the file's `readColumns` helper
+
+**Steps**
+- [ ] 1. RED — theory.circle-of-fifths/REQ-003/S5 (UI) (converge W4): append
+  ```tsx
+  test("theory.circle-of-fifths/REQ-003/S5 (UI) — a five-note scale shows five columns", () => {
+    render(<NamesView key_={gMajor} scale={scaleById("major-pentatonic")} degreesEnabled soundingPitchClass={null} />);
+    expect(readColumns().map((c) => [c.name, c.degree])).toEqual([["G", "1"], ["A", "2"], ["B", "3"], ["D", "5"], ["E", "6"]]);
+  });
+  ```
+- [ ] 2. Run `pnpm vitest run tests/ui/scenarios/names-view.test.tsx` — expect PASS on the first run; if it fails, the names view is wrong — stop and report.
+- [ ] 3. `pnpm check` — green.
+
+**Verify** — `pnpm vitest run tests/ui/scenarios/names-view.test.tsx` → all passed.
+
+### T023 · — · Converge round 2
+
+**Status:** todo
+
+**Steps**
+- [ ] 1. Run `sdd-converge` again; append any gap as new tasks here.
 
 **Verify** — the convergence report says Converged, or new tasks exist below.
 
@@ -833,8 +932,8 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 | practice.session/REQ-001 (MODIFIED) — S1–S4 existing tests kept · S5 T014 (+T008 session-level) | T008, T014 | ✅ |
 | practice.session/REQ-007 (MODIFIED) — S1–S3 existing · S4 T009 | T009 | ✅ |
 | practice.session/REQ-011 (MODIFIED) — S1 T010, T012 · S2 T012 · S3 T010 · S4 T010, T012 | T010, T012 | ✅ |
-| theory.circle-of-fifths/REQ-003 (MODIFIED) — S1, S2, S4 existing · S3 T002, T007, T013, T015 · S5 T003 · S6 T005, T007, T015 | T001, T002, T003, T005, T007, T013, T015 | ✅ |
-| theory.circle-of-fifths/REQ-012 (MODIFIED) — S1–S4 existing · S5 T006 · S6 T005 · S7 T004 | T004, T005, T006 | ✅ |
+| theory.circle-of-fifths/REQ-003 (MODIFIED) — S1, S2, S4 existing · S3 T002, T007, T013, T015 · S5 T003, T022 · S6 T005, T007, T015 | T001, T002, T003, T005, T007, T013, T015, T022 | ✅ |
+| theory.circle-of-fifths/REQ-012 (MODIFIED) — S1–S4 existing · S5 T006 · S6 T005 · S7 T004 · converge C1/C2 T020 | T004, T005, T006, T020 | ✅ |
 
 ## Interface consistency
 

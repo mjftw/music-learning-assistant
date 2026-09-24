@@ -307,7 +307,7 @@ tests/ui/scenarios/scale-sheet.test.tsx, names-view.test.tsx, stave-view.test.ts
   reviewed by the user at acceptance (not a pixel-diff gate, as in 002/003).
 - **Invariant:** `sequence-range` enumerates every variant × every key
   spelling × every scale × fitting octaves + full × both shapes × three
-  directions (~43k sequences): every note in range, every arpeggio note in
+  directions (18,816 sequences — measured at T006; the plan's original ~43k estimate overcounted the fitting octave choices): every note in range, every arpeggio note in
   the scale's run, and `accidentalForTarget` never throws (this is the
   proof that no catalogued scale on any circle key needs a triple
   accidental).
