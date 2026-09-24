@@ -16,7 +16,11 @@ import {
   scaleById,
 } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
-import { localStorageSelectionStore } from "../../../src/ui/selection-store";
+import {
+  firstRunDefaults,
+  localStorageSelectionStore,
+  type StoredSelection,
+} from "../../../src/ui/selection-store";
 import {
   advanceUntil,
   FakeClock,
@@ -84,7 +88,11 @@ test("practice.session/REQ-011/S2 (app) — first run shows the S2 defaults in t
   );
 });
 
-test("practice.session/REQ-011/S1 (app) — a stored v3 payload is restored exactly, idle", () => {
+// Renamed from REQ-011/S1 (T012 review) — a v3 payload has no scale choice
+// recorded, so restoring it exercises the v3→v4 migration path (REQ-011/S4),
+// not S1 (which is about restoring a stored scale choice — see the new S1
+// test below).
+test("practice.session/REQ-011/S4 (app) — a stored v3 payload is restored exactly, idle", () => {
   localStorage.clear();
   localStorage.setItem(
     STORAGE_KEY,
@@ -120,6 +128,120 @@ test("practice.session/REQ-011/S1 (app) — a stored v3 payload is restored exac
   expect(screen.getByText("↓ · 2 oct · click only · once")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Allegro" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Play" })).toBeTruthy();
+});
+
+test("practice.session/REQ-012/S1 (app) — choosing a scale changes the heading, the formula row and the names view", async () => {
+  localStorage.clear();
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps().sessionDeps}
+    />,
+  );
+  // The circle never shows a scale (T012 brief) — the outer-ring wedge's
+  // accessible name stays "<tonic> major"/"<tonic> minor" exactly as
+  // circle-interaction.test.tsx clicks it elsewhere ("G major", "E minor",
+  // …), not the bare tonic the brief's literal test used.
+  await userEvent.click(screen.getByRole("button", { name: "G major" }));
+  expect(screen.getByTestId("current-key").textContent).toBe("G major");
+  await userEvent.click(screen.getByTestId("current-key"));
+  await userEvent.click(screen.getByRole("button", { name: /^Lydian/ }));
+  expect(screen.getByTestId("current-key").textContent).toBe("G Lydian");
+  expect(screen.getByTestId("scale-row-formula").textContent).toBe(
+    "1 2 3 ♯4 5 6 7",
+  );
+  // NamesView does not yet consume the chosen scale (T013 wires it — see
+  // App.tsx's call site comment) — it still shows G major's own diatonic
+  // notes (C natural), not G Lydian's (C♯), regardless of the scale picked
+  // here.
+  expect(
+    screen.getAllByTestId("column-name").map((c) => c.textContent),
+  ).toEqual(["G", "A", "B", "C", "D", "E", "F♯"]);
+  const stored = JSON.parse(
+    localStorage.getItem(STORAGE_KEY)!,
+  ) as StoredSelection;
+  expect(stored.scale).toEqual({ major: "lydian", minor: "natural-minor" });
+});
+
+test("practice.session/REQ-011/S1 (app) — Dorian on the minor ring is restored", () => {
+  localStorage.clear();
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      ...firstRunDefaults,
+      variantId: "flute-concert",
+      keyId: "E-naturalMinor",
+      scale: { major: "major", minor: "dorian" },
+      traversal: { direction: "down", octaves: 2, shape: "arpeggio" },
+      session: {
+        soundMode: "metronome",
+        loop: false,
+        countIn: false,
+        restBar: true,
+        tempoBpm: 132,
+      },
+    }),
+  );
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps().sessionDeps}
+    />,
+  );
+  expect(screen.getByTestId("current-key").textContent).toBe("E Dorian");
+  expect(screen.getByRole("button", { name: "Allegro" })).toBeTruthy();
+});
+
+test("practice.session/REQ-011/S2 (app) — first run: plain key, no scale suffix", () => {
+  localStorage.clear();
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps().sessionDeps}
+    />,
+  );
+  expect(screen.getByTestId("current-key").textContent).toBe("C major");
+  expect(screen.getByTestId("scale-row-formula").textContent).toBe(
+    "1 2 3 4 5 6 7",
+  );
+});
+
+test("practice.session/REQ-011/S4 (app) — a v3 payload keeps its settings and takes the default scales", () => {
+  localStorage.clear();
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      schemaVersion: 3,
+      variantId: "flute-concert",
+      keyId: "G-major",
+      spelling: "sharp",
+      view: "names",
+      degreesEnabled: true,
+      distanceRingEnabled: true,
+      staveNamesEnabled: false,
+      traversal: { direction: "up", octaves: 2, shape: "scale" },
+      session: {
+        soundMode: "both",
+        loop: true,
+        countIn: true,
+        restBar: false,
+        tempoBpm: 120,
+      },
+    }),
+  );
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps().sessionDeps}
+    />,
+  );
+  expect(screen.getByTestId("current-key").textContent).toBe("G major");
+  expect(screen.getByText("↑ · 2 oct · scale · loop")).toBeTruthy();
+  expect(screen.getByText("120")).toBeTruthy();
 });
 
 test("practice.session/REQ-011/S3 (app) — a stored v2 payload keeps the selection and takes the S2 defaults for the rest", () => {
