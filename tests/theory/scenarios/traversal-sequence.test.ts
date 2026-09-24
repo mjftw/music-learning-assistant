@@ -1,8 +1,12 @@
 import { expect, test } from "vitest";
 import {
   builtInCatalogue,
+  noteLabel,
   scaleById,
   traversalOf,
+  type Direction,
+  type Key,
+  type Traversal,
 } from "../../../src/theory/published";
 
 const variantById = (id: string) =>
@@ -69,4 +73,110 @@ test("theory.circle-of-fifths/REQ-012/S4 — down", () => {
   }).sequence.map((n) => label(n.note));
   expect(down).toEqual([...up].reverse());
   expect(down).toHaveLength(15);
+});
+
+const gMinor: Key = {
+  tonic: { letter: "G", accidental: "natural" },
+  mode: "naturalMinor",
+};
+const oneOct = (direction: Direction): Traversal => ({
+  direction,
+  octaves: { kind: "count", count: 1 },
+  shape: "scale",
+});
+
+test("theory.circle-of-fifths/REQ-012/S6 — a scale with its own descending form", () => {
+  const { run, sequence } = traversalOf(
+    gMinor,
+    variantById("flute-concert"),
+    scaleById("melodic-minor-classical"),
+    oneOct("updown"),
+  );
+  expect(sequence.map((n) => noteLabel(n.note))).toEqual([
+    "G4",
+    "A4",
+    "B♭4",
+    "C5",
+    "D5",
+    "E5",
+    "F♯5",
+    "G5",
+    "F5",
+    "E♭5",
+    "D5",
+    "C5",
+    "B♭4",
+    "A4",
+    "G4",
+  ]);
+  expect(run.map((n) => noteLabel(n.note))).toEqual(
+    sequence.map((n) => noteLabel(n.note)),
+  );
+  expect(sequence.map((n) => n.runIndex)).toEqual([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+  ]);
+});
+
+test("theory.circle-of-fifths/REQ-003/S6 (theory) — ↑ shows the ascending form, ↓ the descending form lowest to highest", () => {
+  const up = traversalOf(
+    gMinor,
+    variantById("flute-concert"),
+    scaleById("melodic-minor-classical"),
+    oneOct("up"),
+  );
+  expect(up.run.map((n) => noteLabel(n.note))).toEqual([
+    "G4",
+    "A4",
+    "B♭4",
+    "C5",
+    "D5",
+    "E5",
+    "F♯5",
+    "G5",
+  ]);
+  const down = traversalOf(
+    gMinor,
+    variantById("flute-concert"),
+    scaleById("melodic-minor-classical"),
+    oneOct("down"),
+  );
+  expect(down.run.map((n) => noteLabel(n.note))).toEqual([
+    "G4",
+    "A4",
+    "B♭4",
+    "C5",
+    "D5",
+    "E♭5",
+    "F5",
+    "G5",
+  ]);
+  expect(down.sequence.map((n) => noteLabel(n.note))).toEqual([
+    "G5",
+    "F5",
+    "E♭5",
+    "D5",
+    "C5",
+    "B♭4",
+    "A4",
+    "G4",
+  ]);
+  const arpeggio = traversalOf(
+    gMinor,
+    variantById("flute-concert"),
+    scaleById("melodic-minor-classical"),
+    {
+      direction: "updown",
+      octaves: { kind: "count", count: 1 },
+      shape: "arpeggio",
+    },
+  );
+  expect(arpeggio.sequence.map((n) => noteLabel(n.note))).toEqual([
+    "G4",
+    "B♭4",
+    "D5",
+    "G5",
+    "D5",
+    "B♭4",
+    "G4",
+  ]);
 });

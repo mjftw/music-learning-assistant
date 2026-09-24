@@ -1,6 +1,6 @@
 import type { Key } from "./keys";
 import type { KeyViewNote } from "./key-view";
-import { keyView } from "./key-view";
+import { keyView, rangedNotesOf } from "./key-view";
 import type { Note } from "./notes";
 import type { Scale } from "./scales";
 import { spelledScaleOf } from "./scales";
@@ -79,8 +79,12 @@ function countRunOf(
   notes: readonly KeyViewNote[],
   octaveCount: OctaveCount,
   notesPerOctave: number,
+  startIndex: number | undefined = lowestTonicIndexFor(
+    notes,
+    octaveCount,
+    notesPerOctave,
+  ),
 ): readonly KeyViewNote[] {
-  const startIndex = lowestTonicIndexFor(notes, octaveCount, notesPerOctave);
   if (startIndex === undefined) return notes; // effectiveOctavesOf already clamped to a count that fits
   return notes.slice(startIndex, startIndex + notesPerOctave * octaveCount + 1);
 }
@@ -117,10 +121,41 @@ export interface TraversalNotes {
   readonly sequence: readonly SequenceNote[];
 }
 
+// REQ-012/S6, REQ-003/S6 — a scale with its own descending form (classical
+// melodic minor): ↑ walks the ascending run `A`, ↓ walks the descending
+// form `D` (its own notes, ascending order, reversed for the sequence),
+// and ↑↓ is written out in playing order so the descent shows D's notes
+// rather than a mirror of A.
+function splitDirectionOf(
+  ascendingRun: readonly KeyViewNote[],
+  descendingRun: readonly KeyViewNote[],
+  direction: Direction,
+): TraversalNotes {
+  if (direction === "up") {
+    return { run: ascendingRun, sequence: sequenceFromRun(ascendingRun, "up") };
+  }
+
+  const descendingAscending = descendingRun.map((entry, runIndex) => ({
+    note: entry.note,
+    isRoot: entry.isRoot,
+    runIndex,
+  }));
+
+  if (direction === "down") {
+    return { run: descendingRun, sequence: [...descendingAscending].reverse() };
+  }
+
+  const run = [...ascendingRun, ...[...descendingRun].reverse().slice(1)];
+  const sequence = run.map((entry, position) => ({
+    note: entry.note,
+    isRoot: entry.isRoot,
+    runIndex: position,
+  }));
+  return { run, sequence };
+}
+
 // REQ-012 — the run fitted to the instrument and the chosen scale, and the
-// sequence it is played in. The descending form a scale defines for itself
-// (REQ-012/S6) is T005's job; until then `sequence` is derived from `run`
-// exactly as this module's direction logic always has.
+// sequence it is played in.
 export function traversalOf(
   key: Key,
   variant: Variant,
@@ -135,12 +170,31 @@ export function traversalOf(
       ? view.notes
       : countRunOf(view.notes, effective.count, notesPerOctave);
 
-  const run =
-    traversal.shape === "scale"
-      ? scaleRun
-      : scaleRun.filter(
-          (note) => note.degree === 1 || note.degree === 3 || note.degree === 5,
+  if (traversal.shape === "arpeggio") {
+    const run = scaleRun.filter(
+      (note) => note.degree === 1 || note.degree === 3 || note.degree === 5,
+    );
+    return { run, sequence: sequenceFromRun(run, traversal.direction) };
+  }
+
+  const descendingFormula = spelledScaleOf(key, scale).descending;
+  if (descendingFormula === null) {
+    return {
+      run: scaleRun,
+      sequence: sequenceFromRun(scaleRun, traversal.direction),
+    };
+  }
+
+  const descendingNotes = rangedNotesOf(descendingFormula, key.tonic, variant);
+  const descendingRun =
+    effective.kind === "full"
+      ? descendingNotes
+      : countRunOf(
+          descendingNotes,
+          effective.count,
+          notesPerOctave,
+          lowestTonicIndexFor(view.notes, effective.count, notesPerOctave),
         );
 
-  return { run, sequence: sequenceFromRun(run, traversal.direction) };
+  return splitDirectionOf(scaleRun, descendingRun, traversal.direction);
 }
