@@ -691,7 +691,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T014 [P] · practice.session/REQ-001, REQ-012 · The Traversal sheet greys out an arpeggio the scale does not offer
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/TraversalSheet.tsx` (props, the `Shape` row, `Pill`)
