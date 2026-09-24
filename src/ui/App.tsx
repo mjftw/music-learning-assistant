@@ -19,6 +19,7 @@ import {
 } from "../theory/published";
 import {
   createSession,
+  defaultScaleChoice,
   steppedTempo,
   tempoForTerm,
   type Session,
@@ -241,6 +242,10 @@ export function App(props: {
     const session = createSession(
       { key: selectedKey, variant },
       initialTraversalOf(stored),
+      // The store has no `scale` field yet — T010 adds it, and T012 restores
+      // it here (`stored?.scale ?? defaultScaleChoice`); until then every
+      // session starts with the S2 defaults for both rings.
+      defaultScaleChoice,
       initialSettingsOf(stored),
       sessionDeps,
     );

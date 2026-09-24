@@ -6,6 +6,7 @@
 import { expect, test } from "vitest";
 import {
   createSession,
+  defaultScaleChoice,
   defaultSessionSettings,
   type TargetAdvanced,
 } from "../../../src/practice/published";
@@ -67,6 +68,7 @@ test("practice.session/REQ-006/S5 — the target is always in the sequence (inva
             const session = createSession(
               { key, variant },
               traversal,
+              defaultScaleChoice,
               { ...defaultSessionSettings, countIn: false, loop: false },
               { sound, clock, wakeLock, visibility },
             );

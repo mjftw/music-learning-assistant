@@ -13,6 +13,8 @@ export {
   defaultTraversal,
   summaryLineOf,
 } from "../domain/settings";
+export type { ScaleChoice } from "../domain/scale-choice";
+export { defaultScaleChoice, chosenScaleIdFor } from "../domain/scale-choice";
 export type { BeatsLeft, Tick, TransportState } from "../domain/transport";
 export { advance, startTransport, tickOf } from "../domain/transport";
 export type {

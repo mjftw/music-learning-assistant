@@ -160,6 +160,7 @@ test("practice.session/REQ-011/S3 (app) — a stored v2 payload keeps the select
       scaleById("major"),
       defaultTraversal.octaves,
     ),
+    defaultTraversal.shape,
     defaultSessionSettings,
   );
   expect(screen.getByText(expectedSummary)).toBeTruthy();

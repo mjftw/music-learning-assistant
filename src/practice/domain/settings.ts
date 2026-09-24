@@ -1,4 +1,4 @@
-import type { Octaves, Traversal } from "../../theory/published";
+import type { Octaves, Shape, Traversal } from "../../theory/published";
 
 export type SoundMode = "notes" | "both" | "metronome";
 
@@ -35,8 +35,10 @@ function octavesWordOf(octaves: Octaves): string {
 }
 
 // The shape word is replaced by "click only" when the sound mode is
-// metronome — practice.session/REQ-001/S2.
-function shapeWordOf(shape: Traversal["shape"], soundMode: SoundMode): string {
+// metronome — practice.session/REQ-001/S2. It is the *effective* shape
+// (REQ-012: arpeggio falls back to scale for a scale the catalogue
+// excludes), not the traversal's stored choice.
+function shapeWordOf(shape: Shape, soundMode: SoundMode): string {
   if (soundMode === "metronome") return "click only";
   return shape;
 }
@@ -44,12 +46,13 @@ function shapeWordOf(shape: Traversal["shape"], soundMode: SoundMode): string {
 export function summaryLineOf(
   traversal: Traversal,
   effectiveOctaves: Octaves,
+  effectiveShape: Shape,
   settings: SessionSettings,
 ): string {
   return [
     DIRECTION_GLYPH[traversal.direction],
     octavesWordOf(effectiveOctaves),
-    shapeWordOf(traversal.shape, settings.soundMode),
+    shapeWordOf(effectiveShape, settings.soundMode),
     settings.loop ? "loop" : "once",
   ].join(" · ");
 }

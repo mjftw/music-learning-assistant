@@ -6,6 +6,7 @@
 import type {
   ClockPort,
   Result,
+  ScaleChoice,
   Session,
   SessionDeps,
   SessionSettings,
@@ -13,7 +14,10 @@ import type {
   VisibilityPort,
   WakeLockPort,
 } from "../../src/practice/published";
-import { createSession } from "../../src/practice/published";
+import {
+  createSession,
+  defaultScaleChoice,
+} from "../../src/practice/published";
 import type {
   OnsetReport,
   SoundCommand,
@@ -216,13 +220,14 @@ export function testSessionDeps(): SessionDeps {
   };
 }
 
-// Builds a major-key tonic from a spelling like "C", "F#" or "Bb" — every
-// key these scenarios need is major (practice.session/REQ-001's traversal
-// scenarios never touch minor keys).
+// Builds a key's tonic from a spelling like "C", "F#" or "Bb", major unless
+// the spelling carries a trailing "m" ("Em", "G#m") for a natural-minor key
+// (T008 — practice.session/REQ-001/S5's scale-choice scenarios need both
+// rings).
 export function keyOf(spelling: string): Key {
-  const match = /^([A-G])([#b]?)$/.exec(spelling);
+  const match = /^([A-G])([#b]?)(m?)$/.exec(spelling);
   if (match === null) throw new Error(`invalid key letter "${spelling}"`);
-  const [, letter, accidentalSymbol] = match;
+  const [, letter, accidentalSymbol, minorSuffix] = match;
   const accidental: Accidental =
     accidentalSymbol === "#"
       ? "sharp"
@@ -231,7 +236,7 @@ export function keyOf(spelling: string): Key {
         : "natural";
   return {
     tonic: { letter: letter as NoteLetter, accidental },
-    mode: "major",
+    mode: minorSuffix === "m" ? "naturalMinor" : "major",
   };
 }
 
@@ -256,6 +261,7 @@ export function sessionOn(
   variantId: string,
   traversal: Traversal,
   settings: SessionSettings,
+  scaleChoice: ScaleChoice = defaultScaleChoice,
 ): SessionFixture {
   const sound = new FakeSound();
   const clock = new FakeClock(sound);
@@ -265,6 +271,7 @@ export function sessionOn(
   const session = createSession(
     { key: keyOf(keyLetter), variant: variantOf(variantId) },
     traversal,
+    scaleChoice,
     settings,
     deps,
   );
