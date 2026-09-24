@@ -241,7 +241,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T004 · theory.circle-of-fifths/REQ-012 · Run-fitting by notes-per-octave; `traversalOf` replaces `runOf`/`sequenceOf`
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/theory/domain/traversal.ts` (whole file)
