@@ -42,7 +42,7 @@ sdd_phase: approved
 | § | Follows? | Departure and reason |
 |---|---|---|
 | 2 Paradigm | Follows | Catalogue and spelling are pure functions in `theory/domain`; the session (imperative shell) only gains a setter |
-| 3 Types | Follows | `ScaleId` is a string-literal union (illegal ids unrepresentable); `Accidental` widens to a five-value union; the chromatic formula is a sum type (`fixed` / `bySignature`), not a flag |
+| 3 Types | Follows | `ScaleId` is a string-literal union (illegal ids unrepresentable); `Accidental` widens to a five-value union; the chromatic formula is a sum type (`fixed` / `byHome`), not a flag |
 | 4 Errors | Follows | No new failure paths at runtime; the store's parse still returns `null` → defaults (REQ-011) |
 | 6 Architecture | Follows | Theory publishes the catalogue and spelled scales; practice consumes them through `theory/published` only; the UI imports only `published/` |
 | 7 Testing | Follows | One test per scenario, by ID, through published interfaces; the range invariant broadened to every scale |
@@ -137,8 +137,9 @@ type Degree = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 interface ScaleDegree { readonly degree: Degree; readonly semitones: number } // 0–11, ascending
 type Formula =
   | { readonly kind: "fixed"; readonly degrees: readonly ScaleDegree[] }
-  | { readonly kind: "bySignature";                 // chromatic only
-      readonly sharps: readonly ScaleDegree[]; readonly flats: readonly ScaleDegree[] };
+  | { readonly kind: "byHome";                      // chromatic only: per ring, per signature
+      readonly major: { readonly sharps: readonly ScaleDegree[]; readonly flats: readonly ScaleDegree[] };
+      readonly minor: { readonly sharps: readonly ScaleDegree[]; readonly flats: readonly ScaleDegree[] } };
 interface Scale {
   readonly id: ScaleId;
   readonly family: ScaleFamily;
@@ -166,8 +167,10 @@ interface SpelledScale {
 
 Home reference for `degreeLabel`: the major steps for family `major`, the
 natural-minor steps for family `minor`, and for `either` the reference of
-the key's mode (the design's `home`). Chromatic picks `sharps` when the
-key's signature kind is `sharps` or `none`, `flats` when `flats`.
+the key's mode (the design's `home`). Chromatic picks the ring's home (`major` for a major key, `minor` for a
+minor key), then `sharps` when the key's signature kind is `sharps` or
+`none`, `flats` when `flats`. (Amended at T006: the design's single
+major-home pattern spells A♯ minor's ♯♯6 as a triple sharp.)
 
 The blues formula carries two degree-5 entries (♭5 and 5), as designed;
 nothing dedupes by degree.

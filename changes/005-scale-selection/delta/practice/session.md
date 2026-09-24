@@ -101,13 +101,17 @@ scale
   | Phrygian | 1 ♭2 3 4 5 6 7 |
   | Locrian | 1 ♭2 3 4 ♭5 6 7 |
   | Whole tone | 1 2 ♯3 ♯4 6 7 |
-  | Chromatic | 1 ♯1 2 ♯2 ♯3 4 ♯4 5 ♯5 ♯6 ♯♯6 ♯7 |
+  | Chromatic | 1 ♯1 2 3 ♯3 4 ♯4 5 6 ♯6 7 ♯7 |
   and Chromatic alone follows the signature: on F major (one flat) it reads
-  "1 ♭2 2 ♭3 3 4 ♭5 5 ♭6 6 ♭7 7" and on D minor "1 ♭2 2 3 ♯3 4 ♭5 5 6 ♯6 7
+  "1 ♭2 2 ♭3 3 4 ♭5 5 ♭6 6 ♭7 7" and on D minor "1 ♭2 2 3 ♭4 4 ♭5 5 6 ♯6 7
   ♯7"; every other formula is the same on every key of its ring. (Degree
   labels are relative to the ring's own home scale — major or natural
   minor — which is why Natural minor reads 1–7 and Harmonic minor ♯7, and
-  why Whole tone and Chromatic read differently on the two rings.)
+  why Whole tone and Chromatic read differently on the two rings. On the
+  minor ring Chromatic's in-between notes are the raised lower neighbour
+  (sharps) or the lowered upper neighbour (flats) of the minor degrees,
+  with the leading tone always ♯7; this keeps every spelling within a
+  double accidental — A♯ minor's would otherwise need a triple sharp.)
 
 **Was:** _(none — this requirement is new)_
 

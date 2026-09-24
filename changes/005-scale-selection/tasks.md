@@ -104,7 +104,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
   export interface ScaleDegree { readonly degree: Degree; readonly semitones: number }
   export type Formula =
     | { readonly kind: "fixed"; readonly degrees: readonly ScaleDegree[] }
-    | { readonly kind: "bySignature"; readonly sharps: readonly ScaleDegree[]; readonly flats: readonly ScaleDegree[] };
+    | { readonly kind: "byHome"; readonly major: { readonly sharps: readonly ScaleDegree[]; readonly flats: readonly ScaleDegree[] }; readonly minor: { readonly sharps: readonly ScaleDegree[]; readonly flats: readonly ScaleDegree[] } };
   export interface Scale { readonly id: ScaleId; readonly family: ScaleFamily; readonly name: string; readonly title: string; readonly ascending: Formula; readonly descending: Formula | null; readonly note: string | null; readonly offersArpeggio: boolean }
   export const SCALES: readonly Scale[];
   export function scaleById(id: ScaleId): Scale;
@@ -129,9 +129,9 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
   13. `phrygian` — Phrygian / Phrygian — natural minor with `(2,1)` — minor, yes
   14. `locrian` — Locrian / Locrian — natural minor with `(2,1)(5,6)` — minor, yes
   15. `whole-tone` — Whole tone / whole tone — `(1,0)(2,2)(3,4)(4,6)(6,8)(7,10)` — either, no
-  16. `chromatic` — Chromatic / chromatic — `bySignature`: sharps `(1,0)(1,1)(2,2)(2,3)(3,4)(4,5)(4,6)(5,7)(5,8)(6,9)(6,10)(7,11)`, flats `(1,0)(2,1)(2,2)(3,3)(3,4)(4,5)(5,6)(5,7)(6,8)(6,9)(7,10)(7,11)` — either, no
+  16. `chromatic` — Chromatic / chromatic — `byHome`: major.sharps `(1,0)(1,1)(2,2)(2,3)(3,4)(4,5)(4,6)(5,7)(5,8)(6,9)(6,10)(7,11)`, major.flats `(1,0)(2,1)(2,2)(3,3)(3,4)(4,5)(5,6)(5,7)(6,8)(6,9)(7,10)(7,11)`, minor.sharps `(1,0)(1,1)(2,2)(3,3)(3,4)(4,5)(4,6)(5,7)(6,8)(6,9)(7,10)(7,11)`, minor.flats `(1,0)(2,1)(2,2)(3,3)(4,4)(4,5)(5,6)(5,7)(6,8)(6,9)(7,10)(7,11)` — either, no
   Every entry not listed as having a descending formula or a note has `descending: null` / `note: null`.
-  `spelledScaleOf(key, scale)`: the formula in use is `ascending` when `fixed`; when `bySignature`, `flats` if `signatureOf(key).kind === "flats"`, else `sharps`. For each `(degree, semitones)`: letter = `["C","D","E","F","G","A","B"][(indexOf(tonic.letter) + degree - 1) % 7]`; target semitone = `(LETTER_SEMITONE[tonic.letter] + ACCIDENTAL_OFFSET[tonic.accidental] + semitones) mod 12` (non-negative); accidental = `accidentalForTarget(letter, target)`. Degree label: home = `[0,2,4,5,7,9,11]` for family `major`, `[0,2,3,5,7,8,10]` for `minor`, and for `either` the one matching `key.mode` (`major` → major's, `naturalMinor` → minor's); `alt = semitones - home[degree - 1]`, then `if (alt > 6) alt -= 12; if (alt < -6) alt += 12`; label = `"♯".repeat(alt)` or `"♭".repeat(-alt)` followed by the degree; `altered = alt !== 0`. `descending` spelled the same way from the descending formula, or `null`. `formulaLine` = ascending labels joined by `" "`, plus `` ` · ${note}` `` when `note` is not null.
+  `spelledScaleOf(key, scale)`: the formula in use is `ascending` when `fixed`; when `byHome`, the ring's list (`major` for `key.mode === "major"`, `minor` for `"naturalMinor"`), then `flats` if `signatureOf(key).kind === "flats"`, else `sharps`. For each `(degree, semitones)`: letter = `["C","D","E","F","G","A","B"][(indexOf(tonic.letter) + degree - 1) % 7]`; target semitone = `(LETTER_SEMITONE[tonic.letter] + ACCIDENTAL_OFFSET[tonic.accidental] + semitones) mod 12` (non-negative); accidental = `accidentalForTarget(letter, target)`. Degree label: home = `[0,2,4,5,7,9,11]` for family `major`, `[0,2,3,5,7,8,10]` for `minor`, and for `either` the one matching `key.mode` (`major` → major's, `naturalMinor` → minor's); `alt = semitones - home[degree - 1]`, then `if (alt > 6) alt -= 12; if (alt < -6) alt += 12`; label = `"♯".repeat(alt)` or `"♭".repeat(-alt)` followed by the degree; `altered = alt !== 0`. `descending` spelled the same way from the descending formula, or `null`. `formulaLine` = ascending labels joined by `" "`, plus `` ` · ${note}` `` when `note` is not null.
 
 **Steps**
 - [ ] 1. RED — practice.session/REQ-012/S5 (theory-level) and theory.circle-of-fifths/REQ-003/S3 (theory-level): create `tests/theory/scenarios/scales.test.ts`:
@@ -169,13 +169,13 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
       ["Phrygian", "1 ♭2 3 4 5 6 7"],
       ["Locrian", "1 ♭2 3 4 ♭5 6 7"],
       ["Whole tone", "1 2 ♯3 ♯4 6 7"],
-      ["Chromatic", "1 ♯1 2 ♯2 ♯3 4 ♯4 5 ♯5 ♯6 ♯♯6 ♯7"],
+      ["Chromatic", "1 ♯1 2 3 ♯3 4 ♯4 5 6 ♯6 7 ♯7"],
     ]);
   });
 
   test("practice.session/REQ-012/S5 (theory) — chromatic follows the signature on flat keys", () => {
     expect(spelledScaleOf(fMajor, scaleById("chromatic")).formulaLine).toBe("1 ♭2 2 ♭3 3 4 ♭5 5 ♭6 6 ♭7 7");
-    expect(spelledScaleOf(dMinor, scaleById("chromatic")).formulaLine).toBe("1 ♭2 2 3 ♯3 4 ♭5 5 6 ♯6 7 ♯7");
+    expect(spelledScaleOf(dMinor, scaleById("chromatic")).formulaLine).toBe("1 ♭2 2 3 ♭4 4 ♭5 5 6 ♯6 7 ♯7");
     expect(SCALES).toHaveLength(16);
   });
 
@@ -338,7 +338,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 **Steps**
 - [ ] 1. RED — theory.circle-of-fifths/REQ-012/S5: add a `for (const scale of SCALES)` loop inside the key/variant loops; replace `runOf`/`sequenceOf` with `traversalOf(key, variant, scale, { direction, octaves, shape })`; for `shape === "arpeggio"` assert the note's pitch class is one of `spelledScaleOf(key, scale).ascending` (replacing the `scaleNotesOf(key)` check); wrap the whole enumeration so that a thrown `accidentalForTarget` error fails the test with the key, scale and variant in the message; raise the final `expect(count).toBeGreaterThan(1000)` to `16_000`.
 - [ ] 2. Run `pnpm vitest run tests/theory/invariants/sequence-range.test.ts` — expect FAIL only if a catalogued scale on a circle key spells a triple accidental or leaves the range; expected outcome: PASS on the first run (record the count printed).
-- [ ] 3. GREEN — nothing to write if it passes; if it fails, the failure names a real spec problem — stop and report it (do not special-case a scale).
+- [ ] 3. GREEN — the first run failed on A♯ minor × Chromatic (a triple sharp); resolved by the amendment recorded in `docs/decisions.md` 2026-09-24: Chromatic's formula is `byHome` (see T002's entry 16 and `spelledScaleOf` rule, both amended). Apply that amendment in `src/theory/domain/scales.ts` and update the two chromatic strings in `tests/theory/scenarios/scales.test.ts` (E minor → `1 ♯1 2 3 ♯3 4 ♯4 5 6 ♯6 7 ♯7`, D minor → `1 ♭2 2 3 ♭4 4 ♭5 5 6 ♯6 7 ♯7`); the invariant then passes.
 - [ ] 4. Run `pnpm check` — green.
 
 **Verify** — `pnpm vitest run tests/theory/invariants/sequence-range.test.ts` → `1 passed`, duration under 10 s.
