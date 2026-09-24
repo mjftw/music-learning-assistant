@@ -281,7 +281,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T005 · theory.circle-of-fifths/REQ-012, REQ-003 · A scale with its own descending form
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/theory/domain/traversal.ts` (`traversalOf`)
