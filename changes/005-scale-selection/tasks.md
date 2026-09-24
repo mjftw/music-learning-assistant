@@ -477,7 +477,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T010 · practice.session/REQ-011 · Stored selection v4 with the per-ring scale choice
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/selection-store.ts` (whole file)
