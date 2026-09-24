@@ -770,7 +770,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T016 · — · Design-review loop points at this change's prototype
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `scripts/design-shots.mjs` (`PROTOTYPE_PATH` → `changes/005-scale-selection/design/hear-the-scale.dc.html`; `STATES` gains `scale-sheet-open` (tap the key name), `g-lydian-names` (Lydian chosen, names view), `g-melodic-minor-stave` (E minor → minor ring G… use G minor: tap the inner-ring G wedge, choose Melodic minor · classical, stave view, ↑↓), `pentatonic-traversal-sheet` (Major pentatonic chosen, Traversal sheet open))
