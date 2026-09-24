@@ -4,6 +4,18 @@ use crate::tone::Tone;
 /// The maximum number of voices sounding — or queued to sound — at once.
 pub const MAX_VOICES: usize = 64;
 
+/// How long a voice sounds: a fixed number of frames from its onset, or
+/// indefinitely until `Voices::stop`/`stop_all` releases it.
+#[derive(Clone, Copy, PartialEq)]
+pub enum Length {
+    Frames(u32),
+    // Not constructed until the drone voice (T002's `push_drone`) — this
+    // crate builds `cdylib`, so an unconstructed variant is otherwise
+    // flagged dead rather than treated as public API.
+    #[allow(dead_code)]
+    UntilStopped,
+}
+
 /// What a voice synthesises.
 #[derive(Clone, Copy)]
 pub enum VoiceKind {
@@ -12,17 +24,29 @@ pub enum VoiceKind {
 }
 
 impl VoiceKind {
-    fn next_sample(&mut self, elapsed_frames: f64, duration_frames: f64, sample_rate: f32) -> f32 {
+    fn next_sample(&mut self, elapsed_frames: f64, length: Length, sample_rate: f32) -> f32 {
         match self {
-            VoiceKind::Tone(tone) => tone.next_sample(elapsed_frames, duration_frames, sample_rate),
+            VoiceKind::Tone(tone) => tone.next_sample(elapsed_frames, length, sample_rate),
             VoiceKind::Click(click) => click.next_sample(elapsed_frames, sample_rate),
+        }
+    }
+
+    /// How long this kind of voice takes to fade to silence once stopped
+    /// (`Voices::stop`/`stop_all`) — matched exhaustively rather than with a
+    /// wildcard so a future voice kind must state its own release here
+    /// rather than silently inheriting this one's.
+    pub fn release_seconds(&self) -> f32 {
+        match self {
+            VoiceKind::Tone(_) | VoiceKind::Click(_) => STOP_FADE_S,
         }
     }
 }
 
-/// How long a voice fades out when `Voices::stop_all` is called, rather
-/// than being cleared instantly — an abrupt cut is itself a click on the
-/// render thread's output (practice.session/REQ-005).
+/// How long a voice fades out when `Voices::stop`/`stop_all` releases it,
+/// rather than being cleared instantly — an abrupt cut is itself a click on
+/// the render thread's output (practice.session/REQ-005). Tone and Click
+/// share this fade; a future voice kind may report a different one from
+/// `VoiceKind::release_seconds`.
 const STOP_FADE_S: f32 = 0.005;
 
 /// A voice's stop-fade state: not stopping, stopping but the frame the fade
@@ -42,18 +66,18 @@ pub struct Voice {
     pub tag: u32,
     pub kind: VoiceKind,
     pub onset_frame: f64,
-    pub duration_frames: u32,
+    pub length: Length,
     reported: bool,
     fade: Fade,
 }
 
 impl Voice {
-    pub fn new(tag: u32, kind: VoiceKind, onset_frame: f64, duration_frames: u32) -> Self {
+    pub fn new(tag: u32, kind: VoiceKind, onset_frame: f64, length: Length) -> Self {
         Voice {
             tag,
             kind,
             onset_frame,
-            duration_frames,
+            length,
             reported: false,
             fade: Fade::None,
         }
@@ -121,6 +145,19 @@ impl Voices {
         }
     }
 
+    /// Marks only the voice tagged `tag` to fade out over its own kind's
+    /// release (`VoiceKind::release_seconds`) rather than continuing or
+    /// being cut abruptly; an unknown tag is a no-op. Several voices may
+    /// share a tag only transiently (a crossfade), so every matching one is
+    /// marked.
+    pub fn stop(&mut self, tag: u32) {
+        for voice in self.slots.iter_mut().flatten() {
+            if voice.tag == tag && voice.fade == Fade::None {
+                voice.fade = Fade::Requested;
+            }
+        }
+    }
+
     /// Fills `out` (one render quantum) with the sum of every sounding
     /// voice at `now_frame`, clears voices whose duration has elapsed, and
     /// writes an `OnsetReport` into `reports` for every voice rendering for
@@ -140,21 +177,23 @@ impl Voices {
         let quantum_frames = out.len() as f64;
         let mut n = 0;
 
-        let fade_frames = f64::from(STOP_FADE_S) * f64::from(sample_rate);
-
         for slot in slots.iter_mut() {
             let Some(voice) = slot else { continue };
 
-            // `stop_all` marks a voice `Requested` from off-thread, with no
-            // frame of its own; the fade starts from whichever frame first
-            // renders it afterwards.
+            // `stop_all`/`stop` mark a voice `Requested` from off-thread,
+            // with no frame of their own; the fade starts from whichever
+            // frame first renders it afterwards.
             if voice.fade == Fade::Requested {
                 voice.fade = Fade::Started(now_frame);
             }
 
-            let natural_end = voice.onset_frame + f64::from(voice.duration_frames);
+            let release_frames = f64::from(voice.kind.release_seconds()) * f64::from(sample_rate);
+            let natural_end = match voice.length {
+                Length::Frames(frames) => voice.onset_frame + f64::from(frames),
+                Length::UntilStopped => f64::INFINITY,
+            };
             let voice_end = match voice.fade {
-                Fade::Started(fade_start) => natural_end.min(fade_start + fade_frames),
+                Fade::Started(fade_start) => natural_end.min(fade_start + release_frames),
                 Fade::None | Fade::Requested => natural_end,
             };
 
@@ -174,13 +213,10 @@ impl Voices {
                     continue;
                 }
                 let elapsed = frame - voice.onset_frame;
-                let mut value =
-                    voice
-                        .kind
-                        .next_sample(elapsed, f64::from(voice.duration_frames), sample_rate);
+                let mut value = voice.kind.next_sample(elapsed, voice.length, sample_rate);
                 if let Fade::Started(fade_start) = voice.fade {
                     let fade_elapsed = (frame - fade_start).max(0.0);
-                    let gain = (1.0 - (fade_elapsed / fade_frames) as f32).clamp(0.0, 1.0);
+                    let gain = (1.0 - (fade_elapsed / release_frames) as f32).clamp(0.0, 1.0);
                     value *= gain;
                 }
                 *sample += value;
@@ -205,7 +241,12 @@ mod tests {
     fn a_voice_is_reported_only_once() {
         let mut voices = Voices::new();
         voices.set_sample_rate(SAMPLE_RATE);
-        voices.push(Voice::new(1, VoiceKind::Tone(Tone::new(440.0)), 0.0, 4800));
+        voices.push(Voice::new(
+            1,
+            VoiceKind::Tone(Tone::new(440.0)),
+            0.0,
+            Length::Frames(4800),
+        ));
 
         let mut out = [0.0f32; 128];
         let mut reports = [OnsetReport {
@@ -224,6 +265,48 @@ mod tests {
         assert_eq!(
             second, 0,
             "a voice already reported should not be reported again"
+        );
+    }
+
+    #[test]
+    fn stop_fades_only_the_voice_with_that_tag() {
+        let mut voices = Voices::new();
+        voices.set_sample_rate(SAMPLE_RATE);
+        voices.push(Voice::new(
+            1,
+            VoiceKind::Tone(Tone::new(440.0)),
+            0.0,
+            Length::Frames(48000),
+        ));
+        voices.push(Voice::new(
+            2,
+            VoiceKind::Tone(Tone::new(660.0)),
+            0.0,
+            Length::Frames(48000),
+        ));
+        let mut out = [0.0f32; 128];
+        let mut reports = [OnsetReport {
+            tag: 0,
+            onset_frame: 0.0,
+            actual_frame: 0.0,
+        }; MAX_VOICES];
+        voices.render_into(&mut out, 0.0, &mut reports);
+        voices.stop(1);
+        // 5 ms = 240 frames: after three more quantums voice 1 is gone, voice 2 still sounds
+        for q in 1..4 {
+            voices.render_into(&mut out, f64::from(q) * 128.0, &mut reports);
+        }
+        assert!(
+            voices.slots[0].is_none(),
+            "the stopped voice should have been dropped"
+        );
+        assert!(
+            voices.slots[1].is_some(),
+            "the other voice must be untouched"
+        );
+        assert!(
+            out.iter().any(|s| *s != 0.0),
+            "the other voice should still be sounding"
         );
     }
 }

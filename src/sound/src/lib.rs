@@ -4,7 +4,7 @@ mod voices;
 
 use click::Click;
 use tone::Tone;
-use voices::{OnsetReport, Voice, VoiceKind, Voices, MAX_VOICES};
+use voices::{Length, OnsetReport, Voice, VoiceKind, Voices, MAX_VOICES};
 
 /// The render quantum: one call to `render` fills exactly this many mono frames.
 const QUANTUM_FRAMES: usize = 128;
@@ -71,7 +71,7 @@ pub extern "C" fn push_tone(tag: u32, hz: f32, onset_frame: f64, duration_frames
         tag,
         VoiceKind::Tone(Tone::new(hz)),
         onset_frame,
-        duration_frames,
+        Length::Frames(duration_frames),
     );
     u32::from(engine().voices.push(voice))
 }
@@ -88,17 +88,25 @@ pub extern "C" fn push_click(tag: u32, accent: u32, onset_frame: f64) -> u32 {
         tag,
         VoiceKind::Click(Click::new(accent != 0)),
         onset_frame,
-        duration_frames,
+        Length::Frames(duration_frames),
     );
     u32::from(engine.voices.push(voice))
 }
 
 /// Silences every queued and sounding voice at once (❚❚, REQ-002), fading
-/// each out over 5 ms rather than cutting it instantly — an abrupt cut is
-/// itself a click (REQ-005).
+/// each out over its own kind's release rather than cutting it instantly —
+/// an abrupt cut is itself a click (REQ-005).
 #[no_mangle]
 pub extern "C" fn stop_all() {
     engine().voices.stop_all();
+}
+
+/// Marks the voice tagged `tag` — if any — to fade out over its own kind's
+/// release rather than continuing or being cut abruptly; an unknown tag is
+/// a no-op.
+#[no_mangle]
+pub extern "C" fn stop(tag: u32) {
+    engine().voices.stop(tag);
 }
 
 /// Returns a pointer to the onset-report buffer filled by the most recent
@@ -395,5 +403,20 @@ mod tests {
             tail.iter().all(|s| *s == 0.0),
             "voices should be fully silent well after the fade completes"
         );
+    }
+
+    #[test]
+    fn stop_by_tag_leaves_other_voices_sounding() {
+        let _guard = lock_engine();
+        init(48000.0);
+        push_tone(1, 440.0, 0.0, 48000);
+        push_tone(2, 660.0, 0.0, 48000);
+        render(0.0);
+        stop(1);
+        for q in 1..4 {
+            render(f64::from(q) * 128.0);
+        }
+        let out = unsafe { std::slice::from_raw_parts(output_ptr(), 128) };
+        assert!(out.iter().any(|s| *s != 0.0));
     }
 }
