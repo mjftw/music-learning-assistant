@@ -242,10 +242,7 @@ export function App(props: {
     const session = createSession(
       { key: selectedKey, variant },
       initialTraversalOf(stored),
-      // The store has no `scale` field yet — T010 adds it, and T012 restores
-      // it here (`stored?.scale ?? defaultScaleChoice`); until then every
-      // session starts with the S2 defaults for both rings.
-      defaultScaleChoice,
+      stored?.scale ?? defaultScaleChoice,
       initialSettingsOf(stored),
       sessionDeps,
     );
@@ -309,7 +306,7 @@ export function App(props: {
     // completion re-renders with a snapshot, so this simply runs again.
     if (snapshot === null) return;
     const toSave: StoredSelection = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       variantId: selection.variantId,
       keyId: keyIdOf(selectedKey),
       spelling: selection.spelling,
@@ -323,6 +320,7 @@ export function App(props: {
         shape: snapshot.traversal.shape,
       },
       session: snapshot.settings,
+      scale: snapshot.scaleChoice,
     };
     selectionStore.save(toSave);
   }, [
