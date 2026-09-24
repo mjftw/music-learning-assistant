@@ -188,19 +188,43 @@ Shared conventions: tests import only from `src/theory/published`, `src/practice
 
 ### T006 · — · Converge round 2
 
-**Status:** in-progress
+**Status:** done
 
 **Steps**
 - [ ] 1. Run `sdd-converge` again.
 
 **Verify** — Converged, or new tasks below.
 
+## Phase 3 — Converge round 2
+
+### T007 · theory.circle-of-fifths/REQ-003 · S7 asserts the note names too
+
+**Status:** todo
+
+**Files**
+- Test: `tests/ui/scenarios/stave-view.test.tsx` (the REQ-003/S7 test)
+
+**Steps**
+- [ ] 1. After each `data-note` assertion in the S7 test, also assert `screen.getAllByTestId("stave-note-name").map((n) => n.textContent)` equals the same run's pitch-class names (the `data-note` labels without their octave digit, e.g. `["A","B","C","D","E","F♯","G♯","A","G","F","E","D","C","B","A"]`), so no name from an earlier run survives.
+- [ ] 2. Run `pnpm vitest run tests/ui/scenarios/stave-view.test.tsx` — PASS; `pnpm check` — green.
+
+**Verify** — the S7 test contains `stave-note-name` assertions after every rerender.
+
+### T008 · — · Converge round 3
+
+**Status:** todo
+
+**Steps**
+- [ ] 1. Run `sdd-converge`.
+
+**Verify** — Converged.
+
 ## Coverage
 
 | Requirement | Tasks | Covered |
 |---|---|---|
 | practice.session/REQ-012 (MODIFIED) — S4 T002, T005; S1–S3, S5 existing tests kept | T002, T005 | ✅ |
-| theory.circle-of-fifths/REQ-003 (MODIFIED) — S7 T001, T004; S1–S6 existing tests kept | T001, T004 | ✅ |
+| theory.circle-of-fifths/REQ-003 (MODIFIED) — S7 T001, T004, T007; S1–S6 existing tests kept | T001, T004, T007 | ✅ |
 
 ## Interface consistency
 
@@ -210,4 +234,5 @@ Shared conventions: tests import only from `src/theory/published`, `src/practice
 
 ## Deferred
 
-- None.
+- Converge round 2 W1 — the theory delta's REQ-003/S7 was amended in place after approval (the key change); accepted by name (docs/decisions.md 2026-09-24), the user re-verifies the delta at acceptance.
+- Round-2 infos: no traversal-change transition test (variant via REQ-003/S2, key and scale via S7); a descent column carries no signature mark (per the approved text — user's eye at acceptance); `columnFor` computes an unused mark for descent columns.
