@@ -877,7 +877,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T021 · practice.session/REQ-006 · The target-in-sequence invariant over every scale
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: `tests/practice/invariants/target-in-sequence.test.ts`
@@ -894,7 +894,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T022 · theory.circle-of-fifths/REQ-003 · The names view shows a five-note scale (S5's names half)
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: `tests/ui/scenarios/names-view.test.tsx`
@@ -917,7 +917,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T023 · — · Converge round 2
 
-**Status:** todo
+**Status:** in-progress
 
 **Steps**
 - [ ] 1. Run `sdd-converge` again; append any gap as new tasks here.
