@@ -40,7 +40,6 @@ sdd_phase: approved
 
 | # | Change | Context | Capability (creates / modifies) | Outcome (one line) | Depends on | Status | Dir |
 |---|---|---|---|---|---|---|---|
-| 006 | `scale-selection-acceptance-fixes` | `practice` | `practice.session` (modifies), `theory.circle-of-fifths` (modifies) | Stave shows only the current run after a scale change; names view shows a split-direction scale's descent | 005 | converged | |
 | 004 | `the-drone` | `practice` | `practice.drone` (creates) | Hold a drone on any note for wind pitching and string tuning | 001 | proposed | |
 | 007 | `hear-me` | `listening` | `listening.pitch-detection` (creates) | Live pitch readout — sharp/flat in cents, inside the latency budget — useful alone as a tuner | — | proposed | |
 | 008 | `learner-leads` | `practice` | `practice.session` (modifies) | The tool shows the target note, listens, and advances when it is held in tune for the required duration | 003, 007 | proposed | |
@@ -82,3 +81,4 @@ the tuner or learner-leads.
 | 002 | `circle-redesign` | `theory.circle-of-fifths` | v0.2.0 | 2026-09-22 |
 | 003 | `hear-the-scale` | `practice.session` (new), `theory.temperament` (new), `theory.circle-of-fifths` | v0.1.0, v0.1.0, v1.0.0 | 2026-09-23 |
 | 005 | `scale-selection` | `practice.session`, `theory.circle-of-fifths` | v0.2.0, v1.1.0 | 2026-09-24 |
+| 006 | `scale-selection-acceptance-fixes` | `practice.session`, `theory.circle-of-fifths` | v0.3.0, v1.2.0 | 2026-09-24 |

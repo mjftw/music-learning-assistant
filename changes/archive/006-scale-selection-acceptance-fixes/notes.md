@@ -19,3 +19,4 @@ One line each, newest last.
 - T004 review (minor): the S7 test duplicates StaveView's private ACCIDENTAL_GLYPH table locally to avoid importing the render path under test.
 - Converge round 2: Not converged — W1 (S7 amended in place; accepted by name) and W2 (S7 never asserted the note names) → T007. Round-1 C1/W1–W3 verified closed by the reviewer's own mutation probes.
 - Converge round 3 (HEAD db4ad2f): Converged — W1 accepted by name is the only non-info item. Info: T007 had no task-reviewer artefact (trivial-class, controller-verified; the audit's mutation probe supplied the independent check); a stray '**Was:** (none)' line inherited from 005's ADDED block was removed from the practice delta before merge.
+- Finish: pnpm test:timing PASS first run (40/96/200 bpm vs audible 26.57/26.90/28.00 ms) — 005's W2 headroom holds on this run.

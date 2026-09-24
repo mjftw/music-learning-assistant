@@ -4,6 +4,8 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-24
 
+- Capability Spec `specs/theory/circle-of-fifths.md` → current (human:merlin-webster)
+- Capability Spec `specs/practice/session.md` → current (human:merlin-webster)
 - Task List `changes/006-scale-selection-acceptance-fixes/tasks.md` → approved (human:merlin-webster)
 - Spec Delta `changes/006-scale-selection-acceptance-fixes/delta/theory/circle-of-fifths.md` → approved (human:merlin-webster)
 - Spec Delta `changes/006-scale-selection-acceptance-fixes/delta/practice/session.md` → approved (human:merlin-webster)

@@ -8,6 +8,7 @@ tags: [sdd, capability, "context:practice"]
 sources:
   - resource: /changes/003-hear-the-scale/proposal.md
   - resource: /changes/005-scale-selection/proposal.md
+  - resource: /changes/006-scale-selection-acceptance-fixes/proposal.md
 generated:
   by: process:merge_delta.py
   at: 2026-09-23T13:43:58Z
@@ -16,9 +17,11 @@ verified:
     at: 2026-09-23T13:43:58Z
   - by: human:merlin-webster
     at: 2026-09-24T04:14:37Z
+  - by: human:merlin-webster
+    at: 2026-09-24T09:13:02Z
 sdd_context: practice
 sdd_capability: session
-sdd_version: 0.2.0
+sdd_version: 0.3.0
 sdd_phase: current
 ---
 
@@ -403,7 +406,11 @@ offering an arpeggio (every scale but the two pentatonics, blues, whole
 tone and chromatic — some of which do contain a 1st, 3rd or 5th degree,
 but not as a triad idiomatic enough to arpeggiate) THE SYSTEM SHALL make
 the arpeggio option in the Traversal sheet unavailable, falling back to
-scale
+scale; and WHERE the chosen scale has its own descending form
+THE SYSTEM SHALL show, in the names view, the notes that actually play in
+the chosen direction — the ascending form for ↑, the descending form for ↓,
+and for ↑↓ the ascending octave followed by a ↓-marked group of the
+descending form's notes that differ, in playing order
 
 **Scenarios**
 - **REQ-012/S1 — choosing a scale**
@@ -429,14 +436,15 @@ scale
   Then arpeggio is shown unavailable and scale is selected; choosing Lydian
   from the Scale sheet re-enables arpeggio without changing the shape
   already in effect
-- **REQ-012/S4 — the descending alternative for a split-direction scale**
-  Given G melodic minor · classical chosen, names view, idle
+- **REQ-012/S4 — the descent of a split-direction scale in the names view**
+  Given G melodic minor · classical chosen, names view, idle, direction ↑↓
   When the panel is read
-  Then each degree shows its ascending name and, on the row below, its
-  descending alternative where the two differ — ↓E♭ under the 6th
-  degree's E (raised ascending, natural minor's E♭ descending) and ↓F
-  under the 7th degree's F♯ (raised ascending, natural minor's F
-  descending) — and no alternative row shows for the other five degrees
+  Then it shows the ascending octave G A B♭ C D E F♯ and then, marked ↓, the
+  descending form's notes that differ from it in playing order — F E♭ — nine
+  columns in all, with no alternative row; with ↑ alone the ↓ group is
+  absent; with ↓ alone the panel shows the descending form's own seven
+  notes G A B♭ C D E♭ F; and for a scale whose forms do not differ (natural
+  minor) nothing is appended in any direction
 - **REQ-012/S5 — every formula in the catalogue, as the sheet shows it**
   Given G major selected (a sharp key, outer ring)
   When the Scale sheet is read
@@ -475,9 +483,7 @@ scale
   with the leading tone always ♯7; this keeps every spelling within a
   double accidental — A♯ minor's would otherwise need a triple sharp.)
 
-**Was:** _(none — this requirement is new)_
-
-_Since 005-scale-selection_
+_Changed by 006-scale-selection-acceptance-fixes_
 
 ## Invariants
 
@@ -490,3 +496,4 @@ _Since 005-scale-selection_
 |---|---|---|---|---|---|
 | 0.1.0 | 2026-09-23 | 003-hear-the-scale | 11 | 0 | 0 |
 | 0.2.0 | 2026-09-24 | 005-scale-selection | 1 | 3 | 0 |
+| 0.3.0 | 2026-09-24 | 006-scale-selection-acceptance-fixes | 0 | 1 | 0 |

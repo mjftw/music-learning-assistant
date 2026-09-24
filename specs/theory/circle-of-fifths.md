@@ -10,6 +10,7 @@ sources:
   - resource: /changes/002-circle-redesign/proposal.md
   - resource: /changes/003-hear-the-scale/proposal.md
   - resource: /changes/005-scale-selection/proposal.md
+  - resource: /changes/006-scale-selection-acceptance-fixes/proposal.md
 generated:
   by: process:merge_delta.py
   at: 2026-09-20T18:53:01Z
@@ -22,9 +23,11 @@ verified:
     at: 2026-09-23T13:43:59Z
   - by: human:merlin-webster
     at: 2026-09-24T04:14:37Z
+  - by: human:merlin-webster
+    at: 2026-09-24T09:13:02Z
 sdd_context: theory
 sdd_capability: circle-of-fifths
-sdd_version: 1.1.0
+sdd_version: 1.2.0
 sdd_phase: current
 ---
 
@@ -106,7 +109,8 @@ from an earlier inline accidental at the same pitch in the run — an inline
 accidental holds for the rest of the run, as in one bar — together with a
 summary of how many in-range notes the chosen scale has and their
 extremes; and, in the names view, the chosen scale's own notes rooted on
-the key's tonic, in scale order
+the key's tonic, in scale order — and only those: after any change of scale, key, variant or
+traversal the stave shows the new run alone
 
 **Scenarios**
 - **REQ-003/S1 — G major on the flute (acceptance)**
@@ -150,8 +154,18 @@ the key's tonic, in scale order
   the signature); with ↑ alone the stave shows the eight ascending notes,
   with ↓ alone the eight notes of the natural-minor form G4 … G5 lowest to
   highest
+- **REQ-003/S7 — the stave after a scale change is exactly the new run**
+  Given G minor on flute Concert, ↑↓, 1 oct, stave view, Melodic minor ·
+  classical chosen (its written-out run repeats G4, D5 and other names)
+  When the key is changed to A minor (still Melodic minor · classical, ↑↓),
+  then Natural minor is chosen, then Harmonic minor, then Blues
+  Then after each change the stave shows exactly that run and nothing
+  else — after the key change the fifteen notes A4 B4 C5 D5 E5 F♯5 G♯5 A5
+  G5 F5 E5 D5 C5 B4 A4 in order, after Blues the seven noteheads A4 C5 D5
+  E♭5 E5 G5 A5 — with inline accidentals only where the run needs them,
+  and no notehead, accidental or name from an earlier run remains
 
-_Changed by 005-scale-selection_
+_Changed by 006-scale-selection-acceptance-fixes_
 
 ### REQ-004: The new accidental is accented where accidentals are listed
 
@@ -416,3 +430,4 @@ _Changed by 005-scale-selection_
 | 0.2.0 | 2026-09-22 | 002-circle-redesign | 3 | 6 | 0 |
 | 1.0.0 | 2026-09-23 | 003-hear-the-scale | 1 | 3 | 1 |
 | 1.1.0 | 2026-09-24 | 005-scale-selection | 0 | 2 | 0 |
+| 1.2.0 | 2026-09-24 | 006-scale-selection-acceptance-fixes | 0 | 1 | 0 |

@@ -17,7 +17,7 @@ verified:
     at: 2026-09-24T07:55:31Z
 sdd_id: 006-scale-selection-acceptance-fixes
 sdd_context: practice
-sdd_phase: approved
+sdd_phase: merged
 sdd_constitution: 1.0.0
 ---
 
