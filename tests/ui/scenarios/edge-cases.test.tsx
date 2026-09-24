@@ -17,6 +17,14 @@
 // The one genuinely new row at the app level: ▶ toggles to stop while
 // playing, rather than restarting or being ignored
 // (practice.session/REQ-002/S2, wired through `App.handleTogglePlay`).
+//
+// 005-scale-selection's proposal (T017) adds one further row: stored state
+// predating this change carries no scale choice at all. The migration
+// itself is already covered end to end (selection-store.test.ts's v2→v4
+// chain, app-session.test.tsx's REQ-011/S4 v3 payload) — this is a one-line
+// reference test that the rendered heading and formula row, specifically,
+// show the default scale for a payload from even before that (a v2
+// payload, chaining through v3 on the way to v4).
 
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -31,6 +39,8 @@ import {
   FakeVisibility,
   FakeWakeLock,
 } from "../../practice/fakes";
+
+const STORAGE_KEY = "music-learning-assistant.selection.v1";
 
 afterEach(() => {
   cleanup();
@@ -62,4 +72,42 @@ test("practice.session/REQ-002/S2 (app) — ▶ tapped while playing is stop", a
 
   expect(sound.posted.at(-1)).toEqual({ kind: "stopAll" });
   expect(screen.getByRole("button", { name: "Play" })).toBeTruthy();
+});
+
+test("practice.session/REQ-011/S4 (ui) — a v2 payload predating scale choice renders the default scale's heading and formula", () => {
+  localStorage.clear();
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      schemaVersion: 2,
+      variantId: "flute-concert",
+      keyId: "G-major",
+      spelling: "sharp",
+      view: "names",
+      span: "full",
+      degreesEnabled: true,
+      distanceRingEnabled: true,
+      staveNamesEnabled: false,
+    }),
+  );
+  const sound = new FakeSound();
+  const sessionDeps: SessionDeps = {
+    sound,
+    clock: new FakeClock(sound),
+    wakeLock: new FakeWakeLock(),
+    visibility: new FakeVisibility(),
+  };
+
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={sessionDeps}
+    />,
+  );
+
+  expect(screen.getByTestId("current-key").textContent).toBe("G major");
+  expect(screen.getByTestId("scale-row-formula").textContent).toBe(
+    "1 2 3 4 5 6 7",
+  );
 });

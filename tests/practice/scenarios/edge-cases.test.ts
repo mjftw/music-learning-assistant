@@ -18,13 +18,22 @@
 // mid count-in must not reset, skip or otherwise interrupt the count
 // (practice.session/REQ-007 — "IF a count-in or rest bar is in progress THEN
 // the count continues and the new sequence follows it").
+//
+// 005-scale-selection's proposal adds two further rows (T017):
+//   - an arpeggio-ineligible scale chosen mid-play falls back to scale at
+//     once, the same as any other REQ-007 change while playing
+//   - a scale's tonic with no whole-octave fit on the selected variant
+//     falls back to full range, and the run/caption are the chosen scale's
+//     own — not the default scale's — count and extremes
 
 import { expect, test } from "vitest";
 import {
+  defaultScaleChoice,
   defaultSessionSettings,
   defaultTraversal,
 } from "../../../src/practice/published";
 import type { SoundCommand } from "../../../src/sound/published/sound-command.schema";
+import { pitchHzOf } from "../../../src/theory/published";
 import { advanceUntil, keyOf, sessionOn, variantOf } from "../fakes";
 
 function isTone(
@@ -74,4 +83,70 @@ test("practice.session/REQ-007 — key changed during a count-in continues the c
   const firstTone = sound.posted.filter(isTone)[0]!;
   // D4, not G4 — the new sequence is the one that follows the count.
   expect(firstTone.hz).toBeCloseTo(293.66, 1);
+});
+
+test("practice.session/REQ-012, REQ-007 — an arpeggio-ineligible scale replaces an arpeggio mid-play, restarting without a count-in", async () => {
+  // Blues is offered on the minor ring only, so this uses G natural minor
+  // rather than G major (the arpeggio-eligible starting point in the
+  // proposal's row is otherwise the same shape).
+  const settings = { ...defaultSessionSettings, tempoBpm: 120 };
+  const { session, sound, clock } = sessionOn(
+    "Gm",
+    "flute-concert",
+    {
+      direction: "up",
+      octaves: { kind: "count", count: 1 },
+      shape: "arpeggio",
+    },
+    settings,
+  );
+
+  session.start();
+  await Promise.resolve();
+  await Promise.resolve();
+
+  // The G natural minor arpeggio (G4 B♭4 D5 G5) is playing; land on position
+  // 2 (D5) — mid-run, not the trivially-already-restarted position 0.
+  advanceUntil(clock, () => {
+    const transport = session.snapshot().transport;
+    return transport.kind === "playing" && transport.position === 2;
+  });
+
+  session.setScaleChoice({ ...defaultScaleChoice, minor: "blues" });
+
+  // Blues doesn't offer an arpeggio, so the effective shape falls back to
+  // scale (REQ-012); the new sequence begins from its first note straight
+  // away, with no count-in, exactly as any other REQ-007 change while
+  // playing.
+  expect(session.snapshot().transport).toEqual({
+    kind: "playing",
+    position: 0,
+  });
+  expect(session.snapshot().effectiveShape).toBe("scale");
+
+  advanceUntil(clock, () => sound.posted.some(isTone));
+  const firstTone = sound.posted.filter(isTone)[0]!;
+  expect(firstTone.hz).toBeCloseTo(
+    pitchHzOf({ letter: "G", accidental: "natural", octave: 4 }),
+    1,
+  );
+});
+
+test("theory.circle-of-fifths/REQ-012 — the chosen scale's tonic has no whole-octave fit, so the run falls back to full range", () => {
+  // F♯ major has no whole-octave fit on Ocarina Bass C (A3–F5) for any
+  // scale sharing that tonic — the same conclusion as the default major
+  // scale's (practice.session/REQ-001/S3) — but the run and caption are
+  // major pentatonic's own, five notes per octave rather than seven.
+  const { session } = sessionOn(
+    "F#",
+    "ocarina-bass-c",
+    defaultTraversal,
+    defaultSessionSettings,
+    { ...defaultScaleChoice, major: "major-pentatonic" },
+  );
+
+  const snapshot = session.snapshot();
+  expect(snapshot.fittingCounts).toEqual([]);
+  expect(snapshot.effectiveOctaves).toEqual({ kind: "full" });
+  expect(snapshot.caption).toBe("15 notes · A♯3–D♯5");
 });
