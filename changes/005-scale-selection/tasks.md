@@ -526,7 +526,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T011 [P] · practice.session/REQ-012 · `ScaleSheet` and `ScaleRow`
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/ScaleSheet.tsx`, `src/ui/ScaleRow.tsx`

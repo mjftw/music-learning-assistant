@@ -20,3 +20,4 @@ One line each, newest last.
 - T007 review (minor): letter+octave key string built twice in notation.ts; a keyOf helper would dedupe.
 - T008 review (minor): session.ts's closure initialisers replay the scale resolution that recompute() overwrites two lines later; a placeholder would do. Ripple: transport-card.test.tsx snapshot fixture gained the new fields.
 - T010: carried to T012 — add snapshot?.scaleChoice to App's persistence-effect deps (inert until the UI can change it); rename app-session's v3-fixture test from REQ-011/S1 to S4 (it now migrates).
+- T011 review (minor): TICK_* constants triplicated across ScaleSheet/TempoSheet/InstrumentSheet — pre-existing pattern; a shared TickMark in overlay.tsx would dedupe.
