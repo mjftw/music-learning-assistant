@@ -731,7 +731,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T015 [P] · theory.circle-of-fifths/REQ-003 · The stave draws inline accidentals
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/StaveView.tsx` (`buildStave` output gains `accidentals`; render them)
