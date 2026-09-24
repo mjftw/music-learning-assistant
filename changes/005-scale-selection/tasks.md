@@ -456,7 +456,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T009 · practice.session/REQ-007 · A new scale mid-run restarts at once
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (`setScaleChoice` — only if T008 left restart out)
