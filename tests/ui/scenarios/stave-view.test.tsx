@@ -326,6 +326,25 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
   // Given: G minor, melodic minor classical, ↑↓, 1 oct — a written-out run
   // that repeats G4, D5 and other labels (the scenario's premise).
   expect(dataNotes()).toHaveLength(15);
+  expect(
+    screen.getAllByTestId("stave-note-name").map((n) => n.textContent),
+  ).toEqual([
+    "G",
+    "A",
+    "B♭",
+    "C",
+    "D",
+    "E",
+    "F♯",
+    "G",
+    "F",
+    "E♭",
+    "D",
+    "C",
+    "B♭",
+    "A",
+    "G",
+  ]);
 
   // When the key changes to A minor (still melodic minor classical, ↑↓):
   // exactly that run, and nothing from the G minor run remains.
@@ -356,6 +375,25 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
     "B4",
     "A4",
   ]);
+  expect(
+    screen.getAllByTestId("stave-note-name").map((n) => n.textContent),
+  ).toEqual([
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F♯",
+    "G♯",
+    "A",
+    "G",
+    "F",
+    "E",
+    "D",
+    "C",
+    "B",
+    "A",
+  ]);
 
   // Then Natural minor is chosen.
   rerender(
@@ -369,6 +407,9 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
     />,
   );
   expect(dataNotes()).toEqual(["A4", "B4", "C5", "D5", "E5", "F5", "G5", "A5"]);
+  expect(
+    screen.getAllByTestId("stave-note-name").map((n) => n.textContent),
+  ).toEqual(["A", "B", "C", "D", "E", "F", "G", "A"]);
 
   // Then Harmonic minor.
   rerender(
@@ -391,6 +432,9 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
     "G♯5",
     "A5",
   ]);
+  expect(
+    screen.getAllByTestId("stave-note-name").map((n) => n.textContent),
+  ).toEqual(["A", "B", "C", "D", "E", "F", "G♯", "A"]);
 
   // Then Blues — the seven noteheads the scenario names, and nothing from
   // an earlier run.
@@ -406,6 +450,9 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
     />,
   );
   expect(dataNotes()).toEqual(["A4", "C5", "D5", "E♭5", "E5", "G5", "A5"]);
+  expect(
+    screen.getAllByTestId("stave-note-name").map((n) => n.textContent),
+  ).toEqual(["A", "C", "D", "E♭", "E", "G", "A"]);
 
   const glyphOf: Record<Accidental, string> = {
     doubleFlat: "𝄫",
