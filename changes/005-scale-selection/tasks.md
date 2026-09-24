@@ -326,7 +326,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T006 · theory.circle-of-fifths/REQ-012 · The range invariant over every scale
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `tests/theory/invariants/sequence-range.test.ts`
