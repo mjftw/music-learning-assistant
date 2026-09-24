@@ -2,6 +2,7 @@ import type { Key } from "./keys";
 import type { KeyViewNote } from "./key-view";
 import { keyView, rangedNotesOf } from "./key-view";
 import type { Note } from "./notes";
+import { pitchPosition } from "./notes";
 import type { Scale } from "./scales";
 import { spelledScaleOf } from "./scales";
 import type { Variant } from "../instruments/catalogue";
@@ -141,7 +142,13 @@ function splitDirectionOf(
     return { run: descendingRun, sequence: [...descendingAscending].reverse() };
   }
 
-  const run = [...ascendingRun, ...[...descendingRun].reverse().slice(1)];
+  const topOfAscending = ascendingRun[ascendingRun.length - 1]!;
+  const restartsBelowTopOfAscending = (entry: KeyViewNote): boolean =>
+    pitchPosition(entry.note) < pitchPosition(topOfAscending.note);
+  const run = [
+    ...ascendingRun,
+    ...[...descendingRun].reverse().filter(restartsBelowTopOfAscending),
+  ];
   const sequence = run.map((entry, position) => ({
     note: entry.note,
     isRoot: entry.isRoot,
@@ -194,7 +201,7 @@ export function traversalOf(
           descendingNotes,
           effective.count,
           notesPerOctave,
-          lowestTonicIndexFor(view.notes, effective.count, notesPerOctave),
+          lowestTonicIndexFor(descendingNotes, effective.count, notesPerOctave),
         );
 
   return splitDirectionOf(scaleRun, descendingRun, traversal.direction);

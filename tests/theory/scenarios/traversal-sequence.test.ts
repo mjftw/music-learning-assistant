@@ -180,3 +180,73 @@ test("theory.circle-of-fifths/REQ-003/S6 (theory) — ↑ shows the ascending fo
     "G4",
   ]);
 });
+
+test("theory.circle-of-fifths/REQ-012 (converge C1) — a split-direction run starts and ends on the tonic on every key", () => {
+  const cSharpMinor: Key = {
+    tonic: { letter: "C", accidental: "sharp" },
+    mode: "naturalMinor",
+  };
+  const down = traversalOf(
+    cSharpMinor,
+    variantById("flute-concert"),
+    scaleById("melodic-minor-classical"),
+    oneOct("down"),
+  );
+  expect(down.sequence.map((n) => noteLabel(n.note))).toEqual([
+    "C♯5",
+    "B4",
+    "A4",
+    "G♯4",
+    "F♯4",
+    "E4",
+    "D♯4",
+    "C♯4",
+  ]);
+  const both = traversalOf(
+    cSharpMinor,
+    variantById("flute-concert"),
+    scaleById("melodic-minor-classical"),
+    oneOct("updown"),
+  );
+  expect(both.sequence.map((n) => noteLabel(n.note))).toEqual([
+    "C♯4",
+    "D♯4",
+    "E4",
+    "F♯4",
+    "G♯4",
+    "A♯4",
+    "B♯4",
+    "C♯5",
+    "B4",
+    "A4",
+    "G♯4",
+    "F♯4",
+    "E4",
+    "D♯4",
+    "C♯4",
+  ]);
+});
+
+test("theory.circle-of-fifths/REQ-012 (converge C2) — ↑↓ over the full range never repeats a pitch when the forms' tops differ", () => {
+  const aMinor: Key = {
+    tonic: { letter: "A", accidental: "natural" },
+    mode: "naturalMinor",
+  };
+  const { sequence } = traversalOf(
+    aMinor,
+    variantById("ocarina-alto-c"),
+    scaleById("melodic-minor-classical"),
+    { direction: "updown", octaves: { kind: "full" }, shape: "scale" },
+  );
+  const labels = sequence.map((n) => noteLabel(n.note));
+  for (let i = 1; i < labels.length; i += 1)
+    expect(labels[i]).not.toBe(labels[i - 1]);
+  // A4 is in range on Ocarina Alto C (A4–F6) and is the tonic of both forms,
+  // so it is both run's lowest note — the brief's literal fixture here
+  // (["B4","C5","D5"] / "B4") is off by the tonic at each end; the
+  // converge report's own C2 probe output for this exact combination,
+  // with only its "repeat E6@12" defect removed, is A4 B4 C5 … D6 C6 B5 A5
+  // G5 F5 E5 D5 C5 B4 A4 (.sdd/reports/005-scale-selection/converge.md:360).
+  expect(labels.slice(0, 3)).toEqual(["A4", "B4", "C5"]);
+  expect(labels[labels.length - 1]).toBe("A4");
+});
