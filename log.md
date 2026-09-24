@@ -4,6 +4,7 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-24
 
+- Task List `changes/006-scale-selection-acceptance-fixes/tasks.md` → approved (human:merlin-webster)
 - Spec Delta `changes/006-scale-selection-acceptance-fixes/delta/theory/circle-of-fifths.md` → approved (human:merlin-webster)
 - Spec Delta `changes/006-scale-selection-acceptance-fixes/delta/practice/session.md` → approved (human:merlin-webster)
 - Change Proposal `changes/006-scale-selection-acceptance-fixes/proposal.md` → approved (human:merlin-webster)

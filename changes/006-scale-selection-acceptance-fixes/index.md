@@ -4,4 +4,4 @@
 - [006-scale-selection-acceptance-fixes — notes](notes.md) — Implementation Notes — Decisions taken during implementation that the plan did not cover.
 - [<Feature name> — plan](plan.md) — Implementation Plan · draft — <one sentence — the approach>
 - [scale-selection-acceptance-fixes](proposal.md) — Change Proposal · approved — The stave shows only the current run after any scale change, and the names view shows a split-direction scale's differing descending notes
-- [<Feature name> — tasks](tasks.md) — Task List · draft — <one sentence — N tasks across M phases>
+- [scale-selection-acceptance-fixes — tasks](tasks.md) — Task List · in-progress — 3 tasks — stave keys, names-view descent, converge
