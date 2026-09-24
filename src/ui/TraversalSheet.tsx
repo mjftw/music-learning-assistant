@@ -26,6 +26,10 @@ const ROW_LABEL_FONT_WEIGHT = 600;
 
 const PILL_ACTIVE_INK = "#4a4136";
 const PILL_INACTIVE_INK = "#756c60";
+// changes/005-scale-selection/design/hear-the-scale.dc.html, `kindPills`
+// (script lines 819-822) — the arpeggio pill when the chosen scale does not
+// offer one: transparent background, no-op pick, this ink.
+const PILL_DISABLED_INK = "#c3baab";
 
 const DIRECTION_PILL_GEOMETRY: CSSProperties = {
   minWidth: 46,
@@ -151,21 +155,27 @@ function Pill(props: {
   readonly active: boolean;
   readonly geometry: CSSProperties;
   readonly onClick: () => void;
+  readonly disabled?: boolean;
 }): JSX.Element {
-  const { label, active, geometry, onClick } = props;
+  const { label, active, geometry, onClick, disabled = false } = props;
   return (
     <button
       type="button"
       aria-pressed={active}
-      onClick={onClick}
+      aria-disabled={disabled ? "true" : undefined}
+      onClick={disabled ? undefined : onClick}
       style={{
         ...geometry,
         textAlign: "center",
         lineHeight: 1.1,
         border: "none",
-        cursor: "pointer",
-        color: active ? PILL_ACTIVE_INK : PILL_INACTIVE_INK,
-        background: active ? paper.pillActive : "transparent",
+        cursor: disabled ? "default" : "pointer",
+        color: disabled
+          ? PILL_DISABLED_INK
+          : active
+            ? PILL_ACTIVE_INK
+            : PILL_INACTIVE_INK,
+        background: !disabled && active ? paper.pillActive : "transparent",
       }}
     >
       {label}
@@ -206,6 +216,8 @@ function TogglePill(props: {
 function TraversalSheetComponent(props: {
   readonly open: boolean;
   readonly traversal: Traversal;
+  readonly effectiveShape: Shape;
+  readonly arpeggioOffered: boolean;
   readonly effectiveOctaves: Octaves;
   readonly fittingCounts: readonly OctaveCount[];
   readonly settings: SessionSettings;
@@ -216,6 +228,8 @@ function TraversalSheetComponent(props: {
   const {
     open,
     traversal,
+    effectiveShape,
+    arpeggioOffered,
     effectiveOctaves,
     fittingCounts,
     settings,
@@ -267,15 +281,21 @@ function TraversalSheetComponent(props: {
           ))}
         </Row>
         <Row label="Shape">
-          {SHAPES.map((option) => (
-            <Pill
-              key={option.value}
-              label={option.label}
-              active={traversal.shape === option.value}
-              geometry={SHAPE_PILL_GEOMETRY}
-              onClick={() => onTraversal({ ...traversal, shape: option.value })}
-            />
-          ))}
+          {SHAPES.map((option) => {
+            const disabled = option.value === "arpeggio" && !arpeggioOffered;
+            return (
+              <Pill
+                key={option.value}
+                label={option.label}
+                active={effectiveShape === option.value}
+                geometry={SHAPE_PILL_GEOMETRY}
+                disabled={disabled}
+                onClick={() =>
+                  onTraversal({ ...traversal, shape: option.value })
+                }
+              />
+            );
+          })}
         </Row>
         <Row label="Sound">
           {SOUND_MODES.map((option) => (

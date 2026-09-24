@@ -659,16 +659,14 @@ export function App(props: {
           <TraversalSheet
             open={traversalSheetOpen}
             traversal={snapshot.traversal}
+            effectiveShape={snapshot.effectiveShape}
+            arpeggioOffered={snapshot.scale.offersArpeggio}
             effectiveOctaves={snapshot.effectiveOctaves}
             fittingCounts={snapshot.fittingCounts}
             settings={snapshot.settings}
             onTraversal={handleTraversal}
             onSettings={handleSessionSettings}
             onClose={handleCloseTraversalSheet}
-            // effectiveShape={snapshot.effectiveShape} — T014 shows arpeggio
-            // arpeggioOffered={snapshot.scale.offersArpeggio} — as unavailable
-            // when the chosen scale offers none; TraversalSheet has neither
-            // prop yet.
           />
           <TempoSheet
             open={tempoSheetOpen}

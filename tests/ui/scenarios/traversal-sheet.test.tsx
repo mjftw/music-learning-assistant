@@ -33,10 +33,13 @@ function pressedOf(name: string): string | null {
 }
 
 test("practice.session/REQ-001/S1 (UI) — Octaves offers a pill for each fitting count plus full, the effective choice pressed", () => {
+  const twoOct = baseTraversal({ octaves: { kind: "count", count: 2 } });
   const { unmount } = render(
     <TraversalSheet
       open
-      traversal={baseTraversal({ octaves: { kind: "count", count: 2 } })}
+      traversal={twoOct}
+      effectiveShape={twoOct.shape}
+      arpeggioOffered
       effectiveOctaves={{ kind: "count", count: 2 }}
       fittingCounts={[1, 2, 3]}
       settings={baseSettings()}
@@ -54,10 +57,13 @@ test("practice.session/REQ-001/S1 (UI) — Octaves offers a pill for each fittin
 
   unmount();
 
+  const fullOct = baseTraversal({ octaves: { kind: "full" } });
   render(
     <TraversalSheet
       open
-      traversal={baseTraversal({ octaves: { kind: "full" } })}
+      traversal={fullOct}
+      effectiveShape={fullOct.shape}
+      arpeggioOffered
       effectiveOctaves={{ kind: "full" }}
       fittingCounts={[]}
       settings={baseSettings()}
@@ -80,6 +86,8 @@ test("practice.session/REQ-001/S1 (UI) — picking full, ↓ and arpeggio calls 
     <TraversalSheet
       open
       traversal={traversal}
+      effectiveShape={traversal.shape}
+      arpeggioOffered
       effectiveOctaves={effectiveOctaves}
       fittingCounts={[1, 2, 3]}
       settings={baseSettings()}
@@ -115,6 +123,8 @@ test("practice.session/REQ-003 (UI) — the settings pills and toggles call onSe
     <TraversalSheet
       open
       traversal={defaultTraversal}
+      effectiveShape={defaultTraversal.shape}
+      arpeggioOffered
       effectiveOctaves={defaultTraversal.octaves}
       fittingCounts={[1]}
       settings={settings}
@@ -159,4 +169,52 @@ test("practice.session/REQ-001/S2 (UI) — TraversalRow shows the summary line a
   await userEvent.click(row);
 
   expect(onOpen).toHaveBeenCalledTimes(1);
+});
+
+test("practice.session/REQ-001/S5 — arpeggio unavailable in the Traversal sheet itself", async () => {
+  const onTraversal = vi.fn();
+  render(
+    <TraversalSheet
+      open
+      traversal={baseTraversal({ shape: "arpeggio" })}
+      effectiveShape="scale"
+      arpeggioOffered={false}
+      effectiveOctaves={{ kind: "count", count: 1 }}
+      fittingCounts={[1, 2]}
+      settings={baseSettings()}
+      onTraversal={onTraversal}
+      onSettings={noop}
+      onClose={noop}
+    />,
+  );
+  const arpeggio = screen.getByRole("button", { name: "arpeggio" });
+  expect(arpeggio.getAttribute("aria-disabled")).toBe("true");
+  expect(pressedOf("scale")).toBe("true");
+  expect(pressedOf("arpeggio")).toBe("false");
+  await userEvent.click(arpeggio);
+  expect(onTraversal).not.toHaveBeenCalled();
+});
+
+test("practice.session/REQ-012/S3 (UI) — an offered arpeggio is pressable again", () => {
+  const onTraversal = vi.fn();
+  render(
+    <TraversalSheet
+      open
+      traversal={baseTraversal({ shape: "arpeggio" })}
+      effectiveShape="arpeggio"
+      arpeggioOffered
+      effectiveOctaves={{ kind: "count", count: 1 }}
+      fittingCounts={[1, 2]}
+      settings={baseSettings()}
+      onTraversal={onTraversal}
+      onSettings={noop}
+      onClose={noop}
+    />,
+  );
+  expect(
+    screen
+      .getByRole("button", { name: "arpeggio" })
+      .getAttribute("aria-disabled"),
+  ).toBeNull();
+  expect(pressedOf("arpeggio")).toBe("true");
 });
