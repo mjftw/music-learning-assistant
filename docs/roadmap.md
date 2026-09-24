@@ -40,7 +40,7 @@ sdd_phase: approved
 
 | # | Change | Context | Capability (creates / modifies) | Outcome (one line) | Depends on | Status | Dir |
 |---|---|---|---|---|---|---|---|
-| 004 | `the-drone` | `practice` | `practice.drone` (creates), `practice.session` (modifies) | Hold the key's tonic as a drone for wind pitching and string tuning; a tapped note sounds | 001, 003 | grilling | `changes/004-the-drone/` |
+| 004 | `the-drone` | `practice` | `practice.drone` (creates), `practice.session` (modifies) | Hold the key's tonic as a drone for wind pitching and string tuning; a tapped note sounds | 001, 003 | specified | `changes/004-the-drone/` |
 | 007 | `hear-me` | `listening` | `listening.pitch-detection` (creates) | Live pitch readout — sharp/flat in cents, inside the latency budget — useful alone as a tuner | — | proposed | |
 | 008 | `learner-leads` | `practice` | `practice.session` (modifies) | The tool shows the target note, listens, and advances when it is held in tune for the required duration | 003, 007 | proposed | |
 | 009 | `temperament` | `theory` | `theory.temperament` (modifies), `practice.session` (modifies) | Choose just vs equal temperament for playback and drone | 003, 004 | proposed | |
