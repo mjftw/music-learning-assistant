@@ -191,3 +191,21 @@ test("practice.session/REQ-012/S4 — the descending alternative for a split-dir
   );
   expect(readColumns().every((c) => c.alt === null)).toBe(true);
 });
+
+test("theory.circle-of-fifths/REQ-003/S5 (UI) — a five-note scale shows five columns", () => {
+  render(
+    <NamesView
+      key_={gMajor}
+      scale={scaleById("major-pentatonic")}
+      degreesEnabled
+      soundingPitchClass={null}
+    />,
+  );
+  expect(readColumns().map((c) => [c.name, c.degree])).toEqual([
+    ["G", "1"],
+    ["A", "2"],
+    ["B", "3"],
+    ["D", "5"],
+    ["E", "6"],
+  ]);
+});
