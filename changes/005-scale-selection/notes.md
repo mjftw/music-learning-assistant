@@ -18,3 +18,4 @@ One line each, newest last.
 - T005 review (minor): countRunOf's optional startIndex default references earlier params (engineering §15 'explicit over clever') — made required in T006; report overstated the invariant's coverage (broadened in T006).
 - T006: invariant found A♯ minor × Chromatic unspellable (triple sharp) — spec amended to per-ring chromatic (decisions.md 2026-09-24, to confirm at acceptance). Enumeration is 18,816 sequences (plan said ~43k — the fitting counts are fewer than estimated; the gate of >16,000 holds). Minor: spelledScaleOf recomputed per variant in the invariant.
 - T007 review (minor): letter+octave key string built twice in notation.ts; a keyOf helper would dedupe.
+- T008 review (minor): session.ts's closure initialisers replay the scale resolution that recompute() overwrites two lines later; a placeholder would do. Ripple: transport-card.test.tsx snapshot fixture gained the new fields.

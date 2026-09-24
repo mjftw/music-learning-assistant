@@ -390,7 +390,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T008 · practice.session/REQ-012, REQ-001 · `ScaleChoice`, the effective shape, the snapshot
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/practice/domain/scale-choice.ts`
