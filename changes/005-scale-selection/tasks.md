@@ -650,7 +650,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T013 [P] · theory.circle-of-fifths/REQ-003, practice.session/REQ-012 · The names view follows the chosen scale
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/NamesView.tsx` (whole file)

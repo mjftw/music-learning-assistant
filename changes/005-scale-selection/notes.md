@@ -22,3 +22,4 @@ One line each, newest last.
 - T010: carried to T012 — add snapshot?.scaleChoice to App's persistence-effect deps (inert until the UI can change it); rename app-session's v3-fixture test from REQ-011/S1 to S4 (it now migrates).
 - T011 review (minor): TICK_* constants triplicated across ScaleSheet/TempoSheet/InstrumentSheet — pre-existing pattern; a shared TickMark in overlay.tsx would dedupe.
 - T012: the heading button is aria-labelled 'Edit scale' (its visible text collided with wedge names); the REQ-012/S1 app test's names-view assertion is temporarily diatonic — T013 restores C♯. Brief errors: wedge clicked by 'G major', NamesView/TraversalSheet props deferred to T013/T014. Minor: initialScaleChoiceOf inlined; a test-only JSON.parse cast.
+- T013 review (minor): App's pre-session names-view fallback shows the ring's default scale for one render before the restored scale — same pattern as the existing StaveView notes=[] fallback.
