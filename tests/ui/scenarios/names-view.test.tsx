@@ -1,7 +1,11 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test } from "vitest";
-import { builtInCatalogue, type Key } from "../../../src/theory/published";
+import {
+  builtInCatalogue,
+  scaleById,
+  type Key,
+} from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { NamesView } from "../../../src/ui/NamesView";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
@@ -32,6 +36,8 @@ interface ColumnReading {
   readonly mark: string | null;
   readonly accented: string | null;
   readonly degree: string | null;
+  readonly altered: string | null;
+  readonly alt: string | null;
 }
 
 const readColumns = (): readonly ColumnReading[] =>
@@ -42,6 +48,10 @@ const readColumns = (): readonly ColumnReading[] =>
       mark: mark.textContent,
       accented: mark.getAttribute("data-accented"),
       degree: within(column).getByTestId("note-degree").textContent,
+      altered: within(column)
+        .getByTestId("note-degree")
+        .getAttribute("data-altered"),
+      alt: within(column).queryByTestId("note-alt")?.textContent ?? null,
     };
   });
 
@@ -57,6 +67,7 @@ test("practice.session/REQ-006/S2 — the names view follows the sound", () => {
   render(
     <NamesView
       key_={gMajor}
+      scale={scaleById("major")}
       degreesEnabled={false}
       soundingPitchClass={{ letter: "D", accidental: "natural" }}
     />,
@@ -123,4 +134,60 @@ test("theory.circle-of-fifths/REQ-004/S3 — C major has no marks and no accente
       (glyph) => glyph.getAttribute("data-accented") === "false",
     ),
   ).toBe(true);
+});
+
+test("theory.circle-of-fifths/REQ-003/S3 (UI) — the names view follows the chosen scale", () => {
+  render(
+    <NamesView
+      key_={gMajor}
+      scale={scaleById("lydian")}
+      degreesEnabled
+      soundingPitchClass={null}
+    />,
+  );
+  expect(
+    readColumns().map((c) => [c.name, c.degree, c.altered, c.mark]),
+  ).toEqual([
+    ["G", "1", "false", ""],
+    ["A", "2", "false", ""],
+    ["B", "3", "false", ""],
+    ["C♯", "♯4", "true", ""],
+    ["D", "5", "false", ""],
+    ["E", "6", "false", ""],
+    ["F♯", "7", "false", "♯1"],
+  ]);
+});
+
+test("practice.session/REQ-012/S4 — the descending alternative for a split-direction scale", () => {
+  const gMinor: Key = {
+    tonic: { letter: "G", accidental: "natural" },
+    mode: "naturalMinor",
+  };
+  render(
+    <NamesView
+      key_={gMinor}
+      scale={scaleById("melodic-minor-classical")}
+      degreesEnabled
+      soundingPitchClass={null}
+    />,
+  );
+  expect(readColumns().map((c) => [c.name, c.alt])).toEqual([
+    ["G", ""],
+    ["A", ""],
+    ["B♭", ""],
+    ["C", ""],
+    ["D", ""],
+    ["E", "↓E♭"],
+    ["F♯", "↓F"],
+  ]);
+  cleanup();
+  render(
+    <NamesView
+      key_={gMinor}
+      scale={scaleById("natural-minor")}
+      degreesEnabled
+      soundingPitchClass={null}
+    />,
+  );
+  expect(readColumns().every((c) => c.alt === null)).toBe(true);
 });

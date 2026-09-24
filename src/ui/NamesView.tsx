@@ -1,16 +1,18 @@
 import type { JSX } from "react";
 import {
-  scaleNotesOf,
   signatureOf,
+  spelledScaleOf,
   type Key,
   type PitchClass,
+  type Scale,
+  type ScaleNote,
 } from "../theory/published";
 import { pitchClassLabel } from "./key-label";
 import { fonts, paper } from "./theme";
 
 // Mirrors the vendored visual reference's `scale:` mapping in renderVals()
-// (changes/002-circle-redesign/design/Circle 1c Function Paper.dc.html) —
-// named constants rather than re-derived by eye.
+// (changes/005-scale-selection/design/hear-the-scale.dc.html) — named
+// constants rather than re-derived by eye.
 const ROW_FLEX_GAP = 2;
 const COLUMN_GAP = 5;
 
@@ -21,15 +23,26 @@ const MARK_WEIGHT_PLAIN = 500;
 const MARK_INK_ACCENTED = paper.accent;
 const MARK_INK_PLAIN = paper.muted;
 
-const NAME_FONT_SIZE = 26;
+// design's namesSize — the name column shrinks as the scale gains notes per
+// octave so a sixteen-note chromatic run still fits the 342px row.
+const NAME_FONT_SIZE_UP_TO_SEVEN_COLUMNS = 26;
+const NAME_FONT_SIZE_UP_TO_NINE_COLUMNS = 21;
+const NAME_FONT_SIZE_BEYOND_NINE_COLUMNS = 15;
 const NAME_FONT_WEIGHT = 600;
 const NAME_LETTER_SPACING = "-.02em";
 const NAME_INK = paper.ink;
 
+const ALT_FONT_SIZE = 11;
+const ALT_ROW_HEIGHT = 11;
+const ALT_FONT_WEIGHT = 600;
+const ALT_INK_ACCENTED = paper.accent;
+const ALT_INK_PLAIN = paper.muted;
+
 const DEGREE_FONT_SIZE = 11;
 const DEGREE_ROW_HEIGHT = 11;
 const DEGREE_FONT_WEIGHT = 600;
-const DEGREE_INK = paper.muted;
+const DEGREE_INK_ACCENTED = paper.accent;
+const DEGREE_INK_PLAIN = paper.muted;
 
 const SHARP_SYMBOL = "♯";
 const FLAT_SYMBOL = "♭";
@@ -43,66 +56,112 @@ interface ColumnData {
   readonly name: string;
   readonly mark: string;
   readonly accented: boolean;
-  readonly degree: number;
+  readonly degreeLabel: string;
+  readonly altered: boolean;
+  readonly alt: string | null;
   readonly isSounding: boolean;
+  readonly altIsSounding: boolean;
 }
 
 function samePitchClass(a: PitchClass, b: PitchClass): boolean {
   return a.letter === b.letter && a.accidental === b.accidental;
 }
 
-// Each accidental-bearing scale note is marked with the symbol the key's
-// signature uses plus its 1-based position in the order that signature
-// introduces accidentals (`signatureOf`) — the newest, at `count`, accented.
+// A note's mark is the signature's own glyph for its letter — only when the
+// note's accidental actually matches what the signature carries for that
+// letter (theory.circle-of-fifths/REQ-003/S3: an altered note the signature
+// doesn't carry, e.g. Lydian's ♯4, shows no mark at all).
+function markOf(
+  pitchClass: PitchClass,
+  signature: ReturnType<typeof signatureOf>,
+): { readonly mark: string; readonly accented: boolean } {
+  const signed = signature.accidentals.find(
+    (accidental) => accidental.letter === pitchClass.letter,
+  );
+  if (signed === undefined || signed.accidental !== pitchClass.accidental) {
+    return { mark: "", accented: false };
+  }
+  const kindSymbol = signature.kind === "sharps" ? SHARP_SYMBOL : FLAT_SYMBOL;
+  const position = signature.accidentals.indexOf(signed) + 1;
+  return {
+    mark: `${kindSymbol}${position}`,
+    accented: position === signature.count,
+  };
+}
+
+// The descending form's note for the same degree, where the ascending and
+// descending forms differ (practice.session/REQ-012/S4) — `null` when the
+// scale has no descending form of its own.
+function altOf(
+  note: ScaleNote,
+  descending: readonly ScaleNote[] | null,
+): string | null {
+  if (descending === null) return null;
+  const counterpart = descending.find((entry) => entry.degree === note.degree);
+  if (counterpart === undefined) return "";
+  if (samePitchClass(note.pitchClass, counterpart.pitchClass)) return "";
+  return `↓${pitchClassLabel(counterpart.pitchClass)}`;
+}
+
 function columnsOf(
   key: Key,
+  scale: Scale,
   soundingPitchClass: PitchClass | null,
 ): readonly ColumnData[] {
-  const scale = scaleNotesOf(key);
+  const spelled = spelledScaleOf(key, scale);
   const signature = signatureOf(key);
-  const kindSymbol =
-    signature.kind === "sharps"
-      ? SHARP_SYMBOL
-      : signature.kind === "flats"
-        ? FLAT_SYMBOL
-        : "";
 
-  return scale.map((pitchClass, index) => {
-    const degree = index + 1;
-    const name = pitchClassLabel(pitchClass);
-    const isSounding =
+  return spelled.ascending.map((note) => {
+    const { mark, accented } = markOf(note.pitchClass, signature);
+    // practice.session/REQ-012/S4 — the sounding highlight also lands on the
+    // alt row's own note, not only the ascending name above it, so a
+    // descending-only match still lights up its column.
+    const altIsSounding =
       soundingPitchClass !== null &&
-      samePitchClass(pitchClass, soundingPitchClass);
-    if (pitchClass.accidental === "natural") {
-      return { name, mark: "", accented: false, degree, isSounding };
-    }
-    const orderIndex = signature.accidentals.findIndex(
-      (accidental) => accidental.letter === pitchClass.letter,
-    );
-    const position = orderIndex + 1;
+      spelled.descending !== null &&
+      spelled.descending.some(
+        (entry) =>
+          entry.degree === note.degree &&
+          samePitchClass(entry.pitchClass, soundingPitchClass),
+      );
+    const isSounding =
+      (soundingPitchClass !== null &&
+        samePitchClass(note.pitchClass, soundingPitchClass)) ||
+      altIsSounding;
     return {
-      name,
-      mark: `${kindSymbol}${position}`,
-      accented: position === signature.count,
-      degree,
+      name: pitchClassLabel(note.pitchClass),
+      mark,
+      accented,
+      degreeLabel: note.degreeLabel,
+      altered: note.altered,
+      alt: altOf(note, spelled.descending),
       isSounding,
+      altIsSounding,
     };
   });
 }
 
+function nameFontSizeOf(columnCount: number): number {
+  if (columnCount <= 7) return NAME_FONT_SIZE_UP_TO_SEVEN_COLUMNS;
+  if (columnCount <= 9) return NAME_FONT_SIZE_UP_TO_NINE_COLUMNS;
+  return NAME_FONT_SIZE_BEYOND_NINE_COLUMNS;
+}
+
 export function NamesView(props: {
   readonly key_: Key;
+  readonly scale: Scale;
   readonly degreesEnabled: boolean;
   readonly soundingPitchClass: PitchClass | null;
 }): JSX.Element {
-  const { key_, degreesEnabled, soundingPitchClass } = props;
-  const columns = columnsOf(key_, soundingPitchClass);
+  const { key_, scale, degreesEnabled, soundingPitchClass } = props;
+  const columns = columnsOf(key_, scale, soundingPitchClass);
+  const nameFontSize = nameFontSizeOf(columns.length);
 
   return (
     <div style={{ display: "flex", alignItems: "flex-end", gap: ROW_FLEX_GAP }}>
-      {columns.map((column) => (
+      {columns.map((column, index) => (
         <div
-          key={column.name}
+          key={`${column.name}-${index}`}
           data-testid="names-column"
           data-sounding={column.isSounding ? "true" : "false"}
           style={{
@@ -133,7 +192,7 @@ export function NamesView(props: {
           <div
             data-testid="column-name"
             style={{
-              fontSize: NAME_FONT_SIZE,
+              fontSize: nameFontSize,
               fontWeight: NAME_FONT_WEIGHT,
               letterSpacing: NAME_LETTER_SPACING,
               color: column.isSounding ? SOUNDING_INK : NAME_INK,
@@ -142,18 +201,33 @@ export function NamesView(props: {
           >
             {column.name}
           </div>
+          {column.alt !== null && (
+            <div
+              data-testid="note-alt"
+              style={{
+                fontSize: ALT_FONT_SIZE,
+                fontWeight: ALT_FONT_WEIGHT,
+                color: column.altIsSounding ? ALT_INK_ACCENTED : ALT_INK_PLAIN,
+                lineHeight: 1,
+                height: ALT_ROW_HEIGHT,
+              }}
+            >
+              {column.alt}
+            </div>
+          )}
           <div
             data-testid="note-degree"
+            data-altered={column.altered ? "true" : "false"}
             style={{
               fontFamily: fonts.mono,
               fontSize: DEGREE_FONT_SIZE,
               fontWeight: DEGREE_FONT_WEIGHT,
-              color: DEGREE_INK,
+              color: column.altered ? DEGREE_INK_ACCENTED : DEGREE_INK_PLAIN,
               lineHeight: 1,
               height: DEGREE_ROW_HEIGHT,
             }}
           >
-            {degreesEnabled ? column.degree : ""}
+            {degreesEnabled ? column.degreeLabel : ""}
           </div>
         </div>
       ))}

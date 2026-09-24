@@ -151,13 +151,9 @@ test("practice.session/REQ-012/S1 (app) — choosing a scale changes the heading
   expect(screen.getByTestId("scale-row-formula").textContent).toBe(
     "1 2 3 ♯4 5 6 7",
   );
-  // NamesView does not yet consume the chosen scale (T013 wires it — see
-  // App.tsx's call site comment) — it still shows G major's own diatonic
-  // notes (C natural), not G Lydian's (C♯), regardless of the scale picked
-  // here.
   expect(
     screen.getAllByTestId("column-name").map((c) => c.textContent),
-  ).toEqual(["G", "A", "B", "C", "D", "E", "F♯"]);
+  ).toEqual(["G", "A", "B", "C♯", "D", "E", "F♯"]);
   const stored = JSON.parse(
     localStorage.getItem(STORAGE_KEY)!,
   ) as StoredSelection;

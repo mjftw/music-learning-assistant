@@ -4,6 +4,7 @@ import {
   circleOfFifths,
   keyId as keyIdOf,
   keyView,
+  scaleById,
   spelledMajorAt,
   spelledMinorAt,
   type Catalogue,
@@ -18,6 +19,7 @@ import {
   type Variant,
 } from "../theory/published";
 import {
+  chosenScaleIdFor,
   createSession,
   defaultScaleChoice,
   steppedTempo,
@@ -581,10 +583,19 @@ export function App(props: {
         {selection.view === "names" ? (
           <NamesView
             key_={selectedKey}
+            scale={
+              // No session, no chosen scale yet — the mode's own default
+              // stands in for the single render before the session-creating
+              // effect completes, mirroring `notes`' `[]` fallback on the
+              // StaveView branch below.
+              snapshot === null
+                ? scaleById(
+                    chosenScaleIdFor(defaultScaleChoice, selection.mode),
+                  )
+                : snapshot.scale
+            }
             degreesEnabled={selection.degreesEnabled}
             soundingPitchClass={soundingPitchClass}
-            // scale={snapshot.scale} — T013 wires the chosen scale's own
-            // notes into the names view; NamesView has no such prop yet.
           />
         ) : (
           variant !== undefined && (
