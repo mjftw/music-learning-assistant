@@ -46,7 +46,7 @@ Shared conventions: tests import only from `src/theory/published`, `src/practice
 
 ### T001 · theory.circle-of-fifths/REQ-003 · The stave keys noteheads by run position; no artefact survives a scale change
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/StaveView.tsx:434-437` (the `stave.heads.map` `key`), and any other `key={noteLabel(…)}` in that file (`grep -n "key=" src/ui/StaveView.tsx`)
@@ -84,7 +84,7 @@ Shared conventions: tests import only from `src/theory/published`, `src/practice
 
 ### T002 · practice.session/REQ-012 · The names view shows a split-direction scale's descent
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/NamesView.tsx` (props gain `direction: Direction`; the alt row and `altOf`/`altIsSounding` go; a ↓ group is appended), `src/ui/App.tsx` (pass `direction={snapshot === null ? "updown" : snapshot.traversal.direction}` at the `<NamesView>` call site)
@@ -126,7 +126,7 @@ Shared conventions: tests import only from `src/theory/published`, `src/practice
 
 ### T003 · — · Converge
 
-**Status:** todo
+**Status:** in-progress
 
 **Steps**
 - [ ] 1. Run `sdd-converge`; append any gap as new tasks here.
