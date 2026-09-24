@@ -136,6 +136,7 @@ interface StaveHead {
   readonly stemUp: boolean;
   readonly note: Note;
   readonly isRoot: boolean;
+  readonly runIndex: number;
 }
 
 interface StaveLedger {
@@ -272,6 +273,7 @@ function buildStave(
       stemUp,
       note,
       isRoot,
+      runIndex: index,
     });
 
     const inlineAccidental = inlineAccidentals[index];
@@ -433,7 +435,7 @@ export function StaveView(props: {
         />
         {stave.heads.map((head) => (
           <g
-            key={noteLabel(head.note)}
+            key={head.runIndex}
             data-testid="stave-note"
             data-note={noteLabel(head.note)}
             data-root={head.isRoot ? "true" : "false"}

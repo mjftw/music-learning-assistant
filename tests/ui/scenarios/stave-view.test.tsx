@@ -6,6 +6,7 @@ import {
   scaleById,
   traversalOf,
   type Key,
+  type ScaleId,
 } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
@@ -286,4 +287,56 @@ test("theory.circle-of-fifths/REQ-007/S2 — stave names on demand, and the choi
 
   expect(screen.getAllByTestId("stave-note-name").length).toBeGreaterThan(0);
   expect(screen.getAllByTestId("stave-note").length).toBeGreaterThan(0);
+});
+
+test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is exactly the new run", () => {
+  const gMinor: Key = {
+    tonic: { letter: "G", accidental: "natural" },
+    mode: "naturalMinor",
+  };
+  const oneOctUpDown = {
+    direction: "updown",
+    octaves: { kind: "count", count: 1 },
+    shape: "scale",
+  } as const;
+  const runFor = (id: ScaleId) =>
+    traversalOf(gMinor, flute(), scaleById(id), oneOctUpDown).run;
+  const heads = () => screen.getAllByTestId("stave-note").length;
+  const { rerender } = render(
+    <StaveView
+      key_={gMinor}
+      variant={flute()}
+      notes={runFor("melodic-minor-classical")}
+      staveNamesEnabled
+      soundingRunIndex={null}
+      playing={false}
+    />,
+  );
+  expect(heads()).toBe(15);
+  for (const [id, count] of [
+    ["natural-minor", 8],
+    ["harmonic-minor", 8],
+    ["blues", 7],
+  ] as const) {
+    rerender(
+      <StaveView
+        key_={gMinor}
+        variant={flute()}
+        notes={runFor(id)}
+        staveNamesEnabled
+        soundingRunIndex={null}
+        playing={false}
+      />,
+    );
+    expect(heads()).toBe(count);
+    expect(screen.getAllByTestId("stave-note-name").length).toBe(count);
+  }
+  // Order derived from inlineAccidentalsOf(signatureOf(gMinor), runFor("blues")) — the
+  // brief's guessed ["♮","♭"] was in the wrong order; the blues run is G4 B♭4 C5 D♭5 D5
+  // F5 G5, so the inline accidentals appear flat (D♭5) then natural (D5).
+  expect(
+    screen
+      .getAllByTestId("inline-accidental")
+      .map((g) => g.getAttribute("data-glyph")),
+  ).toEqual(["♭", "♮"]);
 });
