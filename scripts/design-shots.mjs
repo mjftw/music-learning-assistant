@@ -3,10 +3,10 @@
 // same named UI state and writes paired 390x844 @2x screenshots to
 // .sdd/design-review/, so the agent — and then the user — can compare
 // fidelity side by side. Originated for the 002-circle-redesign delta;
-// PROTOTYPE_PATH and STATES now point at 003-hear-the-scale's prototype and
-// its states. Dev-only: not part of the test suite, not asserted against in
-// CI (each change's plan.md keeps this judgement human-plus-agent, not a
-// pixel-diff gate).
+// PROTOTYPE_PATH and STATES pointed at 003-hear-the-scale's prototype and
+// its states, then at 005-scale-selection's. Dev-only: not part of the test
+// suite, not asserted against in CI (each change's plan.md keeps this
+// judgement human-plus-agent, not a pixel-diff gate).
 
 import { chromium } from "playwright";
 import { spawn } from "node:child_process";
@@ -21,7 +21,7 @@ const OUTPUT_DIR = path.join(REPO_ROOT, ".sdd", "design-review");
 const PROTOTYPE_PATH = path.join(
   REPO_ROOT,
   "changes",
-  "003-hear-the-scale",
+  "005-scale-selection",
   "design",
   "hear-the-scale.dc.html",
 );
@@ -94,10 +94,12 @@ function fontFileContentType(fileName) {
 // has no build step to import them from) so wedge clicks land correctly
 // without depending on an accessible name the prototype's SVG paths don't
 // carry — they are bare <path> elements wired with onClick, nothing more.
-// (003-hear-the-scale's prototype keeps the same CX/CY/OUTER as
-// 002-circle-redesign's — verified against its script, not assumed.)
+// (005-scale-selection's prototype keeps the same CX/CY/INNER/OUTER as
+// 002-circle-redesign's and 003-hear-the-scale's — verified against its
+// script, not assumed.)
 const CIRCLE_CENTRE = { x: 189, y: 189 };
 const OUTER_RING_MID_RADIUS = 121; // (100 + 142) / 2 — see OUTER in the prototype
+const INNER_RING_MID_RADIUS = 86; // (72 + 100) / 2 — see INNER in the prototype
 
 function pointOnPrototypeCircle(angleDegrees, radius) {
   const angleRadians = ((angleDegrees - 90) * Math.PI) / 180;
@@ -107,11 +109,13 @@ function pointOnPrototypeCircle(angleDegrees, radius) {
   };
 }
 
-// Position indices from the prototype's MAJORS array: index 0 is C, at the
-// clock's 12 o'clock (0°) position; index 1 is G. Only the major ring is
-// driven by the states below, so only these two are needed.
+// Position indices from the prototype's MAJORS/MINORS arrays: index 0 is the
+// clock's 12 o'clock (0°) position. MAJORS[0] is C, MAJORS[1] is G;
+// MINORS[10] is G (MINORS = ["A","E","B","F♯","C♯","G♯","D♯","B♭","F","C",
+// "G","D"]) — only the wedges the states below actually click.
 const C_MAJOR_POSITION_INDEX = 0;
 const G_MAJOR_POSITION_INDEX = 1;
+const G_MINOR_POSITION_INDEX = 10;
 
 async function clickPrototypeWedge(page, positionIndex, radius) {
   const point = pointOnPrototypeCircle(positionIndex * 30, radius);
@@ -202,6 +206,87 @@ const STATES = {
     },
     app: async (page) => {
       await page.getByRole("button", { name: "Settings" }).click();
+    },
+  },
+  // 005-scale-selection states below. The prototype's scale sheet (script's
+  // `openScales`) opens from either the key-name heading or the "SCALE"
+  // pill beneath it — both call the same handler — so clicking the heading's
+  // text (the tonic + scale title, e.g. "C major") reaches it, same as the
+  // app's "Edit scale" heading button (aria-labelled that way because its
+  // visible text collides with the wedges' accessible names).
+  "scale-sheet-open": {
+    prototype: async (page) => {
+      await baselineCMajorNamesOnPrototype(page);
+      await clickPrototypeText(page, "C major");
+    },
+    app: async (page) => {
+      await page.getByRole("button", { name: "Edit scale" }).click();
+    },
+  },
+  "g-lydian-names": {
+    prototype: async (page) => {
+      await clickPrototypeWedge(
+        page,
+        G_MAJOR_POSITION_INDEX,
+        OUTER_RING_MID_RADIUS,
+      );
+      await clickPrototypeText(page, "names");
+      await clickPrototypeText(page, "G major");
+      await clickPrototypeText(page, "Lydian");
+    },
+    app: async (page) => {
+      await page.getByRole("button", { name: "G major" }).click();
+      await page.getByRole("button", { name: "names" }).click();
+      await page.getByRole("button", { name: "Edit scale" }).click();
+      // Exact match: "Lydian" is otherwise a substring of "Mixolydian",
+      // the sheet's other row offering it (REQ-012/S2).
+      await page.getByRole("button", { name: "Lydian", exact: true }).click();
+    },
+  },
+  // REQ-012/S4's split-direction case, on the minor ring's G wedge — ↑↓ and
+  // 1 oct are the stored defaults (REQ-011), so no traversal-sheet detour is
+  // needed to reach them.
+  "g-melodic-minor-stave": {
+    prototype: async (page) => {
+      await clickPrototypeWedge(
+        page,
+        G_MINOR_POSITION_INDEX,
+        INNER_RING_MID_RADIUS,
+      );
+      await clickPrototypeText(page, "G minor");
+      await clickPrototypeText(page, "Melodic minor · classical");
+      await clickPrototypeText(page, "stave");
+    },
+    app: async (page) => {
+      await page.getByRole("button", { name: "G minor" }).click();
+      await page.getByRole("button", { name: "Edit scale" }).click();
+      await page
+        .getByRole("button", { name: "Melodic minor · classical" })
+        .click();
+      await page.getByRole("button", { name: "stave" }).click();
+    },
+  },
+  // REQ-012/S3: G major pentatonic — a scale the catalogue excludes from
+  // the arpeggio shape — with the Traversal sheet open so its Shape row's
+  // unavailable arpeggio pill is in frame.
+  "pentatonic-traversal-sheet": {
+    prototype: async (page) => {
+      await clickPrototypeWedge(
+        page,
+        G_MAJOR_POSITION_INDEX,
+        OUTER_RING_MID_RADIUS,
+      );
+      await clickPrototypeText(page, "names");
+      await clickPrototypeText(page, "G major");
+      await clickPrototypeText(page, "Major pentatonic");
+      await clickPrototypeText(page, "edit ›");
+    },
+    app: async (page) => {
+      await page.getByRole("button", { name: "G major" }).click();
+      await page.getByRole("button", { name: "names" }).click();
+      await page.getByRole("button", { name: "Edit scale" }).click();
+      await page.getByRole("button", { name: "Major pentatonic" }).click();
+      await page.getByRole("button", { name: "Edit traversal" }).click();
     },
   },
 };

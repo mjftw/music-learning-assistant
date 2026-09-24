@@ -3,6 +3,7 @@ import {
   arcOf,
   circleOfFifths,
   keyId as keyIdOf,
+  scaleById,
   signatureOf,
   spelledMajorAt,
   spelledMinorAt,
@@ -504,7 +505,7 @@ function CircleOfFifthsComponent(props: {
                 className={WEDGE_CLASS_NAME}
                 role="button"
                 tabIndex={0}
-                aria-label={keyLabel(render.majorKey)}
+                aria-label={keyLabel(render.majorKey, scaleById("major"))}
                 aria-pressed={render.majorSelected}
                 data-position-index={render.position.index}
                 d={wedgePath(
@@ -538,7 +539,10 @@ function CircleOfFifthsComponent(props: {
                 className={WEDGE_CLASS_NAME}
                 role="button"
                 tabIndex={0}
-                aria-label={keyLabel(render.minorKey)}
+                aria-label={keyLabel(
+                  render.minorKey,
+                  scaleById("natural-minor"),
+                )}
                 aria-pressed={render.minorSelected}
                 data-position-index={render.position.index}
                 d={wedgePath(

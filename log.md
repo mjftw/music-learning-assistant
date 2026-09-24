@@ -2,8 +2,29 @@
 
 Chronological history of this bundle. Newest date first.
 
+## 2026-09-24
+
+- Capability Spec `specs/theory/circle-of-fifths.md` → current (human:merlin-webster)
+- Capability Spec `specs/practice/session.md` → current (human:merlin-webster)
+- Task List `changes/006-scale-selection-acceptance-fixes/tasks.md` → approved (human:merlin-webster)
+- Spec Delta `changes/006-scale-selection-acceptance-fixes/delta/theory/circle-of-fifths.md` → approved (human:merlin-webster)
+- Spec Delta `changes/006-scale-selection-acceptance-fixes/delta/practice/session.md` → approved (human:merlin-webster)
+- Change Proposal `changes/006-scale-selection-acceptance-fixes/proposal.md` → approved (human:merlin-webster)
+- Intent `changes/006-scale-selection-acceptance-fixes/intent.md` → resolved (human:merlin-webster)
+- Domain Map `docs/domain.md` → approved (human:merlin-webster)
+- Glossary `docs/glossary.md` → approved (human:merlin-webster)
+- Capability Spec `specs/theory/circle-of-fifths.md` → current (human:merlin-webster)
+- Capability Spec `specs/practice/session.md` → current (human:merlin-webster)
+
 ## 2026-09-23
 
+- Task List `changes/005-scale-selection/tasks.md` → approved (human:merlin-webster)
+- Architecture Decision Record `docs/adr/0004-scale-layers-on-the-key.md` → accepted (human:merlin-webster)
+- Implementation Plan `changes/005-scale-selection/plan.md` → approved (human:merlin-webster)
+- Spec Delta `changes/005-scale-selection/delta/theory/circle-of-fifths.md` → approved (human:merlin-webster)
+- Spec Delta `changes/005-scale-selection/delta/practice/session.md` → approved (human:merlin-webster)
+- Change Proposal `changes/005-scale-selection/proposal.md` → approved (human:merlin-webster)
+- Intent `changes/005-scale-selection/intent.md` → resolved (human:merlin-webster)
 - Domain Map `docs/domain.md` → approved (human:merlin-webster)
 - Glossary `docs/glossary.md` → approved (human:merlin-webster)
 - Capability Spec `specs/theory/temperament.md` → current (human:merlin-webster)

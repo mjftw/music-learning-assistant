@@ -4,6 +4,7 @@ import {
   circleOfFifths,
   keyId as keyIdOf,
   keyView,
+  scaleById,
   spelledMajorAt,
   spelledMinorAt,
   type Catalogue,
@@ -12,12 +13,15 @@ import {
   type Mode,
   type Octaves,
   type PitchClass,
+  type ScaleId,
   type SpellingPreference,
   type Traversal,
   type Variant,
 } from "../theory/published";
 import {
+  chosenScaleIdFor,
   createSession,
+  defaultScaleChoice,
   steppedTempo,
   tempoForTerm,
   type Session,
@@ -30,10 +34,12 @@ import { findVariantById } from "./catalogue-lookup";
 import { CircleOfFifths, locateSpelledKey } from "./CircleOfFifths";
 import { Header } from "./Header";
 import { InstrumentSheet } from "./InstrumentSheet";
-import { keyLabel, noteLabel } from "./key-label";
+import { keyLabel, keyNameFontSizeOf, noteLabel } from "./key-label";
 import { KeyPanel } from "./KeyPanel";
 import { NamesView } from "./NamesView";
 import { Notices } from "./Notices";
+import { ScaleRow } from "./ScaleRow";
+import { ScaleSheet } from "./ScaleSheet";
 import {
   firstRunDefaults,
   type SelectionStore,
@@ -62,7 +68,10 @@ const COLUMN_MIN_HEIGHT = "100vh";
 const COLUMN_BACKGROUND = paper.frame;
 
 const KEY_NAME_ROW_PADDING = "6px 16px 0";
-const KEY_NAME_FONT_SIZE = 46;
+// practice.session/REQ-012 — the design's gap between the key-name heading
+// and the scale-formula row now under it (changes/005-scale-selection/
+// design/hear-the-scale.dc.html).
+const KEY_NAME_ROW_GAP = 9;
 
 const CIRCLE_WRAPPER_MARGIN = "0 auto";
 // Not from the reference (a fixed 390×844 screenshot has no wider viewport
@@ -88,7 +97,7 @@ function headerRangeLabel(variant: Variant): string {
 
 // Maps the store's stringly-typed octave count (`'full' | 1 | 2 | 3 | 4`) to
 // and from the `Octaves` sum type published/consumed by the theory context's
-// `runOf` (T003/T004) — the traversal's direction and shape carry over
+// `traversalOf` (T003/T004) — the traversal's direction and shape carry over
 // unchanged, so only the octaves need translating.
 function octavesFromStored(stored: StoredOctaves): Octaves {
   return stored === "full"
@@ -203,6 +212,7 @@ export function App(props: {
   const [instrumentSheetOpen, setInstrumentSheetOpen] = useState(false);
   const [traversalSheetOpen, setTraversalSheetOpen] = useState(false);
   const [tempoSheetOpen, setTempoSheetOpen] = useState(false);
+  const [scaleSheetOpen, setScaleSheetOpen] = useState(false);
 
   const position = circleOfFifths()[selection.positionIndex];
   if (position === undefined) {
@@ -240,6 +250,7 @@ export function App(props: {
     const session = createSession(
       { key: selectedKey, variant },
       initialTraversalOf(stored),
+      stored?.scale ?? defaultScaleChoice,
       initialSettingsOf(stored),
       sessionDeps,
     );
@@ -303,7 +314,7 @@ export function App(props: {
     // completion re-renders with a snapshot, so this simply runs again.
     if (snapshot === null) return;
     const toSave: StoredSelection = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       variantId: selection.variantId,
       keyId: keyIdOf(selectedKey),
       spelling: selection.spelling,
@@ -317,6 +328,7 @@ export function App(props: {
         shape: snapshot.traversal.shape,
       },
       session: snapshot.settings,
+      scale: snapshot.scaleChoice,
     };
     selectionStore.save(toSave);
   }, [
@@ -325,10 +337,13 @@ export function App(props: {
     selectionStore,
     snapshot?.traversal,
     snapshot?.settings,
+    snapshot?.scaleChoice,
   ]);
 
   const view =
-    variant === undefined ? undefined : keyView(selectedKey, variant);
+    variant === undefined || snapshot === null
+      ? undefined
+      : keyView(selectedKey, variant, snapshot.scale);
 
   const soundingSequenceNote =
     snapshot === null || snapshot.soundingPosition === null
@@ -370,6 +385,8 @@ export function App(props: {
     [],
   );
   const handleOpenTempoSheet = useCallback(() => setTempoSheetOpen(true), []);
+  const handleOpenScaleSheet = useCallback(() => setScaleSheetOpen(true), []);
+  const handleCloseScaleSheet = useCallback(() => setScaleSheetOpen(false), []);
 
   const handleSelectKey = useCallback((selectedWedgeKey: Key) => {
     setSelection((current) => {
@@ -460,6 +477,21 @@ export function App(props: {
     [session],
   );
 
+  // The chosen id is stored on the ring the selected key currently sits on
+  // (practice.session/REQ-001/S5 — "each ring keeping its own choice"), so
+  // picking a scale never disturbs the other ring's own choice.
+  const handlePickScale = useCallback(
+    (id: ScaleId) => {
+      if (session === null) return;
+      session.setScaleChoice({
+        ...session.snapshot().scaleChoice,
+        [selection.mode === "major" ? "major" : "minor"]: id,
+      });
+      setScaleSheetOpen(false);
+    },
+    [session, selection.mode],
+  );
+
   return (
     <div
       style={{
@@ -499,26 +531,48 @@ export function App(props: {
           onSelectSpelling={handleSelectSpelling}
         />
       </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: KEY_NAME_ROW_PADDING,
-        }}
-      >
+      {snapshot !== null && (
         <div
-          data-testid="current-key"
           style={{
-            fontFamily: fonts.display,
-            fontSize: KEY_NAME_FONT_SIZE,
-            lineHeight: 1,
-            color: paper.ink,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: KEY_NAME_ROW_GAP,
+            padding: KEY_NAME_ROW_PADDING,
           }}
         >
-          {keyLabel(selectedKey)}
+          <button
+            type="button"
+            data-testid="current-key"
+            // A distinct action label, not the displayed text (which
+            // duplicates a circle wedge's own aria-label whenever the
+            // chosen scale is the ring's home one — "G major", "E minor" —
+            // ambiguous for anything querying by role+name; every other
+            // sheet-opening button in this app names the action, not its
+            // current value: "Edit traversal", "Instrument", "Settings").
+            aria-label="Edit scale"
+            onClick={handleOpenScaleSheet}
+            style={{
+              fontFamily: fonts.display,
+              fontSize: keyNameFontSizeOf(
+                keyLabel(selectedKey, snapshot.scale),
+              ),
+              lineHeight: 1,
+              color: paper.ink,
+              border: "none",
+              background: "none",
+              padding: 0,
+              cursor: "pointer",
+            }}
+          >
+            {keyLabel(selectedKey, snapshot.scale)}
+          </button>
+          <ScaleRow
+            formulaLine={snapshot.spelledScale.formulaLine}
+            onOpen={handleOpenScaleSheet}
+          />
         </div>
-      </div>
+      )}
       <KeyPanel
         view={selection.view}
         onSelectView={(selectedView) =>
@@ -529,6 +583,20 @@ export function App(props: {
         {selection.view === "names" ? (
           <NamesView
             key_={selectedKey}
+            scale={
+              // No session, no chosen scale yet — the mode's own default
+              // stands in for the single render before the session-creating
+              // effect completes, mirroring `notes`' `[]` fallback on the
+              // StaveView branch below.
+              snapshot === null
+                ? scaleById(
+                    chosenScaleIdFor(defaultScaleChoice, selection.mode),
+                  )
+                : snapshot.scale
+            }
+            direction={
+              snapshot === null ? "updown" : snapshot.traversal.direction
+            }
             degreesEnabled={selection.degreesEnabled}
             soundingPitchClass={soundingPitchClass}
           />
@@ -594,6 +662,8 @@ export function App(props: {
           <TraversalSheet
             open={traversalSheetOpen}
             traversal={snapshot.traversal}
+            effectiveShape={snapshot.effectiveShape}
+            arpeggioOffered={snapshot.scale.offersArpeggio}
             effectiveOctaves={snapshot.effectiveOctaves}
             fittingCounts={snapshot.fittingCounts}
             settings={snapshot.settings}
@@ -606,6 +676,13 @@ export function App(props: {
             tempoBpm={snapshot.settings.tempoBpm}
             onPick={handlePickTempo}
             onClose={handleCloseTempoSheet}
+          />
+          <ScaleSheet
+            open={scaleSheetOpen}
+            key_={selectedKey}
+            chosenId={snapshot.scale.id}
+            onPick={handlePickScale}
+            onClose={handleCloseScaleSheet}
           />
         </>
       )}

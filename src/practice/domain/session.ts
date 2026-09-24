@@ -14,7 +14,10 @@ import type {
   Note,
   OctaveCount,
   Octaves,
+  Scale,
   SequenceNote,
+  Shape,
+  SpelledScale,
   Traversal,
   Variant,
 } from "../../theory/published";
@@ -23,8 +26,10 @@ import {
   fittingOctaveCounts,
   noteLabel,
   pitchHzOf,
-  runOf,
-  sequenceOf,
+  pitchPosition,
+  scaleById,
+  spelledScaleOf,
+  traversalOf,
 } from "../../theory/published";
 import type { TickPlan } from "../adapters/lookahead-scheduler";
 import { createLookaheadScheduler } from "../adapters/lookahead-scheduler";
@@ -33,6 +38,8 @@ import type { Result } from "../ports/result";
 import type { SoundPort } from "../ports/sound";
 import type { VisibilityPort } from "../ports/visibility";
 import type { WakeLockPort } from "../ports/wake-lock";
+import type { ScaleChoice } from "./scale-choice";
+import { chosenScaleIdFor } from "./scale-choice";
 import type { SessionSettings } from "./settings";
 import { summaryLineOf } from "./settings";
 import type { TempoTerm } from "./tempo";
@@ -73,6 +80,10 @@ export interface SessionSnapshot {
   readonly tempoTerm: TempoTerm;
   readonly soundingPosition: number | null;
   readonly notice: "sound-unavailable" | null;
+  readonly scale: Scale;
+  readonly spelledScale: SpelledScale;
+  readonly scaleChoice: ScaleChoice;
+  readonly effectiveShape: Shape;
 }
 
 export interface Session {
@@ -81,6 +92,7 @@ export interface Session {
   stop(): void;
   setContext(context: SessionContext): void;
   setTraversal(traversal: Traversal): void;
+  setScaleChoice(choice: ScaleChoice): void;
   setSettings(settings: SessionSettings): void;
   onTargetAdvanced(listener: (event: TargetAdvanced) => void): () => void;
   onChange(listener: () => void): () => void;
@@ -111,6 +123,25 @@ export const FIRST_TICK_LEAD_MS = 20;
 // highlight; a lead this small is imperceptible.
 export const HIGHLIGHT_LEAD_MS = 20;
 
+// The run's extremes by pitch, not by array position (T008) — a
+// written-out split-direction run (e.g. classical melodic minor's ↑↓,
+// REQ-012/S6) ends on the tonic it started on, so `run[0]`/`run[last]`
+// would both be the tonic instead of the run's actual lowest and highest
+// note.
+function extremesOf(
+  run: readonly KeyViewNote[],
+): { readonly lowest: KeyViewNote; readonly highest: KeyViewNote } | null {
+  const [first, ...rest] = run;
+  if (first === undefined) return null;
+  let lowest = first;
+  let highest = first;
+  for (const note of rest) {
+    if (pitchPosition(note.note) < pitchPosition(lowest.note)) lowest = note;
+    if (pitchPosition(note.note) > pitchPosition(highest.note)) highest = note;
+  }
+  return { lowest, highest };
+}
+
 function captionOf(
   transport: TransportState,
   run: readonly KeyViewNote[],
@@ -119,10 +150,9 @@ function captionOf(
 ): string {
   switch (transport.kind) {
     case "idle": {
-      const first = run[0];
-      const last = run[run.length - 1];
-      if (first === undefined || last === undefined) return "";
-      return `${sequence.length} notes · ${noteLabel(first.note)}–${noteLabel(last.note)}`;
+      const extremes = extremesOf(run);
+      if (extremes === null) return "";
+      return `${sequence.length} notes · ${noteLabel(extremes.lowest.note)}–${noteLabel(extremes.highest.note)}`;
     }
     case "countingIn":
       return `COUNT IN · ${transport.beatsLeft}`;
@@ -155,12 +185,13 @@ function transportEqual(a: TransportState, b: TransportState): boolean {
 
 // The fields a listener can actually observe (T032) — everything else on
 // `SessionSnapshot` (effectiveOctaves, fittingCounts, sequence, summaryLine,
-// tempoTerm) is derived from `settings`/`traversal`/`run`, already compared
-// here, so it can never disagree without one of these disagreeing too.
-// `settings`, `traversal` and `run` compare by reference: each is only ever
-// reassigned by `setSettings`/`setTraversal`/`recompute()`, never mutated in
-// place, so a changed reference always means a real change and an unchanged
-// one always means none.
+// tempoTerm, scale, spelledScale, effectiveShape) is derived from
+// `settings`/`traversal`/`run`/`scaleChoice`, already compared here, so it
+// can never disagree without one of these disagreeing too. `settings`,
+// `traversal`, `run` and `scaleChoice` compare by reference: each is only
+// ever reassigned by `setSettings`/`setTraversal`/`setScaleChoice`/
+// `recompute()`, never mutated in place, so a changed reference always
+// means a real change and an unchanged one always means none.
 function snapshotsMateriallyEqual(
   a: SessionSnapshot,
   b: SessionSnapshot,
@@ -173,13 +204,15 @@ function snapshotsMateriallyEqual(
     a.notice === b.notice &&
     a.settings === b.settings &&
     a.traversal === b.traversal &&
-    a.run === b.run
+    a.run === b.run &&
+    a.scaleChoice === b.scaleChoice
   );
 }
 
 export function createSession(
   context: SessionContext,
   traversal: Traversal,
+  scaleChoice: ScaleChoice,
   settings: SessionSettings,
   deps: SessionDeps,
 ): Session {
@@ -188,6 +221,7 @@ export function createSession(
 
   let currentContext = context;
   let currentTraversal = traversal;
+  let currentScaleChoice = scaleChoice;
   let currentSettings = settings;
   let transport: TransportState = { kind: "idle" };
   let soundingPosition: number | null = null;
@@ -228,22 +262,44 @@ export function createSession(
   let sequence: readonly SequenceNote[] = [];
   let effectiveOctaves: Octaves = { kind: "full" };
   let fittingCounts: readonly OctaveCount[] = [];
+  let scale: Scale = scaleById(
+    chosenScaleIdFor(currentScaleChoice, currentContext.key.mode),
+  );
+  let spelledScale: SpelledScale = spelledScaleOf(currentContext.key, scale);
+  // The shape actually traversed (REQ-012): the traversal's stored shape,
+  // except arpeggio falls back to scale for a scale the catalogue does not
+  // mark as offering one — the stored traversal itself never changes, only
+  // what recompute() derives from it.
+  let effectiveShape: Shape = currentTraversal.shape;
 
   const changeListeners = new Set<() => void>();
   const targetAdvancedListeners = new Set<(event: TargetAdvanced) => void>();
 
   function recompute(): void {
-    run = runOf(currentContext.key, currentContext.variant, currentTraversal);
-    sequence = sequenceOf(run, currentTraversal.direction);
+    scale = scaleById(
+      chosenScaleIdFor(currentScaleChoice, currentContext.key.mode),
+    );
+    effectiveShape = scale.offersArpeggio ? currentTraversal.shape : "scale";
+    const traversalNotes = traversalOf(
+      currentContext.key,
+      currentContext.variant,
+      scale,
+      { ...currentTraversal, shape: effectiveShape },
+    );
+    run = traversalNotes.run;
+    sequence = traversalNotes.sequence;
     effectiveOctaves = effectiveOctavesOf(
       currentContext.key,
       currentContext.variant,
+      scale,
       currentTraversal.octaves,
     );
     fittingCounts = fittingOctaveCounts(
       currentContext.key,
       currentContext.variant,
+      scale,
     );
+    spelledScale = spelledScaleOf(currentContext.key, scale);
   }
 
   recompute();
@@ -510,11 +566,16 @@ export function createSession(
       summaryLine: summaryLineOf(
         currentTraversal,
         effectiveOctaves,
+        effectiveShape,
         currentSettings,
       ),
       tempoTerm: tempoTermFor(currentSettings.tempoBpm),
       soundingPosition,
       notice,
+      scale,
+      spelledScale,
+      scaleChoice: currentScaleChoice,
+      effectiveShape,
     };
   }
 
@@ -614,6 +675,14 @@ export function createSession(
     notifyChange();
   }
 
+  function setScaleChoice(choice: ScaleChoice): void {
+    invalidateSnapshot();
+    currentScaleChoice = choice;
+    recompute();
+    restartIfPlaying();
+    notifyChange();
+  }
+
   function setSettings(newSettings: SessionSettings): void {
     invalidateSnapshot();
     currentSettings = newSettings;
@@ -648,6 +717,7 @@ export function createSession(
     stop,
     setContext,
     setTraversal,
+    setScaleChoice,
     setSettings,
     onTargetAdvanced,
     onChange,

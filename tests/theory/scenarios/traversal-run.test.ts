@@ -3,7 +3,8 @@ import {
   builtInCatalogue,
   effectiveOctavesOf,
   fittingOctaveCounts,
-  runOf,
+  scaleById,
+  traversalOf,
 } from "../../../src/theory/published";
 
 const variantById = (id: string) =>
@@ -19,20 +20,26 @@ const label = (note: { letter: string; accidental: string; octave: number }) =>
 
 test("theory.circle-of-fifths/REQ-012/S2 — which counts fit", () => {
   const flute = variantById("flute-concert");
-  expect(fittingOctaveCounts(major("C"), flute)).toEqual([1, 2, 3]);
-  expect(fittingOctaveCounts(major("G"), flute)).toEqual([1, 2]);
+  const majorScale = scaleById("major");
+  expect(fittingOctaveCounts(major("C"), flute, majorScale)).toEqual([1, 2, 3]);
+  expect(fittingOctaveCounts(major("G"), flute, majorScale)).toEqual([1, 2]);
   expect(
-    fittingOctaveCounts(major("F", "sharp"), variantById("ocarina-bass-c")),
+    fittingOctaveCounts(
+      major("F", "sharp"),
+      variantById("ocarina-bass-c"),
+      majorScale,
+    ),
   ).toEqual([]);
 });
 
 test("theory.circle-of-fifths/REQ-012/S3 — an arpeggio keeps the chord tones wherever they fall", () => {
   const flute = variantById("flute-concert");
-  const full = runOf(major("G"), flute, {
+  const majorScale = scaleById("major");
+  const full = traversalOf(major("G"), flute, majorScale, {
     direction: "up",
     octaves: { kind: "full" },
     shape: "arpeggio",
-  });
+  }).run;
   expect(full.map((n) => label(n.note))).toEqual([
     "D4",
     "G4",
@@ -44,26 +51,60 @@ test("theory.circle-of-fifths/REQ-012/S3 — an arpeggio keeps the chord tones w
     "G6",
     "B6",
   ]);
-  const one = runOf(major("G"), flute, {
+  const one = traversalOf(major("G"), flute, majorScale, {
     direction: "up",
     octaves: { kind: "count", count: 1 },
     shape: "arpeggio",
-  });
+  }).run;
   expect(one.map((n) => label(n.note))).toEqual(["G4", "B4", "D5", "G5"]);
 });
 
 test("theory.circle-of-fifths/REQ-012 — the clamp falls back to the largest fitting count", () => {
+  const majorScale = scaleById("major");
   expect(
-    runOf(major("C"), variantById("ocarina-alto-c"), {
+    traversalOf(major("C"), variantById("ocarina-alto-c"), majorScale, {
       direction: "up",
       octaves: { kind: "count", count: 3 },
       shape: "scale",
-    }).map((n) => label(n.note)),
+    }).run.map((n) => label(n.note)),
   ).toEqual(["C5", "D5", "E5", "F5", "G5", "A5", "B5", "C6"]);
   expect(
-    effectiveOctavesOf(major("C"), variantById("ocarina-alto-c"), {
+    effectiveOctavesOf(major("C"), variantById("ocarina-alto-c"), majorScale, {
       kind: "count",
       count: 3,
     }),
   ).toEqual({ kind: "count", count: 1 });
+});
+
+test("theory.circle-of-fifths/REQ-012/S7 — a scale with fewer notes per octave", () => {
+  const { run } = traversalOf(
+    major("G"),
+    variantById("flute-concert"),
+    scaleById("major-pentatonic"),
+    {
+      direction: "up",
+      octaves: { kind: "count", count: 2 },
+      shape: "scale",
+    },
+  );
+  expect(run.map((n) => label(n.note))).toEqual([
+    "G4",
+    "A4",
+    "B4",
+    "D5",
+    "E5",
+    "G5",
+    "A5",
+    "B5",
+    "D6",
+    "E6",
+    "G6",
+  ]);
+  expect(
+    fittingOctaveCounts(
+      major("G"),
+      variantById("flute-concert"),
+      scaleById("major-pentatonic"),
+    ),
+  ).toEqual([1, 2]);
 });

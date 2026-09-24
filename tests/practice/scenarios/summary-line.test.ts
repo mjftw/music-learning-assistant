@@ -13,6 +13,7 @@ test("practice.session/REQ-001/S2 — the summary line", () => {
         shape: "scale",
       },
       { kind: "count", count: 2 },
+      "scale",
       defaultSessionSettings,
     ),
   ).toBe("↑↓ · 2 oct · scale · loop");
@@ -21,6 +22,7 @@ test("practice.session/REQ-001/S2 — the summary line", () => {
     summaryLineOf(
       { direction: "updown", octaves: { kind: "full" }, shape: "scale" },
       { kind: "full" },
+      "scale",
       { ...defaultSessionSettings, soundMode: "metronome", loop: false },
     ),
   ).toBe("↑↓ · full range · click only · once");

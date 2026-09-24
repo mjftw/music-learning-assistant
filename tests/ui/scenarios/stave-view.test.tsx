@@ -3,8 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test } from "vitest";
 import {
   builtInCatalogue,
-  runOf,
+  inlineAccidentalsOf,
+  scaleById,
+  signatureOf,
+  traversalOf,
+  type Accidental,
   type Key,
+  type ScaleId,
 } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
@@ -48,11 +53,11 @@ const flute = () =>
     .find((variant) => variant.variantId === "flute-concert")!;
 
 test("theory.circle-of-fifths/REQ-003/S1 — G major on the flute (acceptance)", () => {
-  const notes = runOf(gMajor, flute(), {
+  const notes = traversalOf(gMajor, flute(), scaleById("major"), {
     direction: "updown",
     octaves: { kind: "full" },
     shape: "scale",
-  });
+  }).run;
 
   render(
     <StaveView
@@ -82,11 +87,11 @@ test("theory.circle-of-fifths/REQ-003/S1 — G major on the flute (acceptance)",
 });
 
 test("theory.circle-of-fifths/REQ-003/S4 — the stave shows the traversal's run, the summary the key", () => {
-  const notes = runOf(gMajor, flute(), {
+  const notes = traversalOf(gMajor, flute(), scaleById("major"), {
     direction: "updown",
     octaves: { kind: "count", count: 2 },
     shape: "arpeggio",
-  });
+  }).run;
 
   render(
     <StaveView
@@ -112,11 +117,11 @@ test("theory.circle-of-fifths/REQ-003/S4 — the stave shows the traversal's run
 });
 
 test("practice.session/REQ-006/S1 — the sounding note is accented, enlarged and haloed; the rest are dimmed", () => {
-  const notes = runOf(gMajor, flute(), {
+  const notes = traversalOf(gMajor, flute(), scaleById("major"), {
     direction: "updown",
     octaves: { kind: "count", count: 2 },
     shape: "arpeggio",
-  });
+  }).run;
 
   const { rerender } = render(
     <StaveView
@@ -202,6 +207,77 @@ test("theory.circle-of-fifths/REQ-007/S1 — switching views shows noteheads wit
   expect(screen.queryAllByTestId("stave-note-name")).toHaveLength(0);
 });
 
+test("theory.circle-of-fifths/REQ-003/S6 (UI) — a split-direction scale is written out with held accidentals", () => {
+  const gMinor: Key = {
+    tonic: { letter: "G", accidental: "natural" },
+    mode: "naturalMinor",
+  };
+  const { run } = traversalOf(
+    gMinor,
+    flute(),
+    scaleById("melodic-minor-classical"),
+    {
+      direction: "updown",
+      octaves: { kind: "count", count: 1 },
+      shape: "scale",
+    },
+  );
+
+  render(
+    <StaveView
+      key_={gMinor}
+      variant={flute()}
+      notes={run}
+      staveNamesEnabled={false}
+      soundingRunIndex={null}
+      playing={false}
+    />,
+  );
+
+  expect(screen.getAllByTestId("stave-note")).toHaveLength(15);
+  expect(
+    screen
+      .getAllByTestId("inline-accidental")
+      .map((glyph) => [
+        glyph.getAttribute("data-run-index"),
+        glyph.getAttribute("data-glyph"),
+      ]),
+  ).toEqual([
+    ["5", "♮"],
+    ["6", "♯"],
+    ["8", "♮"],
+    ["9", "♭"],
+  ]);
+});
+
+test("theory.circle-of-fifths/REQ-003/S3 (UI, stave) — Lydian's C♯ carries an inline sharp", () => {
+  const { run } = traversalOf(gMajor, flute(), scaleById("lydian"), {
+    direction: "up",
+    octaves: { kind: "count", count: 1 },
+    shape: "scale",
+  });
+
+  render(
+    <StaveView
+      key_={gMajor}
+      variant={flute()}
+      notes={run}
+      staveNamesEnabled={false}
+      soundingRunIndex={null}
+      playing={false}
+    />,
+  );
+
+  expect(
+    screen
+      .getAllByTestId("inline-accidental")
+      .map((glyph) => [
+        glyph.getAttribute("data-run-index"),
+        glyph.getAttribute("data-glyph"),
+      ]),
+  ).toEqual([["3", "♯"]]);
+});
+
 test("theory.circle-of-fifths/REQ-007/S2 — stave names on demand, and the choice sticks", async () => {
   setup();
   await enterStaveView();
@@ -214,4 +290,183 @@ test("theory.circle-of-fifths/REQ-007/S2 — stave names on demand, and the choi
 
   expect(screen.getAllByTestId("stave-note-name").length).toBeGreaterThan(0);
   expect(screen.getAllByTestId("stave-note").length).toBeGreaterThan(0);
+});
+
+test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is exactly the new run", () => {
+  const gMinor: Key = {
+    tonic: { letter: "G", accidental: "natural" },
+    mode: "naturalMinor",
+  };
+  const aMinor: Key = {
+    tonic: { letter: "A", accidental: "natural" },
+    mode: "naturalMinor",
+  };
+  const oneOctUpDown = {
+    direction: "updown",
+    octaves: { kind: "count", count: 1 },
+    shape: "scale",
+  } as const;
+  const runFor = (key: Key, id: ScaleId) =>
+    traversalOf(key, flute(), scaleById(id), oneOctUpDown).run;
+  const dataNotes = () =>
+    screen
+      .getAllByTestId("stave-note")
+      .map((head) => head.getAttribute("data-note"));
+
+  const { rerender } = render(
+    <StaveView
+      key_={gMinor}
+      variant={flute()}
+      notes={runFor(gMinor, "melodic-minor-classical")}
+      staveNamesEnabled
+      soundingRunIndex={null}
+      playing={false}
+    />,
+  );
+  // Given: G minor, melodic minor classical, ↑↓, 1 oct — a written-out run
+  // that repeats G4, D5 and other labels (the scenario's premise).
+  expect(dataNotes()).toHaveLength(15);
+  expect(
+    screen.getAllByTestId("stave-note-name").map((n) => n.textContent),
+  ).toEqual([
+    "G",
+    "A",
+    "B♭",
+    "C",
+    "D",
+    "E",
+    "F♯",
+    "G",
+    "F",
+    "E♭",
+    "D",
+    "C",
+    "B♭",
+    "A",
+    "G",
+  ]);
+
+  // When the key changes to A minor (still melodic minor classical, ↑↓):
+  // exactly that run, and nothing from the G minor run remains.
+  rerender(
+    <StaveView
+      key_={aMinor}
+      variant={flute()}
+      notes={runFor(aMinor, "melodic-minor-classical")}
+      staveNamesEnabled
+      soundingRunIndex={null}
+      playing={false}
+    />,
+  );
+  expect(dataNotes()).toEqual([
+    "A4",
+    "B4",
+    "C5",
+    "D5",
+    "E5",
+    "F♯5",
+    "G♯5",
+    "A5",
+    "G5",
+    "F5",
+    "E5",
+    "D5",
+    "C5",
+    "B4",
+    "A4",
+  ]);
+  expect(
+    screen.getAllByTestId("stave-note-name").map((n) => n.textContent),
+  ).toEqual([
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F♯",
+    "G♯",
+    "A",
+    "G",
+    "F",
+    "E",
+    "D",
+    "C",
+    "B",
+    "A",
+  ]);
+
+  // Then Natural minor is chosen.
+  rerender(
+    <StaveView
+      key_={aMinor}
+      variant={flute()}
+      notes={runFor(aMinor, "natural-minor")}
+      staveNamesEnabled
+      soundingRunIndex={null}
+      playing={false}
+    />,
+  );
+  expect(dataNotes()).toEqual(["A4", "B4", "C5", "D5", "E5", "F5", "G5", "A5"]);
+  expect(
+    screen.getAllByTestId("stave-note-name").map((n) => n.textContent),
+  ).toEqual(["A", "B", "C", "D", "E", "F", "G", "A"]);
+
+  // Then Harmonic minor.
+  rerender(
+    <StaveView
+      key_={aMinor}
+      variant={flute()}
+      notes={runFor(aMinor, "harmonic-minor")}
+      staveNamesEnabled
+      soundingRunIndex={null}
+      playing={false}
+    />,
+  );
+  expect(dataNotes()).toEqual([
+    "A4",
+    "B4",
+    "C5",
+    "D5",
+    "E5",
+    "F5",
+    "G♯5",
+    "A5",
+  ]);
+  expect(
+    screen.getAllByTestId("stave-note-name").map((n) => n.textContent),
+  ).toEqual(["A", "B", "C", "D", "E", "F", "G♯", "A"]);
+
+  // Then Blues — the seven noteheads the scenario names, and nothing from
+  // an earlier run.
+  const bluesRun = runFor(aMinor, "blues");
+  rerender(
+    <StaveView
+      key_={aMinor}
+      variant={flute()}
+      notes={bluesRun}
+      staveNamesEnabled
+      soundingRunIndex={null}
+      playing={false}
+    />,
+  );
+  expect(dataNotes()).toEqual(["A4", "C5", "D5", "E♭5", "E5", "G5", "A5"]);
+  expect(
+    screen.getAllByTestId("stave-note-name").map((n) => n.textContent),
+  ).toEqual(["A", "C", "D", "E♭", "E", "G", "A"]);
+
+  const glyphOf: Record<Accidental, string> = {
+    doubleFlat: "𝄫",
+    flat: "♭",
+    natural: "♮",
+    sharp: "♯",
+    doubleSharp: "𝄪",
+  };
+  const expectedGlyphs = inlineAccidentalsOf(signatureOf(aMinor), bluesRun)
+    .filter((accidental): accidental is Accidental => accidental !== null)
+    .map((accidental) => glyphOf[accidental]);
+  expect(
+    screen
+      .getAllByTestId("inline-accidental")
+      .map((glyph) => glyph.getAttribute("data-glyph")),
+  ).toEqual(expectedGlyphs);
 });

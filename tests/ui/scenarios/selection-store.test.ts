@@ -7,11 +7,11 @@ import {
 
 const storageKey = "music-learning-assistant.selection.v1";
 
-test("a v3 payload round-trips (practice.session/REQ-011/S1, theory.circle-of-fifths/REQ-008/S1)", () => {
+test("a v4 payload round-trips (practice.session/REQ-011/S1, theory.circle-of-fifths/REQ-008/S1)", () => {
   localStorage.clear();
   const store = localStorageSelectionStore(localStorage);
   const selection: StoredSelection = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     variantId: "ocarina-bass-c",
     keyId: "Bb-major",
     spelling: "flat",
@@ -27,9 +27,58 @@ test("a v3 payload round-trips (practice.session/REQ-011/S1, theory.circle-of-fi
       restBar: true,
       tempoBpm: 132,
     },
+    scale: { major: "lydian", minor: "dorian" },
   };
   store.save(selection);
   expect(store.load()).toEqual(selection);
+});
+
+test("a v3 payload migrates: everything kept, scale defaults to Major / Natural minor (practice.session/REQ-011/S4)", () => {
+  localStorage.clear();
+  localStorage.setItem(
+    storageKey,
+    JSON.stringify({
+      schemaVersion: 3,
+      variantId: "flute-concert",
+      keyId: "G-major",
+      spelling: "sharp",
+      view: "stave",
+      degreesEnabled: true,
+      distanceRingEnabled: false,
+      staveNamesEnabled: true,
+      traversal: { direction: "down", octaves: 2, shape: "arpeggio" },
+      session: {
+        soundMode: "notes",
+        loop: false,
+        countIn: true,
+        restBar: false,
+        tempoBpm: 120,
+      },
+    }),
+  );
+  const loaded = localStorageSelectionStore(localStorage).load();
+  expect(loaded?.schemaVersion).toBe(4);
+  expect(loaded?.scale).toEqual({ major: "major", minor: "natural-minor" });
+  expect(loaded?.traversal).toEqual({
+    direction: "down",
+    octaves: 2,
+    shape: "arpeggio",
+  });
+  expect(loaded?.session.tempoBpm).toBe(120);
+});
+
+test("an unknown scale id makes the payload unreadable → null (practice.session/REQ-011)", () => {
+  localStorage.clear();
+  localStorage.setItem(
+    storageKey,
+    JSON.stringify({
+      ...firstRunDefaults,
+      variantId: "flute-concert",
+      keyId: "C-major",
+      scale: { major: "ionian", minor: "natural-minor" },
+    }),
+  );
+  expect(localStorageSelectionStore(localStorage).load()).toBeNull();
 });
 
 test("a v2 payload migrates: preferences kept, traversal and session default, span dropped (practice.session/REQ-011/S3, theory.circle-of-fifths/REQ-008/S4)", () => {
@@ -50,7 +99,7 @@ test("a v2 payload migrates: preferences kept, traversal and session default, sp
   );
   const loaded = localStorageSelectionStore(localStorage).load();
   expect(loaded).toEqual({
-    schemaVersion: 3,
+    schemaVersion: 4,
     variantId: "ocarina-bass-c",
     keyId: "Bb-major",
     spelling: "flat",
@@ -60,6 +109,7 @@ test("a v2 payload migrates: preferences kept, traversal and session default, sp
     staveNamesEnabled: true,
     traversal: firstRunDefaults.traversal,
     session: firstRunDefaults.session,
+    scale: firstRunDefaults.scale,
   });
   expect(loaded).not.toHaveProperty("span");
 });
@@ -87,7 +137,7 @@ test("empty storage loads as null; first-run defaults match the spec (practice.s
   localStorage.clear();
   expect(localStorageSelectionStore(localStorage).load()).toBeNull();
   expect(firstRunDefaults).toEqual({
-    schemaVersion: 3,
+    schemaVersion: 4,
     spelling: "sharp",
     view: "names",
     degreesEnabled: true,
@@ -101,6 +151,7 @@ test("empty storage loads as null; first-run defaults match the spec (practice.s
       restBar: false,
       tempoBpm: 96,
     },
+    scale: { major: "major", minor: "natural-minor" },
   });
 });
 

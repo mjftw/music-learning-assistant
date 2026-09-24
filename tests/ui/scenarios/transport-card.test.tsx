@@ -2,12 +2,15 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test, vi } from "vitest";
 import {
+  defaultScaleChoice,
   defaultSessionSettings,
   defaultTraversal,
   type SessionSnapshot,
   type TempoTerm,
 } from "../../../src/practice/published";
+import { scaleById, spelledScaleOf } from "../../../src/theory/published";
 import { TransportCard } from "../../../src/ui/TransportCard";
+import { keyOf } from "../../practice/fakes";
 
 afterEach(() => {
   cleanup();
@@ -19,6 +22,11 @@ const andante: TempoTerm = {
   toBpm: 107,
   gloss: "walking pace",
 };
+
+// TransportCard renders none of the scale fields (they exist on
+// SessionSnapshot for other views, T008) — these are just valid
+// placeholders so the fixture satisfies the type.
+const defaultScale = scaleById("major");
 
 function baseSnapshot(
   overrides: Partial<SessionSnapshot> = {},
@@ -37,6 +45,10 @@ function baseSnapshot(
     tempoTerm: andante,
     soundingPosition: null,
     notice: null,
+    scale: defaultScale,
+    spelledScale: spelledScaleOf(keyOf("C"), defaultScale),
+    scaleChoice: defaultScaleChoice,
+    effectiveShape: defaultTraversal.shape,
     ...overrides,
   };
 }

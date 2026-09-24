@@ -1,11 +1,12 @@
 import { z } from "zod";
-import type { Direction, Shape } from "../theory/published";
+import type { Direction, ScaleId, Shape } from "../theory/published";
+import { defaultScaleChoice } from "../practice/published";
 import type { SoundMode } from "../practice/published";
 
 export type StoredOctaves = "full" | 1 | 2 | 3 | 4;
 
 export interface StoredSelection {
-  readonly schemaVersion: 3;
+  readonly schemaVersion: 4;
   readonly variantId: string;
   readonly keyId: string;
   readonly spelling: "sharp" | "flat";
@@ -25,10 +26,11 @@ export interface StoredSelection {
     readonly restBar: boolean;
     readonly tempoBpm: number;
   };
+  readonly scale: { readonly major: ScaleId; readonly minor: ScaleId };
 }
 
 export const firstRunDefaults: Omit<StoredSelection, "variantId" | "keyId"> = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   spelling: "sharp",
   view: "names",
   degreesEnabled: true,
@@ -42,6 +44,7 @@ export const firstRunDefaults: Omit<StoredSelection, "variantId" | "keyId"> = {
     restBar: false,
     tempoBpm: 96,
   },
+  scale: defaultScaleChoice,
 };
 
 export interface SelectionStore {
@@ -63,6 +66,30 @@ const directionSchema = z.enum(["up", "down", "updown"]);
 const shapeSchema = z.enum(["scale", "arpeggio"]);
 const soundModeSchema = z.enum(["notes", "both", "metronome"]);
 
+// The sixteen catalogued scale ids (theory/published `ScaleId`, T002), in
+// catalogue order. Zod has no way to derive an enum from a TS union type at
+// runtime, so this list is kept in sync with `ScaleId` by hand, the same way
+// `directionSchema`/`shapeSchema` above shadow their own theory-published
+// unions.
+const scaleIdSchema = z.enum([
+  "major",
+  "major-pentatonic",
+  "lydian",
+  "mixolydian",
+  "harmonic-major",
+  "natural-minor",
+  "harmonic-minor",
+  "melodic-minor-classical",
+  "melodic-minor-jazz",
+  "minor-pentatonic",
+  "blues",
+  "dorian",
+  "phrygian",
+  "locrian",
+  "whole-tone",
+  "chromatic",
+]);
+
 const storedSelectionV3Schema = z.object({
   schemaVersion: z.literal(3),
   variantId: z.string(),
@@ -83,6 +110,14 @@ const storedSelectionV3Schema = z.object({
     countIn: z.boolean(),
     restBar: z.boolean(),
     tempoBpm: z.number().int().min(40).max(200),
+  }),
+});
+
+const storedSelectionV4Schema = storedSelectionV3Schema.extend({
+  schemaVersion: z.literal(4),
+  scale: z.object({
+    major: scaleIdSchema,
+    minor: scaleIdSchema,
   }),
 });
 
@@ -108,18 +143,40 @@ const storedSelectionV1Schema = z.object({
 });
 
 const storedSelectionSchema = z.union([
+  storedSelectionV4Schema,
   storedSelectionV3Schema,
   storedSelectionV2Schema,
   storedSelectionV1Schema,
 ]);
 
+// Adds `scale` at its first-run defaults (REQ-011/S4) — every v3 field
+// carries forward as-is; scale choice did not exist before this change.
+function migrateFromV3(
+  v3: z.infer<typeof storedSelectionV3Schema>,
+): StoredSelection {
+  return {
+    schemaVersion: 4,
+    variantId: v3.variantId,
+    keyId: v3.keyId,
+    spelling: v3.spelling,
+    view: v3.view,
+    degreesEnabled: v3.degreesEnabled,
+    distanceRingEnabled: v3.distanceRingEnabled,
+    staveNamesEnabled: v3.staveNamesEnabled,
+    traversal: v3.traversal,
+    session: v3.session,
+    scale: firstRunDefaults.scale,
+  };
+}
+
 // Drops span (REQ-012 supersedes it) and adds the traversal and session
 // groups at their first-run defaults — the v2 preferences it carries are
-// otherwise kept as-is.
+// otherwise kept as-is. Chains through `migrateFromV3` for the `scale`
+// default, the same way `migrateFromV1` chains through this function.
 function migrateFromV2(
   v2: z.infer<typeof storedSelectionV2Schema>,
 ): StoredSelection {
-  return {
+  return migrateFromV3({
     schemaVersion: 3,
     variantId: v2.variantId,
     keyId: v2.keyId,
@@ -130,7 +187,7 @@ function migrateFromV2(
     staveNamesEnabled: v2.staveNamesEnabled,
     traversal: firstRunDefaults.traversal,
     session: firstRunDefaults.session,
-  };
+  });
 }
 
 // Chains through v2: only the ids carry forward, everything else takes
@@ -166,6 +223,8 @@ export function localStorageSelectionStore(storage: Storage): SelectionStore {
           case 2:
             return migrateFromV2(result.data);
           case 3:
+            return migrateFromV3(result.data);
+          case 4:
             return result.data;
         }
       } catch {
