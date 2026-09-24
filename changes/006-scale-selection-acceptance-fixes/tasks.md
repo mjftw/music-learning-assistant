@@ -199,7 +199,7 @@ Shared conventions: tests import only from `src/theory/published`, `src/practice
 
 ### T007 · theory.circle-of-fifths/REQ-003 · S7 asserts the note names too
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: `tests/ui/scenarios/stave-view.test.tsx` (the REQ-003/S7 test)
@@ -212,7 +212,7 @@ Shared conventions: tests import only from `src/theory/published`, `src/practice
 
 ### T008 · — · Converge round 3
 
-**Status:** todo
+**Status:** in-progress
 
 **Steps**
 - [ ] 1. Run `sdd-converge`.
