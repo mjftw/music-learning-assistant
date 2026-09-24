@@ -115,7 +115,6 @@ descending form's notes that differ, in playing order
   with the leading tone always ♯7; this keeps every spelling within a
   double accidental — A♯ minor's would otherwise need a triple sharp.)
 
-**Was:** _(none — this requirement is new)_
 
 **Was:**
 > THE SYSTEM SHALL let the learner choose a scale from a catalogue for the

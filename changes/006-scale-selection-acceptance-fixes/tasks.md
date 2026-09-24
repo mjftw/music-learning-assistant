@@ -16,7 +16,7 @@ verified:
     at: 2026-09-24T07:56:34Z
 sdd_id: 006-scale-selection-acceptance-fixes
 sdd_context: practice
-sdd_phase: in-progress
+sdd_phase: complete
 ---
 
 # Tasks: scale-selection-acceptance-fixes
@@ -212,7 +212,7 @@ Shared conventions: tests import only from `src/theory/published`, `src/practice
 
 ### T008 · — · Converge round 3
 
-**Status:** in-progress
+**Status:** done
 
 **Steps**
 - [ ] 1. Run `sdd-converge`.
