@@ -1,6 +1,8 @@
 import type { JSX } from "react";
 import {
+  inlineAccidentalsOf,
   signatureOf,
+  type Accidental,
   type Key,
   type KeyViewNote,
   type Note,
@@ -75,6 +77,25 @@ const FLAT_STAFF_STEPS: readonly number[] = [2, 0.5, 2.5, 1, 3, 1.5, 3.5];
 const SHARP_GLYPH_CHAR = "♯";
 const FLAT_GLYPH_CHAR = "♭";
 
+// Inline accidentals (theory.circle-of-fifths/REQ-003) — geometry copied
+// verbatim from the vendored reference's `buildStave()` `accs` entries
+// (changes/005-scale-selection/design/hear-the-scale.dc.html): offset left
+// of the notehead, nudged up for a flat/double-flat's descender, sized off
+// the notehead radius, in the same font as the clef.
+const INLINE_ACCIDENTAL_X_OFFSET = 6.5;
+const INLINE_ACCIDENTAL_LOWERED_Y_ADJUST = -3;
+const INLINE_ACCIDENTAL_SIZE_RATIO = 2.7;
+const ACCIDENTAL_GLYPH: Record<Accidental, string> = {
+  doubleFlat: "𝄫",
+  flat: "♭",
+  natural: "♮",
+  sharp: "♯",
+  doubleSharp: "𝄪",
+};
+function isLowered(accidental: Accidental): boolean {
+  return accidental === "flat" || accidental === "doubleFlat";
+}
+
 // Tonic emphasis (theory.circle-of-fifths/REQ-003) — the same accent used
 // for the newest signature glyph, per the vendored reference.
 const TONIC_INK = paper.accent;
@@ -138,6 +159,16 @@ interface StaveSignatureGlyph {
   readonly accented: boolean;
 }
 
+interface StaveInlineAccidental {
+  readonly x: number;
+  readonly y: number;
+  readonly glyph: string;
+  readonly size: number;
+  readonly ink: string;
+  readonly opacity: number;
+  readonly runIndex: number;
+}
+
 interface StaveGeometry {
   readonly height: number;
   readonly viewBox: string;
@@ -145,6 +176,7 @@ interface StaveGeometry {
   readonly ledgers: readonly StaveLedger[];
   readonly lineYs: readonly number[];
   readonly sig: readonly StaveSignatureGlyph[];
+  readonly accs: readonly StaveInlineAccidental[];
   readonly names: readonly StaveNameLabel[];
   readonly nameRowY: number;
   readonly nameSize: number;
@@ -158,6 +190,7 @@ interface StaveGeometry {
 // system, sizing the box to whatever ledger lines the extremes need.
 function buildStave(
   notes: readonly KeyViewNote[],
+  inlineAccidentals: readonly (Accidental | null)[],
   staffSteps: readonly number[],
   signatureCount: number,
   signatureGlyph: string,
@@ -196,6 +229,7 @@ function buildStave(
   const heads: StaveHead[] = [];
   const ledgers: StaveLedger[] = [];
   const names: StaveNameLabel[] = [];
+  const accs: StaveInlineAccidental[] = [];
 
   notes.forEach((entry, index) => {
     const { note, isRoot } = entry;
@@ -240,6 +274,23 @@ function buildStave(
       isRoot,
     });
 
+    const inlineAccidental = inlineAccidentals[index];
+    if (inlineAccidental != null) {
+      accs.push({
+        x: x - rx - INLINE_ACCIDENTAL_X_OFFSET,
+        y:
+          ny +
+          (isLowered(inlineAccidental)
+            ? INLINE_ACCIDENTAL_LOWERED_Y_ADJUST
+            : 0),
+        glyph: ACCIDENTAL_GLYPH[inlineAccidental],
+        size: Math.round(rx * INLINE_ACCIDENTAL_SIZE_RATIO),
+        ink,
+        opacity,
+        runIndex: index,
+      });
+    }
+
     if (withNames) {
       names.push({
         x,
@@ -283,6 +334,7 @@ function buildStave(
     ledgers,
     lineYs,
     sig,
+    accs,
     names,
     nameRowY,
     nameSize:
@@ -323,9 +375,11 @@ export function StaveView(props: {
     ? SIG_GLYPH_FLAT_SIZE
     : SIG_GLYPH_SHARP_SIZE;
   const signatureGlyphYAdjust = isFlat ? SIG_GLYPH_FLAT_Y_ADJUST : 0;
+  const inlineAccidentals = inlineAccidentalsOf(signature, notes);
 
   const stave = buildStave(
     notes,
+    inlineAccidentals,
     staffSteps,
     signature.count,
     signatureGlyph,
@@ -469,6 +523,28 @@ export function StaveView(props: {
           }}
         >
           {glyph.glyph}
+        </div>
+      ))}
+      {stave.accs.map((acc) => (
+        <div
+          key={acc.runIndex}
+          data-testid="inline-accidental"
+          data-run-index={acc.runIndex}
+          data-glyph={acc.glyph}
+          style={{
+            position: "absolute",
+            left: acc.x,
+            top: acc.y,
+            transform: "translate(-50%,-50%)",
+            fontFamily: fonts.music,
+            fontSize: acc.size,
+            lineHeight: 1,
+            color: acc.ink,
+            opacity: acc.opacity,
+            pointerEvents: "none",
+          }}
+        >
+          {acc.glyph}
         </div>
       ))}
     </div>

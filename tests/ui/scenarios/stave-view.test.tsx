@@ -203,6 +203,77 @@ test("theory.circle-of-fifths/REQ-007/S1 — switching views shows noteheads wit
   expect(screen.queryAllByTestId("stave-note-name")).toHaveLength(0);
 });
 
+test("theory.circle-of-fifths/REQ-003/S6 (UI) — a split-direction scale is written out with held accidentals", () => {
+  const gMinor: Key = {
+    tonic: { letter: "G", accidental: "natural" },
+    mode: "naturalMinor",
+  };
+  const { run } = traversalOf(
+    gMinor,
+    flute(),
+    scaleById("melodic-minor-classical"),
+    {
+      direction: "updown",
+      octaves: { kind: "count", count: 1 },
+      shape: "scale",
+    },
+  );
+
+  render(
+    <StaveView
+      key_={gMinor}
+      variant={flute()}
+      notes={run}
+      staveNamesEnabled={false}
+      soundingRunIndex={null}
+      playing={false}
+    />,
+  );
+
+  expect(screen.getAllByTestId("stave-note")).toHaveLength(15);
+  expect(
+    screen
+      .getAllByTestId("inline-accidental")
+      .map((glyph) => [
+        glyph.getAttribute("data-run-index"),
+        glyph.getAttribute("data-glyph"),
+      ]),
+  ).toEqual([
+    ["5", "♮"],
+    ["6", "♯"],
+    ["8", "♮"],
+    ["9", "♭"],
+  ]);
+});
+
+test("theory.circle-of-fifths/REQ-003/S3 (UI, stave) — Lydian's C♯ carries an inline sharp", () => {
+  const { run } = traversalOf(gMajor, flute(), scaleById("lydian"), {
+    direction: "up",
+    octaves: { kind: "count", count: 1 },
+    shape: "scale",
+  });
+
+  render(
+    <StaveView
+      key_={gMajor}
+      variant={flute()}
+      notes={run}
+      staveNamesEnabled={false}
+      soundingRunIndex={null}
+      playing={false}
+    />,
+  );
+
+  expect(
+    screen
+      .getAllByTestId("inline-accidental")
+      .map((glyph) => [
+        glyph.getAttribute("data-run-index"),
+        glyph.getAttribute("data-glyph"),
+      ]),
+  ).toEqual([["3", "♯"]]);
+});
+
 test("theory.circle-of-fifths/REQ-007/S2 — stave names on demand, and the choice sticks", async () => {
   setup();
   await enterStaveView();
