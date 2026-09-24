@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import {
   builtInCatalogue,
   scaleById,
@@ -302,41 +302,52 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
   const runFor = (id: ScaleId) =>
     traversalOf(gMinor, flute(), scaleById(id), oneOctUpDown).run;
   const heads = () => screen.getAllByTestId("stave-note").length;
-  const { rerender } = render(
-    <StaveView
-      key_={gMinor}
-      variant={flute()}
-      notes={runFor("melodic-minor-classical")}
-      staveNamesEnabled
-      soundingRunIndex={null}
-      playing={false}
-    />,
-  );
-  expect(heads()).toBe(15);
-  for (const [id, count] of [
-    ["natural-minor", 8],
-    ["harmonic-minor", 8],
-    ["blues", 7],
-  ] as const) {
-    rerender(
+  // Make the test load-bearing: `noteLabel`-keyed noteheads don't fail any
+  // count/glyph assertion in jsdom (React still renders every element
+  // despite the duplicate key), so the only observable regression signal is
+  // React's own "same key" console.error — assert on it directly.
+  const errors = vi.spyOn(console, "error");
+  try {
+    const { rerender } = render(
       <StaveView
         key_={gMinor}
         variant={flute()}
-        notes={runFor(id)}
+        notes={runFor("melodic-minor-classical")}
         staveNamesEnabled
         soundingRunIndex={null}
         playing={false}
       />,
     );
-    expect(heads()).toBe(count);
-    expect(screen.getAllByTestId("stave-note-name").length).toBe(count);
+    expect(heads()).toBe(15);
+    expect(errors.mock.calls.flat().join(" ")).not.toMatch(/same key/);
+    for (const [id, count] of [
+      ["natural-minor", 8],
+      ["harmonic-minor", 8],
+      ["blues", 7],
+    ] as const) {
+      rerender(
+        <StaveView
+          key_={gMinor}
+          variant={flute()}
+          notes={runFor(id)}
+          staveNamesEnabled
+          soundingRunIndex={null}
+          playing={false}
+        />,
+      );
+      expect(heads()).toBe(count);
+      expect(screen.getAllByTestId("stave-note-name").length).toBe(count);
+    }
+    expect(errors.mock.calls.flat().join(" ")).not.toMatch(/same key/);
+    // Order derived from inlineAccidentalsOf(signatureOf(gMinor), runFor("blues")) — the
+    // brief's guessed ["♮","♭"] was in the wrong order; the blues run is G4 B♭4 C5 D♭5 D5
+    // F5 G5, so the inline accidentals appear flat (D♭5) then natural (D5).
+    expect(
+      screen
+        .getAllByTestId("inline-accidental")
+        .map((g) => g.getAttribute("data-glyph")),
+    ).toEqual(["♭", "♮"]);
+  } finally {
+    errors.mockRestore();
   }
-  // Order derived from inlineAccidentalsOf(signatureOf(gMinor), runFor("blues")) — the
-  // brief's guessed ["♮","♭"] was in the wrong order; the blues run is G4 B♭4 C5 D♭5 D5
-  // F5 G5, so the inline accidentals appear flat (D♭5) then natural (D5).
-  expect(
-    screen
-      .getAllByTestId("inline-accidental")
-      .map((g) => g.getAttribute("data-glyph")),
-  ).toEqual(["♭", "♮"]);
 });
