@@ -137,7 +137,7 @@ Shared conventions: tests import only from `src/theory/published`, `src/practice
 
 ### T004 · theory.circle-of-fifths/REQ-003 · S7 is behavioural: the run's notes are asserted through a key change; the console spy goes
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: `tests/ui/scenarios/stave-view.test.tsx` (the REQ-003/S7 test)
@@ -154,7 +154,7 @@ Shared conventions: tests import only from `src/theory/published`, `src/practice
 
 ### T005 · practice.session/REQ-012 · A bare ↓ mark, and the direction wiring proven through the app
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/NamesView.tsx` (the `descent-mark` text becomes "↓" alone — the name below it is not repeated in the mark)
@@ -188,7 +188,7 @@ Shared conventions: tests import only from `src/theory/published`, `src/practice
 
 ### T006 · — · Converge round 2
 
-**Status:** todo
+**Status:** in-progress
 
 **Steps**
 - [ ] 1. Run `sdd-converge` again.
