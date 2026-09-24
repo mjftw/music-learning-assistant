@@ -9,6 +9,7 @@ sources:
   - resource: /changes/001-the-circle/proposal.md
   - resource: /changes/002-circle-redesign/proposal.md
   - resource: /changes/003-hear-the-scale/proposal.md
+  - resource: /changes/005-scale-selection/proposal.md
 generated:
   by: process:merge_delta.py
   at: 2026-09-20T18:53:01Z
@@ -19,9 +20,11 @@ verified:
     at: 2026-09-22T15:53:54Z
   - by: human:merlin-webster
     at: 2026-09-23T13:43:59Z
+  - by: human:merlin-webster
+    at: 2026-09-24T04:14:37Z
 sdd_context: theory
 sdd_capability: circle-of-fifths
-sdd_version: 1.0.0
+sdd_version: 1.1.0
 sdd_phase: current
 ---
 
@@ -94,10 +97,16 @@ _Changed by 002-circle-redesign_
 WHEN a key is selected
 THE SYSTEM SHALL display that key's signature — in the circle's centre and
 on the stave view's stave — and, in the stave view, the traversal's run
-(`REQ-012`) ordered lowest to highest with every occurrence of the root
-visually emphasised, together with a summary of how many in-range notes
-the key has and their extremes; and, in the names view, the key's seven
-notes in scale order
+(`REQ-012`) ordered lowest to highest (for a scale with its own descending
+form: the ascending form for ↑, the descending form for ↓, and for ↑↓ the
+sequence written out in playing order so the descent shows its own notes)
+with every occurrence of the root visually emphasised and an inline
+accidental on any note whose accidental differs from the signature's, or
+from an earlier inline accidental at the same pitch in the run — an inline
+accidental holds for the rest of the run, as in one bar — together with a
+summary of how many in-range notes the chosen scale has and their
+extremes; and, in the names view, the chosen scale's own notes rooted on
+the key's tonic, in scale order
 
 **Scenarios**
 - **REQ-003/S1 — G major on the flute (acceptance)**
@@ -112,18 +121,37 @@ notes in scale order
   range
   When the variant is changed to Ocarina Bass C (A3–F5)
   Then every displayed note moves down exactly one octave
-- **REQ-003/S3 — the names view shows the scale itself**
-  Given G major is selected in the names view
+- **REQ-003/S3 — the names view follows the chosen scale**
+  Given G major selected, Lydian chosen, names view
   When the panel is read
-  Then it shows the seven notes G A B C D E F♯ in scale order, regardless
-  of the selected variant's range or the traversal
+  Then it shows G A B C♯ D E F♯ in scale order with C♯ carrying an inline
+  accidental as the one note Lydian alters from G major, regardless of the
+  selected variant's range or the traversal; with the default scale
+  (Major) it shows G A B C D E F♯ with no inline accidental, as before
 - **REQ-003/S4 — the stave shows the traversal's run, the summary the key**
   Given G major on flute Concert in stave view
   When the traversal is set to 2 oct, arpeggio
   Then the stave shows exactly G4 B4 D5 G5 B5 D6 G6 while the summary still
   reads 22 notes, C4–C7
+- **REQ-003/S5 — a non-seven-note scale**
+  Given G major selected, Major pentatonic chosen, names view
+  When the panel is read
+  Then it shows the five notes G A B D E, and, in stave view at 2 oct
+  scale, the run is the eleven notes G4 A4 B4 D5 E5 G5 A5 B5 D6 E6 G6
+- **REQ-003/S6 — a split-direction scale is written out, accidentals held**
+  Given G melodic minor · classical on flute Concert, 1 oct, scale, ↑↓,
+  stave view
+  When the stave is read
+  Then it shows the fifteen notes G4 A4 B♭4 C5 D5 E5 F♯5 G5 F5 E♭5 D5 C5
+  B♭4 A4 G4 left to right in playing order; E5 and F♯5 carry inline ♮ and
+  ♯ (the signature's two flats give E♭ and no F♯), the descending F5 and
+  E♭5 carry inline ♮ and ♭ because the raised notes' accidentals were
+  still in effect, and B♭4 carries no inline accidental at all (it is in
+  the signature); with ↑ alone the stave shows the eight ascending notes,
+  with ↓ alone the eight notes of the natural-minor form G4 … G5 lowest to
+  highest
 
-_Changed by 003-hear-the-scale_
+_Changed by 005-scale-selection_
 
 ### REQ-004: The new accidental is accented where accidentals are listed
 
@@ -315,17 +343,20 @@ _Removed by 003-hear-the-scale: Superseded: the traversal chosen in `practice.se
 ### REQ-012: A traversal is fitted to the instrument and ordered
 
 WHEN a traversal — octaves (a whole-octave count or full range), shape
-(scale or arpeggio) and direction (↑, ↓ or ↑↓) — is applied to the selected
-key on the selected variant
-THE SYSTEM SHALL produce the run: for a whole-octave count n, the key's
+(scale or arpeggio) and direction (↑, ↓ or ↑↓) — is applied to the chosen
+scale rooted on the selected key's tonic, on the selected variant
+THE SYSTEM SHALL produce the run: for a whole-octave count n, the scale's
 notes from the lowest in-range tonic that has the tonic n octaves above it
 in range, up to and including that upper tonic; for full range, every
-in-range note of the key lowest to highest; for the arpeggio shape, only
+in-range note of the scale lowest to highest; for the arpeggio shape, only
 those notes of the run whose scale degree is 1, 3 or 5; and SHALL produce
-the sequence from the run: ascending for ↑, descending for ↓, ascending
-then descending without repeating the top note for ↑↓; and THE SYSTEM SHALL
-report which whole-octave counts from 1 to 4 fit (a count fits when such a
-run exists)
+the sequence from the run: ascending for ↑, descending for ↓ (using the
+scale's own descending form where it defines one — otherwise the ascending
+form reversed), ascending then descending without repeating the top note
+for ↑↓; and THE SYSTEM SHALL report which whole-octave counts from 1 to 4
+fit (a count fits when such a run exists — the same tonic-to-tonic
+distance for every scale sharing that tonic, independent of how many notes
+per octave the scale has)
 
 **Scenarios**
 - **REQ-012/S1 — two octaves of G major on the flute**
@@ -352,13 +383,25 @@ run exists)
   Then it is G6 F♯6 E6 … A4 G4 — 15 notes
 - **REQ-012/S5 — the sequence never leaves the range (invariant)**
   Given every catalogued variant, every selectable key spelling, every
-  octave choice that fits plus full range, both shapes and all three
-  directions
+  selectable scale, every octave choice that fits plus full range, both
+  shapes and all three directions
   When the sequence is produced
   Then every note lies within the variant's range, and every note of an
-  arpeggio is a note of the same key's scale run
+  arpeggio is a note of the same scale's run
+- **REQ-012/S6 — a scale with its own descending form**
+  Given G melodic minor · classical on flute Concert, 1 oct, scale, ↑↓
+  When the run and sequence are produced
+  Then the ascending run is G A B♭ C D E F♯ G (the raised 6th and 7th),
+  and the sequence descends using the natural-minor form instead — G F
+  E♭ D C B♭ A G — 15 notes, not a mirror of the ascending run
+- **REQ-012/S7 — a scale with fewer notes per octave**
+  Given G major pentatonic on flute Concert, 2 oct, scale
+  When the run is produced
+  Then it is the 11 notes G4 A4 B4 D5 E5 G5 A5 B5 D6 E6 G6 — the same
+  tonic-to-tonic span as G major's own 2-oct run, five notes per octave
+  instead of seven
 
-_Since 003-hear-the-scale_
+_Changed by 005-scale-selection_
 
 ## Invariants
 
@@ -372,3 +415,4 @@ _Since 003-hear-the-scale_
 | 0.1.0 | 2026-09-20 | 001-the-circle | 8 | 0 | 0 |
 | 0.2.0 | 2026-09-22 | 002-circle-redesign | 3 | 6 | 0 |
 | 1.0.0 | 2026-09-23 | 003-hear-the-scale | 1 | 3 | 1 |
+| 1.1.0 | 2026-09-24 | 005-scale-selection | 0 | 2 | 0 |

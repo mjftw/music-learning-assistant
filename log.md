@@ -2,6 +2,13 @@
 
 Chronological history of this bundle. Newest date first.
 
+## 2026-09-24
+
+- Domain Map `docs/domain.md` → approved (human:merlin-webster)
+- Glossary `docs/glossary.md` → approved (human:merlin-webster)
+- Capability Spec `specs/theory/circle-of-fifths.md` → current (human:merlin-webster)
+- Capability Spec `specs/practice/session.md` → current (human:merlin-webster)
+
 ## 2026-09-23
 
 - Task List `changes/005-scale-selection/tasks.md` → approved (human:merlin-webster)

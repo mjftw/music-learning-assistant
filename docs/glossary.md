@@ -19,6 +19,8 @@ verified:
     at: 2026-09-22T16:33:44Z
   - by: human:merlin-webster
     at: 2026-09-23T13:44:18Z
+  - by: human:merlin-webster
+    at: 2026-09-24T04:15:00Z
 sdd_phase: approved
 ---
 
@@ -41,7 +43,8 @@ sdd_phase: approved
 | Variant | `theory` | A concrete, playable form of an instrument, with its own range (e.g. Ocarina Alto C) | Instrument — the tier above; a variant is what's actually selected and played | 001-the-circle |
 | Range | `theory` | The lowest to highest note an instrument can play; every generated sequence stays inside it | — | product brief |
 | Key | `theory` | A tonal centre and its accidentals (e.g. B♭ major); a position on the circle of fifths | Scale — the notes played in that key | intent-product |
-| Scale | `theory` | The ordered notes of a key, played as an exercise | Arpeggio; Key | intent-product |
+| Scale | `theory` | One of a catalogue of note-formulas (major, its modes, minor and its variants, pentatonics, blues, whole tone, chromatic) rooted on a key's tonic, played as an exercise | Arpeggio; Key — the tonic and the printed signature stay the key's whatever scale is chosen | intent-product; broadened in 005-scale-selection |
+| Scale family | `theory` | Which ring's Scale sheet offers a scale: major, minor, or either | Mode — who leads, a `practice` word | 005-scale-selection |
 | Arpeggio | `theory` | The chord tones of a key played in sequence, as an exercise | Scale | intent-product |
 | Circle of fifths | `theory` | The arrangement of keys a fifth apart; neighbouring keys differ by exactly one accidental. The user's primary mental model and the UI's organising display | A mere picker widget — it is also the teaching surface | intent-product |
 | Accidental | `theory` | The sharp or flat a key introduces; each step round the circle adds exactly one | — | product brief |
@@ -49,7 +52,7 @@ sdd_phase: approved
 | NoteSequence | `theory` | The concrete list of notes produced by fitting a traversal to an instrument's range, in playing order with direction applied (a ↑↓ run of 8 notes is a 15-note sequence) | Traversal — the recipe, not the result; the run — the ascending set the stave shows | domain map; 003-hear-the-scale |
 | Traversal | `theory` | How a scale or arpeggio is walked: direction (↑, ↓ or ↑↓), octaves (1–4 whole octaves from the lowest fitting tonic, or the full range) and shape (scale or arpeggio) — the recipe for the NoteSequence | NoteSequence — the resulting notes; Session settings — how the sequence is played | intent-product; widened in 003-hear-the-scale |
 | Session | `practice` | One run of practising: instrument, key, traversal, mode, tempo, the session settings, and the position within the sequence | — | domain map |
-| Mode | `practice` | Who leads: tool leads (it plays, learner follows) or learner leads (it shows the target, listens, advances) | Musical mode (Dorian etc.) — not used in this product yet | intent-product |
+| Mode | `practice` | Who leads: tool leads (it plays, learner follows) or learner leads (it shows the target, listens, advances) | Musical mode (Dorian etc.) — used since 005-scale-selection as Scale catalogue entries; still a different word: Mode is who leads, Scale is what is played | intent-product |
 | Target note | `practice` | The note the learner should be playing right now | — | domain map |
 | Tempo | `practice` | The speed notes are played or expected, as chosen for the session | — | intent-product |
 | Session setting | `practice` | How the sequence is played, as distinct from which notes: sound mode (notes, both, metronome), loop, count-in, rest bar, tempo | Traversal — which notes | 003-hear-the-scale |
