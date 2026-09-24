@@ -4,6 +4,7 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-24
 
+- Task List `changes/004-the-drone/tasks.md` → approved (human:merlin-webster)
 - Architecture Decision Record `docs/adr/0005-addressable-voices.md` → accepted (human:merlin-webster)
 - Implementation Plan `changes/004-the-drone/plan.md` → approved (human:merlin-webster)
 - Spec Delta `changes/004-the-drone/delta/practice/session.md` → approved (human:merlin-webster)
