@@ -202,7 +202,7 @@ export function NamesView(props: {
                 height: MARK_ROW_HEIGHT,
               }}
             >
-              {`${DESCENT_SYMBOL}${column.name}`}
+              {DESCENT_SYMBOL}
             </div>
           ) : (
             <div

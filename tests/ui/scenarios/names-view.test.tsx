@@ -186,6 +186,9 @@ test("practice.session/REQ-012/S4 — the descent of a split-direction scale in 
     ["F", "true"],
     ["E♭", "true"],
   ]);
+  expect(
+    screen.getAllByTestId("descent-mark").map((m) => m.textContent),
+  ).toEqual(["↓", "↓"]);
   expect(screen.queryAllByTestId("note-alt")).toHaveLength(0);
   cleanup();
   render(

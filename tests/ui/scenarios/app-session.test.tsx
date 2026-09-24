@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Profiler, StrictMode } from "react";
 import { afterEach, expect, test } from "vitest";
@@ -518,4 +518,49 @@ test("T032 — App commits about once per beat during playback, not once per loo
   unsubscribe();
 
   expect(commits).toBeLessThanOrEqual(BEATS_TO_OBSERVE + 1);
+});
+
+test("practice.session/REQ-012/S4 (app) — the descent group follows the session's direction", async () => {
+  localStorage.clear();
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={testSessionDeps().sessionDeps}
+    />,
+  );
+  await userEvent.click(screen.getByRole("button", { name: "E minor" }));
+  await userEvent.click(screen.getByRole("button", { name: "Edit scale" }));
+  await userEvent.click(
+    screen.getByRole("button", { name: "Melodic minor · classical" }),
+  );
+  const names = () =>
+    screen
+      .getAllByTestId("names-column")
+      .map((c) => [
+        within(c).getByTestId("column-name").textContent,
+        c.getAttribute("data-descent"),
+      ]);
+  expect(names()).toEqual([
+    ["E", "false"],
+    ["F♯", "false"],
+    ["G", "false"],
+    ["A", "false"],
+    ["B", "false"],
+    ["C♯", "false"],
+    ["D♯", "false"],
+    ["D", "true"],
+    ["C", "true"],
+  ]);
+  await userEvent.click(screen.getByRole("button", { name: "Edit traversal" }));
+  await userEvent.click(screen.getByRole("button", { name: "↑" }));
+  expect(names().map((n) => n[0])).toEqual([
+    "E",
+    "F♯",
+    "G",
+    "A",
+    "B",
+    "C♯",
+    "D♯",
+  ]);
 });
