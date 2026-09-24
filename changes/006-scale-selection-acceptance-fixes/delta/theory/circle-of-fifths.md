@@ -86,11 +86,13 @@ traversal the stave shows the new run alone
 - **REQ-003/S7 — the stave after a scale change is exactly the new run**
   Given G minor on flute Concert, ↑↓, 1 oct, stave view, Melodic minor ·
   classical chosen (its written-out run repeats G4, D5 and other names)
-  When Natural minor is chosen, then Harmonic minor, then Blues
-  Then after each change the stave shows exactly that scale's run —
-  after Blues the six noteheads G4 B♭4 C5 D♭5 D5 F5 (and the tonic G5),
-  with inline accidentals only where the run needs them — and no notehead,
-  accidental or name from an earlier scale remains
+  When the key is changed to A minor (still Melodic minor · classical, ↑↓),
+  then Natural minor is chosen, then Harmonic minor, then Blues
+  Then after each change the stave shows exactly that run and nothing
+  else — after the key change the fifteen notes A4 B4 C5 D5 E5 F♯5 G♯5 A5
+  G5 F5 E5 D5 C5 B4 A4 in order, after Blues the seven noteheads A4 C5 D5
+  E♭5 E5 G5 A5 — with inline accidentals only where the run needs them,
+  and no notehead, accidental or name from an earlier run remains
 
 **Was:**
 > WHEN a key is selected
