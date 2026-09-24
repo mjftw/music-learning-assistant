@@ -594,6 +594,9 @@ export function App(props: {
                   )
                 : snapshot.scale
             }
+            direction={
+              snapshot === null ? "updown" : snapshot.traversal.direction
+            }
             degreesEnabled={selection.degreesEnabled}
             soundingPitchClass={soundingPitchClass}
           />

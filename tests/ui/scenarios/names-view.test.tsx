@@ -37,21 +37,21 @@ interface ColumnReading {
   readonly accented: string | null;
   readonly degree: string | null;
   readonly altered: string | null;
-  readonly alt: string | null;
+  readonly descent: string | null;
 }
 
 const readColumns = (): readonly ColumnReading[] =>
   screen.getAllByTestId("names-column").map((column) => {
-    const mark = within(column).getByTestId("note-mark");
+    const mark = within(column).queryByTestId("note-mark");
     return {
       name: within(column).getByTestId("column-name").textContent,
-      mark: mark.textContent,
-      accented: mark.getAttribute("data-accented"),
+      mark: mark?.textContent ?? null,
+      accented: mark?.getAttribute("data-accented") ?? null,
       degree: within(column).getByTestId("note-degree").textContent,
       altered: within(column)
         .getByTestId("note-degree")
         .getAttribute("data-altered"),
-      alt: within(column).queryByTestId("note-alt")?.textContent ?? null,
+      descent: column.getAttribute("data-descent"),
     };
   });
 
@@ -68,6 +68,7 @@ test("practice.session/REQ-006/S2 — the names view follows the sound", () => {
     <NamesView
       key_={gMajor}
       scale={scaleById("major")}
+      direction="updown"
       degreesEnabled={false}
       soundingPitchClass={{ letter: "D", accidental: "natural" }}
     />,
@@ -141,6 +142,7 @@ test("theory.circle-of-fifths/REQ-003/S3 (UI) — the names view follows the cho
     <NamesView
       key_={gMajor}
       scale={scaleById("lydian")}
+      direction="updown"
       degreesEnabled
       soundingPitchClass={null}
     />,
@@ -158,38 +160,82 @@ test("theory.circle-of-fifths/REQ-003/S3 (UI) — the names view follows the cho
   ]);
 });
 
-test("practice.session/REQ-012/S4 — the descending alternative for a split-direction scale", () => {
+test("practice.session/REQ-012/S4 — the descent of a split-direction scale in the names view", () => {
   const gMinor: Key = {
     tonic: { letter: "G", accidental: "natural" },
     mode: "naturalMinor",
   };
+  const melodic = scaleById("melodic-minor-classical");
   render(
     <NamesView
       key_={gMinor}
-      scale={scaleById("melodic-minor-classical")}
+      scale={melodic}
+      direction="updown"
       degreesEnabled
       soundingPitchClass={null}
     />,
   );
-  expect(readColumns().map((c) => [c.name, c.alt])).toEqual([
-    ["G", ""],
-    ["A", ""],
-    ["B♭", ""],
-    ["C", ""],
-    ["D", ""],
-    ["E", "↓E♭"],
-    ["F♯", "↓F"],
+  expect(readColumns().map((c) => [c.name, c.descent])).toEqual([
+    ["G", "false"],
+    ["A", "false"],
+    ["B♭", "false"],
+    ["C", "false"],
+    ["D", "false"],
+    ["E", "false"],
+    ["F♯", "false"],
+    ["F", "true"],
+    ["E♭", "true"],
+  ]);
+  expect(screen.queryAllByTestId("note-alt")).toHaveLength(0);
+  cleanup();
+  render(
+    <NamesView
+      key_={gMinor}
+      scale={melodic}
+      direction="up"
+      degreesEnabled
+      soundingPitchClass={null}
+    />,
+  );
+  expect(readColumns().map((c) => c.name)).toEqual([
+    "G",
+    "A",
+    "B♭",
+    "C",
+    "D",
+    "E",
+    "F♯",
+  ]);
+  cleanup();
+  render(
+    <NamesView
+      key_={gMinor}
+      scale={melodic}
+      direction="down"
+      degreesEnabled
+      soundingPitchClass={null}
+    />,
+  );
+  expect(readColumns().map((c) => c.name)).toEqual([
+    "G",
+    "A",
+    "B♭",
+    "C",
+    "D",
+    "E♭",
+    "F",
   ]);
   cleanup();
   render(
     <NamesView
       key_={gMinor}
       scale={scaleById("natural-minor")}
+      direction="updown"
       degreesEnabled
       soundingPitchClass={null}
     />,
   );
-  expect(readColumns().every((c) => c.alt === null)).toBe(true);
+  expect(readColumns()).toHaveLength(7);
 });
 
 test("theory.circle-of-fifths/REQ-003/S5 (UI) — a five-note scale shows five columns", () => {
@@ -197,6 +243,7 @@ test("theory.circle-of-fifths/REQ-003/S5 (UI) — a five-note scale shows five c
     <NamesView
       key_={gMajor}
       scale={scaleById("major-pentatonic")}
+      direction="updown"
       degreesEnabled
       soundingPitchClass={null}
     />,
