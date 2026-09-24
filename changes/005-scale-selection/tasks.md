@@ -1,7 +1,7 @@
 ---
 type: Task List
 title: scale-selection — tasks
-description: 19 tasks across 5 phases — theory catalogue and generalised run-fitting, practice Scale choice, UI sheet/views/store v4, hardening
+description: 23 tasks across 6 phases — theory catalogue and generalised run-fitting, practice Scale choice, UI sheet/views/store v4, hardening, converge round 1 fixes
 resource: /changes/005-scale-selection/tasks.md
 status: stable
 tags: [sdd, tasks, "change:005-scale-selection"]
@@ -16,7 +16,7 @@ verified:
     at: 2026-09-23T23:22:44Z
 sdd_id: 005-scale-selection
 sdd_context: practice
-sdd_phase: in-progress
+sdd_phase: complete
 ---
 
 # Tasks: scale-selection
@@ -917,7 +917,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T023 · — · Converge round 2
 
-**Status:** in-progress
+**Status:** done
 
 **Steps**
 - [ ] 1. Run `sdd-converge` again; append any gap as new tasks here.
@@ -956,6 +956,18 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 | T014 | `TraversalSheet` props `effectiveShape: Shape`, `arpeggioOffered: boolean` | T012 |
 
 ## Deferred
+
+- Converge W2 — `pnpm test:timing` passed 1 of 3 runs on the laptop (200 bpm
+  "vs audible" 29.33 / 30.67 / 30.67 ms vs ±30 ms); accepted by name
+  (docs/decisions.md 2026-09-24) as the headroom 003 already accepted — the
+  phone measurement at acceptance decides; re-measured at finish.
+- Converge W3 — the practice.session delta's REQ-012/S5 chromatic rows were
+  amended in place after approval (per-ring chromatic, commit e6255aa);
+  accepted by name (docs/decisions.md 2026-09-24), the user re-verifies the
+  delta at acceptance.
+- Converge round-2 infos I1–I14 recorded in notes.md; I3 (shared TickMark)
+  and I4 (heading aria-label vs visible text) are proposed engineering
+  refinements, not applied.
 
 - Beaming or a different glyph for the 12-column chromatic names view on a
   phone — the design sets 15px and stops there; judge at acceptance.

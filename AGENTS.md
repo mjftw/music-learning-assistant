@@ -71,7 +71,7 @@ then cargo's `test result`):
 
 ```
  Test Files  43 passed (43)
-      Tests  168 passed (168)
+      Tests  172 passed (172)
    Start at  04:05:21
    Duration  5.31s (environment 41%, tests 39%, import 11%, transform 9%)
 
@@ -104,7 +104,7 @@ Run `check` before calling any task done, and paste the output.
 
 - Runtime / language: TypeScript (strict), browser SPA built with Vite.
   Rust (stable, `wasm32-unknown-unknown`, zero crates) owns the audio
-  boundary — `src/sound/` from change 003 and `src/listening/` from 005
+  boundary — `src/sound/` from change 003 and `src/listening/` from 006 (hear-me)
   (ADR 0001, ADR 0003); the workspace `Cargo.toml` at the root is the
   accepted root-config exception. Rust tests are `cargo test`.
 - Package manager (only this one): pnpm.
@@ -125,7 +125,7 @@ session: a pure transport state machine, a lookahead scheduler adapter on
 the audio clock, ports for sound / clock / wake lock / visibility),
 `src/sound/` (Rust→WASM synthesiser in an AudioWorklet plus a ~60-line TS
 host shim in its `published/`; ADR 0003), `src/listening/` (pitch
-detection; Rust→WASM from change 005, ADR 0001).
+detection; Rust→WASM from change 006 (hear-me), ADR 0001).
 `src/ui/` is the view layer over the contexts, not a context itself. Each
 context exposes `published/` and nothing else crosses its boundary
 (scripts/check-contexts.sh). Data files (instrument variants) and stored
