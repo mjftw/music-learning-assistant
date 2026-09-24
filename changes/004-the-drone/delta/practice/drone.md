@@ -143,7 +143,8 @@ and the label follows
   When D major is selected on the outer ring
   Then the tone glides to 587.33 Hz (D5) within 100 ms, never stopping,
   and the pill reads "D5"; selecting B minor on the inner ring glides it
-  to 493.88 Hz (B4 — the octave nearest the middle of C4–C7 for B)
+  to 987.77 Hz (B5 — the octave nearest the middle of C4–C7 for B: five
+  semitones from F♯5, where B4 is seven)
 - **REQ-003/S2 — respelling keeps the pitch**
   Given the position at six o'clock selected as F♯ major with sharp
   spelling, the drone sounding F♯5 at 739.99 Hz
