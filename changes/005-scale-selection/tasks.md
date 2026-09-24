@@ -829,7 +829,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T020 · theory.circle-of-fifths/REQ-012, REQ-003 · A split-direction scale's descending run is fitted by its own tonic; ↑↓ never repeats the top
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/theory/domain/traversal.ts` (`traversalOf`'s split-direction branch and `splitDirectionOf`)
