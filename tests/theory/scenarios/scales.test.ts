@@ -54,7 +54,7 @@ test("practice.session/REQ-012/S5 (theory) — every formula in the catalogue, m
     ["Phrygian", "1 ♭2 3 4 5 6 7"],
     ["Locrian", "1 ♭2 3 4 ♭5 6 7"],
     ["Whole tone", "1 2 ♯3 ♯4 6 7"],
-    ["Chromatic", "1 ♯1 2 ♯2 ♯3 4 ♯4 5 ♯5 ♯6 ♯♯6 ♯7"],
+    ["Chromatic", "1 ♯1 2 3 ♯3 4 ♯4 5 6 ♯6 7 ♯7"],
   ]);
 });
 
@@ -63,7 +63,7 @@ test("practice.session/REQ-012/S5 (theory) — chromatic follows the signature o
     "1 ♭2 2 ♭3 3 4 ♭5 5 ♭6 6 ♭7 7",
   );
   expect(spelledScaleOf(dMinor, scaleById("chromatic")).formulaLine).toBe(
-    "1 ♭2 2 3 ♯3 4 ♭5 5 6 ♯6 7 ♯7",
+    "1 ♭2 2 3 ♭4 4 ♭5 5 6 ♯6 7 ♯7",
   );
   expect(SCALES).toHaveLength(16);
 });

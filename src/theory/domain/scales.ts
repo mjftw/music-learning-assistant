@@ -35,12 +35,25 @@ export interface ScaleDegree {
   readonly semitones: number;
 }
 
+// A signature's sharps/flats, for one ring (major or minor).
+export interface SignatureDegrees {
+  readonly sharps: readonly ScaleDegree[];
+  readonly flats: readonly ScaleDegree[];
+}
+
 export type Formula =
   | { readonly kind: "fixed"; readonly degrees: readonly ScaleDegree[] }
   | {
-      readonly kind: "bySignature";
-      readonly sharps: readonly ScaleDegree[];
-      readonly flats: readonly ScaleDegree[];
+      // Chromatic only: which twelve degrees spell its in-between notes
+      // depends on the ring (major or minor home) as well as the
+      // signature — the minor ring's raised-lower/lowered-upper-neighbour
+      // convention keeps every key within a double accidental, where the
+      // major ring's pattern reused on the minor ring would spell A♯
+      // minor's ♯♯6 as an unspellable triple sharp (docs/decisions.md,
+      // 2026-09-24).
+      readonly kind: "byHome";
+      readonly major: SignatureDegrees;
+      readonly minor: SignatureDegrees;
     };
 
 export interface Scale {
@@ -147,35 +160,71 @@ const WHOLE_TONE = fixed([
 ]);
 
 const CHROMATIC: Formula = {
-  kind: "bySignature",
-  sharps: [
-    degree(1, 0),
-    degree(1, 1),
-    degree(2, 2),
-    degree(2, 3),
-    degree(3, 4),
-    degree(4, 5),
-    degree(4, 6),
-    degree(5, 7),
-    degree(5, 8),
-    degree(6, 9),
-    degree(6, 10),
-    degree(7, 11),
-  ],
-  flats: [
-    degree(1, 0),
-    degree(2, 1),
-    degree(2, 2),
-    degree(3, 3),
-    degree(3, 4),
-    degree(4, 5),
-    degree(5, 6),
-    degree(5, 7),
-    degree(6, 8),
-    degree(6, 9),
-    degree(7, 10),
-    degree(7, 11),
-  ],
+  kind: "byHome",
+  major: {
+    sharps: [
+      degree(1, 0),
+      degree(1, 1),
+      degree(2, 2),
+      degree(2, 3),
+      degree(3, 4),
+      degree(4, 5),
+      degree(4, 6),
+      degree(5, 7),
+      degree(5, 8),
+      degree(6, 9),
+      degree(6, 10),
+      degree(7, 11),
+    ],
+    flats: [
+      degree(1, 0),
+      degree(2, 1),
+      degree(2, 2),
+      degree(3, 3),
+      degree(3, 4),
+      degree(4, 5),
+      degree(5, 6),
+      degree(5, 7),
+      degree(6, 8),
+      degree(6, 9),
+      degree(7, 10),
+      degree(7, 11),
+    ],
+  },
+  // The minor ring's in-between notes are the raised lower neighbour
+  // (sharps) or lowered upper neighbour (flats) of the minor degrees, with
+  // the leading tone always ♯7 — this keeps every spelling within a double
+  // accidental (docs/decisions.md, 2026-09-24).
+  minor: {
+    sharps: [
+      degree(1, 0),
+      degree(1, 1),
+      degree(2, 2),
+      degree(3, 3),
+      degree(3, 4),
+      degree(4, 5),
+      degree(4, 6),
+      degree(5, 7),
+      degree(6, 8),
+      degree(6, 9),
+      degree(7, 10),
+      degree(7, 11),
+    ],
+    flats: [
+      degree(1, 0),
+      degree(2, 1),
+      degree(2, 2),
+      degree(3, 3),
+      degree(4, 4),
+      degree(4, 5),
+      degree(5, 6),
+      degree(5, 7),
+      degree(6, 8),
+      degree(6, 9),
+      degree(7, 10),
+      degree(7, 11),
+    ],
+  },
 };
 
 export const SCALES: readonly Scale[] = [
@@ -382,7 +431,8 @@ const LETTER_ORDER: readonly NoteLetter[] = ["C", "D", "E", "F", "G", "A", "B"];
 
 function degreesOf(formula: Formula, key: Key): readonly ScaleDegree[] {
   if (formula.kind === "fixed") return formula.degrees;
-  return signatureOf(key).kind === "flats" ? formula.flats : formula.sharps;
+  const ring = key.mode === "major" ? formula.major : formula.minor;
+  return signatureOf(key).kind === "flats" ? ring.flats : ring.sharps;
 }
 
 function spellDegree(

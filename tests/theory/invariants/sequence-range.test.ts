@@ -3,9 +3,10 @@ import {
   builtInCatalogue,
   circleOfFifths,
   fittingOctaveCounts,
+  keyId,
   pitchPosition,
-  scaleById,
-  scaleNotesOf,
+  SCALES,
+  spelledScaleOf,
   traversalOf,
 } from "../../../src/theory/published";
 import type {
@@ -34,49 +35,65 @@ test("theory.circle-of-fifths/REQ-012/S5 — the sequence never leaves the range
 
   let count = 0;
   for (const key of keys) {
-    // T004 stand-in (matches practice.session's own recompute()): the key's
-    // own diatonic scale — major or natural minor — is what `scaleNotesOf`
-    // below already assumes for the arpeggio-membership check, so the run
-    // must be built from that same scale, not an arbitrary catalogued one.
-    const scale = scaleById(key.mode === "major" ? "major" : "natural-minor");
-    for (const variant of variants) {
-      const lowest = pitchPosition(variant.range.lowest);
-      const highest = pitchPosition(variant.range.highest);
-      const octaveChoices: readonly Octaves[] = [
-        ...fittingOctaveCounts(key, variant, scale).map((count_): Octaves => ({
-          kind: "count",
-          count: count_,
-        })),
-        { kind: "full" },
-      ];
+    for (const scale of SCALES) {
+      for (const variant of variants) {
+        try {
+          const lowest = pitchPosition(variant.range.lowest);
+          const highest = pitchPosition(variant.range.highest);
 
-      for (const octaves of octaveChoices) {
-        for (const shape of SHAPES) {
-          for (const direction of DIRECTIONS) {
-            count += 1;
-            const { sequence } = traversalOf(key, variant, scale, {
-              direction,
-              octaves,
-              shape,
-            });
+          // A note "of the scale's run" for the arpeggio-membership check:
+          // either form the scale defines — the ascending form always, and
+          // the descending form too where it has one (REQ-012/S5's rule).
+          const spelled = spelledScaleOf(key, scale);
+          const scaleRunPitchClasses: readonly PitchClass[] = [
+            ...spelled.ascending,
+            ...(spelled.descending ?? []),
+          ].map((note) => note.pitchClass);
 
-            for (const entry of sequence) {
-              const position = pitchPosition(entry.note);
-              expect(position).toBeGreaterThanOrEqual(lowest);
-              expect(position).toBeLessThanOrEqual(highest);
-              if (shape === "arpeggio") {
-                expect(
-                  scaleNotesOf(key).some((pitchClass) =>
-                    samePitchClass(pitchClass, entry.note),
-                  ),
-                ).toBe(true);
+          const octaveChoices: readonly Octaves[] = [
+            ...fittingOctaveCounts(key, variant, scale).map(
+              (octaveCount): Octaves => ({
+                kind: "count",
+                count: octaveCount,
+              }),
+            ),
+            { kind: "full" },
+          ];
+
+          for (const octaves of octaveChoices) {
+            for (const shape of SHAPES) {
+              for (const direction of DIRECTIONS) {
+                count += 1;
+                const { sequence } = traversalOf(key, variant, scale, {
+                  direction,
+                  octaves,
+                  shape,
+                });
+
+                for (const entry of sequence) {
+                  const position = pitchPosition(entry.note);
+                  expect(position).toBeGreaterThanOrEqual(lowest);
+                  expect(position).toBeLessThanOrEqual(highest);
+                  if (shape === "arpeggio") {
+                    expect(
+                      scaleRunPitchClasses.some((pitchClass) =>
+                        samePitchClass(pitchClass, entry.note),
+                      ),
+                    ).toBe(true);
+                  }
+                }
               }
             }
           }
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error);
+          throw new Error(
+            `key=${keyId(key)} scale=${scale.id} variant=${variant.variantId}: ${reason}`,
+          );
         }
       }
     }
   }
 
-  expect(count).toBeGreaterThan(1000);
+  expect(count).toBeGreaterThan(16_000);
 });

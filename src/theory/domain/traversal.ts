@@ -79,11 +79,7 @@ function countRunOf(
   notes: readonly KeyViewNote[],
   octaveCount: OctaveCount,
   notesPerOctave: number,
-  startIndex: number | undefined = lowestTonicIndexFor(
-    notes,
-    octaveCount,
-    notesPerOctave,
-  ),
+  startIndex: number | undefined,
 ): readonly KeyViewNote[] {
   if (startIndex === undefined) return notes; // effectiveOctavesOf already clamped to a count that fits
   return notes.slice(startIndex, startIndex + notesPerOctave * octaveCount + 1);
@@ -168,7 +164,12 @@ export function traversalOf(
   const scaleRun =
     effective.kind === "full"
       ? view.notes
-      : countRunOf(view.notes, effective.count, notesPerOctave);
+      : countRunOf(
+          view.notes,
+          effective.count,
+          notesPerOctave,
+          lowestTonicIndexFor(view.notes, effective.count, notesPerOctave),
+        );
 
   if (traversal.shape === "arpeggio") {
     const run = scaleRun.filter(
