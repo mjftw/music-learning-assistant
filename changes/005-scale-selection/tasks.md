@@ -788,7 +788,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T017 · — · Every row of the proposal's edge-case table has a test
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: `tests/practice/scenarios/edge-cases.test.ts`, `tests/ui/scenarios/edge-cases.test.tsx`
