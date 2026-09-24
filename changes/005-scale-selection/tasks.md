@@ -584,7 +584,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T012 · practice.session/REQ-012, REQ-011 · App wiring: the choice, the heading, the row, persistence
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/App.tsx` (state, session creation, store save, key-name row, `ScaleRow`, `ScaleSheet`, `NamesView`/`StaveView`/`keyView` arguments), `src/ui/key-label.ts:6-9`
