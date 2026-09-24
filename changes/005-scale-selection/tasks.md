@@ -345,7 +345,7 @@ _The catalogue, the widened accidental, the generalised run-fitting. Nothing use
 
 ### T007 · theory.circle-of-fifths/REQ-003 · Inline accidentals: `inlineAccidentalsOf`
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/theory/domain/notation.ts`
