@@ -9,7 +9,6 @@ import {
   type Session,
   type SessionDeps,
 } from "../../../src/practice/published";
-import type { SoundCommand } from "../../../src/sound/published/sound-command.schema";
 import {
   builtInCatalogue,
   effectiveOctavesOf,
@@ -27,6 +26,7 @@ import {
   FakeSound,
   FakeVisibility,
   FakeWakeLock,
+  isTone,
   keyOf,
   variantOf,
 } from "../../practice/fakes";
@@ -60,12 +60,6 @@ function testSessionDeps(sound = new FakeSound()): {
     clock,
     visibility,
   };
-}
-
-function isTone(
-  command: SoundCommand,
-): command is Extract<SoundCommand, { kind: "tone" }> {
-  return command.kind === "tone";
 }
 
 test("practice.session/REQ-011/S2 (app) — first run shows the S2 defaults in the transport and traversal row", () => {

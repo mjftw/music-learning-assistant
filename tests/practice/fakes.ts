@@ -34,10 +34,50 @@ import { builtInCatalogue } from "../../src/theory/published";
 
 const SAMPLE_RATE = 48000;
 
-type TaggedCommand = Extract<SoundCommand, { tag: number }>;
+// A posted command paired with the frame FakeSound.frame held at post time
+// — the drone and tap scenarios (T005+) are statements about *when* a
+// command was posted relative to others, not just what was posted.
+export interface PostedCommand {
+  readonly command: SoundCommand;
+  readonly atFrame: number;
+}
 
-function isTaggedCommand(command: SoundCommand): command is TaggedCommand {
-  return command.kind !== "stopAll";
+export function isDrone(
+  command: SoundCommand,
+): command is Extract<SoundCommand, { kind: "drone" }> {
+  return command.kind === "drone";
+}
+
+export function isRetune(
+  command: SoundCommand,
+): command is Extract<SoundCommand, { kind: "retune" }> {
+  return command.kind === "retune";
+}
+
+export function isStop(
+  command: SoundCommand,
+): command is Extract<SoundCommand, { kind: "stop" }> {
+  return command.kind === "stop";
+}
+
+export function isTone(
+  command: SoundCommand,
+): command is Extract<SoundCommand, { kind: "tone" }> {
+  return command.kind === "tone";
+}
+
+export function isClick(
+  command: SoundCommand,
+): command is Extract<SoundCommand, { kind: "click" }> {
+  return command.kind === "click";
+}
+
+// Commands that carry an onsetFrame to report against — tone, click and
+// drone, never retune, stop or stopAll.
+function hasOnsetFrame(
+  command: SoundCommand,
+): command is Extract<SoundCommand, { onsetFrame: number }> {
+  return "onsetFrame" in command;
 }
 
 export class FakeSound implements SoundPort {
@@ -51,6 +91,10 @@ export class FakeSound implements SoundPort {
   // than leaking it.
   disposeCalls = 0;
   readonly posted: SoundCommand[] = [];
+  // Every post(), paired with the frame this.frame held at the time —
+  // `posted` alone loses that timing once more than one command shares a
+  // frame or a test needs "posted before/after this instant" (T005+).
+  readonly posts: PostedCommand[] = [];
   failWith: SoundUnavailable | null = null;
   // A thrown (rather than returned-as-a-value) start() failure — T025
   // exercises the session's and fallbackSound's last-resort handling of a
@@ -88,6 +132,7 @@ export class FakeSound implements SoundPort {
 
   post(command: SoundCommand): void {
     this.posted.push(command);
+    this.posts.push({ command, atFrame: this.frame });
   }
 
   onOnset(listener: (report: OnsetReport) => void): () => void {
@@ -104,7 +149,7 @@ export class FakeSound implements SoundPort {
   // actual frame; T008 only needs the report to exist and be reachable.
   fireOnset(tag: number): void {
     const command = this.posted
-      .filter(isTaggedCommand)
+      .filter(hasOnsetFrame)
       .find((candidate) => candidate.tag === tag);
     if (command === undefined) {
       throw new Error(`FakeSound.fireOnset: no posted command tagged ${tag}`);

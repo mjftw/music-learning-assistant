@@ -1,5 +1,17 @@
 /// <reference types="@types/audioworklet" />
-import type { OnsetReport, SoundCommand } from "./sound-command.schema";
+import type {
+  DroneSound,
+  OnsetReport,
+  SoundCommand,
+} from "./sound-command.schema";
+
+/// The C ABI's drone sound codes — mirrors Rust's `DroneSound` enum
+/// (0 = pure, 1 = warm, 2 = reed).
+const DRONE_SOUND_CODE: Record<DroneSound, number> = {
+  pure: 0,
+  warm: 1,
+  reed: 2,
+};
 
 /// The render quantum: how many mono frames `render` fills per `process`
 /// call, and how the Web Audio API always calls `process` (mirrors the
@@ -24,6 +36,14 @@ interface SoundExports {
   ): number;
   push_click(tag: number, accent: number, onsetFrame: number): number;
   stop_all(): void;
+  push_drone(
+    tag: number,
+    hz: number,
+    onsetFrame: number,
+    sound: number,
+  ): number;
+  retune(tag: number, hz: number): void;
+  stop(tag: number): void;
   report_ptr(): number;
   render(nowFrame: number): number;
 }
@@ -105,6 +125,31 @@ class SoundProcessor extends AudioWorkletProcessor {
         }
         case "stopAll":
           this.#exports.stop_all();
+          break;
+        case "drone": {
+          // 0 = all 64 voice slots in use; the drone is dropped rather than
+          // queued (src/sound/src/lib.rs's push_drone) — never reached in
+          // practice, per docs/adr/0005-addressable-voices.md.
+          const queued = this.#exports.push_drone(
+            command.tag,
+            command.hz,
+            command.onsetFrame,
+            DRONE_SOUND_CODE[command.sound],
+          );
+          if (queued === 0) {
+            this.port.postMessage({
+              type: "problem",
+              reason: "voice-pool-full",
+              detail: `drone dropped: 64-voice pool full (tag=${command.tag}, onsetFrame=${command.onsetFrame})`,
+            });
+          }
+          break;
+        }
+        case "retune":
+          this.#exports.retune(command.tag, command.hz);
+          break;
+        case "stop":
+          this.#exports.stop(command.tag);
           break;
       }
     };

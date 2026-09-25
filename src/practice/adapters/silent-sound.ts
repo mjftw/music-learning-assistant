@@ -33,6 +33,13 @@ export function silentSound(now: () => number): SoundPort {
       stopAll();
       return;
     }
+    if (command.kind === "retune" || command.kind === "stop") {
+      // Neither carries an onset to report: a real drone glides or
+      // releases in place, and this port has no audio to move — only the
+      // caption/highlight-driving onset report matters here, and only
+      // `tone`, `click` and `drone` ever produce one.
+      return;
+    }
     const { tag, onsetFrame } = command;
     const delayMs = Math.max(0, (onsetFrame - currentFrame()) / FRAMES_PER_MS);
     const id = nextId;
