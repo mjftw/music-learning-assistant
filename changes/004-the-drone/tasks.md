@@ -1045,7 +1045,7 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 ### T014 [P] · practice.drone/REQ-006, practice.drone/REQ-005 · `DroneSheet`, and a header that carries a subtitle and a switch
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/DroneSheet.tsx`
