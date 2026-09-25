@@ -921,7 +921,7 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 ### T012 · practice.drone/REQ-009 · Stored selection v5 carries the drone's octave and sound
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/selection-store.ts`
