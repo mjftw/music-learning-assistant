@@ -754,7 +754,7 @@ _Ends with a drone that starts, stops, retunes, excludes playback and survives t
 
 ### T010 · practice.drone/REQ-007, practice.drone/REQ-008 · The page hidden, the screen awake, sound that cannot start
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (`unsubscribeVisibility`'s listener; `dispose`)
