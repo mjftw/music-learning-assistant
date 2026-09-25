@@ -100,6 +100,7 @@ export interface SessionSnapshot {
   readonly scaleChoice: ScaleChoice;
   readonly effectiveShape: Shape;
   readonly drone: DroneSnapshot;
+  readonly tappedRunIndex: number | null;
 }
 
 export interface Session {
@@ -114,6 +115,7 @@ export interface Session {
   stopDrone(): void;
   stepDroneOctave(delta: -1 | 1): void;
   setDroneSound(sound: DroneSound): void;
+  tapNote(runIndex: number): void;
   onTargetAdvanced(listener: (event: TargetAdvanced) => void): () => void;
   onChange(listener: () => void): () => void;
   dispose(): void;
@@ -128,6 +130,11 @@ const CLICK_TAG_BASE = 1_000_000;
 // one releasing, the new one attacking), so each needs its own tag; well
 // clear of CLICK_TAG_BASE and never colliding with a position tag.
 const DRONE_TAG_BASE = 3_000_000;
+
+// practice.session/REQ-013 — a tapped note's tag, one per tap; well clear
+// of DRONE_TAG_BASE and CLICK_TAG_BASE and never colliding with a position
+// tag.
+const TAP_TAG_BASE = 2_000_000;
 
 // practice.session/REQ-008 — the very first tick of a run (a fresh start()
 // or a REQ-007 restart) is scheduled this many milliseconds after
@@ -240,7 +247,8 @@ function snapshotsMateriallyEqual(
     a.scaleChoice === b.scaleChoice &&
     a.drone.on === b.drone.on &&
     noteLabel(a.drone.note) === noteLabel(b.drone.note) &&
-    a.drone.settings === b.drone.settings
+    a.drone.settings === b.drone.settings &&
+    a.tappedRunIndex === b.tappedRunIndex
   );
 }
 
@@ -276,6 +284,25 @@ export function createSession(
   // first is still resolving its sound.start()/wakeLock.acquire() promises
   // is never overridden by a stale post arriving after it.
   let droneGeneration = 0;
+  // practice.session/REQ-013 — whether `sound.start()` has ever succeeded:
+  // set by `noticeFromSoundStart` on a `{ ok: true }` result, from start(),
+  // startDrone() or tapNote() itself. A tap does not start the transport,
+  // but it still needs a started sound port to post a tone; once any of the
+  // three has succeeded once, later taps post synchronously without
+  // needing their own round trip through sound.start() again.
+  let soundReady = false;
+  // The sounding tap's own tag, or null while none is sounding — needed to
+  // stop it on a retap (REQ-013) the same way droneTag stops a superseded
+  // drone voice.
+  let tappedTag: number | null = null;
+  let tapCounter = 0;
+  // Cancel functions for the sounding tap's two timers (set tappedRunIndex
+  // at the audible onset, clear it a beat later) — both cleared together
+  // whenever the tap ends (a retap, start(), restartIfPlaying()), so a
+  // timer belonging to a superseded tap never fires after its tap has
+  // already been stopped.
+  let tapHighlightCancel: (() => void) | null = null;
+  let tapClearCancel: (() => void) | null = null;
   // Identifies which run a playing tick's tag belongs to (`positionTag`,
   // below) — -1 is a pre-run sentinel, never itself used as a tag: bumped
   // to 0 by the very first start(), and again by every later start() or
@@ -306,6 +333,13 @@ export function createSession(
   // (what snapshot() reports) always reflects the tick most recently
   // posted, never one it has already stepped past.
   let pendingAdvance = false;
+
+  // practice.session/REQ-013 — the run index of the currently sounding
+  // tapped note, or null while none is sounding. Set by the tap's own
+  // highlight timer at its audible onset, cleared a beat later — never by
+  // `applyTargetAdvance` (a playing run's own highlight), which is why the
+  // two are separate fields rather than one shared "sounding" index.
+  let tappedRunIndex: number | null = null;
 
   let run: readonly KeyViewNote[] = [];
   let sequence: readonly SequenceNote[] = [];
@@ -439,6 +473,12 @@ export function createSession(
     return tag;
   }
 
+  function nextTapTag(): number {
+    const tag = TAP_TAG_BASE + tapCounter;
+    tapCounter += 1;
+    return tag;
+  }
+
   // A playing tick's tag packs the run's generation with the sequence
   // position: generation · GENERATION_TAG_MULTIPLIER + position — the tag
   // that labels the resulting `OnsetReport` for anyone reading it (T031:
@@ -491,18 +531,27 @@ export function createSession(
   // paint adds 10–25 ms on a phone, so the timer aims 20 ms ahead of the
   // audible onset — sound must never precede the highlight; a lead this
   // small is imperceptible.
-  function scheduleHighlight(position: number, onsetFrame: number): void {
+  // The aim arithmetic shared by every highlight timer, playing or tapped
+  // (practice.session/REQ-006, REQ-013): frames to the onset, converted to
+  // ms, plus the port's output latency (an estimate that tends to run
+  // high), less HIGHLIGHT_LEAD_MS — see that constant's own comment for
+  // why. Never negative: a timer aimed at an onset already behind the
+  // current frame fires at once rather than "in the past".
+  function msUntilAudible(onsetFrame: number): number {
     const framesUntilOnset = onsetFrame - sound.currentFrame();
-    const msUntilOnset = Math.max(
+    return Math.max(
       0,
       (framesUntilOnset * 1000) / sound.sampleRate() +
         sound.outputLatencyMs() -
         HIGHLIGHT_LEAD_MS,
     );
+  }
+
+  function scheduleHighlight(position: number, onsetFrame: number): void {
     const cancel = clock.setTimeout(() => {
       pendingHighlightCancels.delete(cancel);
       applyTargetAdvance(position, onsetFrame);
-    }, msUntilOnset);
+    }, msUntilAudible(onsetFrame));
     pendingHighlightCancels.add(cancel);
   }
 
@@ -682,6 +731,7 @@ export function createSession(
         canStepDown: canStepDroneOctave(droneNote, -1),
         canStepUp: canStepDroneOctave(droneNote, 1),
       },
+      tappedRunIndex,
     };
   }
 
@@ -691,20 +741,23 @@ export function createSession(
   }
 
   // Turns a settled sound.start() outcome into the notice, shared by
-  // start() and startDrone() (REQ-010, practice.drone/REQ-008) — a plain
-  // synchronous function, not itself awaited, so lifting it out of both
-  // adds no microtask hop of its own: the `await sound.start()` (with its
-  // try/catch, below) stays written inline in each caller, because a
-  // *shared* async wrapper around it would add one — an async function
-  // call's own promise needs a tick beyond the one its inner `await`
-  // already spends, so a caller awaiting a shared `acquireSound()` helper
-  // would need three ticks where the fakes' scenario tests are pinned to
-  // two (a regression T006 hit and reverted: see edge-cases.test.ts and
-  // target-in-sequence.test.ts, which advance the fake clock immediately
-  // after exactly two `await Promise.resolve()`s). Returns whether sound is
-  // usable — start() proceeds regardless of the answer (a broken port must
-  // not leave the transport stuck at "countingIn 4" forever); startDrone()
-  // stays off when it is false.
+  // start(), startDrone() and tapNote() (REQ-010, practice.drone/REQ-008,
+  // practice.session/REQ-013) — a plain synchronous function, not itself
+  // awaited, so lifting it out of all three adds no microtask hop of its
+  // own: the `await sound.start()` (with its try/catch, below) stays
+  // written inline in each caller, because a *shared* async wrapper around
+  // it would add one — an async function call's own promise needs a tick
+  // beyond the one its inner `await` already spends, so a caller awaiting a
+  // shared `acquireSound()` helper would need three ticks where the fakes'
+  // scenario tests are pinned to two (a regression T006 hit and reverted:
+  // see edge-cases.test.ts and target-in-sequence.test.ts, which advance
+  // the fake clock immediately after exactly two `await
+  // Promise.resolve()`s). Returns whether sound is usable — start()
+  // proceeds regardless of the answer (a broken port must not leave the
+  // transport stuck at "countingIn 4" forever); startDrone() and tapNote()
+  // stay silent when it is false. Also flips `soundReady` on success, so a
+  // tap after any successful start posts without needing its own round trip
+  // through sound.start() again.
   function noticeFromSoundStart(
     result: Result<void, SoundUnavailable>,
   ): boolean {
@@ -712,10 +765,15 @@ export function createSession(
       notice = "sound-unavailable";
       return false;
     }
+    soundReady = true;
     return true;
   }
 
   function start(): void {
+    // practice.session/REQ-013 — ▶ ends any sounding tap the same way a
+    // retap does, before anything else: a tap only ever sounds while idle,
+    // and start() is about to leave idle.
+    endTapIfSounding();
     // practice.drone/REQ-004/S2 — ▶ silences the drone before the count-in
     // or the first note: stopDrone() posts its stop(tag) here, synchronously
     // (before this function's own await below), so it lands at this exact
@@ -898,7 +956,116 @@ export function createSession(
     notifyChange();
   }
 
+  // practice.session/REQ-013 — ends the sounding tap exactly as a retap
+  // does: stop its voice, cancel its two timers, clear `tappedRunIndex`.
+  // Shared by tapNote() (a retap), start() and restartIfPlaying() — a tap
+  // only ever sounds while idle, so a run that starts playing, or a run
+  // rebuilt out from under it by a recompute, must end it rather than
+  // leave a stale tag or a timer aimed at a run index that no longer means
+  // the same note. A no-op when nothing is sounding — `notifyChange()`'s
+  // own material-change check absorbs the case where nothing here actually
+  // changed.
+  function endTapIfSounding(): void {
+    invalidateSnapshot();
+    if (tappedTag !== null) {
+      sound.post({ kind: "stop", tag: tappedTag });
+      tappedTag = null;
+    }
+    tapHighlightCancel?.();
+    tapHighlightCancel = null;
+    tapClearCancel?.();
+    tapClearCancel = null;
+    tappedRunIndex = null;
+    notifyChange();
+  }
+
+  // practice.session/REQ-013 — sounds one run note for one beat, over the
+  // drone if it sounds, without touching soundingPosition, the caption,
+  // progress or targetAdvancedListeners: a tapped note is not the run.
+  // Ignored unless idle and runIndex names a real note. A retap ends the
+  // one sounding first (endTapIfSounding — same as a stop then a start of
+  // the new one). Posting needs a started sound port: once any of
+  // start()/startDrone()/tapNote() has ever succeeded, `soundReady` lets
+  // every later tap post synchronously; the very first tap of a session
+  // that has never started sound goes through the same `sound.start()`
+  // round trip startDrone() does (see noticeFromSoundStart above for why
+  // that stays written inline here rather than through a shared async
+  // helper).
+  function tapNote(runIndex: number): void {
+    if (transport.kind !== "idle") return;
+    const target = run[runIndex];
+    if (target === undefined) return;
+
+    endTapIfSounding();
+
+    // `target` is passed in rather than closed over: TypeScript does not
+    // carry the `undefined` check above through a nested function's
+    // closure, so a parameter keeps the type solid without an unchecked
+    // cast.
+    function post(note: Note): void {
+      const tag = nextTapTag();
+      const onsetFrame = sound.currentFrame() + firstTickLeadFrames();
+      sound.post({
+        kind: "tone",
+        tag,
+        hz: pitchHzOf(note),
+        onsetFrame,
+        durationFrames: tickFramesOf(),
+      });
+      tappedTag = tag;
+
+      const msUntilOnset = msUntilAudible(onsetFrame);
+      const beatMs = (tickFramesOf() * 1000) / sound.sampleRate();
+
+      tapHighlightCancel = clock.setTimeout(() => {
+        tapHighlightCancel = null;
+        invalidateSnapshot();
+        tappedRunIndex = runIndex;
+        notifyChange();
+      }, msUntilOnset);
+
+      tapClearCancel = clock.setTimeout(() => {
+        tapClearCancel = null;
+        invalidateSnapshot();
+        tappedRunIndex = null;
+        notifyChange();
+      }, msUntilOnset + beatMs);
+    }
+
+    if (soundReady) {
+      post(target.note);
+      return;
+    }
+
+    void (async () => {
+      // See noticeFromSoundStart() and start()'s own try/catch above — the
+      // same inline shape, kept inline here too rather than shared through
+      // a promise-returning helper, for the same microtask-timing reason.
+      let result: Result<void, SoundUnavailable>;
+      try {
+        result = await sound.start();
+      } catch (cause) {
+        result = {
+          ok: false,
+          error: { reason: "no-audio-context", detail: String(cause) },
+        };
+      }
+      if (!noticeFromSoundStart(result)) {
+        invalidateSnapshot();
+        notifyChange();
+        return;
+      }
+      post(target.note);
+    })();
+  }
+
   function restartIfPlaying(): void {
+    // practice.session/REQ-013 — a recompute (setContext/setTraversal/
+    // setScaleChoice, all of which call this) can change what a run index
+    // means, or replace `run` outright, so any sounding tap ends here too
+    // — before the "only while playing" guard below, since a tap only ever
+    // sounds while idle.
+    endTapIfSounding();
     if (transport.kind !== "playing") return;
     invalidateSnapshot();
     // The superseded sequence's tones and clicks already posted inside the
@@ -988,6 +1155,7 @@ export function createSession(
     stopDrone,
     stepDroneOctave,
     setDroneSound,
+    tapNote,
     onTargetAdvanced,
     onChange,
     dispose,

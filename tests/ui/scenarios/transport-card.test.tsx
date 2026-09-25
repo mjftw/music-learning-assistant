@@ -67,6 +67,9 @@ function baseSnapshot(
       canStepDown: true,
       canStepUp: true,
     },
+    // TransportCard renders nothing about a tapped note either (T007+) —
+    // same reasoning as defaultScale/placeholderDroneNote above.
+    tappedRunIndex: null,
     ...overrides,
   };
 }
