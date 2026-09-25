@@ -384,21 +384,32 @@ export function App(props: {
       ? undefined
       : snapshot.sequence[snapshot.soundingPosition];
   const sequenceSoundingRunIndex = soundingSequenceNote?.runIndex ?? null;
-  const soundingPitchClass: PitchClass | null =
-    soundingSequenceNote === undefined
+  const playing = snapshot !== null && snapshot.transport.kind === "playing";
+  const tapsEnabled = snapshot !== null && snapshot.transport.kind === "idle";
+  // practice.session/REQ-013 — the stave and the names view both highlight
+  // the sequence's sounding note while playing, and the last tapped note
+  // while idle; never both at once (a tap is ignored while playing, per the
+  // session itself).
+  const soundingRunIndex = playing
+    ? sequenceSoundingRunIndex
+    : (snapshot?.tappedRunIndex ?? null);
+  const tappedNote =
+    snapshot === null || snapshot.tappedRunIndex === null
+      ? undefined
+      : snapshot.run[snapshot.tappedRunIndex];
+  const soundingPitchClass: PitchClass | null = playing
+    ? soundingSequenceNote === undefined
       ? null
       : {
           letter: soundingSequenceNote.note.letter,
           accidental: soundingSequenceNote.note.accidental,
+        }
+    : tappedNote === undefined
+      ? null
+      : {
+          letter: tappedNote.note.letter,
+          accidental: tappedNote.note.accidental,
         };
-  const playing = snapshot !== null && snapshot.transport.kind === "playing";
-  const tapsEnabled = snapshot !== null && snapshot.transport.kind === "idle";
-  // practice.session/REQ-013 — the stave highlights the sequence's sounding
-  // note while playing, and the last tapped note while idle; never both at
-  // once (a tap is ignored while playing, per the session itself).
-  const soundingRunIndex = playing
-    ? sequenceSoundingRunIndex
-    : (snapshot?.tappedRunIndex ?? null);
 
   function handleTogglePlay(): void {
     if (session === null || snapshot === null) return;
@@ -407,6 +418,21 @@ export function App(props: {
     } else {
       session.stop();
     }
+  }
+
+  // practice.session/REQ-013 — a names column names a pitch class, not a
+  // run index (unlike a stave notehead, which already knows its own): this
+  // resolves it to the lowest note of that name in the run — the descent's
+  // own note where the tapped column is descent-only, since its pitch class
+  // only appears there.
+  function handleTapColumn(pitchClass: PitchClass): void {
+    if (session === null || snapshot === null) return;
+    const runIndex = snapshot.run.findIndex(
+      (note) =>
+        note.note.letter === pitchClass.letter &&
+        note.note.accidental === pitchClass.accidental,
+    );
+    if (runIndex >= 0) session.tapNote(runIndex);
   }
 
   // Stable handlers (T032) — every one of these is passed to a
@@ -684,6 +710,8 @@ export function App(props: {
             }
             degreesEnabled={selection.degreesEnabled}
             soundingPitchClass={soundingPitchClass}
+            onTapColumn={handleTapColumn}
+            tapsEnabled={tapsEnabled}
           />
         ) : (
           variant !== undefined && (

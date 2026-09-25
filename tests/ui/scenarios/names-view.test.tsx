@@ -71,6 +71,8 @@ test("practice.session/REQ-006/S2 — the names view follows the sound", () => {
       direction="updown"
       degreesEnabled={false}
       soundingPitchClass={{ letter: "D", accidental: "natural" }}
+      onTapColumn={() => {}}
+      tapsEnabled={false}
     />,
   );
 
@@ -145,6 +147,8 @@ test("theory.circle-of-fifths/REQ-003/S3 (UI) — the names view follows the cho
       direction="updown"
       degreesEnabled
       soundingPitchClass={null}
+      onTapColumn={() => {}}
+      tapsEnabled={false}
     />,
   );
   expect(
@@ -173,6 +177,8 @@ test("practice.session/REQ-012/S4 — the descent of a split-direction scale in 
       direction="updown"
       degreesEnabled
       soundingPitchClass={null}
+      onTapColumn={() => {}}
+      tapsEnabled={false}
     />,
   );
   expect(readColumns().map((c) => [c.name, c.descent])).toEqual([
@@ -198,6 +204,8 @@ test("practice.session/REQ-012/S4 — the descent of a split-direction scale in 
       direction="up"
       degreesEnabled
       soundingPitchClass={null}
+      onTapColumn={() => {}}
+      tapsEnabled={false}
     />,
   );
   expect(readColumns().map((c) => c.name)).toEqual([
@@ -217,6 +225,8 @@ test("practice.session/REQ-012/S4 — the descent of a split-direction scale in 
       direction="down"
       degreesEnabled
       soundingPitchClass={null}
+      onTapColumn={() => {}}
+      tapsEnabled={false}
     />,
   );
   expect(readColumns().map((c) => c.name)).toEqual([
@@ -236,6 +246,8 @@ test("practice.session/REQ-012/S4 — the descent of a split-direction scale in 
       direction="updown"
       degreesEnabled
       soundingPitchClass={null}
+      onTapColumn={() => {}}
+      tapsEnabled={false}
     />,
   );
   expect(readColumns()).toHaveLength(7);
@@ -249,6 +261,8 @@ test("theory.circle-of-fifths/REQ-003/S5 (UI) — a five-note scale shows five c
       direction="updown"
       degreesEnabled
       soundingPitchClass={null}
+      onTapColumn={() => {}}
+      tapsEnabled={false}
     />,
   );
   expect(readColumns().map((c) => [c.name, c.degree])).toEqual([

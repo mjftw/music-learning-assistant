@@ -50,6 +50,7 @@ const SOUNDING_INK = paper.accent;
 
 interface ColumnData {
   readonly name: string;
+  readonly pitchClass: PitchClass;
   readonly mark: string;
   readonly accented: boolean;
   readonly degreeLabel: string;
@@ -93,6 +94,7 @@ function columnFor(
   const { mark, accented } = markOf(note.pitchClass, signature);
   return {
     name: pitchClassLabel(note.pitchClass),
+    pitchClass: note.pitchClass,
     mark,
     accented,
     degreeLabel: note.degreeLabel,
@@ -168,19 +170,35 @@ export function NamesView(props: {
   readonly direction: Direction;
   readonly degreesEnabled: boolean;
   readonly soundingPitchClass: PitchClass | null;
+  readonly onTapColumn: (pitchClass: PitchClass) => void;
+  readonly tapsEnabled: boolean;
 }): JSX.Element {
-  const { key_, scale, direction, degreesEnabled, soundingPitchClass } = props;
+  const {
+    key_,
+    scale,
+    direction,
+    degreesEnabled,
+    soundingPitchClass,
+    onTapColumn,
+    tapsEnabled,
+  } = props;
   const columns = columnsOf(key_, scale, direction, soundingPitchClass);
   const nameFontSize = nameFontSizeOf(columns.length);
 
   return (
     <div style={{ display: "flex", alignItems: "flex-end", gap: ROW_FLEX_GAP }}>
       {columns.map((column, index) => (
-        <div
+        <button
           key={`${column.name}-${index}`}
+          type="button"
           data-testid="names-column"
           data-descent={column.isDescent ? "true" : "false"}
           data-sounding={column.isSounding ? "true" : "false"}
+          aria-label={column.name}
+          aria-disabled={tapsEnabled ? undefined : "true"}
+          onClick={
+            tapsEnabled ? () => onTapColumn(column.pitchClass) : undefined
+          }
           style={{
             flex: 1,
             display: "flex",
@@ -188,6 +206,9 @@ export function NamesView(props: {
             alignItems: "center",
             gap: COLUMN_GAP,
             background: column.isSounding ? SOUNDING_BACKGROUND : "transparent",
+            border: "none",
+            padding: 0,
+            font: "inherit",
           }}
         >
           {column.isDescent ? (
@@ -248,7 +269,7 @@ export function NamesView(props: {
           >
             {degreesEnabled ? column.degreeLabel : ""}
           </div>
-        </div>
+        </button>
       ))}
     </div>
   );
