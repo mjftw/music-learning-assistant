@@ -203,7 +203,7 @@ worklet shim learn three commands; the fakes learn to record them._
 
 ### T003 · practice.drone/REQ-003, practice.drone/REQ-005 · The drone glides on retune; a sound change crossfades without silence
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/sound/src/drone.rs` (`target_hz`, `glide_per_frame`, `retune`)

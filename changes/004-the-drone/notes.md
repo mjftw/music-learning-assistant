@@ -17,3 +17,5 @@ One line each, newest last.
 - T001: `#[allow(dead_code)]` on `Length::UntilStopped` until T002's `push_drone` constructs it — the crate is a `cdylib`, so an unconstructed `pub` variant trips `-D warnings`; comment names T002.
 - T002: the reed drone renders in 21–31 µs per 128-frame quantum (release build, laptop) against the plan's 500 µs cap — `MAX_HARMONIC` stays 24; the wavetable fallback (ADR 0005) is not needed.
 - T002 (minor, reviewer): `a_drone_renders_without_large_steps_across_attack_and_stop` does not assert `push_drone`'s return value, unlike its two siblings — mirrors the brief's sketch; fold in if the file is touched again.
+- T003: the glide's `hz`/`target_hz`/`glide_per_frame` are f64 inside `Drone` (public signatures f32 as planned) — per-frame f32 accumulation drifted 0.019 Hz over the 1920-frame glide and missed the 0.01 Hz tolerance; the plan's data-model sketch said f32.
+- T003 (fixer round 1): the test-only `Drone::hz()` is gated `#[cfg(test)]`, not `#[allow(dead_code)]` — the cdylib crate counts only `extern "C"` items as public.
