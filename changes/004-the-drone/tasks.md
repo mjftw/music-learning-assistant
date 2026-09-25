@@ -1190,7 +1190,7 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 ### T016 · practice.session/REQ-013 · Tapping a notehead on the stave
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/StaveView.tsx` (`buildStave` hit rects; highlight when `soundingRunIndex !== null`, dim only while playing; new props)
