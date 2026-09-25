@@ -1271,7 +1271,7 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 ### T018 · — · The design-review loop points at this change's design
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `scripts/design-shots.mjs` (`PROTOTYPE_PATH`, `STATES`, the prototype-side capture)
