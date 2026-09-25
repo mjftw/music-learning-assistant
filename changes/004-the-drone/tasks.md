@@ -1291,7 +1291,7 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 ### T019 · — · Every row of the proposal's edge-case table has a test; scenario coverage is complete
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (only if step 1's test fails)
