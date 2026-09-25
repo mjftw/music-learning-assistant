@@ -108,13 +108,8 @@ impl Drone {
         }
     }
 
-    /// The pitch this instant — `hz` mid-glide, the target once it has
-    /// arrived (tests). No production code reads a drone's `hz` back out;
-    /// `#[allow(dead_code)]` documents that to clippy rather than inventing
-    /// a caller that doesn't otherwise exist — the `cdylib` crate type
-    /// flags an unread `pub` method as dead even though the `rlib` target
-    /// (what `cargo test` compiles) exercises it.
-    #[allow(dead_code)]
+    /// The pitch this instant — `hz` mid-glide, the target once it has arrived (tests).
+    #[cfg(test)]
     pub fn hz(&self) -> f32 {
         self.hz as f32
     }
