@@ -828,7 +828,7 @@ _Ends with a drone that starts, stops, retunes, excludes playback and survives t
 
 ### T011 · practice.session/REQ-013 · A tapped note sounds for one beat
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (`tapNote`, `tappedRunIndex`, timers, `start()` ending a tap)
