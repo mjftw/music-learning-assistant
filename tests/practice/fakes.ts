@@ -5,6 +5,7 @@
 
 import type {
   ClockPort,
+  DroneSettings,
   Result,
   ScaleChoice,
   Session,
@@ -16,6 +17,7 @@ import type {
 } from "../../src/practice/published";
 import {
   createSession,
+  defaultDroneSettings,
   defaultScaleChoice,
 } from "../../src/practice/published";
 import type {
@@ -307,6 +309,7 @@ export function sessionOn(
   traversal: Traversal,
   settings: SessionSettings,
   scaleChoice: ScaleChoice = defaultScaleChoice,
+  droneSettings: DroneSettings = defaultDroneSettings,
 ): SessionFixture {
   const sound = new FakeSound();
   const clock = new FakeClock(sound);
@@ -318,9 +321,20 @@ export function sessionOn(
     traversal,
     scaleChoice,
     settings,
+    droneSettings,
     deps,
   );
   return { session, sound, clock, wake, visibility };
+}
+
+// Drives startDrone() through its two internal awaits (sound.start(), then
+// wakeLock.acquire()) so the posted drone command and the updated snapshot
+// are both visible synchronously afterwards — the same "two flushes" shape
+// used by start()'s own scenario tests.
+export async function startDroneAndFlush(session: Session): Promise<void> {
+  session.startDrone();
+  await Promise.resolve();
+  await Promise.resolve();
 }
 
 // Advances `clock` in `stepMs` increments until `isDone` reports true,

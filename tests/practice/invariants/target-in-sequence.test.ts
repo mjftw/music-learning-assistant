@@ -7,6 +7,7 @@
 import { expect, test } from "vitest";
 import {
   createSession,
+  defaultDroneSettings,
   defaultSessionSettings,
   type ScaleChoice,
   type TargetAdvanced,
@@ -83,6 +84,7 @@ test("practice.session/REQ-006/S5 — the target is always in the sequence (inva
                 traversal,
                 scaleChoice,
                 { ...defaultSessionSettings, countIn: false, loop: false },
+                defaultDroneSettings,
                 { sound, clock, wakeLock, visibility },
               );
 

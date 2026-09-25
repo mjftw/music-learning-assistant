@@ -21,6 +21,7 @@ import {
 import {
   chosenScaleIdFor,
   createSession,
+  defaultDroneSettings,
   defaultScaleChoice,
   steppedTempo,
   tempoForTerm,
@@ -252,6 +253,7 @@ export function App(props: {
       initialTraversalOf(stored),
       stored?.scale ?? defaultScaleChoice,
       initialSettingsOf(stored),
+      defaultDroneSettings, // T016 wires the store's own drone settings
       sessionDeps,
     );
     sessionRef.current = session;

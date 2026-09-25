@@ -38,6 +38,8 @@ import type { Result } from "../ports/result";
 import type { SoundPort } from "../ports/sound";
 import type { VisibilityPort } from "../ports/visibility";
 import type { WakeLockPort } from "../ports/wake-lock";
+import type { DroneSettings, DroneSound } from "./drone";
+import { canStepDroneOctave, droneNoteOf } from "./drone";
 import type { ScaleChoice } from "./scale-choice";
 import { chosenScaleIdFor } from "./scale-choice";
 import type { SessionSettings } from "./settings";
@@ -66,6 +68,19 @@ export interface TargetAdvanced {
   readonly atFrame: number;
 }
 
+// practice.drone/REQ-001, REQ-005 — the drone's own observable state: the
+// note it holds (the key's tonic at its resolved octave), whether it is
+// currently sounding, its chosen sound, and whether − / + still have room
+// to move it (practice.drone/REQ-002, wired by a later task).
+export interface DroneSnapshot {
+  readonly on: boolean;
+  readonly note: Note;
+  readonly hz: number;
+  readonly settings: DroneSettings;
+  readonly canStepDown: boolean;
+  readonly canStepUp: boolean;
+}
+
 export interface SessionSnapshot {
   readonly transport: TransportState;
   readonly traversal: Traversal;
@@ -84,6 +99,7 @@ export interface SessionSnapshot {
   readonly spelledScale: SpelledScale;
   readonly scaleChoice: ScaleChoice;
   readonly effectiveShape: Shape;
+  readonly drone: DroneSnapshot;
 }
 
 export interface Session {
@@ -94,6 +110,9 @@ export interface Session {
   setTraversal(traversal: Traversal): void;
   setScaleChoice(choice: ScaleChoice): void;
   setSettings(settings: SessionSettings): void;
+  startDrone(): void;
+  stopDrone(): void;
+  setDroneSound(sound: DroneSound): void;
   onTargetAdvanced(listener: (event: TargetAdvanced) => void): () => void;
   onChange(listener: () => void): () => void;
   dispose(): void;
@@ -102,6 +121,12 @@ export interface Session {
 // Click tags run from 1_000_000 up so they never collide with a tone's tag
 // (a sequence position, always small).
 const CLICK_TAG_BASE = 1_000_000;
+
+// Drone tags run from 3_000_000 up, one per drone voice — a crossfade
+// (setDroneSound while sounding) briefly holds two live voices (the old
+// one releasing, the new one attacking), so each needs its own tag; well
+// clear of CLICK_TAG_BASE and never colliding with a position tag.
+const DRONE_TAG_BASE = 3_000_000;
 
 // practice.session/REQ-008 — the very first tick of a run (a fresh start()
 // or a REQ-007 restart) is scheduled this many milliseconds after
@@ -122,6 +147,12 @@ export const FIRST_TICK_LEAD_MS = 20;
 // of the audible onset it is chasing. Sound must never precede the
 // highlight; a lead this small is imperceptible.
 export const HIGHLIGHT_LEAD_MS = 20;
+
+// practice.drone/REQ-001 — mirrors `RELEASE_S` in src/sound/src/drone.rs:
+// how long a stopped drone voice takes to fade to true silence. Exported so
+// a later task can schedule around it (e.g. REQ-004's ▶ waiting for the
+// drone to fall silent before the first click or note sounds).
+export const DRONE_RELEASE_MS = 80;
 
 // The run's extremes by pitch, not by array position (T008) — a
 // written-out split-direction run (e.g. classical melodic minor's ↑↓,
@@ -205,7 +236,10 @@ function snapshotsMateriallyEqual(
     a.settings === b.settings &&
     a.traversal === b.traversal &&
     a.run === b.run &&
-    a.scaleChoice === b.scaleChoice
+    a.scaleChoice === b.scaleChoice &&
+    a.drone.on === b.drone.on &&
+    noteLabel(a.drone.note) === noteLabel(b.drone.note) &&
+    a.drone.settings === b.drone.settings
   );
 }
 
@@ -214,6 +248,7 @@ export function createSession(
   traversal: Traversal,
   scaleChoice: ScaleChoice,
   settings: SessionSettings,
+  droneSettings: DroneSettings,
   deps: SessionDeps,
 ): Session {
   const { sound, clock, wakeLock, visibility } = deps;
@@ -223,10 +258,23 @@ export function createSession(
   let currentTraversal = traversal;
   let currentScaleChoice = scaleChoice;
   let currentSettings = settings;
+  let currentDroneSettings = droneSettings;
   let transport: TransportState = { kind: "idle" };
   let soundingPosition: number | null = null;
   let notice: "sound-unavailable" | null = null;
   let clickCounter = 0;
+  // The live drone voice's tag, or null while the drone is off — needed by
+  // stopDrone() (to release it) and setDroneSound() (to release the
+  // superseded voice on a crossfade).
+  let droneTag: number | null = null;
+  let droneCounter = 0;
+  let droneOn = false;
+  // Bumped by both startDrone() and stopDrone() — a pending startDrone()
+  // compares this after its awaits and posts nothing if it no longer
+  // matches, so a stop() (or a second startDrone()) that lands while the
+  // first is still resolving its sound.start()/wakeLock.acquire() promises
+  // is never overridden by a stale post arriving after it.
+  let droneGeneration = 0;
   // Identifies which run a playing tick's tag belongs to (`positionTag`,
   // below) — -1 is a pre-run sentinel, never itself used as a tag: bumped
   // to 0 by the very first start(), and again by every later start() or
@@ -271,6 +319,14 @@ export function createSession(
   // mark as offering one — the stored traversal itself never changes, only
   // what recompute() derives from it.
   let effectiveShape: Shape = currentTraversal.shape;
+  // practice.drone/REQ-001, REQ-002 — the tonic at its resolved octave;
+  // recomputed alongside everything else `recompute()` derives from the
+  // context.
+  let droneNote: Note = droneNoteOf(
+    currentContext.key,
+    currentContext.variant,
+    currentDroneSettings,
+  );
 
   const changeListeners = new Set<() => void>();
   const targetAdvancedListeners = new Set<(event: TargetAdvanced) => void>();
@@ -300,6 +356,11 @@ export function createSession(
       scale,
     );
     spelledScale = spelledScaleOf(currentContext.key, scale);
+    droneNote = droneNoteOf(
+      currentContext.key,
+      currentContext.variant,
+      currentDroneSettings,
+    );
   }
 
   recompute();
@@ -350,6 +411,12 @@ export function createSession(
   function nextClickTag(): number {
     const tag = CLICK_TAG_BASE + clickCounter;
     clickCounter += 1;
+    return tag;
+  }
+
+  function nextDroneTag(): number {
+    const tag = DRONE_TAG_BASE + droneCounter;
+    droneCounter += 1;
     return tag;
   }
 
@@ -576,12 +643,45 @@ export function createSession(
       spelledScale,
       scaleChoice: currentScaleChoice,
       effectiveShape,
+      drone: {
+        on: droneOn,
+        note: droneNote,
+        hz: pitchHzOf(droneNote),
+        settings: currentDroneSettings,
+        canStepDown: canStepDroneOctave(droneNote, -1),
+        canStepUp: canStepDroneOctave(droneNote, 1),
+      },
     };
   }
 
   function snapshot(): SessionSnapshot {
     if (cachedSnapshot === null) cachedSnapshot = buildSnapshot();
     return cachedSnapshot;
+  }
+
+  // Turns a settled sound.start() outcome into the notice, shared by
+  // start() and startDrone() (REQ-010, practice.drone/REQ-008) — a plain
+  // synchronous function, not itself awaited, so lifting it out of both
+  // adds no microtask hop of its own: the `await sound.start()` (with its
+  // try/catch, below) stays written inline in each caller, because a
+  // *shared* async wrapper around it would add one — an async function
+  // call's own promise needs a tick beyond the one its inner `await`
+  // already spends, so a caller awaiting a shared `acquireSound()` helper
+  // would need three ticks where the fakes' scenario tests are pinned to
+  // two (a regression T006 hit and reverted: see edge-cases.test.ts and
+  // target-in-sequence.test.ts, which advance the fake clock immediately
+  // after exactly two `await Promise.resolve()`s). Returns whether sound is
+  // usable — start() proceeds regardless of the answer (a broken port must
+  // not leave the transport stuck at "countingIn 4" forever); startDrone()
+  // stays off when it is false.
+  function noticeFromSoundStart(
+    result: Result<void, SoundUnavailable>,
+  ): boolean {
+    if (!result.ok) {
+      notice = "sound-unavailable";
+      return false;
+    }
+    return true;
   }
 
   function start(): void {
@@ -605,9 +705,7 @@ export function createSession(
       // produced" — either way the notice is raised and the walk-through
       // still starts, on the fake's own clock. try/catch here (rather than
       // sound.start().catch(...)) keeps the success path's microtask timing
-      // unchanged — an extra `.catch()` link on the promise chain would add
-      // a microtask hop even when start() resolves, throwing off the fixed
-      // "two flushes" other scenario tests rely on.
+      // unchanged — see noticeFromSoundStart() above.
       let result: Result<void, SoundUnavailable>;
       try {
         result = await sound.start();
@@ -617,7 +715,7 @@ export function createSession(
           error: { reason: "no-audio-context", detail: String(cause) },
         };
       }
-      if (!result.ok) notice = "sound-unavailable";
+      noticeFromSoundStart(result);
       await wakeLock.acquire();
       scheduler.start(sound.currentFrame() + firstTickLeadFrames(), next);
       invalidateSnapshot();
@@ -634,6 +732,93 @@ export function createSession(
     transport = { kind: "idle" };
     soundingPosition = null;
     wakeLock.release();
+    notifyChange();
+  }
+
+  // practice.drone/REQ-001, REQ-008 — mirrors start()'s sound.start()
+  // handling, but stays off on failure rather than proceeding regardless:
+  // there is no walk-through to get stuck, so nothing is gained by sounding
+  // silently, and REQ-008 asks for the pill to stay showing ▶.
+  function startDrone(): void {
+    invalidateSnapshot();
+    // Bumped before the first await so a stopDrone() (or a second
+    // startDrone()) that lands while this one is still resolving
+    // sound.start()/wakeLock.acquire() supersedes it (see droneGeneration
+    // above).
+    droneGeneration += 1;
+    const startedAtGeneration = droneGeneration;
+
+    void (async () => {
+      // See noticeFromSoundStart() and start()'s own try/catch above — the
+      // same inline shape, kept inline here too rather than shared through
+      // a promise-returning helper, for the same microtask-timing reason.
+      let result: Result<void, SoundUnavailable>;
+      try {
+        result = await sound.start();
+      } catch (cause) {
+        result = {
+          ok: false,
+          error: { reason: "no-audio-context", detail: String(cause) },
+        };
+      }
+      if (!noticeFromSoundStart(result)) {
+        invalidateSnapshot();
+        notifyChange();
+        return;
+      }
+      await wakeLock.acquire();
+      if (droneGeneration !== startedAtGeneration) return;
+      const tag = nextDroneTag();
+      droneTag = tag;
+      sound.post({
+        kind: "drone",
+        tag,
+        hz: pitchHzOf(droneNote),
+        onsetFrame: sound.currentFrame() + firstTickLeadFrames(),
+        sound: currentDroneSettings.sound,
+      });
+      droneOn = true;
+      invalidateSnapshot();
+      notifyChange();
+    })();
+  }
+
+  // practice.drone/REQ-001 — releases the live voice over its own fade
+  // (RELEASE_S in src/sound/src/drone.rs); the wake lock is released only
+  // when nothing else needs it (a full transport/drone sharing scheme is
+  // T008 — for now, "not idle" only ever means "playing", since REQ-004's
+  // mutual exclusion is a later task).
+  function stopDrone(): void {
+    invalidateSnapshot();
+    droneGeneration += 1; // supersede any startDrone() still awaiting
+    if (droneTag !== null) {
+      sound.post({ kind: "stop", tag: droneTag });
+      droneTag = null;
+    }
+    droneOn = false;
+    if (transport.kind === "idle") wakeLock.release();
+    notifyChange();
+  }
+
+  // practice.drone/REQ-005 — a crossfade: the new voice's attack and the
+  // old voice's release both post at the same instant, so the drone is
+  // never silent between them.
+  function setDroneSound(newSound: DroneSound): void {
+    invalidateSnapshot();
+    currentDroneSettings = { ...currentDroneSettings, sound: newSound };
+    if (droneOn && droneTag !== null) {
+      const oldTag = droneTag;
+      const newTag = nextDroneTag();
+      droneTag = newTag;
+      sound.post({
+        kind: "drone",
+        tag: newTag,
+        hz: pitchHzOf(droneNote),
+        onsetFrame: sound.currentFrame() + firstTickLeadFrames(),
+        sound: newSound,
+      });
+      sound.post({ kind: "stop", tag: oldTag });
+    }
     notifyChange();
   }
 
@@ -719,6 +904,9 @@ export function createSession(
     setTraversal,
     setScaleChoice,
     setSettings,
+    startDrone,
+    stopDrone,
+    setDroneSound,
     onTargetAdvanced,
     onChange,
     dispose,

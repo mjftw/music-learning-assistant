@@ -27,6 +27,7 @@ export {
 export type { BeatsLeft, Tick, TransportState } from "../domain/transport";
 export { advance, startTransport, tickOf } from "../domain/transport";
 export type {
+  DroneSnapshot,
   Session,
   SessionContext,
   SessionDeps,
@@ -35,6 +36,7 @@ export type {
 } from "../domain/session";
 export {
   createSession,
+  DRONE_RELEASE_MS,
   FIRST_TICK_LEAD_MS,
   HIGHLIGHT_LEAD_MS,
 } from "../domain/session";
