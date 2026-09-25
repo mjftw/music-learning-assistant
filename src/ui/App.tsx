@@ -383,7 +383,7 @@ export function App(props: {
     snapshot === null || snapshot.soundingPosition === null
       ? undefined
       : snapshot.sequence[snapshot.soundingPosition];
-  const soundingRunIndex = soundingSequenceNote?.runIndex ?? null;
+  const sequenceSoundingRunIndex = soundingSequenceNote?.runIndex ?? null;
   const soundingPitchClass: PitchClass | null =
     soundingSequenceNote === undefined
       ? null
@@ -392,6 +392,13 @@ export function App(props: {
           accidental: soundingSequenceNote.note.accidental,
         };
   const playing = snapshot !== null && snapshot.transport.kind === "playing";
+  const tapsEnabled = snapshot !== null && snapshot.transport.kind === "idle";
+  // practice.session/REQ-013 — the stave highlights the sequence's sounding
+  // note while playing, and the last tapped note while idle; never both at
+  // once (a tap is ignored while playing, per the session itself).
+  const soundingRunIndex = playing
+    ? sequenceSoundingRunIndex
+    : (snapshot?.tappedRunIndex ?? null);
 
   function handleTogglePlay(): void {
     if (session === null || snapshot === null) return;
@@ -441,6 +448,10 @@ export function App(props: {
   );
   const handlePickDroneSound = useCallback(
     (sound: DroneSound) => session?.setDroneSound(sound),
+    [session],
+  );
+  const handleTapNote = useCallback(
+    (runIndex: number) => session?.tapNote(runIndex),
     [session],
   );
 
@@ -683,6 +694,8 @@ export function App(props: {
               staveNamesEnabled={selection.staveNamesEnabled}
               soundingRunIndex={soundingRunIndex}
               playing={playing}
+              onTapNote={handleTapNote}
+              tapsEnabled={tapsEnabled}
             />
           )
         )}

@@ -117,6 +117,16 @@ const SOUNDING_HALO_RADIUS_MULTIPLIER = 2.5;
 const DIM_OPACITY = 0.72;
 const FULL_OPACITY = 1;
 
+// The tap target behind every notehead (practice.session/REQ-013) — wider
+// than a narrow notehead's own spacing (`step`) so a cluster of notes
+// stays tappable, and tall enough to span the stave regardless of a
+// ledger line reaching above or below it. Geometry copied verbatim from
+// the vendored reference's `hitX`/`hitW`/`hitY`/`hitH` (see the module
+// comment above).
+const HIT_RECT_MIN_WIDTH = 16;
+const HIT_RECT_Y_INSET = 14;
+const HIT_RECT_HEIGHT_PAD = 28;
+
 function diatonicIndex(note: Note): number {
   return note.octave * 7 + LETTERS.indexOf(note.letter);
 }
@@ -137,6 +147,10 @@ interface StaveHead {
   readonly note: Note;
   readonly isRoot: boolean;
   readonly runIndex: number;
+  readonly hitX: number;
+  readonly hitY: number;
+  readonly hitW: number;
+  readonly hitH: number;
 }
 
 interface StaveLedger {
@@ -238,10 +252,16 @@ function buildStave(
     const x = x0 + index * step;
     const ny = y(index_);
     const stemUp = index_ < STEM_UP_THRESHOLD_INDEX;
-    const isSounding = playing && soundingRunIndex === index;
+    // No longer requires `playing` — REQ-013's tapped highlight applies
+    // idle too; REQ-006's dim-the-rest still only applies while playing
+    // (below), so a tap's highlight is never accompanied by a dim.
+    const isSounding = soundingRunIndex === index;
     const ink = isSounding ? SOUNDING_INK : isRoot ? TONIC_INK : NOTE_INK;
     const opacity = playing && !isSounding ? DIM_OPACITY : FULL_OPACITY;
     const headRx = isSounding ? rx * SOUNDING_RX_MULTIPLIER : rx;
+    const hitW = Math.max(step, HIT_RECT_MIN_WIDTH);
+    const hitY = Math.min(ny, topY) - HIT_RECT_Y_INSET;
+    const hitH = Math.abs(ny - topY) + 4 * PANEL_GAP + HIT_RECT_HEIGHT_PAD;
 
     for (let v = LEDGER_LOW_INDEX; v >= index_; v -= 2) {
       ledgers.push({
@@ -274,6 +294,10 @@ function buildStave(
       note,
       isRoot,
       runIndex: index,
+      hitX: x - hitW / 2,
+      hitY,
+      hitW,
+      hitH,
     });
 
     const inlineAccidental = inlineAccidentals[index];
@@ -366,8 +390,18 @@ export function StaveView(props: {
   readonly staveNamesEnabled: boolean;
   readonly soundingRunIndex: number | null;
   readonly playing: boolean;
+  readonly onTapNote: (runIndex: number) => void;
+  readonly tapsEnabled: boolean;
 }): JSX.Element {
-  const { key_, notes, staveNamesEnabled, soundingRunIndex, playing } = props;
+  const {
+    key_,
+    notes,
+    staveNamesEnabled,
+    soundingRunIndex,
+    playing,
+    onTapNote,
+    tapsEnabled,
+  } = props;
 
   const signature = signatureOf(key_);
   const isFlat = signature.kind === "flats";
@@ -466,6 +500,19 @@ export function StaveView(props: {
               transform={head.tilt}
               fill={head.ink}
               opacity={head.opacity}
+            />
+            <rect
+              data-testid="stave-note-hit"
+              role="button"
+              aria-label={noteLabel(head.note)}
+              aria-disabled={tapsEnabled ? undefined : "true"}
+              onClick={tapsEnabled ? () => onTapNote(head.runIndex) : undefined}
+              x={head.hitX}
+              y={head.hitY}
+              width={head.hitW}
+              height={head.hitH}
+              fill="transparent"
+              style={{ cursor: tapsEnabled ? "pointer" : "default" }}
             />
           </g>
         ))}

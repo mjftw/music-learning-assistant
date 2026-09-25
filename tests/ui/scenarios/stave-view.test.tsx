@@ -67,6 +67,8 @@ test("theory.circle-of-fifths/REQ-003/S1 — G major on the flute (acceptance)",
       staveNamesEnabled={false}
       soundingRunIndex={null}
       playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
     />,
   );
 
@@ -101,6 +103,8 @@ test("theory.circle-of-fifths/REQ-003/S4 — the stave shows the traversal's run
       staveNamesEnabled={false}
       soundingRunIndex={null}
       playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
     />,
   );
 
@@ -131,6 +135,8 @@ test("practice.session/REQ-006/S1 — the sounding note is accented, enlarged an
       staveNamesEnabled={false}
       soundingRunIndex={4}
       playing={true}
+      onTapNote={() => {}}
+      tapsEnabled={false}
     />,
   );
 
@@ -162,6 +168,8 @@ test("practice.session/REQ-006/S1 — the sounding note is accented, enlarged an
       staveNamesEnabled={false}
       soundingRunIndex={null}
       playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
     />,
   );
 
@@ -231,6 +239,8 @@ test("theory.circle-of-fifths/REQ-003/S6 (UI) — a split-direction scale is wri
       staveNamesEnabled={false}
       soundingRunIndex={null}
       playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
     />,
   );
 
@@ -265,6 +275,8 @@ test("theory.circle-of-fifths/REQ-003/S3 (UI, stave) — Lydian's C♯ carries a
       staveNamesEnabled={false}
       soundingRunIndex={null}
       playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
     />,
   );
 
@@ -321,6 +333,8 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
       staveNamesEnabled
       soundingRunIndex={null}
       playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
     />,
   );
   // Given: G minor, melodic minor classical, ↑↓, 1 oct — a written-out run
@@ -356,6 +370,8 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
       staveNamesEnabled
       soundingRunIndex={null}
       playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
     />,
   );
   expect(dataNotes()).toEqual([
@@ -404,6 +420,8 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
       staveNamesEnabled
       soundingRunIndex={null}
       playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
     />,
   );
   expect(dataNotes()).toEqual(["A4", "B4", "C5", "D5", "E5", "F5", "G5", "A5"]);
@@ -420,6 +438,8 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
       staveNamesEnabled
       soundingRunIndex={null}
       playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
     />,
   );
   expect(dataNotes()).toEqual([
@@ -447,6 +467,8 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
       staveNamesEnabled
       soundingRunIndex={null}
       playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
     />,
   );
   expect(dataNotes()).toEqual(["A4", "C5", "D5", "E♭5", "E5", "G5", "A5"]);
