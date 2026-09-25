@@ -692,7 +692,7 @@ _Ends with a drone that starts, stops, retunes, excludes playback and survives t
 
 ### T009 · practice.drone/REQ-004 · Never both: the invariant over every interleaving
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: `tests/practice/invariants/never-both.test.ts`
