@@ -119,7 +119,7 @@ worklet shim learn three commands; the fakes learn to record them._
 
 ### T002 · practice.drone/REQ-001, practice.drone/REQ-005 · The `Drone` voice: harmonic tables, attack, release, level
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/sound/src/drone.rs`
