@@ -1120,7 +1120,7 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 ### T015 · practice.drone/REQ-001, practice.drone/REQ-006, practice.drone/REQ-008, practice.drone/REQ-009 · App wiring: the pill over the circle, the sheet, persistence
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/App.tsx` (session creation, save effect, handlers, render)
