@@ -1,4 +1,5 @@
 use crate::click::Click;
+use crate::drone::{Drone, RELEASE_S as DRONE_RELEASE_S};
 use crate::tone::Tone;
 
 /// The maximum number of voices sounding — or queued to sound — at once.
@@ -9,10 +10,6 @@ pub const MAX_VOICES: usize = 64;
 #[derive(Clone, Copy, PartialEq)]
 pub enum Length {
     Frames(u32),
-    // Not constructed until the drone voice (T002's `push_drone`) — this
-    // crate builds `cdylib`, so an unconstructed variant is otherwise
-    // flagged dead rather than treated as public API.
-    #[allow(dead_code)]
     UntilStopped,
 }
 
@@ -21,6 +18,7 @@ pub enum Length {
 pub enum VoiceKind {
     Tone(Tone),
     Click(Click),
+    Drone(Drone),
 }
 
 impl VoiceKind {
@@ -28,6 +26,7 @@ impl VoiceKind {
         match self {
             VoiceKind::Tone(tone) => tone.next_sample(elapsed_frames, length, sample_rate),
             VoiceKind::Click(click) => click.next_sample(elapsed_frames, sample_rate),
+            VoiceKind::Drone(drone) => drone.next_sample(elapsed_frames, sample_rate),
         }
     }
 
@@ -38,6 +37,7 @@ impl VoiceKind {
     pub fn release_seconds(&self) -> f32 {
         match self {
             VoiceKind::Tone(_) | VoiceKind::Click(_) => STOP_FADE_S,
+            VoiceKind::Drone(_) => DRONE_RELEASE_S,
         }
     }
 }

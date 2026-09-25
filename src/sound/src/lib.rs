@@ -1,8 +1,10 @@
 mod click;
+mod drone;
 mod tone;
 mod voices;
 
 use click::Click;
+use drone::{Drone, DroneSound};
 use tone::Tone;
 use voices::{Length, OnsetReport, Voice, VoiceKind, Voices, MAX_VOICES};
 
@@ -91,6 +93,24 @@ pub extern "C" fn push_click(tag: u32, accent: u32, onset_frame: f64) -> u32 {
         Length::Frames(duration_frames),
     );
     u32::from(engine.voices.push(voice))
+}
+
+/// Queues a drone voice — `sound` 0/1/2 for pure/warm/reed — sounding at
+/// `hz` from `onset_frame` until `stop(tag)` releases it (`Length::UntilStopped`).
+/// Returns 1 if a voice slot was free, 0 if all 64 are in use or `sound` is
+/// not a known code (the drone is not queued).
+#[no_mangle]
+pub extern "C" fn push_drone(tag: u32, hz: f32, onset_frame: f64, sound: u32) -> u32 {
+    let Some(sound) = DroneSound::from_code(sound) else {
+        return 0;
+    };
+    let voice = Voice::new(
+        tag,
+        VoiceKind::Drone(Drone::new(hz, sound)),
+        onset_frame,
+        Length::UntilStopped,
+    );
+    u32::from(engine().voices.push(voice))
 }
 
 /// Silences every queued and sounding voice at once (❚❚, REQ-002), fading
@@ -402,6 +422,58 @@ mod tests {
         assert!(
             tail.iter().all(|s| *s == 0.0),
             "voices should be fully silent well after the fade completes"
+        );
+    }
+
+    // practice.drone/REQ-001/S2 — silent within 500 ms of ■: with RELEASE_S = 0.080 the drone is fully silent 80 ms + one quantum after stop(tag)
+    #[test]
+    fn a_stopped_drone_is_silent_within_its_release() {
+        let _guard = lock_engine();
+        init(48000.0);
+        assert_eq!(push_drone(7, 440.0, 0.0, 1), 1);
+        for q in 0..40 {
+            render(f64::from(q) * 128.0);
+        } // past the attack
+        stop(7);
+        for q in 40..72 {
+            render(f64::from(q) * 128.0);
+        } // 32 quantums = 4096 frames > 3840 + 128
+        let out = unsafe { std::slice::from_raw_parts(output_ptr(), 128) };
+        assert!(out.iter().all(|s| *s == 0.0));
+    }
+
+    #[test]
+    fn an_unknown_sound_code_is_refused() {
+        let _guard = lock_engine();
+        init(48000.0);
+        assert_eq!(push_drone(1, 440.0, 0.0, 3), 0);
+    }
+
+    #[test]
+    fn a_drone_renders_without_large_steps_across_attack_and_stop() {
+        let _guard = lock_engine();
+        init(48000.0);
+        push_drone(1, 110.0, 0.0, 1); // Warm at A2, the sub-octave's worst case
+
+        let mut samples = Vec::new();
+        for q in 0..20u32 {
+            render(f64::from(q) * QUANTUM_FRAMES as f64);
+            samples.extend_from_slice(unsafe {
+                std::slice::from_raw_parts(output_ptr(), QUANTUM_FRAMES)
+            });
+        }
+        stop(1);
+        for q in 20..60u32 {
+            render(f64::from(q) * QUANTUM_FRAMES as f64);
+            samples.extend_from_slice(unsafe {
+                std::slice::from_raw_parts(output_ptr(), QUANTUM_FRAMES)
+            });
+        }
+
+        let step = max_step(&samples);
+        assert!(
+            step < 0.05,
+            "a drone should not step by more than 0.05 between samples across attack and stop, got {step}"
         );
     }
 
