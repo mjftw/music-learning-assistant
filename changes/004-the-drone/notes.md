@@ -24,3 +24,4 @@ One line each, newest last.
 - T006: the planned `acquireSound()` extraction was not done as an async helper — one more awaited hop breaks the fakes' "two microtask flushes after start()" convention; a synchronous `noticeFromSoundStart` is shared instead and the six-line `await sound.start()` block stays in both `start()` and `startDrone()`.
 - T006 (minor, reviewer, carried to T010): `startDrone()` does not reset `notice = null` on entry as `start()` does — REQ-008/S2's test will require it.
 - T006: `tests/ui/scenarios/transport-card.test.tsx` builds a `SessionSnapshot` literal and gained a placeholder `drone` block (ripple outside the Files list).
+- T007: `expect.closeTo(…)` nested in a `toEqual` literal is typed `any` by Vitest and trips `no-unsafe-assignment`; the four such assertions carry a commented `as number` cast. Future briefs should assert `toBeCloseTo` on the scalar instead (the repo's convention).

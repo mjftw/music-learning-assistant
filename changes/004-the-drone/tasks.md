@@ -516,7 +516,7 @@ _Ends with a drone that starts, stops, retunes, excludes playback and survives t
 
 ### T007 · practice.drone/REQ-002, practice.drone/REQ-003 · Stepping the octave; the drone follows the key and the instrument
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (`stepDroneOctave`, retune in `setContext`)
