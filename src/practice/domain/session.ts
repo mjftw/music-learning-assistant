@@ -783,7 +783,16 @@ export function createSession(
   // REQ-004/S1 — playing or counting excludes the drone: stop() is called
   // synchronously, before this function's own await below, so its stopAll
   // is posted before the drone's own commands.
+  //
+  // REQ-001 defines ▶ on the pill only "while the drone is off" — a no-op
+  // while already on keeps that the whole story rather than leaving it
+  // undefined: without this guard, a second startDrone() while the first's
+  // voice still sounds would overwrite `droneTag` with a fresh one and
+  // orphan the old voice, which then never gets a stop(tag) of its own and
+  // sounds forever (practice.drone/REQ-004/S3's invariant, sequence
+  // droneOn → droneOn → play, caught this).
   function startDrone(): void {
+    if (droneOn) return;
     if (transport.kind !== "idle") stop();
     invalidateSnapshot();
     // Bumped before the first await so a stopDrone() (or a second
