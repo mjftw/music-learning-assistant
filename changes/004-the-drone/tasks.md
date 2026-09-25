@@ -345,7 +345,7 @@ _Ends with a drone that starts, stops, retunes, excludes playback and survives t
 
 ### T005 · practice.drone/REQ-002 · The octave rule and the drone's note, pure
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/practice/domain/drone.ts`

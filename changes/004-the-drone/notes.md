@@ -20,3 +20,4 @@ One line each, newest last.
 - T003: the glide's `hz`/`target_hz`/`glide_per_frame` are f64 inside `Drone` (public signatures f32 as planned) — per-frame f32 accumulation drifted 0.019 Hz over the 1920-frame glide and missed the 0.01 Hz tolerance; the plan's data-model sketch said f32.
 - T003 (fixer round 1): the test-only `Drone::hz()` is gated `#[cfg(test)]`, not `#[allow(dead_code)]` — the cdylib crate counts only `extern "C"` items as public.
 - T004: `sessionOn` was listed in the task's Files but needs no change until T006 (its drone-settings parameter) — left untouched; the brief's `let now = 0` became `const` for `prefer-const`.
+- T005: `defaultDroneOctave` ends in a `throw` for a tonic with no octave 0–8 inside A0–C8 — unreachable for any pitch class the theory context can spell (𝄫 to 𝄪 all fit), guarded by a comment (engineering §4); the invariant test never reaches it.
