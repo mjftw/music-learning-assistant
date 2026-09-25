@@ -622,7 +622,7 @@ _Ends with a drone that starts, stops, retunes, excludes playback and survives t
 
 ### T008 · practice.drone/REQ-004 · Playback and the drone exclude each other; the wake lock is shared
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (`start`, `stop`, `startDrone`, `stopDrone`, `armIdleTimer`'s release)
