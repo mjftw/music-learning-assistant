@@ -112,6 +112,7 @@ export interface Session {
   setSettings(settings: SessionSettings): void;
   startDrone(): void;
   stopDrone(): void;
+  stepDroneOctave(delta: -1 | 1): void;
   setDroneSound(sound: DroneSound): void;
   onTargetAdvanced(listener: (event: TargetAdvanced) => void): () => void;
   onChange(listener: () => void): () => void;
@@ -364,6 +365,24 @@ export function createSession(
   }
 
   recompute();
+
+  // practice.drone/REQ-002, REQ-003 — every path that recomputes the drone's
+  // note (setContext, setTraversal, setScaleChoice, stepDroneOctave) shares
+  // this one comparison, so the retune rule is enforced in a single place
+  // rather than repeated at each call site: if the drone sounds and its hz
+  // actually changed, glide the live voice to it; a respelling (F# → Gb)
+  // changes the note's label only — same pitchPosition, same hz — so it
+  // posts nothing.
+  function recomputeAndRetune(): void {
+    const previousHz = pitchHzOf(droneNote);
+    recompute();
+    if (droneOn && droneTag !== null) {
+      const newHz = pitchHzOf(droneNote);
+      if (newHz !== previousHz) {
+        sound.post({ kind: "retune", tag: droneTag, hz: newHz });
+      }
+    }
+  }
 
   // `snapshot()` caches its last build, invalidated by `invalidateSnapshot()`
   // wherever anything it reads might have changed (T032). Two calls with no
@@ -822,6 +841,21 @@ export function createSession(
     notifyChange();
   }
 
+  // practice.drone/REQ-002 — − / + move the drone one octave from wherever
+  // it is currently resolved (not from a stale pin), pinning that octave
+  // number for key and variant changes to come; a no-op past A0/C8, where
+  // canStepDroneOctave already says there is nowhere to go.
+  function stepDroneOctave(delta: -1 | 1): void {
+    if (!canStepDroneOctave(droneNote, delta)) return;
+    invalidateSnapshot();
+    currentDroneSettings = {
+      ...currentDroneSettings,
+      octave: { kind: "pinned", octave: droneNote.octave + delta },
+    };
+    recomputeAndRetune();
+    notifyChange();
+  }
+
   function restartIfPlaying(): void {
     if (transport.kind !== "playing") return;
     invalidateSnapshot();
@@ -847,7 +881,7 @@ export function createSession(
   function setContext(newContext: SessionContext): void {
     invalidateSnapshot();
     currentContext = newContext;
-    recompute();
+    recomputeAndRetune();
     restartIfPlaying();
     notifyChange();
   }
@@ -855,7 +889,7 @@ export function createSession(
   function setTraversal(newTraversal: Traversal): void {
     invalidateSnapshot();
     currentTraversal = newTraversal;
-    recompute();
+    recomputeAndRetune();
     restartIfPlaying();
     notifyChange();
   }
@@ -863,7 +897,7 @@ export function createSession(
   function setScaleChoice(choice: ScaleChoice): void {
     invalidateSnapshot();
     currentScaleChoice = choice;
-    recompute();
+    recomputeAndRetune();
     restartIfPlaying();
     notifyChange();
   }
@@ -906,6 +940,7 @@ export function createSession(
     setSettings,
     startDrone,
     stopDrone,
+    stepDroneOctave,
     setDroneSound,
     onTargetAdvanced,
     onChange,
