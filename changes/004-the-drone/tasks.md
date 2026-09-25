@@ -426,7 +426,7 @@ _Ends with a drone that starts, stops, retunes, excludes playback and survives t
 
 ### T006 · practice.drone/REQ-001, practice.drone/REQ-005 · The session starts, stops and re-sounds the drone
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (`SessionSnapshot`, `Session`, `createSession` signature, `recompute`, new functions)

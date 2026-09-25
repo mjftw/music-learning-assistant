@@ -21,3 +21,6 @@ One line each, newest last.
 - T003 (fixer round 1): the test-only `Drone::hz()` is gated `#[cfg(test)]`, not `#[allow(dead_code)]` — the cdylib crate counts only `extern "C"` items as public.
 - T004: `sessionOn` was listed in the task's Files but needs no change until T006 (its drone-settings parameter) — left untouched; the brief's `let now = 0` became `const` for `prefer-const`.
 - T005: `defaultDroneOctave` ends in a `throw` for a tonic with no octave 0–8 inside A0–C8 — unreachable for any pitch class the theory context can spell (𝄫 to 𝄪 all fit), guarded by a comment (engineering §4); the invariant test never reaches it.
+- T006: the planned `acquireSound()` extraction was not done as an async helper — one more awaited hop breaks the fakes' "two microtask flushes after start()" convention; a synchronous `noticeFromSoundStart` is shared instead and the six-line `await sound.start()` block stays in both `start()` and `startDrone()`.
+- T006 (minor, reviewer, carried to T010): `startDrone()` does not reset `notice = null` on entry as `start()` does — REQ-008/S2's test will require it.
+- T006: `tests/ui/scenarios/transport-card.test.tsx` builds a `SessionSnapshot` literal and gained a placeholder `drone` block (ripple outside the Files list).
