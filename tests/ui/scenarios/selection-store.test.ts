@@ -11,7 +11,7 @@ test("a v4 payload round-trips (practice.session/REQ-011/S1, theory.circle-of-fi
   localStorage.clear();
   const store = localStorageSelectionStore(localStorage);
   const selection: StoredSelection = {
-    schemaVersion: 4,
+    schemaVersion: 5,
     variantId: "ocarina-bass-c",
     keyId: "Bb-major",
     spelling: "flat",
@@ -28,6 +28,7 @@ test("a v4 payload round-trips (practice.session/REQ-011/S1, theory.circle-of-fi
       tempoBpm: 132,
     },
     scale: { major: "lydian", minor: "dorian" },
+    drone: { octave: null, sound: "warm" },
   };
   store.save(selection);
   expect(store.load()).toEqual(selection);
@@ -57,7 +58,8 @@ test("a v3 payload migrates: everything kept, scale defaults to Major / Natural 
     }),
   );
   const loaded = localStorageSelectionStore(localStorage).load();
-  expect(loaded?.schemaVersion).toBe(4);
+  expect(loaded?.schemaVersion).toBe(5);
+  expect(loaded?.drone).toEqual({ octave: null, sound: "warm" });
   expect(loaded?.scale).toEqual({ major: "major", minor: "natural-minor" });
   expect(loaded?.traversal).toEqual({
     direction: "down",
@@ -99,7 +101,7 @@ test("a v2 payload migrates: preferences kept, traversal and session default, sp
   );
   const loaded = localStorageSelectionStore(localStorage).load();
   expect(loaded).toEqual({
-    schemaVersion: 4,
+    schemaVersion: 5,
     variantId: "ocarina-bass-c",
     keyId: "Bb-major",
     spelling: "flat",
@@ -110,6 +112,7 @@ test("a v2 payload migrates: preferences kept, traversal and session default, sp
     traversal: firstRunDefaults.traversal,
     session: firstRunDefaults.session,
     scale: firstRunDefaults.scale,
+    drone: firstRunDefaults.drone,
   });
   expect(loaded).not.toHaveProperty("span");
 });
@@ -137,7 +140,7 @@ test("empty storage loads as null; first-run defaults match the spec (practice.s
   localStorage.clear();
   expect(localStorageSelectionStore(localStorage).load()).toBeNull();
   expect(firstRunDefaults).toEqual({
-    schemaVersion: 4,
+    schemaVersion: 5,
     spelling: "sharp",
     view: "names",
     degreesEnabled: true,
@@ -152,6 +155,7 @@ test("empty storage loads as null; first-run defaults match the spec (practice.s
       tempoBpm: 96,
     },
     scale: { major: "major", minor: "natural-minor" },
+    drone: { octave: null, sound: "warm" },
   });
 });
 
@@ -160,4 +164,73 @@ test("corrupt or unrecognised stored state loads as null (theory.circle-of-fifth
   expect(localStorageSelectionStore(localStorage).load()).toBeNull();
   localStorage.setItem(storageKey, JSON.stringify({ schemaVersion: 9 }));
   expect(localStorageSelectionStore(localStorage).load()).toBeNull();
+});
+
+// The file's v4 fixture (stored state from 005 — practice.drone/REQ-009/S3)
+// and the v5 object migrating it is expected to produce.
+const v4Payload = {
+  schemaVersion: 4 as const,
+  variantId: "ocarina-alto-c",
+  keyId: "D-major",
+  spelling: "sharp" as const,
+  view: "names" as const,
+  degreesEnabled: true,
+  distanceRingEnabled: false,
+  staveNamesEnabled: true,
+  traversal: {
+    direction: "up" as const,
+    octaves: 2 as const,
+    shape: "scale" as const,
+  },
+  session: {
+    soundMode: "notes" as const,
+    loop: true,
+    countIn: false,
+    restBar: true,
+    tempoBpm: 108,
+  },
+  scale: { major: "mixolydian" as const, minor: "dorian" as const },
+};
+
+const migrateExpectation: StoredSelection = {
+  ...v4Payload,
+  schemaVersion: 5,
+  drone: { octave: null, sound: "warm" },
+};
+
+test("practice.drone/REQ-009/S3 — stored state from 005 (v4) restores everything it carries; the drone takes its defaults", () => {
+  localStorage.clear();
+  localStorage.setItem(storageKey, JSON.stringify(v4Payload));
+  const loaded = localStorageSelectionStore(localStorage).load();
+  expect(loaded?.schemaVersion).toBe(5);
+  expect(loaded?.drone).toEqual({ octave: null, sound: "warm" });
+  expect(loaded?.scale).toEqual(v4Payload.scale);
+  expect(loaded?.session.tempoBpm).toBe(v4Payload.session.tempoBpm);
+});
+
+test("practice.drone/REQ-009/S4 — an unreadable octave or sound falls back on its own; the rest is restored", () => {
+  localStorage.clear();
+  localStorage.setItem(
+    storageKey,
+    JSON.stringify({
+      ...v4Payload,
+      schemaVersion: 5,
+      drone: { octave: 12, sound: "bright" },
+    }),
+  );
+  const loaded = localStorageSelectionStore(localStorage).load();
+  expect(loaded?.drone).toEqual({ octave: null, sound: "warm" });
+  expect(loaded?.keyId).toBe(v4Payload.keyId);
+  expect(loaded?.session).toEqual(v4Payload.session);
+});
+
+test("practice.drone/REQ-009 — a v5 payload round-trips", () => {
+  localStorage.clear();
+  const store = localStorageSelectionStore(localStorage);
+  const v5: StoredSelection = {
+    ...migrateExpectation,
+    drone: { octave: 4, sound: "reed" },
+  };
+  store.save(v5);
+  expect(store.load()).toEqual(v5);
 });

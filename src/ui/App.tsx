@@ -316,7 +316,7 @@ export function App(props: {
     // completion re-renders with a snapshot, so this simply runs again.
     if (snapshot === null) return;
     const toSave: StoredSelection = {
-      schemaVersion: 4,
+      schemaVersion: 5,
       variantId: selection.variantId,
       keyId: keyIdOf(selectedKey),
       spelling: selection.spelling,
@@ -331,6 +331,9 @@ export function App(props: {
       },
       session: snapshot.settings,
       scale: snapshot.scaleChoice,
+      // T015 wires the session's real drone settings through here; for now
+      // the pill/sheet don't exist yet, so every save carries the defaults.
+      drone: firstRunDefaults.drone,
     };
     selectionStore.save(toSave);
   }, [

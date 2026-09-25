@@ -2,11 +2,15 @@ import { z } from "zod";
 import type { Direction, ScaleId, Shape } from "../theory/published";
 import { defaultScaleChoice } from "../practice/published";
 import type { SoundMode } from "../practice/published";
+import {
+  droneSoundSchema,
+  type DroneSound,
+} from "../sound/published/sound-command.schema";
 
 export type StoredOctaves = "full" | 1 | 2 | 3 | 4;
 
 export interface StoredSelection {
-  readonly schemaVersion: 4;
+  readonly schemaVersion: 5;
   readonly variantId: string;
   readonly keyId: string;
   readonly spelling: "sharp" | "flat";
@@ -27,10 +31,14 @@ export interface StoredSelection {
     readonly tempoBpm: number;
   };
   readonly scale: { readonly major: ScaleId; readonly minor: ScaleId };
+  readonly drone: {
+    readonly octave: number | null;
+    readonly sound: DroneSound;
+  }; // null = nearest
 }
 
 export const firstRunDefaults: Omit<StoredSelection, "variantId" | "keyId"> = {
-  schemaVersion: 4,
+  schemaVersion: 5,
   spelling: "sharp",
   view: "names",
   degreesEnabled: true,
@@ -45,6 +53,7 @@ export const firstRunDefaults: Omit<StoredSelection, "variantId" | "keyId"> = {
     tempoBpm: 96,
   },
   scale: defaultScaleChoice,
+  drone: { octave: null, sound: "warm" },
 };
 
 export interface SelectionStore {
@@ -121,6 +130,24 @@ const storedSelectionV4Schema = storedSelectionV3Schema.extend({
   }),
 });
 
+// Unlike `tempoBpm` (REQ-011) — where a bad value fails the whole payload
+// and everything falls back to first-run defaults — a bad drone octave or
+// sound falls back on its own (REQ-009/S4): the drone is the one thing that
+// never blocks restoring the rest of the stored state, so each field (and
+// the group as a whole, if it isn't even an object) `.catch`es to its
+// default instead of rejecting the payload.
+const storedDroneSchema = z
+  .object({
+    octave: z.number().int().min(0).max(8).nullable().catch(null),
+    sound: droneSoundSchema.catch("warm"),
+  })
+  .catch({ octave: null, sound: "warm" });
+
+const storedSelectionV5Schema = storedSelectionV4Schema.extend({
+  schemaVersion: z.literal(5),
+  drone: storedDroneSchema,
+});
+
 const storedSpanSchema = z.enum(["full", "oct-1", "oct-2", "oct-3", "oct-4"]);
 
 const storedSelectionV2Schema = z.object({
@@ -143,6 +170,7 @@ const storedSelectionV1Schema = z.object({
 });
 
 const storedSelectionSchema = z.union([
+  storedSelectionV5Schema,
   storedSelectionV4Schema,
   storedSelectionV3Schema,
   storedSelectionV2Schema,
@@ -151,9 +179,11 @@ const storedSelectionSchema = z.union([
 
 // Adds `scale` at its first-run defaults (REQ-011/S4) — every v3 field
 // carries forward as-is; scale choice did not exist before this change.
+// Returns the v4 shape, not `StoredSelection` — every v1–v4 payload still
+// chains through v4 as before, then through `migrateFromV4` once, below.
 function migrateFromV3(
   v3: z.infer<typeof storedSelectionV3Schema>,
-): StoredSelection {
+): z.infer<typeof storedSelectionV4Schema> {
   return {
     schemaVersion: 4,
     variantId: v3.variantId,
@@ -175,7 +205,7 @@ function migrateFromV3(
 // default, the same way `migrateFromV1` chains through this function.
 function migrateFromV2(
   v2: z.infer<typeof storedSelectionV2Schema>,
-): StoredSelection {
+): z.infer<typeof storedSelectionV4Schema> {
   return migrateFromV3({
     schemaVersion: 3,
     variantId: v2.variantId,
@@ -194,7 +224,7 @@ function migrateFromV2(
 // the v2-then-v3 first-run defaults.
 function migrateFromV1(
   v1: z.infer<typeof storedSelectionV1Schema>,
-): StoredSelection {
+): z.infer<typeof storedSelectionV4Schema> {
   return migrateFromV2({
     schemaVersion: 2,
     variantId: v1.variantId,
@@ -208,6 +238,19 @@ function migrateFromV1(
   });
 }
 
+// Copies every v4 field and adds `drone` at its first-run defaults
+// (REQ-009/S3) — stored state from before this change carries nothing
+// about the drone, so it starts unpinned and warm.
+function migrateFromV4(
+  v4: z.infer<typeof storedSelectionV4Schema>,
+): StoredSelection {
+  return {
+    ...v4,
+    schemaVersion: 5,
+    drone: firstRunDefaults.drone,
+  };
+}
+
 export function localStorageSelectionStore(storage: Storage): SelectionStore {
   return {
     load(): StoredSelection | null {
@@ -219,12 +262,14 @@ export function localStorageSelectionStore(storage: Storage): SelectionStore {
         if (!result.success) return null;
         switch (result.data.schemaVersion) {
           case 1:
-            return migrateFromV1(result.data);
+            return migrateFromV4(migrateFromV1(result.data));
           case 2:
-            return migrateFromV2(result.data);
+            return migrateFromV4(migrateFromV2(result.data));
           case 3:
-            return migrateFromV3(result.data);
+            return migrateFromV4(migrateFromV3(result.data));
           case 4:
+            return migrateFromV4(result.data);
+          case 5:
             return result.data;
         }
       } catch {
