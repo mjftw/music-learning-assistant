@@ -31,6 +31,7 @@ import { FakeClock, FakeSound, FakeVisibility, FakeWakeLock } from "../fakes";
 const SHAPES: readonly Shape[] = ["scale", "arpeggio"];
 const DIRECTIONS: readonly Direction[] = ["up", "down", "updown"];
 
+// Exhaustive enumeration — well over vitest's 5 s default under a loaded parallel pool; the assertions are unchanged.
 test("practice.session/REQ-006/S5 — the target is always in the sequence (invariant)", async () => {
   const keys: readonly Key[] = circleOfFifths().flatMap((position) => [
     ...position.majors,
@@ -118,4 +119,4 @@ test("practice.session/REQ-006/S5 — the target is always in the sequence (inva
   }
 
   expect(count).toBeGreaterThan(1000);
-});
+}, 20_000);

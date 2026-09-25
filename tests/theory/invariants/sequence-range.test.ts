@@ -24,6 +24,7 @@ const samePitchClass = (a: PitchClass, b: PitchClass): boolean =>
 const SHAPES: readonly Shape[] = ["scale", "arpeggio"];
 const DIRECTIONS: readonly Direction[] = ["up", "down", "updown"];
 
+// Exhaustive enumeration — well over vitest's 5 s default under a loaded parallel pool; the assertions are unchanged.
 test("theory.circle-of-fifths/REQ-012/S5 — the sequence never leaves the range (invariant)", () => {
   const keys: readonly Key[] = circleOfFifths().flatMap((position) => [
     ...position.majors,
@@ -96,7 +97,7 @@ test("theory.circle-of-fifths/REQ-012/S5 — the sequence never leaves the range
   }
 
   expect(count).toBeGreaterThan(16_000);
-});
+}, 20_000);
 
 test("theory.circle-of-fifths/REQ-012 (invariant) — every whole-octave run is tonic to tonic and no ↑↓ sequence repeats a pitch", () => {
   // Given every circle key × catalogued variant × catalogued scale × fitting count (+ full for ↑↓)
