@@ -552,8 +552,12 @@ export function createSession(
     if (transport.kind === "idle" && !droneOn) wakeLock.release();
   }
 
+  // practice.drone/REQ-007/S1 — hidden means silent: both playback and the
+  // drone stop when the page is hidden, exactly as ■ or ❚❚ would stop them
+  // while visible.
   const unsubscribeVisibility = visibility.onHidden(() => {
     stop();
+    stopDrone();
   });
 
   function next(onsetFrame: number): TickPlan | null {
@@ -795,6 +799,11 @@ export function createSession(
     if (droneOn) return;
     if (transport.kind !== "idle") stop();
     invalidateSnapshot();
+    // practice.drone/REQ-008/S2 — a retry clears the stale notice up front,
+    // mirroring start(): a successful sound.start() below never re-sets it,
+    // so leaving it here would strand yesterday's "sound-unavailable" notice
+    // forever once sound becomes available again.
+    notice = null;
     // Bumped before the first await so a stopDrone() (or a second
     // startDrone()) that lands while this one is still resolving
     // sound.start()/wakeLock.acquire() supersedes it (see droneGeneration
@@ -958,6 +967,10 @@ export function createSession(
     cancelPendingHighlights();
     cancelIdleTimer();
     unsubscribeVisibility();
+    // practice.drone/REQ-007 — release the drone's own voice and wake lock
+    // before the port itself goes away, rather than leaving it to whatever
+    // sound.dispose() happens to do with a live voice.
+    stopDrone();
     sound.dispose();
     changeListeners.clear();
     targetAdvancedListeners.clear();
