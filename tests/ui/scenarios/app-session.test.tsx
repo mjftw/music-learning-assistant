@@ -7,7 +7,6 @@ import {
   defaultTraversal,
   summaryLineOf,
   type Session,
-  type SessionDeps,
 } from "../../../src/practice/published";
 import {
   builtInCatalogue,
@@ -22,12 +21,10 @@ import {
 } from "../../../src/ui/selection-store";
 import {
   advanceUntil,
-  FakeClock,
   FakeSound,
-  FakeVisibility,
-  FakeWakeLock,
   isTone,
   keyOf,
+  sessionDepsWithFakes,
   variantOf,
 } from "../../practice/fakes";
 
@@ -37,34 +34,9 @@ afterEach(() => {
 
 const STORAGE_KEY = "music-learning-assistant.selection.v1";
 
-// This suite (unlike the shared `testSessionDeps` in `tests/practice/fakes`)
-// needs the `sound`, `clock` and `visibility` fakes back out for its own
-// assertions — every scenario here drives sound/clock directly or, for the
-// dispose regression below, inspects the visibility subscription.
-function testSessionDeps(sound = new FakeSound()): {
-  readonly sessionDeps: SessionDeps;
-  readonly sound: FakeSound;
-  readonly clock: FakeClock;
-  readonly visibility: FakeVisibility;
-} {
-  const clock = new FakeClock(sound);
-  const visibility = new FakeVisibility();
-  return {
-    sessionDeps: {
-      sound,
-      clock,
-      wakeLock: new FakeWakeLock(),
-      visibility,
-    },
-    sound,
-    clock,
-    visibility,
-  };
-}
-
 test("practice.session/REQ-011/S2 (app) — first run shows the S2 defaults in the transport and traversal row", () => {
   localStorage.clear();
-  const { sessionDeps } = testSessionDeps();
+  const { sessionDeps } = sessionDepsWithFakes();
 
   render(
     <App
@@ -109,7 +81,7 @@ test("practice.session/REQ-011/S4 (app) — a stored v3 payload is restored exac
       },
     }),
   );
-  const { sessionDeps } = testSessionDeps();
+  const { sessionDeps } = sessionDepsWithFakes();
 
   render(
     <App
@@ -130,7 +102,7 @@ test("practice.session/REQ-012/S1 (app) — choosing a scale changes the heading
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
-      sessionDeps={testSessionDeps().sessionDeps}
+      sessionDeps={sessionDepsWithFakes().sessionDeps}
     />,
   );
   // The circle never shows a scale (T012 brief) — the outer-ring wedge's
@@ -177,7 +149,7 @@ test("practice.session/REQ-011/S1 (app) — Dorian on the minor ring is restored
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
-      sessionDeps={testSessionDeps().sessionDeps}
+      sessionDeps={sessionDepsWithFakes().sessionDeps}
     />,
   );
   expect(screen.getByTestId("current-key").textContent).toBe("E Dorian");
@@ -190,7 +162,7 @@ test("practice.session/REQ-011/S2 (app) — first run: plain key, no scale suffi
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
-      sessionDeps={testSessionDeps().sessionDeps}
+      sessionDeps={sessionDepsWithFakes().sessionDeps}
     />,
   );
   expect(screen.getByTestId("current-key").textContent).toBe("C major");
@@ -226,7 +198,7 @@ test("practice.session/REQ-011/S4 (app) — a v3 payload keeps its settings and 
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
-      sessionDeps={testSessionDeps().sessionDeps}
+      sessionDeps={sessionDepsWithFakes().sessionDeps}
     />,
   );
   expect(screen.getByTestId("current-key").textContent).toBe("G major");
@@ -250,7 +222,7 @@ test("practice.session/REQ-011/S3 (app) — a stored v2 payload keeps the select
       staveNamesEnabled: false,
     }),
   );
-  const { sessionDeps } = testSessionDeps();
+  const { sessionDeps } = sessionDepsWithFakes();
 
   render(
     <App
@@ -284,7 +256,7 @@ test("practice.session/REQ-010/S1 (UI) — a notice appears, nothing modal opens
   localStorage.clear();
   const sound = new FakeSound();
   sound.failWith = { reason: "worklet-failed", detail: "" };
-  const { sessionDeps, clock } = testSessionDeps(sound);
+  const { sessionDeps, clock } = sessionDepsWithFakes(sound);
 
   render(
     <App
@@ -317,7 +289,7 @@ test("practice.session/REQ-010/S1 (UI) — a notice appears, nothing modal opens
 test("practice.session/REQ-007/S3, REQ-010/S2 (UI) — no sound before the gesture, and a sheet opening/closing mid-run is not a stop", async () => {
   localStorage.clear();
   const sound = new FakeSound();
-  const { sessionDeps, clock } = testSessionDeps(sound);
+  const { sessionDeps, clock } = sessionDepsWithFakes(sound);
 
   render(
     <App
@@ -351,7 +323,7 @@ test("practice.session/REQ-007/S3, REQ-010/S2 (UI) — no sound before the gestu
 test("practice.session/REQ-006/S4 (UI) — the onset-driven highlight commits synchronously, before any await", async () => {
   localStorage.clear();
   const sound = new FakeSound();
-  const { sessionDeps, clock } = testSessionDeps(sound);
+  const { sessionDeps, clock } = sessionDepsWithFakes(sound);
 
   render(
     <App
@@ -396,7 +368,7 @@ test("practice.session/REQ-006/S4 (UI) — the onset-driven highlight commits sy
 // case the reviewer found broken.
 test("practice.session/REQ-009 (app) — unmounting the app disposes the session (its visibility subscription is released)", () => {
   localStorage.clear();
-  const { sessionDeps, visibility } = testSessionDeps();
+  const { sessionDeps, visibility } = sessionDepsWithFakes();
 
   const { unmount } = render(
     <App
@@ -419,7 +391,7 @@ test("practice.session/REQ-009 (app) — unmounting the app disposes the session
 // doubled one.
 test("practice.session/REQ-009 (app) — under StrictMode the session still plays after the double-mount", async () => {
   localStorage.clear();
-  const { sessionDeps, sound, clock } = testSessionDeps();
+  const { sessionDeps, sound, clock } = sessionDepsWithFakes();
 
   render(
     <StrictMode>
@@ -458,7 +430,7 @@ test("practice.session/REQ-009 (app) — under StrictMode the session still play
 test("T032 — App commits about once per beat during playback, not once per lookahead poll", async () => {
   localStorage.clear();
   const sound = new FakeSound();
-  const { sessionDeps, clock } = testSessionDeps(sound);
+  const { sessionDeps, clock } = sessionDepsWithFakes(sound);
   let session: Session | null = null;
   let commits = 0;
 
@@ -520,7 +492,7 @@ test("practice.session/REQ-012/S4 (app) — the descent group follows the sessio
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
-      sessionDeps={testSessionDeps().sessionDeps}
+      sessionDeps={sessionDepsWithFakes().sessionDeps}
     />,
   );
   await userEvent.click(screen.getByRole("button", { name: "E minor" }));

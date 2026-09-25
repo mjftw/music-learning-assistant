@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test } from "vitest";
-import type { Session, SessionDeps } from "../../../src/practice/published";
+import type { Session } from "../../../src/practice/published";
 import { builtInCatalogue } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import {
@@ -11,14 +11,12 @@ import {
 } from "../../../src/ui/selection-store";
 import {
   advanceUntil,
-  FakeClock,
   FakeSound,
-  FakeVisibility,
-  FakeWakeLock,
   isDrone,
   isRetune,
   isStop,
   isTone,
+  sessionDepsWithFakes,
 } from "../../practice/fakes";
 
 afterEach(() => {
@@ -26,30 +24,6 @@ afterEach(() => {
 });
 
 const STORAGE_KEY = "music-learning-assistant.selection.v1";
-
-// Copied from app-session.test.tsx's own local helper (not exported there)
-// — this suite needs the `sound`, `clock` and `visibility` fakes back out
-// for its own assertions, the same way app-session.test.tsx does.
-function testSessionDeps(sound = new FakeSound()): {
-  readonly sessionDeps: SessionDeps;
-  readonly sound: FakeSound;
-  readonly clock: FakeClock;
-  readonly visibility: FakeVisibility;
-} {
-  const clock = new FakeClock(sound);
-  const visibility = new FakeVisibility();
-  return {
-    sessionDeps: {
-      sound,
-      clock,
-      wakeLock: new FakeWakeLock(),
-      visibility,
-    },
-    sound,
-    clock,
-    visibility,
-  };
-}
 
 // A full, valid v5 `StoredSelection` — every field at its first-run
 // default, standing in for "a stored payload" wherever a scenario needs
@@ -81,7 +55,7 @@ test("practice.drone/REQ-001/S1 (app) — tapping ▶ on the pill sounds G5 and 
       variantId: "flute-concert",
     }),
   );
-  const { sessionDeps, sound } = testSessionDeps();
+  const { sessionDeps, sound } = sessionDepsWithFakes();
   render(
     <App
       catalogue={builtInCatalogue()}
@@ -98,7 +72,7 @@ test("practice.drone/REQ-001/S1 (app) — tapping ▶ on the pill sounds G5 and 
 
 test("practice.drone/REQ-001/S3 (app) — the sheet's switch and the pill are one control", async () => {
   localStorage.clear();
-  const { sessionDeps } = testSessionDeps();
+  const { sessionDeps } = sessionDepsWithFakes();
   render(
     <App
       catalogue={builtInCatalogue()}
@@ -126,7 +100,7 @@ test("practice.drone/REQ-001/S3 (app) — the sheet's switch and the pill are on
 
 test("practice.drone/REQ-001/S4 (app) — sheets, the drawer and the picker never stop it", async () => {
   localStorage.clear();
-  const { sessionDeps, sound } = testSessionDeps();
+  const { sessionDeps, sound } = sessionDepsWithFakes();
   render(
     <App
       catalogue={builtInCatalogue()}
@@ -159,7 +133,7 @@ test("practice.drone/REQ-001/S4 (app) — sheets, the drawer and the picker neve
 
 test("practice.drone/REQ-006/S2 (app) — the sheet is not a control", async () => {
   localStorage.clear();
-  const { sessionDeps, sound, clock } = testSessionDeps();
+  const { sessionDeps, sound, clock } = sessionDepsWithFakes();
   let session: Session | null = null;
 
   render(
@@ -210,7 +184,7 @@ test("practice.drone/REQ-008/S1 (app) — no sound: the notice appears, the pill
   localStorage.clear();
   const sound = new FakeSound();
   sound.failWith = { reason: "no-audio-context", detail: "test" };
-  const { sessionDeps } = testSessionDeps(sound);
+  const { sessionDeps } = sessionDepsWithFakes(sound);
 
   render(
     <App
@@ -239,7 +213,7 @@ test("practice.drone/REQ-009/S1 (app) — back where it was", async () => {
       drone: { octave: 4, sound: "reed" },
     }),
   );
-  const { sessionDeps } = testSessionDeps();
+  const { sessionDeps } = sessionDepsWithFakes();
 
   render(
     <App
@@ -270,7 +244,7 @@ test("practice.drone/REQ-009/S2 (app) — first run", () => {
     <App
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
-      sessionDeps={testSessionDeps().sessionDeps}
+      sessionDeps={sessionDepsWithFakes().sessionDeps}
     />,
   );
 
@@ -287,7 +261,7 @@ test("practice.drone/REQ-009/S2 (app) — first run", () => {
 
 test("practice.drone/REQ-009 (app) — the octave and sound are saved, on/off never", async () => {
   localStorage.clear();
-  const { sessionDeps } = testSessionDeps();
+  const { sessionDeps } = sessionDepsWithFakes();
 
   render(
     <App

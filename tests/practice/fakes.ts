@@ -253,18 +253,36 @@ export class FakeVisibility implements VisibilityPort {
 }
 
 // The `SessionDeps` fakes a rendered `<App>` needs to satisfy its
-// now-required `sessionDeps` prop (practice.session/REQ-011, T016) — shared
-// by every UI scenario that doesn't itself need to inspect the sound, clock,
-// wake lock or visibility fakes (those that do build their own deps inline,
-// e.g. `tests/ui/scenarios/app-session.test.tsx`).
-export function testSessionDeps(): SessionDeps {
-  const sound = new FakeSound();
+// now-required `sessionDeps` prop (practice.session/REQ-011, T016), plus the
+// `sound`, `clock` and `visibility` fakes back out — shared by every UI
+// scenario that drives sound/clock directly or inspects the visibility
+// subscription (`tests/ui/scenarios/app-session.test.tsx`,
+// `app-drone.test.tsx`).
+export function sessionDepsWithFakes(sound = new FakeSound()): {
+  readonly sessionDeps: SessionDeps;
+  readonly sound: FakeSound;
+  readonly clock: FakeClock;
+  readonly visibility: FakeVisibility;
+} {
+  const clock = new FakeClock(sound);
+  const visibility = new FakeVisibility();
   return {
+    sessionDeps: {
+      sound,
+      clock,
+      wakeLock: new FakeWakeLock(),
+      visibility,
+    },
     sound,
-    clock: new FakeClock(sound),
-    wakeLock: new FakeWakeLock(),
-    visibility: new FakeVisibility(),
+    clock,
+    visibility,
   };
+}
+
+// The plain `SessionDeps` alone — shared by every UI scenario that doesn't
+// itself need the sound, clock or visibility fakes back out.
+export function testSessionDeps(): SessionDeps {
+  return sessionDepsWithFakes().sessionDeps;
 }
 
 // Builds a key's tonic from a spelling like "C", "F#" or "Bb", major unless
