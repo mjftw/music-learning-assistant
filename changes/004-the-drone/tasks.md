@@ -1231,7 +1231,7 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 ### T017 · practice.session/REQ-013 · Tapping a column in the names view
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/NamesView.tsx` (columns become buttons; new props)
