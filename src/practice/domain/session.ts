@@ -534,7 +534,7 @@ export function createSession(
       transport = { kind: "idle" };
       soundingPosition = null;
       cancelPendingHighlights();
-      wakeLock.release();
+      releaseWakeLockIfSilent();
       notifyChange();
     }, msUntilEnd);
   }
@@ -542,6 +542,14 @@ export function createSession(
   function cancelIdleTimer(): void {
     cancelIdle?.();
     cancelIdle = null;
+  }
+
+  // practice.drone/REQ-004 — the wake lock is shared between playback and
+  // the drone: it is released only when neither remains, so stop(), the
+  // idle transition and stopDrone() all funnel through this one check
+  // rather than each deciding on its own.
+  function releaseWakeLockIfSilent(): void {
+    if (transport.kind === "idle" && !droneOn) wakeLock.release();
   }
 
   const unsubscribeVisibility = visibility.onHidden(() => {
@@ -704,6 +712,14 @@ export function createSession(
   }
 
   function start(): void {
+    // practice.drone/REQ-004/S2 — ▶ silences the drone before the count-in
+    // or the first note: stopDrone() posts its stop(tag) here, synchronously
+    // (before this function's own await below), so it lands at this exact
+    // frame; the first tick's lead then carries the drone's own release time
+    // on top, so the click or note never sounds until the drone has
+    // actually faded to silence.
+    const droneWasOn = droneOn;
+    if (droneWasOn) stopDrone();
     invalidateSnapshot();
     notice = null;
     cancelIdleTimer(); // Cancel any pending idle timer from the previous run
@@ -736,7 +752,13 @@ export function createSession(
       }
       noticeFromSoundStart(result);
       await wakeLock.acquire();
-      scheduler.start(sound.currentFrame() + firstTickLeadFrames(), next);
+      const droneReleaseFrames = droneWasOn
+        ? Math.round((DRONE_RELEASE_MS * sound.sampleRate()) / 1000)
+        : 0;
+      scheduler.start(
+        sound.currentFrame() + firstTickLeadFrames() + droneReleaseFrames,
+        next,
+      );
       invalidateSnapshot();
       notifyChange();
     })();
@@ -750,15 +772,19 @@ export function createSession(
     sound.post({ kind: "stopAll" });
     transport = { kind: "idle" };
     soundingPosition = null;
-    wakeLock.release();
+    releaseWakeLockIfSilent();
     notifyChange();
   }
 
-  // practice.drone/REQ-001, REQ-008 — mirrors start()'s sound.start()
-  // handling, but stays off on failure rather than proceeding regardless:
-  // there is no walk-through to get stuck, so nothing is gained by sounding
-  // silently, and REQ-008 asks for the pill to stay showing ▶.
+  // practice.drone/REQ-001, REQ-004, REQ-008 — mirrors start()'s
+  // sound.start() handling, but stays off on failure rather than proceeding
+  // regardless: there is no walk-through to get stuck, so nothing is gained
+  // by sounding silently, and REQ-008 asks for the pill to stay showing ▶.
+  // REQ-004/S1 — playing or counting excludes the drone: stop() is called
+  // synchronously, before this function's own await below, so its stopAll
+  // is posted before the drone's own commands.
   function startDrone(): void {
+    if (transport.kind !== "idle") stop();
     invalidateSnapshot();
     // Bumped before the first await so a stopDrone() (or a second
     // startDrone()) that lands while this one is still resolving
@@ -802,11 +828,9 @@ export function createSession(
     })();
   }
 
-  // practice.drone/REQ-001 — releases the live voice over its own fade
-  // (RELEASE_S in src/sound/src/drone.rs); the wake lock is released only
-  // when nothing else needs it (a full transport/drone sharing scheme is
-  // T008 — for now, "not idle" only ever means "playing", since REQ-004's
-  // mutual exclusion is a later task).
+  // practice.drone/REQ-001, REQ-004 — releases the live voice over its own
+  // fade (RELEASE_S in src/sound/src/drone.rs); the wake lock, shared with
+  // playback, is released only when neither remains (releaseWakeLockIfSilent).
   function stopDrone(): void {
     invalidateSnapshot();
     droneGeneration += 1; // supersede any startDrone() still awaiting
@@ -815,7 +839,7 @@ export function createSession(
       droneTag = null;
     }
     droneOn = false;
-    if (transport.kind === "idle") wakeLock.release();
+    releaseWakeLockIfSilent();
     notifyChange();
   }
 
