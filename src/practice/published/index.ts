@@ -15,6 +15,15 @@ export {
 } from "../domain/settings";
 export type { ScaleChoice } from "../domain/scale-choice";
 export { defaultScaleChoice, chosenScaleIdFor } from "../domain/scale-choice";
+export type { DroneOctave, DroneSettings, DroneSound } from "../domain/drone";
+export {
+  PIANO_HIGHEST_POSITION,
+  PIANO_LOWEST_POSITION,
+  canStepDroneOctave,
+  defaultDroneOctave,
+  defaultDroneSettings,
+  droneNoteOf,
+} from "../domain/drone";
 export type { BeatsLeft, Tick, TransportState } from "../domain/transport";
 export { advance, startTransport, tickOf } from "../domain/transport";
 export type {
