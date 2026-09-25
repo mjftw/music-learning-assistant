@@ -158,6 +158,20 @@ impl Voices {
         }
     }
 
+    /// Starts a glide to `hz` on the voice tagged `tag`, if it is a
+    /// `Drone`; a tone, a click, or an unknown tag is a no-op
+    /// (practice.drone/REQ-003).
+    pub fn retune(&mut self, tag: u32, hz: f32) {
+        let sample_rate = self.sample_rate;
+        for voice in self.slots.iter_mut().flatten() {
+            if voice.tag == tag {
+                if let VoiceKind::Drone(drone) = &mut voice.kind {
+                    drone.retune(hz, sample_rate);
+                }
+            }
+        }
+    }
+
     /// Fills `out` (one render quantum) with the sum of every sounding
     /// voice at `now_frame`, clears voices whose duration has elapsed, and
     /// writes an `OnsetReport` into `reports` for every voice rendering for

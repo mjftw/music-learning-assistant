@@ -129,6 +129,13 @@ pub extern "C" fn stop(tag: u32) {
     engine().voices.stop(tag);
 }
 
+/// Starts a glide to `hz` on the drone voice tagged `tag` (practice.drone/
+/// REQ-003); ignored for a tone, a click, or an unknown tag.
+#[no_mangle]
+pub extern "C" fn retune(tag: u32, hz: f32) {
+    engine().voices.retune(tag, hz);
+}
+
 /// Returns a pointer to the onset-report buffer filled by the most recent
 /// `render` call: `render`'s return value `n` triples of
 /// `[tag, onset_frame, actual_frame]`, beginning at this pointer.
@@ -490,5 +497,40 @@ mod tests {
         }
         let out = unsafe { std::slice::from_raw_parts(output_ptr(), 128) };
         assert!(out.iter().any(|s| *s != 0.0));
+    }
+
+    // practice.drone/REQ-005/S3 — a sound change is a crossfade: the new voice's attack overlaps the old voice's release, never silent
+    #[test]
+    fn a_sound_change_crossfade_is_never_silent() {
+        let _guard = lock_engine();
+        init(48000.0);
+        push_drone(1, 440.0, 0.0, 1);
+        for q in 0..40 {
+            render(f64::from(q) * 128.0);
+        }
+        push_drone(2, 440.0, 40.0 * 128.0 + 960.0, 2); // the new sound 20 ms out, as the session posts it
+        stop(1);
+        for q in 40..80 {
+            render(f64::from(q) * 128.0);
+            let out = unsafe { std::slice::from_raw_parts(output_ptr(), 128) };
+            let peak = out.iter().fold(0.0f32, |m, s| m.max(s.abs()));
+            assert!(
+                peak > 0.01,
+                "quantum {q} went silent during the crossfade (peak {peak})"
+            );
+        }
+    }
+
+    #[test]
+    fn retune_ignores_tones_and_unknown_tags() {
+        let _guard = lock_engine();
+        init(48000.0);
+        push_tone(1, 440.0, 0.0, 4800);
+        retune(1, 880.0);
+        retune(9, 880.0);
+        render(0.0);
+        /* no panic; the tone still renders: */
+        let out = unsafe { std::slice::from_raw_parts(output_ptr(), 128) };
+        assert!(out[73] != 0.0);
     }
 }

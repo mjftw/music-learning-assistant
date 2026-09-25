@@ -14,6 +14,9 @@ pub const MAX_HARMONIC: usize = 24;
 /// The summed |gain| of every partial, so the peak never exceeds it: ≤ 0.6
 /// × the tone's own peak (tone::PEAK_GAIN · 1.25 = 0.3125).
 pub const PEAK_GAIN: f32 = 0.15;
+/// How long a `retune` takes to reach its target pitch — a linear glide,
+/// not a restart (practice.drone/REQ-003: within 100 ms).
+pub const GLIDE_S: f32 = 0.040;
 
 /// The three drone sounds offered from the Drone sheet's Sound row
 /// (practice.drone/REQ-005): pure, a single sine; warm, a soft blend with
@@ -52,7 +55,13 @@ fn lowpass(k: usize) -> f32 {
 /// not part of `next_sample`.
 #[derive(Clone, Copy)]
 pub struct Drone {
-    hz: f32,
+    // Kept at f64 (unlike the f32 the rest of the voice runs at) because a
+    // glide adds `glide_per_frame` on every one of ~2000 frames; at f32
+    // precision that many additions drift by more than a cent — f64 has
+    // headroom enough that the drift never shows up in a synthesised pitch.
+    hz: f64,
+    target_hz: f64,
+    glide_per_frame: f64,
     phase: f32,
     gains: [f32; MAX_HARMONIC + 1],
 }
@@ -91,18 +100,51 @@ impl Drone {
         }
 
         Drone {
-            hz,
+            hz: f64::from(hz),
+            target_hz: f64::from(hz),
+            glide_per_frame: 0.0,
             phase: 0.0,
             gains,
         }
     }
 
+    /// The pitch this instant — `hz` mid-glide, the target once it has
+    /// arrived (tests). No production code reads a drone's `hz` back out;
+    /// `#[allow(dead_code)]` documents that to clippy rather than inventing
+    /// a caller that doesn't otherwise exist — the `cdylib` crate type
+    /// flags an unread `pub` method as dead even though the `rlib` target
+    /// (what `cargo test` compiles) exercises it.
+    #[allow(dead_code)]
+    pub fn hz(&self) -> f32 {
+        self.hz as f32
+    }
+
+    /// Starts a linear glide from the current `hz` to `hz`, reaching it
+    /// `GLIDE_S` later; a retune mid-glide restarts the glide from where
+    /// the pitch is right now, not from the old target
+    /// (practice.drone/REQ-003).
+    pub fn retune(&mut self, hz: f32, sample_rate: f32) {
+        self.target_hz = f64::from(hz);
+        self.glide_per_frame = (self.target_hz - self.hz) / f64::from(GLIDE_S * sample_rate);
+    }
+
     /// Attack-enveloped sum of the partials below Nyquist at
-    /// `elapsed_frames` since onset.
+    /// `elapsed_frames` since onset. Moves `hz` one `glide_per_frame` step
+    /// toward `target_hz`, clamped so it never overshoots.
     pub fn next_sample(&mut self, elapsed_frames: f64, sample_rate: f32) -> f32 {
+        if self.hz != self.target_hz {
+            self.hz += self.glide_per_frame;
+            let overshot = (self.glide_per_frame > 0.0 && self.hz > self.target_hz)
+                || (self.glide_per_frame < 0.0 && self.hz < self.target_hz);
+            if overshot {
+                self.hz = self.target_hz;
+            }
+        }
+        let hz = self.hz as f32;
+
         let mut value = self.gains[0] * (0.5 * self.phase).sin();
         for k in 1..=MAX_HARMONIC {
-            if k as f32 * self.hz >= sample_rate / 2.0 {
+            if k as f32 * hz >= sample_rate / 2.0 {
                 break; // band-limited: k·hz only grows from here
             }
             value += self.gains[k] * (k as f32 * self.phase).sin();
@@ -111,7 +153,7 @@ impl Drone {
         // Advances by a full cycle of the fundamental per `hz` cycles per
         // second, wrapping at 4π rather than 2π so the 0.5× sub-octave
         // partial (half the phase rate) stays continuous across the wrap.
-        self.phase += 2.0 * PI * self.hz / sample_rate;
+        self.phase += 2.0 * PI * hz / sample_rate;
         if self.phase > 4.0 * PI {
             self.phase -= 4.0 * PI;
         }
@@ -227,6 +269,44 @@ mod tests {
                 "a drone sound should peak at most 60% of a tone's peak ({tone_peak}), got {drone_peak}"
             );
         }
+    }
+
+    // practice.drone/REQ-003/S1 — the pitch glides to the new one within 100 ms (GLIDE_S = 40 ms), nothing restarts
+    #[test]
+    fn retune_reaches_the_target_within_40ms_without_a_step() {
+        let mut drone = Drone::new(783.99, DroneSound::Warm);
+        let mut samples = Vec::new();
+        for f in 0..4800 {
+            samples.push(drone.next_sample(f64::from(f), SAMPLE_RATE));
+        }
+        drone.retune(587.33, SAMPLE_RATE);
+        for f in 4800..9600 {
+            samples.push(drone.next_sample(f64::from(f), SAMPLE_RATE));
+        }
+        assert!(
+            (drone.hz() - 587.33).abs() < 0.01,
+            "should have reached the target, at {}",
+            drone.hz()
+        );
+        let after_1920 = {
+            let mut d = Drone::new(783.99, DroneSound::Warm);
+            for f in 0..4800 {
+                d.next_sample(f64::from(f), SAMPLE_RATE);
+            }
+            d.retune(587.33, SAMPLE_RATE);
+            for f in 4800..6720 {
+                d.next_sample(f64::from(f), SAMPLE_RATE);
+            }
+            d.hz()
+        };
+        assert!(
+            (after_1920 - 587.33).abs() < 0.01,
+            "40 ms = 1920 frames after retune the glide is complete"
+        );
+        let step = samples
+            .windows(2)
+            .fold(0.0f32, |m, p| m.max((p[1] - p[0]).abs()));
+        assert!(step < 0.05, "a glide must not step, got {step}");
     }
 
     // Not a correctness test — Reed is the most expensive sound (every
