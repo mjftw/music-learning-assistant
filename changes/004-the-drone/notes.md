@@ -31,3 +31,4 @@ One line each, newest last.
 - T011: the tap's beat is exactly `tickFramesOf()` (625 ms at 96 bpm); the brief's `clock.advance(624)` became 599 because `advanceUntil`'s 25 ms stepping settles the fake clock 25 ms past the highlight's due instant — a harness artefact, assertions unchanged.
 - T011: `restartIfPlaying()` ends a sounding tap unconditionally (a recompute while idle makes the tapped run index stale) — plan text, no scenario of its own.
 - T011: the full parallel `pnpm check` intermittently timed out two exhaustive invariants (`sequence-range`, `target-in-sequence`) at vitest's 5 s limit under machine load; they pass alone in under 3 s and the next full runs were green — not a regression of this change.
+- T013: the design's disc pill also opens the sheet when the note label itself is tapped; the brief wired only ▼ to `onOpenSheet` — the label is plain text. Check at acceptance whether the label should open the sheet too.

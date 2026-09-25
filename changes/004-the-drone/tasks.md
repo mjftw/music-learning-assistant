@@ -980,7 +980,7 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 ### T013 [P] · practice.drone/REQ-001, practice.drone/REQ-002 · `DronePill` — the pill in the disc
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/DronePill.tsx`
