@@ -1328,7 +1328,7 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 ### T020 · — · `AGENTS.md` architecture line, `pnpm check`, `pnpm test:timing`
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `AGENTS.md` (Architecture paragraph)
