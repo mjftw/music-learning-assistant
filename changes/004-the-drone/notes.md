@@ -19,3 +19,4 @@ One line each, newest last.
 - T002 (minor, reviewer): `a_drone_renders_without_large_steps_across_attack_and_stop` does not assert `push_drone`'s return value, unlike its two siblings — mirrors the brief's sketch; fold in if the file is touched again.
 - T003: the glide's `hz`/`target_hz`/`glide_per_frame` are f64 inside `Drone` (public signatures f32 as planned) — per-frame f32 accumulation drifted 0.019 Hz over the 1920-frame glide and missed the 0.01 Hz tolerance; the plan's data-model sketch said f32.
 - T003 (fixer round 1): the test-only `Drone::hz()` is gated `#[cfg(test)]`, not `#[allow(dead_code)]` — the cdylib crate counts only `extern "C"` items as public.
+- T004: `sessionOn` was listed in the task's Files but needs no change until T006 (its drone-settings parameter) — left untouched; the brief's `let now = 0` became `const` for `prefer-const`.

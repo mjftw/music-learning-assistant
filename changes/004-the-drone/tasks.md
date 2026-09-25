@@ -274,7 +274,7 @@ worklet shim learn three commands; the fakes learn to record them._
 
 ### T004 · — · `SoundCommand` learns `drone`, `retune`, `stop`; the shim, the silent port and the fakes follow
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/sound/published/sound-command.schema.ts`
