@@ -16,7 +16,7 @@ verified:
     at: 2026-09-24T23:37:47Z
 sdd_id: 004-the-drone
 sdd_context: practice
-sdd_phase: approved
+sdd_phase: in-progress
 ---
 
 # Tasks: The drone
@@ -52,7 +52,7 @@ worklet shim learn three commands; the fakes learn to record them._
 
 ### T001 · — · Voices are addressable: `Length`, per-kind stop fade, `stop(tag)`
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/sound/src/voices.rs` (`Voice`, `VoiceKind::next_sample`, `Voices::render_into`; add `Length`, `Voices::stop`)
