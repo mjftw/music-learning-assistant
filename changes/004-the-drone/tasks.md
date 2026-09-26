@@ -1354,7 +1354,7 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 ### T022 · practice.drone/REQ-004 · ▶ during the drone's pending start cancels it; `stop()` never leaves the drone stale
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (`start()` at the `droneWasOn` block, `stop()`, `startDrone()`'s continuation after its awaits)
