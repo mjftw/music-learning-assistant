@@ -62,3 +62,16 @@ test("practice.drone/REQ-001/S3 (sheet) — the switch toggles", async () => {
   await userEvent.click(sw);
   expect(onToggle).toHaveBeenCalledTimes(1);
 });
+
+test("practice.drone/REQ-005/S3 (sheet) — the reed and pure hints", () => {
+  const { rerender } = render(<DroneSheet {...base} sound="reed" />);
+  expect(
+    screen.getByRole("button", { name: "reed" }).getAttribute("aria-pressed"),
+  ).toBe("true");
+  expect(screen.getByText("Buzzy · closest to a wind drone")).toBeTruthy();
+  rerender(<DroneSheet {...base} sound="pure" />);
+  expect(
+    screen.getByRole("button", { name: "pure" }).getAttribute("aria-pressed"),
+  ).toBe("true");
+  expect(screen.getByText("Sine · easiest to hear beats against")).toBeTruthy();
+});

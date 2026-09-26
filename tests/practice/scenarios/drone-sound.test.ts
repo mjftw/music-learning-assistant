@@ -28,6 +28,10 @@ test("practice.drone/REQ-005/S3 — changing the sound mid-drone crossfades: a n
   expect(session.snapshot().drone.settings.sound).toBe("reed");
   expect(session.snapshot().drone.on).toBe(true);
   // the overlap itself (attack over release, never silent) is proved on rendered samples by sound::tests::a_sound_change_crossfade_is_never_silent
+  // audible within 300 ms: the new voice's onset is at most 300 ms after the change
+  expect(drones[1]!.onsetFrame - sound.currentFrame()).toBeLessThanOrEqual(
+    (300 * sound.sampleRate()) / 1000,
+  );
 });
 
 test("practice.drone/REQ-005/S2 — pure is posted as pure (its single partial is proved by sound::tests::pure_drone_has_a_single_partial)", async () => {
