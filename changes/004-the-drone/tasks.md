@@ -1406,7 +1406,7 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 ### T023 · practice.drone/REQ-005 · REQ-005/S3's hint and 300 ms clauses, and every Sound-row hint, are asserted
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: `tests/ui/scenarios/drone-sheet.test.tsx` (append), `tests/practice/scenarios/drone-sound.test.ts` (extend the S3 test)
