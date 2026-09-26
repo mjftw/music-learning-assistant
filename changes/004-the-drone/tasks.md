@@ -1350,6 +1350,107 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 **Verify** — the convergence report says Converged.
 
+## Phase 5 — Converge round 1 (2026-09-25, report `.sdd/reports/004-the-drone/converge.md`)
+
+### T022 · practice.drone/REQ-004 · ▶ during the drone's pending start cancels it; `stop()` never leaves the drone stale
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/domain/session.ts` (`start()` at the `droneWasOn` block, `stop()`, `startDrone()`'s continuation after its awaits)
+- Test: `tests/practice/scenarios/drone-exclusion.test.ts` (append), `tests/practice/invariants/never-both.test.ts` (widen)
+
+**Interfaces**
+- Consumes: `Session.start/stop/startDrone/stopDrone`, `snapshot.drone.on`, `droneGeneration` (private, T006), `FakeSound.posts`, `isDrone`, `isStop`, `isTone`, `startDroneAndFlush`, `flushStart`, `advanceUntil`, `FIRST_TICK_LEAD_MS`
+- Produces (behaviour, no new signatures):
+  - `start()` bumps `droneGeneration` unconditionally (so a `startDrone()` still awaiting the sound port posts nothing and never sets `on`), and — as today — calls `stopDrone()` and delays the first tick by the release only when the drone was actually on.
+  - `startDrone()`'s continuation re-checks `transport.kind === "idle"` after its awaits as well as the generation; if either fails it returns without posting and without setting `on`.
+  - `stop()` calls `stopDrone()` first when `droneOn` (so `droneOn`/`droneTag` are never left stale), then posts `stopAll` as today.
+
+**Steps**
+- [ ] 1. RED — append to `tests/practice/scenarios/drone-exclusion.test.ts`:
+  ```ts
+  test("practice.drone/REQ-004/S2 (pending) — ▶ while the drone's own ▶ is still awaiting the sound port cancels it", async () => {
+    const { session, sound, clock } = sessionOn("G", "flute-concert", GMajorTwoOctaves, { ...defaultSessionSettings, countIn: false });
+    session.startDrone();          // pending: sound.start() not yet resolved
+    const tapFrame = sound.currentFrame();
+    await flushStart(session);     // ▶ lands inside the window; the flushes settle the pending start too
+    await Promise.resolve();
+    expect(sound.posted.filter(isDrone)).toHaveLength(0);
+    expect(session.snapshot().drone.on).toBe(false);
+    advanceUntil(clock, () => sound.posted.some(isTone));
+    const leadFrames = (FIRST_TICK_LEAD_MS * sound.sampleRate()) / 1000;
+    expect(sound.posted.filter(isTone)[0]!.onsetFrame).toBe(tapFrame + leadFrames);
+    advanceUntil(clock, () => session.snapshot().soundingPosition === 2);
+    expect(sound.posted.filter(isDrone)).toHaveLength(0);
+  });
+
+  test("practice.drone/REQ-004 (edge) — stop() while the drone is on clears it", async () => {
+    const { session, sound } = sessionOn("G", "flute-concert", GMajorTwoOctaves, defaultSessionSettings);
+    await startDroneAndFlush(session);
+    const tag = sound.posted.filter(isDrone)[0]!.tag;
+    session.stop();
+    expect(sound.posted.filter(isStop)).toEqual([{ kind: "stop", tag }]);
+    expect(session.snapshot().drone.on).toBe(false);
+    await startDroneAndFlush(session);
+    expect(sound.posted.filter(isDrone)).toHaveLength(2);
+  });
+  ```
+  and widen `tests/practice/invariants/never-both.test.ts`: `type Action` gains `"droneOnPending"` (call `session.startDrone()` and return without awaiting, so the next action lands inside the window; `apply` for every other action first awaits two microtasks so any pending start has settled before that action runs, and the loop flushes two microtasks after the last action before reading the timeline), `ACTIONS` lists all five, and the `checked` expectation becomes `5 + 25 + 125 + 625`.
+- [ ] 2. Run `pnpm vitest run tests/practice/scenarios/drone-exclusion.test.ts tests/practice/invariants/never-both.test.ts` — expect FAIL: the pending test sees one `drone` posted and `drone.on` true; the invariant names `droneOnPending → play` (or a longer sequence containing it).
+- [ ] 3. GREEN — per Produces.
+- [ ] 4. Run the two files — expect PASS. `pnpm check` — green.
+- [ ] 5. REFACTOR — none.
+
+**Verify** — `pnpm vitest run tests/practice` → all pass; `never-both.test.ts` reports `checked` = 780 and runs in under 10 s.
+
+### T023 · practice.drone/REQ-005 · REQ-005/S3's hint and 300 ms clauses, and every Sound-row hint, are asserted
+
+**Status:** todo
+
+**Files**
+- Test: `tests/ui/scenarios/drone-sheet.test.tsx` (append), `tests/practice/scenarios/drone-sound.test.ts` (extend the S3 test)
+
+**Interfaces**
+- Consumes: `DroneSheet` props (T014); `isDrone`, `startDroneAndFlush` (T004/T006)
+- Produces: none (tests only)
+
+**Steps**
+- [ ] 1. RED — append to `tests/ui/scenarios/drone-sheet.test.tsx`:
+  ```tsx
+  test("practice.drone/REQ-005/S3 (sheet) — the reed and pure hints", () => {
+    const { rerender } = render(<DroneSheet {...base} sound="reed" />);
+    expect(screen.getByRole("button", { name: "reed" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("Buzzy · closest to a wind drone")).toBeTruthy();
+    rerender(<DroneSheet {...base} sound="pure" />);
+    expect(screen.getByRole("button", { name: "pure" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("Sine · easiest to hear beats against")).toBeTruthy();
+  });
+  ```
+  and in `tests/practice/scenarios/drone-sound.test.ts`'s REQ-005/S3 test add, after the existing assertions:
+  ```ts
+  // audible within 300 ms: the new voice's onset is at most 300 ms after the change
+  expect(drones[1]!.onsetFrame - sound.currentFrame()).toBeLessThanOrEqual((300 * sound.sampleRate()) / 1000);
+  ```
+- [ ] 2. Run `pnpm vitest run tests/ui/scenarios/drone-sheet.test.tsx tests/practice/scenarios/drone-sound.test.ts` — expect PASS on the first run (the hints and the 20 ms lead already exist); if a hint text fails, the string in `src/ui/DroneSheet.tsx` is wrong — fix the string, not the test.
+- [ ] 3. `pnpm check` — green.
+
+**Verify** — `pnpm vitest run tests/ui/scenarios/drone-sheet.test.tsx tests/practice/scenarios/drone-sound.test.ts` → `7 passed` across the two files.
+
+### T024 · practice.session/REQ-006 · The timing budget measured against the phone's server, and the phone's own check
+
+**Status:** todo — the user's step (needs the phone on the LAN)
+
+**Files**
+- None (a measurement; its result is recorded in `docs/decisions.md` and `notes.md`)
+
+**Steps**
+- [ ] 1. On the laptop: `pnpm dev:phone` (HTTPS on the LAN). In a second terminal: `APP_URL=https://localhost:5173 pnpm test:timing` — the harness's own measurement against the same server, three tempos, ~3 minutes. Paste the table and the final line.
+- [ ] 2. On the phone: open `https://<laptop-ip>:5173`, accept the certificate warning once, choose G major on the flute, ▶ at 96 bpm then 200 bpm — the highlight and the sound must land together (the 003 acceptance walk); then the drone: ▶ on the pill, − / +, a key change while it sounds, a tapped note over it, ▶ on the transport, lock the phone.
+- [ ] 3. Record the harness numbers and the phone verdict as a `docs/decisions.md` line dated with the run; if the phone shows sound before the highlight or a click on the drone's start/stop/retune, that is a new finding for the next converge round, not something to tune here.
+
+**Verify** — `docs/decisions.md` carries the 2026-09 line with the three `vs audible` numbers and "phone: PASS" (or the finding).
+
 ## Coverage
 
 | Requirement | Tasks | Covered |
