@@ -781,6 +781,14 @@ export function createSession(
     // on top, so the click or note never sounds until the drone has
     // actually faded to silence.
     const droneWasOn = droneOn;
+    // Bumped unconditionally — even a startDrone() that is only still
+    // pending (droneOn still false, awaiting sound.start()/wakeLock.acquire())
+    // must be superseded the instant ▶ is tapped, or its continuation would
+    // pass its own generation check and post a drone under a run already in
+    // progress (T022). stopDrone() below bumps it again when the drone was
+    // actually on; a second bump there is harmless — only inequality with
+    // startedAtGeneration is ever tested.
+    droneGeneration += 1;
     if (droneWasOn) stopDrone();
     invalidateSnapshot();
     notice = null;
@@ -828,6 +836,12 @@ export function createSession(
 
   function stop(): void {
     invalidateSnapshot();
+    // practice.drone/REQ-004 (T022) — clears the drone first when it is on,
+    // so droneOn/droneTag are never left stale: without this, a stop() that
+    // runs while the drone is fully on would leave `on` true with no
+    // scheduled release, and posting stopAll below would silence its voice
+    // in the sound port while the session's own state still called it live.
+    if (droneOn) stopDrone();
     scheduler.stop();
     cancelPendingHighlights();
     cancelIdleTimer();
@@ -888,7 +902,14 @@ export function createSession(
         return;
       }
       await wakeLock.acquire();
-      if (droneGeneration !== startedAtGeneration) return;
+      // Belt and braces alongside the generation check (T022): start()
+      // bumps droneGeneration synchronously the instant ▶ is tapped, so
+      // this alone should already catch a ▶ that lands during the awaits
+      // above; re-checking transport.kind here too means a stale post is
+      // never mistaken for current even if some future caller changed the
+      // transport without going through droneGeneration.
+      if (droneGeneration !== startedAtGeneration || transport.kind !== "idle")
+        return;
       const tag = nextDroneTag();
       droneTag = tag;
       sound.post({

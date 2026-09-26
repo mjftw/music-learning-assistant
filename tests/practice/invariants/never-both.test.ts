@@ -19,8 +19,14 @@ import {
   startDroneAndFlush,
 } from "../fakes";
 
-type Action = "play" | "pause" | "droneOn" | "droneOff";
-const ACTIONS: readonly Action[] = ["play", "pause", "droneOn", "droneOff"];
+type Action = "play" | "pause" | "droneOn" | "droneOff" | "droneOnPending";
+const ACTIONS: readonly Action[] = [
+  "play",
+  "pause",
+  "droneOn",
+  "droneOff",
+  "droneOnPending",
+];
 const GAP_MS = 300;
 const CLICK_MS = 25;
 const STOP_FADE_MS = 5;
@@ -53,16 +59,30 @@ async function flushStart(session: Session): Promise<void> {
 async function apply(session: Session, action: Action): Promise<void> {
   switch (action) {
     case "play":
+      // The session call is synchronous and immediate; the flush comes
+      // after — so a pending droneOnPending from the previous action is
+      // still mid-flight when this one lands (the T022 race), and only
+      // settles once this action's own two microtasks run.
       await flushStart(session);
       return;
     case "pause":
       session.stop();
+      await Promise.resolve();
+      await Promise.resolve();
       return;
     case "droneOn":
       await startDroneAndFlush(session);
       return;
     case "droneOff":
       session.stopDrone();
+      await Promise.resolve();
+      await Promise.resolve();
+      return;
+    case "droneOnPending":
+      // T022 — starts the drone but returns without flushing, leaving it
+      // awaiting sound.start()/wakeLock.acquire(): the next action's own
+      // synchronous call lands inside that window.
+      session.startDrone();
       return;
   }
 }
@@ -154,6 +174,11 @@ test("practice.drone/REQ-004/S3 — never both (invariant)", async () => {
         await apply(session, action);
         clock.advance(GAP_MS);
       }
+      // A trailing droneOnPending never flushes on its own — settle it
+      // before reading the timeline, or its eventual post would land after
+      // the assertions ran.
+      await Promise.resolve();
+      await Promise.resolve();
       clock.advance(2000);
       const drones = droneIntervals(sound.posts, sound.sampleRate());
       for (const voice of sequenceIntervals(sound.posts, sound.sampleRate()))
@@ -165,5 +190,5 @@ test("practice.drone/REQ-004/S3 — never both (invariant)", async () => {
       session.dispose();
       checked += 1;
     }
-  expect(checked).toBe(4 + 16 + 64 + 256);
+  expect(checked).toBe(5 + 25 + 125 + 625);
 });
