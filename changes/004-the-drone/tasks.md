@@ -1439,7 +1439,7 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 ### T024 · practice.session/REQ-006 · The timing budget measured against the phone's server, and the phone's own check
 
-**Status:** todo — the user's step (needs the phone on the LAN)
+**Status:** done
 
 **Files**
 - None (a measurement; its result is recorded in `docs/decisions.md` and `notes.md`)
@@ -1486,6 +1486,7 @@ Scenario → RED step: REQ-001 S1 T002/T006/T015 · S2 T002/T006 · S3 T014/T015
 
 ## Deferred
 
+- On the phone the sound slightly leads the highlight for the first three notes of each run, then aligns (T024, 2026-09-26) — the first-tick lead and highlight aim (`FIRST_TICK_LEAD_MS`, `HIGHLIGHT_LEAD_MS`) to revisit after this change ships; not a drone regression (the transport is untouched).
 - A wavetable per drone sound instead of per-sample additive synthesis — only if T002's benchmark shows a quantum over 500 µs on the laptop or the phone crackles at acceptance (ADR 0005, "Revisit if").
 - Extending `pnpm test:timing` to the drone's onset and retune — the budgets here (50 ms, 100 ms) are ten times playback's and are proved on the fakes' frame clock; a measured harness earns its place only if the phone says otherwise.
 - `docs/domain.md` (sound's Voice noun, the never-both invariant, the session settings) and `docs/glossary.md` (Drone sound, Tapped note) — re-approved at `sdd-finish`, per the proposal's Affects table.
