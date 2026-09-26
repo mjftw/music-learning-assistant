@@ -2,6 +2,9 @@ import { z } from "zod";
 
 // The seam between practice and the audio thread. Malformed commands cannot
 // reach Rust: the host validates with this schema before posting.
+export const droneSoundSchema = z.enum(["pure", "warm", "reed"]);
+export type DroneSound = z.infer<typeof droneSoundSchema>;
+
 export const soundCommandSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("tone"),
@@ -17,6 +20,22 @@ export const soundCommandSchema = z.discriminatedUnion("kind", [
     onsetFrame: z.number().nonnegative(),
   }),
   z.object({ kind: z.literal("stopAll") }),
+  z.object({
+    kind: z.literal("drone"),
+    tag: z.number().int().nonnegative(),
+    hz: z.number().positive(),
+    onsetFrame: z.number().nonnegative(),
+    sound: droneSoundSchema,
+  }),
+  z.object({
+    kind: z.literal("retune"),
+    tag: z.number().int().nonnegative(),
+    hz: z.number().positive(),
+  }),
+  z.object({
+    kind: z.literal("stop"),
+    tag: z.number().int().nonnegative(),
+  }),
 ]);
 export type SoundCommand = z.infer<typeof soundCommandSchema>;
 

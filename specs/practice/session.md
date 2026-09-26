@@ -9,6 +9,7 @@ sources:
   - resource: /changes/003-hear-the-scale/proposal.md
   - resource: /changes/005-scale-selection/proposal.md
   - resource: /changes/006-scale-selection-acceptance-fixes/proposal.md
+  - resource: /changes/004-the-drone/proposal.md
 generated:
   by: process:merge_delta.py
   at: 2026-09-23T13:43:58Z
@@ -19,9 +20,11 @@ verified:
     at: 2026-09-24T04:14:37Z
   - by: human:merlin-webster
     at: 2026-09-24T09:13:02Z
+  - by: human:merlin-webster
+    at: 2026-09-26T12:07:33Z
 sdd_context: practice
 sdd_capability: session
-sdd_version: 0.3.0
+sdd_version: 0.4.0
 sdd_phase: current
 ---
 
@@ -485,6 +488,56 @@ descending form's notes that differ, in playing order
 
 _Changed by 006-scale-selection-acceptance-fixes_
 
+### REQ-013: A tapped note sounds for one beat
+
+WHEN a notehead in the stave view or a note's column in the names view is
+tapped WHILE idle
+THE SYSTEM SHALL sound that note of the run — for a names column, the
+lowest note of that name in the run — as a playback tone (`REQ-005`) for
+one beat at the current tempo, and SHALL highlight it as a sounding note is
+(`REQ-006`) for that beat, without emitting `TargetAdvanced`, changing the
+idle caption or moving the position; WHILE the drone sounds THE SYSTEM
+SHALL sound the tapped note over it; WHEN the same or another note is
+tapped before the beat ends THE SYSTEM SHALL end the earlier tone and start
+the new one's beat; and WHILE playing or counting THE SYSTEM SHALL ignore
+taps on noteheads and columns
+
+**Scenarios**
+- **REQ-013/S1 — a notehead tapped at 96 bpm**
+  Given G major on flute Concert, ↑↓, 2 oct, stave view, idle at 96 bpm
+  When the D5 notehead is tapped
+  Then a tone at 587.33 Hz sounds for 625 ms with its release, D5's
+  notehead is accented, enlarged and haloed for those 625 ms and then not,
+  the caption still reads "29 notes · G4–G6", and no `TargetAdvanced` was
+  emitted
+- **REQ-013/S2 — a names column**
+  Given G major on flute Concert, ↑↓, 2 oct, names view, idle at 120 bpm
+  When the D column is tapped
+  Then a tone at D5's pitch (the lowest D in the run G4–G6) sounds for 500
+  ms and the D column is highlighted for 500 ms
+- **REQ-013/S3 — over the drone**
+  Given the drone sounding G5 (`practice.drone/REQ-001/S1`), stave view
+  When the B5 notehead is tapped
+  Then a tone at 987.77 Hz sounds for one beat while the drone continues at
+  783.99 Hz throughout — the two together
+- **REQ-013/S4 — a second tap restarts**
+  Given the tap of S1, 300 ms in
+  When the E5 notehead is tapped
+  Then D5's tone ends and its highlight clears, and E5 sounds and is
+  highlighted for a full 625 ms from that tap
+- **REQ-013/S5 — ignored while playing**
+  Given the sequence of `REQ-002/S1` is playing, or counting in
+  When a notehead or column is tapped
+  Then nothing extra sounds, the highlight stays on the sounding note (or
+  nothing while counting), and the run is unaffected
+- **REQ-013/S6 — the descent's own notes**
+  Given G melodic minor · classical, ↑↓, names view, idle
+  When the ↓-marked F column is tapped
+  Then a tone at F5's pitch sounds — the descending form's note as it
+  appears in the written-out run
+
+_Since 004-the-drone_
+
 ## Invariants
 
 | Invariant (from docs/domain.md) | Guarded by requirements |
@@ -497,3 +550,4 @@ _Changed by 006-scale-selection-acceptance-fixes_
 | 0.1.0 | 2026-09-23 | 003-hear-the-scale | 11 | 0 | 0 |
 | 0.2.0 | 2026-09-24 | 005-scale-selection | 1 | 3 | 0 |
 | 0.3.0 | 2026-09-24 | 006-scale-selection-acceptance-fixes | 0 | 1 | 0 |
+| 0.4.0 | 2026-09-26 | 004-the-drone | 1 | 0 | 0 |

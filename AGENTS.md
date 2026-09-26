@@ -121,10 +121,12 @@ A static single-page web app; no server, no runtime services (Article VII).
 Four bounded contexts (docs/domain.md): `src/theory/` (pure functions —
 notes, keys, circle, traversal, pitch, catalogue, scales (the catalogue),
 notation), `src/practice/` (the
-session: a pure transport state machine, a lookahead scheduler adapter on
-the audio clock, ports for sound / clock / wake lock / visibility),
+session: a pure transport state machine, the drone, a lookahead scheduler
+adapter on the audio clock, ports for sound / clock / wake lock /
+visibility),
 `src/sound/` (Rust→WASM synthesiser in an AudioWorklet plus a ~60-line TS
-host shim in its `published/`; ADR 0003), `src/listening/` (pitch
+host shim in its `published/`; ADR 0003) — voices are addressable by tag
+and a drone voice has no end (ADR 0005), `src/listening/` (pitch
 detection; Rust→WASM from change 006 (hear-me), ADR 0001).
 `src/ui/` is the view layer over the contexts, not a context itself. Each
 context exposes `published/` and nothing else crosses its boundary

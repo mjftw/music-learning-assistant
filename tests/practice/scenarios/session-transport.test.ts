@@ -4,21 +4,15 @@ import {
   FIRST_TICK_LEAD_MS,
 } from "../../../src/practice/published";
 import type { Session } from "../../../src/practice/published";
-import type { SoundCommand } from "../../../src/sound/published/sound-command.schema";
 import type { Traversal } from "../../../src/theory/published";
-import { advanceUntil, keyOf, sessionOn, variantOf } from "../fakes";
-
-function isTone(
-  command: SoundCommand,
-): command is Extract<SoundCommand, { kind: "tone" }> {
-  return command.kind === "tone";
-}
-
-function isClick(
-  command: SoundCommand,
-): command is Extract<SoundCommand, { kind: "click" }> {
-  return command.kind === "click";
-}
+import {
+  advanceUntil,
+  isClick,
+  isTone,
+  keyOf,
+  sessionOn,
+  variantOf,
+} from "../fakes";
 
 const GMajorTwoOctaves: Traversal = {
   direction: "updown",
@@ -185,7 +179,7 @@ test("practice.session/REQ-007/S1 — a new key mid-scale", async () => {
   const firstTickLeadFrames = (FIRST_TICK_LEAD_MS * sound.sampleRate()) / 1000;
   const postedAfterRestart = sound.posted
     .slice(postedCountBeforeRestart)
-    .filter((command) => command.kind !== "stopAll");
+    .filter((command) => isTone(command) || isClick(command));
   expect(postedAfterRestart[0]!.onsetFrame).toBeGreaterThanOrEqual(
     frameAtRestart,
   );

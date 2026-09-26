@@ -1,10 +1,12 @@
 mod click;
+mod drone;
 mod tone;
 mod voices;
 
 use click::Click;
+use drone::{Drone, DroneSound};
 use tone::Tone;
-use voices::{OnsetReport, Voice, VoiceKind, Voices, MAX_VOICES};
+use voices::{Length, OnsetReport, Voice, VoiceKind, Voices, MAX_VOICES};
 
 /// The render quantum: one call to `render` fills exactly this many mono frames.
 const QUANTUM_FRAMES: usize = 128;
@@ -71,7 +73,7 @@ pub extern "C" fn push_tone(tag: u32, hz: f32, onset_frame: f64, duration_frames
         tag,
         VoiceKind::Tone(Tone::new(hz)),
         onset_frame,
-        duration_frames,
+        Length::Frames(duration_frames),
     );
     u32::from(engine().voices.push(voice))
 }
@@ -88,17 +90,50 @@ pub extern "C" fn push_click(tag: u32, accent: u32, onset_frame: f64) -> u32 {
         tag,
         VoiceKind::Click(Click::new(accent != 0)),
         onset_frame,
-        duration_frames,
+        Length::Frames(duration_frames),
     );
     u32::from(engine.voices.push(voice))
 }
 
+/// Queues a drone voice — `sound` 0/1/2 for pure/warm/reed — sounding at
+/// `hz` from `onset_frame` until `stop(tag)` releases it (`Length::UntilStopped`).
+/// Returns 1 if a voice slot was free, 0 if all 64 are in use or `sound` is
+/// not a known code (the drone is not queued).
+#[no_mangle]
+pub extern "C" fn push_drone(tag: u32, hz: f32, onset_frame: f64, sound: u32) -> u32 {
+    let Some(sound) = DroneSound::from_code(sound) else {
+        return 0;
+    };
+    let voice = Voice::new(
+        tag,
+        VoiceKind::Drone(Drone::new(hz, sound)),
+        onset_frame,
+        Length::UntilStopped,
+    );
+    u32::from(engine().voices.push(voice))
+}
+
 /// Silences every queued and sounding voice at once (❚❚, REQ-002), fading
-/// each out over 5 ms rather than cutting it instantly — an abrupt cut is
-/// itself a click (REQ-005).
+/// each out over its own kind's release rather than cutting it instantly —
+/// an abrupt cut is itself a click (REQ-005).
 #[no_mangle]
 pub extern "C" fn stop_all() {
     engine().voices.stop_all();
+}
+
+/// Marks the voice tagged `tag` — if any — to fade out over its own kind's
+/// release rather than continuing or being cut abruptly; an unknown tag is
+/// a no-op.
+#[no_mangle]
+pub extern "C" fn stop(tag: u32) {
+    engine().voices.stop(tag);
+}
+
+/// Starts a glide to `hz` on the drone voice tagged `tag` (practice.drone/
+/// REQ-003); ignored for a tone, a click, or an unknown tag.
+#[no_mangle]
+pub extern "C" fn retune(tag: u32, hz: f32) {
+    engine().voices.retune(tag, hz);
 }
 
 /// Returns a pointer to the onset-report buffer filled by the most recent
@@ -395,5 +430,107 @@ mod tests {
             tail.iter().all(|s| *s == 0.0),
             "voices should be fully silent well after the fade completes"
         );
+    }
+
+    // practice.drone/REQ-001/S2 — silent within 500 ms of ■: with RELEASE_S = 0.080 the drone is fully silent 80 ms + one quantum after stop(tag)
+    #[test]
+    fn a_stopped_drone_is_silent_within_its_release() {
+        let _guard = lock_engine();
+        init(48000.0);
+        assert_eq!(push_drone(7, 440.0, 0.0, 1), 1);
+        for q in 0..40 {
+            render(f64::from(q) * 128.0);
+        } // past the attack
+        stop(7);
+        for q in 40..72 {
+            render(f64::from(q) * 128.0);
+        } // 32 quantums = 4096 frames > 3840 + 128
+        let out = unsafe { std::slice::from_raw_parts(output_ptr(), 128) };
+        assert!(out.iter().all(|s| *s == 0.0));
+    }
+
+    #[test]
+    fn an_unknown_sound_code_is_refused() {
+        let _guard = lock_engine();
+        init(48000.0);
+        assert_eq!(push_drone(1, 440.0, 0.0, 3), 0);
+    }
+
+    #[test]
+    fn a_drone_renders_without_large_steps_across_attack_and_stop() {
+        let _guard = lock_engine();
+        init(48000.0);
+        push_drone(1, 110.0, 0.0, 1); // Warm at A2, the sub-octave's worst case
+
+        let mut samples = Vec::new();
+        for q in 0..20u32 {
+            render(f64::from(q) * QUANTUM_FRAMES as f64);
+            samples.extend_from_slice(unsafe {
+                std::slice::from_raw_parts(output_ptr(), QUANTUM_FRAMES)
+            });
+        }
+        stop(1);
+        for q in 20..60u32 {
+            render(f64::from(q) * QUANTUM_FRAMES as f64);
+            samples.extend_from_slice(unsafe {
+                std::slice::from_raw_parts(output_ptr(), QUANTUM_FRAMES)
+            });
+        }
+
+        let step = max_step(&samples);
+        assert!(
+            step < 0.05,
+            "a drone should not step by more than 0.05 between samples across attack and stop, got {step}"
+        );
+    }
+
+    #[test]
+    fn stop_by_tag_leaves_other_voices_sounding() {
+        let _guard = lock_engine();
+        init(48000.0);
+        push_tone(1, 440.0, 0.0, 48000);
+        push_tone(2, 660.0, 0.0, 48000);
+        render(0.0);
+        stop(1);
+        for q in 1..4 {
+            render(f64::from(q) * 128.0);
+        }
+        let out = unsafe { std::slice::from_raw_parts(output_ptr(), 128) };
+        assert!(out.iter().any(|s| *s != 0.0));
+    }
+
+    // practice.drone/REQ-005/S3 — a sound change is a crossfade: the new voice's attack overlaps the old voice's release, never silent
+    #[test]
+    fn a_sound_change_crossfade_is_never_silent() {
+        let _guard = lock_engine();
+        init(48000.0);
+        push_drone(1, 440.0, 0.0, 1);
+        for q in 0..40 {
+            render(f64::from(q) * 128.0);
+        }
+        push_drone(2, 440.0, 40.0 * 128.0 + 960.0, 2); // the new sound 20 ms out, as the session posts it
+        stop(1);
+        for q in 40..80 {
+            render(f64::from(q) * 128.0);
+            let out = unsafe { std::slice::from_raw_parts(output_ptr(), 128) };
+            let peak = out.iter().fold(0.0f32, |m, s| m.max(s.abs()));
+            assert!(
+                peak > 0.01,
+                "quantum {q} went silent during the crossfade (peak {peak})"
+            );
+        }
+    }
+
+    #[test]
+    fn retune_ignores_tones_and_unknown_tags() {
+        let _guard = lock_engine();
+        init(48000.0);
+        push_tone(1, 440.0, 0.0, 4800);
+        retune(1, 880.0);
+        retune(9, 880.0);
+        render(0.0);
+        /* no panic; the tone still renders: */
+        let out = unsafe { std::slice::from_raw_parts(output_ptr(), 128) };
+        assert!(out[73] != 0.0);
     }
 }

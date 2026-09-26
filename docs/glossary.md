@@ -21,6 +21,8 @@ verified:
     at: 2026-09-23T13:44:18Z
   - by: human:merlin-webster
     at: 2026-09-24T04:15:00Z
+  - by: human:merlin-webster
+    at: 2026-09-26T12:17:08Z
 sdd_phase: approved
 ---
 
@@ -61,6 +63,8 @@ sdd_phase: approved
 | Tempo term | `practice` | The Italian name for a band of tempos (Largo 40–59 … Presto 176–200); picking one lands on the middle of its band | Tempo — the number itself | 003-hear-the-scale |
 | Audible onset | `practice` | The instant a scheduled note reaches the listener: its scheduled onset plus the device's reported output latency; the sounding-note highlight is timed to it | Scheduled onset — the audio graph's time | 003-hear-the-scale |
 | Drone | `practice` | A continuously sounding note held for pitching a wind instrument or tuning a stringed one | — | intent-product |
+| Drone sound | `practice` | Which of pure, warm or reed the drone is rendered with | Sound mode — what sounds during playback (notes, both, metronome) | 004-the-drone |
+| Tapped note | `practice` | A note of the run sounded for one beat on demand, from the stave or the names view | Target note — the sequence's current note; a tapped note never advances the target | 004-the-drone |
 | Judgement | `practice` | The verdict on a detected pitch against the target note: sharp, flat, or in tune, with the offset in cents | Raw detected pitch — judgement only exists relative to a target | domain map |
 | In tune | `practice` | Close enough to the target note's pitch to count as correct | Nailed — colloquial, not used | glossary |
 | Held | `practice` | Sustained in tune for the required duration; what advances the target in learner-leads mode | A single in-tune instant | glossary |

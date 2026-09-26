@@ -2,8 +2,22 @@
 
 Chronological history of this bundle. Newest date first.
 
+## 2026-09-26
+
+- Glossary `docs/glossary.md` → approved (human:merlin-webster)
+- Domain Map `docs/domain.md` → approved (human:merlin-webster)
+- Capability Spec `specs/practice/session.md` → current (human:merlin-webster)
+- Capability Spec `specs/practice/drone.md` → current (human:merlin-webster)
+
 ## 2026-09-24
 
+- Task List `changes/004-the-drone/tasks.md` → approved (human:merlin-webster)
+- Architecture Decision Record `docs/adr/0005-addressable-voices.md` → accepted (human:merlin-webster)
+- Implementation Plan `changes/004-the-drone/plan.md` → approved (human:merlin-webster)
+- Spec Delta `changes/004-the-drone/delta/practice/session.md` → approved (human:merlin-webster)
+- Spec Delta `changes/004-the-drone/delta/practice/drone.md` → approved (human:merlin-webster)
+- Change Proposal `changes/004-the-drone/proposal.md` → approved (human:merlin-webster)
+- Intent `changes/004-the-drone/intent.md` → resolved (human:merlin-webster)
 - Capability Spec `specs/theory/circle-of-fifths.md` → current (human:merlin-webster)
 - Capability Spec `specs/practice/session.md` → current (human:merlin-webster)
 - Task List `changes/006-scale-selection-acceptance-fixes/tasks.md` → approved (human:merlin-webster)

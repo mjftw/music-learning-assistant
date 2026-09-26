@@ -16,6 +16,16 @@ const HEADER_TITLE_FONT_SIZE = 14;
 const HEADER_TITLE_FONT_WEIGHT = 600;
 const HEADER_BORDER = `1px solid ${paper.hairline}`;
 
+// Added for the Drone sheet (DroneSheet.tsx, changes/004-the-drone/design/
+// Drone.dc.html markup lines 355-361) — a subtitle line under the title,
+// and a trailing slot before the close button (the on/off switch). Both
+// optional and rendered only when given, so every existing caller (none of
+// which passes either) renders exactly as before.
+const HEADER_SUBTITLE_FONT_SIZE = 11.5;
+const HEADER_SUBTITLE_COLOR = paper.muted;
+const HEADER_SUBTITLE_MARGIN_TOP = 4;
+const HEADER_TRAILING_GAP = 12;
+
 // The bottom-sheet shell shared by every sheet that slides up from the
 // bottom edge (InstrumentSheet, TraversalSheet, TempoSheet) — geometry
 // copied verbatim from the vendored visual reference
@@ -125,11 +135,13 @@ function OverlayCloseButton(props: {
 
 export function OverlayHeader(props: {
   readonly title: ReactNode;
+  readonly subtitle?: ReactNode;
+  readonly trailing?: ReactNode;
   readonly padding: string;
   readonly closeAriaLabel: string;
   readonly onClose: () => void;
 }): JSX.Element {
-  const { title, padding, closeAriaLabel, onClose } = props;
+  const { title, subtitle, trailing, padding, closeAriaLabel, onClose } = props;
 
   return (
     <div
@@ -141,16 +153,40 @@ export function OverlayHeader(props: {
         borderBottom: HEADER_BORDER,
       }}
     >
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: HEADER_TITLE_FONT_SIZE,
+            fontWeight: HEADER_TITLE_FONT_WEIGHT,
+            color: paper.ink,
+          }}
+        >
+          {title}
+        </div>
+        {subtitle !== undefined && (
+          <div
+            style={{
+              fontSize: HEADER_SUBTITLE_FONT_SIZE,
+              color: HEADER_SUBTITLE_COLOR,
+              whiteSpace: "nowrap",
+              marginTop: HEADER_SUBTITLE_MARGIN_TOP,
+            }}
+          >
+            {subtitle}
+          </div>
+        )}
+      </div>
       <div
         style={{
-          fontSize: HEADER_TITLE_FONT_SIZE,
-          fontWeight: HEADER_TITLE_FONT_WEIGHT,
-          color: paper.ink,
+          display: "flex",
+          alignItems: "center",
+          gap: HEADER_TRAILING_GAP,
+          flex: "none",
         }}
       >
-        {title}
+        {trailing}
+        <OverlayCloseButton ariaLabel={closeAriaLabel} onClose={onClose} />
       </div>
-      <OverlayCloseButton ariaLabel={closeAriaLabel} onClose={onClose} />
     </div>
   );
 }

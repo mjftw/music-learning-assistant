@@ -51,3 +51,23 @@ test("practice.session/REQ-010/S1 — stopAll before the scheduled frame cancels
 
   expect(reports).toEqual([]);
 });
+
+test("silent port — a drone reports its onset at its scheduled frame; retune and stop schedule nothing", () => {
+  const now = 0;
+  const port = silentSound(() => now);
+  const reports: OnsetReport[] = [];
+  port.onOnset((report) => reports.push(report));
+  port.post({
+    kind: "drone",
+    tag: 3_000_000,
+    hz: 783.99,
+    onsetFrame: 960,
+    sound: "warm",
+  });
+  port.post({ kind: "retune", tag: 3_000_000, hz: 587.33 });
+  port.post({ kind: "stop", tag: 3_000_000 });
+  vi.advanceTimersByTime(25);
+  expect(reports).toEqual([
+    { tag: 3_000_000, onsetFrame: 960, actualFrame: 960 },
+  ]);
+});

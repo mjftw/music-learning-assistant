@@ -2,13 +2,19 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test, vi } from "vitest";
 import {
+  defaultDroneSettings,
   defaultScaleChoice,
   defaultSessionSettings,
   defaultTraversal,
   type SessionSnapshot,
   type TempoTerm,
 } from "../../../src/practice/published";
-import { scaleById, spelledScaleOf } from "../../../src/theory/published";
+import {
+  pitchHzOf,
+  scaleById,
+  spelledScaleOf,
+  type Note,
+} from "../../../src/theory/published";
 import { TransportCard } from "../../../src/ui/TransportCard";
 import { keyOf } from "../../practice/fakes";
 
@@ -27,6 +33,10 @@ const andante: TempoTerm = {
 // SessionSnapshot for other views, T008) — these are just valid
 // placeholders so the fixture satisfies the type.
 const defaultScale = scaleById("major");
+
+// TransportCard renders nothing about the drone either (the pill and sheet
+// are T007+) — another valid placeholder, same reasoning as defaultScale.
+const placeholderDroneNote: Note = { ...keyOf("G").tonic, octave: 5 };
 
 function baseSnapshot(
   overrides: Partial<SessionSnapshot> = {},
@@ -49,6 +59,17 @@ function baseSnapshot(
     spelledScale: spelledScaleOf(keyOf("C"), defaultScale),
     scaleChoice: defaultScaleChoice,
     effectiveShape: defaultTraversal.shape,
+    drone: {
+      on: false,
+      note: placeholderDroneNote,
+      hz: pitchHzOf(placeholderDroneNote),
+      settings: defaultDroneSettings,
+      canStepDown: true,
+      canStepUp: true,
+    },
+    // TransportCard renders nothing about a tapped note either (T007+) —
+    // same reasoning as defaultScale/placeholderDroneNote above.
+    tappedRunIndex: null,
     ...overrides,
   };
 }

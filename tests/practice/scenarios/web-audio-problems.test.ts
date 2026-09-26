@@ -12,6 +12,7 @@ import type {
   SoundEngineOutcome,
   SoundProblem,
 } from "../../../src/sound/published";
+import { soundCommandSchema } from "../../../src/sound/published/sound-command.schema";
 
 // webAudioSound only calls resume()/close() and reads currentTime/sampleRate
 // on the AudioContext it's given; AudioContext itself is a browser-only type
@@ -87,4 +88,31 @@ test("T027 (W6) — a problem reaches console.warn exactly once per distinct rea
     expect.stringContaining("voice-pool-full"),
     expect.stringContaining("tone dropped"),
   );
+});
+
+test("sound command schema — drone, retune and stop are accepted; an unknown drone sound is refused", () => {
+  expect(
+    soundCommandSchema.safeParse({
+      kind: "drone",
+      tag: 1,
+      hz: 440,
+      onsetFrame: 0,
+      sound: "reed",
+    }).success,
+  ).toBe(true);
+  expect(
+    soundCommandSchema.safeParse({ kind: "retune", tag: 1, hz: 440 }).success,
+  ).toBe(true);
+  expect(soundCommandSchema.safeParse({ kind: "stop", tag: 1 }).success).toBe(
+    true,
+  );
+  expect(
+    soundCommandSchema.safeParse({
+      kind: "drone",
+      tag: 1,
+      hz: 440,
+      onsetFrame: 0,
+      sound: "bright",
+    }).success,
+  ).toBe(false);
 });

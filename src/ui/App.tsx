@@ -24,6 +24,8 @@ import {
   defaultScaleChoice,
   steppedTempo,
   tempoForTerm,
+  type DroneSettings,
+  type DroneSound,
   type Session,
   type SessionDeps,
   type SessionSettings,
@@ -32,6 +34,8 @@ import {
 } from "../practice/published";
 import { findVariantById } from "./catalogue-lookup";
 import { CircleOfFifths, locateSpelledKey } from "./CircleOfFifths";
+import { DronePill } from "./DronePill";
+import { DroneSheet } from "./DroneSheet";
 import { Header } from "./Header";
 import { InstrumentSheet } from "./InstrumentSheet";
 import { keyLabel, keyNameFontSizeOf, noteLabel } from "./key-label";
@@ -142,6 +146,30 @@ function traversalFromStored(stored: StoredSelection["traversal"]): Traversal {
   };
 }
 
+// practice.drone/REQ-009 — the stored octave is `null` for unpinned (the
+// session's `{ kind: "nearest" }`) or a whole number 0–8 for pinned; the
+// stored sound carries straight through.
+function droneSettingsFromStored(
+  stored: StoredSelection["drone"],
+): DroneSettings {
+  return {
+    octave:
+      stored.octave === null
+        ? { kind: "nearest" }
+        : { kind: "pinned", octave: stored.octave },
+    sound: stored.sound,
+  };
+}
+
+function storedFromDroneSettings(
+  settings: DroneSettings,
+): StoredSelection["drone"] {
+  return {
+    octave: settings.octave.kind === "nearest" ? null : settings.octave.octave,
+    sound: settings.sound,
+  };
+}
+
 function defaultSelection(): Selection {
   const located = locateSpelledKey(DEFAULT_KEY_ID, firstRunDefaults.spelling);
   if (located === undefined) {
@@ -213,6 +241,7 @@ export function App(props: {
   const [traversalSheetOpen, setTraversalSheetOpen] = useState(false);
   const [tempoSheetOpen, setTempoSheetOpen] = useState(false);
   const [scaleSheetOpen, setScaleSheetOpen] = useState(false);
+  const [droneSheetOpen, setDroneSheetOpen] = useState(false);
 
   const position = circleOfFifths()[selection.positionIndex];
   if (position === undefined) {
@@ -252,6 +281,7 @@ export function App(props: {
       initialTraversalOf(stored),
       stored?.scale ?? defaultScaleChoice,
       initialSettingsOf(stored),
+      droneSettingsFromStored(stored?.drone ?? firstRunDefaults.drone),
       sessionDeps,
     );
     sessionRef.current = session;
@@ -314,7 +344,7 @@ export function App(props: {
     // completion re-renders with a snapshot, so this simply runs again.
     if (snapshot === null) return;
     const toSave: StoredSelection = {
-      schemaVersion: 4,
+      schemaVersion: 5,
       variantId: selection.variantId,
       keyId: keyIdOf(selectedKey),
       spelling: selection.spelling,
@@ -329,6 +359,9 @@ export function App(props: {
       },
       session: snapshot.settings,
       scale: snapshot.scaleChoice,
+      // practice.drone/REQ-009 — never the on/off flag (the session always
+      // starts off), only the octave pin and the chosen sound.
+      drone: storedFromDroneSettings(snapshot.drone.settings),
     };
     selectionStore.save(toSave);
   }, [
@@ -338,6 +371,7 @@ export function App(props: {
     snapshot?.traversal,
     snapshot?.settings,
     snapshot?.scaleChoice,
+    snapshot?.drone.settings,
   ]);
 
   const view =
@@ -349,15 +383,33 @@ export function App(props: {
     snapshot === null || snapshot.soundingPosition === null
       ? undefined
       : snapshot.sequence[snapshot.soundingPosition];
-  const soundingRunIndex = soundingSequenceNote?.runIndex ?? null;
-  const soundingPitchClass: PitchClass | null =
-    soundingSequenceNote === undefined
+  const sequenceSoundingRunIndex = soundingSequenceNote?.runIndex ?? null;
+  const playing = snapshot !== null && snapshot.transport.kind === "playing";
+  const tapsEnabled = snapshot !== null && snapshot.transport.kind === "idle";
+  // practice.session/REQ-013 — the stave and the names view both highlight
+  // the sequence's sounding note while playing, and the last tapped note
+  // while idle; never both at once (a tap is ignored while playing, per the
+  // session itself).
+  const soundingRunIndex = playing
+    ? sequenceSoundingRunIndex
+    : (snapshot?.tappedRunIndex ?? null);
+  const tappedNote =
+    snapshot === null || snapshot.tappedRunIndex === null
+      ? undefined
+      : snapshot.run[snapshot.tappedRunIndex];
+  const soundingPitchClass: PitchClass | null = playing
+    ? soundingSequenceNote === undefined
       ? null
       : {
           letter: soundingSequenceNote.note.letter,
           accidental: soundingSequenceNote.note.accidental,
+        }
+    : tappedNote === undefined
+      ? null
+      : {
+          letter: tappedNote.note.letter,
+          accidental: tappedNote.note.accidental,
         };
-  const playing = snapshot !== null && snapshot.transport.kind === "playing";
 
   function handleTogglePlay(): void {
     if (session === null || snapshot === null) return;
@@ -366,6 +418,21 @@ export function App(props: {
     } else {
       session.stop();
     }
+  }
+
+  // practice.session/REQ-013 — a names column names a pitch class, not a
+  // run index (unlike a stave notehead, which already knows its own): this
+  // resolves it to the lowest note of that name in the run — the descent's
+  // own note where the tapped column is descent-only, since its pitch class
+  // only appears there.
+  function handleTapColumn(pitchClass: PitchClass): void {
+    if (session === null || snapshot === null) return;
+    const runIndex = snapshot.run.findIndex(
+      (note) =>
+        note.note.letter === pitchClass.letter &&
+        note.note.accidental === pitchClass.accidental,
+    );
+    if (runIndex >= 0) session.tapNote(runIndex);
   }
 
   // Stable handlers (T032) — every one of these is passed to a
@@ -387,6 +454,32 @@ export function App(props: {
   const handleOpenTempoSheet = useCallback(() => setTempoSheetOpen(true), []);
   const handleOpenScaleSheet = useCallback(() => setScaleSheetOpen(true), []);
   const handleCloseScaleSheet = useCallback(() => setScaleSheetOpen(false), []);
+  const handleOpenDroneSheet = useCallback(() => setDroneSheetOpen(true), []);
+  const handleCloseDroneSheet = useCallback(() => setDroneSheetOpen(false), []);
+  // practice.drone/REQ-001/S3 — the pill's ▶/■ and the sheet's switch are
+  // one control, so both call this; reading `session.snapshot().drone.on`
+  // live (rather than closing over the per-render `snapshot`) keeps it
+  // correct even if `snapshot` hasn't caught up with the latest change yet.
+  const handleToggleDrone = useCallback(() => {
+    if (session === null) return;
+    if (session.snapshot().drone.on) {
+      session.stopDrone();
+    } else {
+      session.startDrone();
+    }
+  }, [session]);
+  const handleStepDroneOctave = useCallback(
+    (delta: -1 | 1) => session?.stepDroneOctave(delta),
+    [session],
+  );
+  const handlePickDroneSound = useCallback(
+    (sound: DroneSound) => session?.setDroneSound(sound),
+    [session],
+  );
+  const handleTapNote = useCallback(
+    (runIndex: number) => session?.tapNote(runIndex),
+    [session],
+  );
 
   const handleSelectKey = useCallback((selectedWedgeKey: Key) => {
     setSelection((current) => {
@@ -521,7 +614,14 @@ export function App(props: {
           snapshot !== null && snapshot.notice === "sound-unavailable"
         }
       />
-      <div style={{ margin: CIRCLE_WRAPPER_MARGIN, flex: "none" }}>
+      <div
+        style={{
+          position: "relative",
+          width: 378,
+          margin: CIRCLE_WRAPPER_MARGIN,
+          flex: "none",
+        }}
+      >
         <CircleOfFifths
           selectedKeyId={keyIdOf(selectedKey)}
           spelling={selection.spelling}
@@ -530,6 +630,17 @@ export function App(props: {
           onSelectKey={handleSelectKey}
           onSelectSpelling={handleSelectSpelling}
         />
+        {snapshot !== null && (
+          <DronePill
+            noteLabel={noteLabel(snapshot.drone.note)}
+            on={snapshot.drone.on}
+            canStepDown={snapshot.drone.canStepDown}
+            canStepUp={snapshot.drone.canStepUp}
+            onToggle={handleToggleDrone}
+            onStepOctave={handleStepDroneOctave}
+            onOpenSheet={handleOpenDroneSheet}
+          />
+        )}
       </div>
       {snapshot !== null && (
         <div
@@ -599,6 +710,8 @@ export function App(props: {
             }
             degreesEnabled={selection.degreesEnabled}
             soundingPitchClass={soundingPitchClass}
+            onTapColumn={handleTapColumn}
+            tapsEnabled={tapsEnabled}
           />
         ) : (
           variant !== undefined && (
@@ -609,6 +722,8 @@ export function App(props: {
               staveNamesEnabled={selection.staveNamesEnabled}
               soundingRunIndex={soundingRunIndex}
               playing={playing}
+              onTapNote={handleTapNote}
+              tapsEnabled={tapsEnabled}
             />
           )
         )}
@@ -683,6 +798,16 @@ export function App(props: {
             chosenId={snapshot.scale.id}
             onPick={handlePickScale}
             onClose={handleCloseScaleSheet}
+          />
+          <DroneSheet
+            open={droneSheetOpen}
+            noteLabel={noteLabel(snapshot.drone.note)}
+            hz={snapshot.drone.hz}
+            on={snapshot.drone.on}
+            sound={snapshot.drone.settings.sound}
+            onToggle={handleToggleDrone}
+            onPickSound={handlePickDroneSound}
+            onClose={handleCloseDroneSheet}
           />
         </>
       )}

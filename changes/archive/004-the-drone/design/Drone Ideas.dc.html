@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"><style>body{margin:0;background:#ddd6c7}a{color:#8a4b2a}a:hover{color:#a85c33}</style></helmet>
+<section style="padding:40px 40px 20px;font-family:'Public Sans',system-ui,sans-serif;color:#1c1916">
+  <div style="font-size:22px;font-weight:600;margin-bottom:6px">The drone sheet, opened from <a href="#3a">3a</a>'s ▼</div>
+  <div style="font-size:14px;color:#6f675c;margin-bottom:24px;max-width:760px;text-wrap:pretty">The note comes from the circle, so the sheet only covers what the circle can't: the sound. The octave is on the pill's − / +. On/off sits in the header.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+    <div id="4a" style="display:flex;flex-direction:column;gap:10px;width:430px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;background:#8a4b2a;color:#f9f4e9;padding:3px 8px;border-radius:6px">4a</div><div style="font-size:15px;font-weight:600">Sound only</div></div>
+      <div style="font-size:13px;line-height:1.45;color:#6f675c;text-wrap:pretty">Always the key's tonic. The octave is set only with the pill's − / + (any octave on a full piano, A0–C8, starting nearest the middle of the instrument's range), so the sheet holds just on/off and the sound: pure, warm or reed.</div>
+      <dc-import name="Drone" layout="disc" sheet-style="minimal" sheet-open="{{ true }}" hint-size="430px,1000px"></dc-import>
+    </div>
+
+  </div>
+</section>
+<section style="padding:40px 40px 20px;font-family:'Public Sans',system-ui,sans-serif;color:#1c1916">
+  <div style="font-size:22px;font-weight:600;margin-bottom:6px">The pill from <a href="#2b">2b</a>, moved onto the circle</div>
+  <div style="font-size:14px;color:#6f675c;margin-bottom:24px;max-width:720px;text-wrap:pretty">The drone follows the key, so it lives on the circle rather than with the scale.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+    <div id="3a" style="display:flex;flex-direction:column;gap:10px;width:430px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;background:#8a4b2a;color:#f9f4e9;padding:3px 8px;border-radius:6px">3a</div><div style="font-size:15px;font-weight:600">In the centre disc</div></div>
+      <div style="font-size:13px;line-height:1.45;color:#6f675c;text-wrap:pretty">Above the key signature, mirroring the ♯/♭ toggle below it. Reads as "this key, sounding".</div>
+      <dc-import name="Drone" layout="disc" drone-on="{{ true }}" hint-size="430px,1000px"></dc-import>
+    </div>
+    <div id="3b" style="display:flex;flex-direction:column;gap:10px;width:430px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;background:#8a4b2a;color:#f9f4e9;padding:3px 8px;border-radius:6px">3b</div><div style="font-size:15px;font-weight:600">In the circle's corner</div></div>
+      <div style="font-size:13px;line-height:1.45;color:#6f675c;text-wrap:pretty">In the empty corner of the circle's square: part of the circle area but clear of the wedges and key signature.</div>
+      <dc-import name="Drone" layout="corner" drone-on="{{ true }}" hint-size="430px,1000px"></dc-import>
+    </div>
+  </div>
+</section>
+<section style="padding:40px 40px 20px;font-family:'Public Sans',system-ui,sans-serif;color:#1c1916">
+  <div style="font-size:22px;font-weight:600;margin-bottom:6px">Drone without a new element</div>
+  <div style="font-size:14px;color:#6f675c;margin-bottom:24px;max-width:720px;text-wrap:pretty">Three ways to fit the drone into the existing screen. All are live: tap to toggle, tap a note on the stave to hear it. Scale and drone never sound together.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+    <div id="2a" style="display:flex;flex-direction:column;gap:10px;width:430px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;background:#8a4b2a;color:#f9f4e9;padding:3px 8px;border-radius:6px">2a</div><div style="font-size:15px;font-weight:600">Transport mode: scale | drone</div></div>
+      <div style="font-size:13px;line-height:1.45;color:#6f675c;text-wrap:pretty">A switch in the traversal row turns the transport into the drone's controls. ▶ holds the drone, the tempo stepper steps the note, and "tonic" opens the drone sheet. They can't sound together, so it's one control either way.</div>
+      <dc-import name="Drone" layout="mode" drone-on="{{ true }}" hint-size="430px,1000px"></dc-import>
+    </div>
+    <div id="2b" style="display:flex;flex-direction:column;gap:10px;width:430px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;background:#8a4b2a;color:#f9f4e9;padding:3px 8px;border-radius:6px">2b</div><div style="font-size:15px;font-weight:600">Drone pill beside the scale</div></div>
+      <div style="font-size:13px;line-height:1.45;color:#6f675c;text-wrap:pretty">A second pill in the same row as SCALE, under the key name. Tap to hold the tonic; ▼ opens the drone sheet. It sits with the key it follows.</div>
+      <dc-import name="Drone" layout="pill" drone-on="{{ true }}" hint-size="430px,1000px"></dc-import>
+    </div>
+    <div id="2c" style="display:flex;flex-direction:column;gap:10px;width:430px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;background:#8a4b2a;color:#f9f4e9;padding:3px 8px;border-radius:6px">2c</div><div style="font-size:15px;font-weight:600">Tap the selected key again</div></div>
+      <div style="font-size:13px;line-height:1.45;color:#6f675c;text-wrap:pretty">Tapping the key you're on holds its tonic. The wedge gets an inner outline, and the panel footer switches to a drone readout (edit › opens the sheet). No extra chrome, but hard to discover.</div>
+      <dc-import name="Drone" layout="wedge" drone-on="{{ true }}" hint-size="430px,1000px"></dc-import>
+    </div>
+  </div>
+</section>
+<section style="padding:20px 40px 60px;font-family:'Public Sans',system-ui,sans-serif;color:#1c1916">
+  <div style="display:flex;flex-direction:column;gap:10px;width:430px" id="1a">
+    <div style="display:flex;align-items:center;gap:10px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;background:#8a4b2a;color:#f9f4e9;padding:3px 8px;border-radius:6px">1a</div><div style="font-size:15px;font-weight:600">Own card (previous)</div></div>
+    <dc-import name="Drone" layout="card" hint-size="430px,1060px"></dc-import>
+  </div>
+</section>
+</x-dc>
+</body>
+</html>
