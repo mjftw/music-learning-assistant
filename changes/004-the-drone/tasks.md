@@ -16,7 +16,7 @@ verified:
     at: 2026-09-24T23:37:47Z
 sdd_id: 004-the-drone
 sdd_context: practice
-sdd_phase: in-progress
+sdd_phase: complete
 ---
 
 # Tasks: The drone
@@ -1342,7 +1342,7 @@ _Ends with the pill in the disc, the sheet, the tap targets and the remembered s
 
 ### T021 · — · Converge
 
-**Status:** todo
+**Status:** done
 
 **Steps**
 - [ ] 1. Run `sdd-converge` (the `reviewer` subagent, strongest model) against `.sdd/target/004-the-drone/`, `plan.md`, this file, the constitution and `REVIEW.md`.
