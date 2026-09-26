@@ -362,3 +362,9 @@ unchanged at converge and finish.
 |---|---|---|---|
 | 1 | *Answered 2026-09-24: delay by the release.* ▶ while the drone sounds: delay the run's first tick by the drone's 80 ms release (the drone is truly silent before the first click, as REQ-004/S2 reads; ▶ lands ~100 ms after the tap instead of 20 ms, only in this case), or cut the drone over the tone's 5 ms stop fade (▶ as fast as today; a low drone's 5 ms cut may thump)? | the exclusion task's timing assertions | Delay by the release — the spec's words, and a fade is what 003 learned to do |
 | 2 | *Answered 2026-09-24: amended in the delta to B5 / 987.77 Hz.* Spec correction: `practice.drone/REQ-003/S1` says B minor glides to "493.88 Hz (B4 — the octave nearest the middle of C4–C7 for B)". By REQ-002's own rule the nearest is B5 (987.77 Hz: B5 is 5 semitones from the middle F♯5, B4 is 7). Amend the delta's scenario to B5 / 987.77 Hz before anything is built (the 005 precedent: spec corrections at plan time, nothing built yet)? | REQ-003's test | Yes — amend to B5 / 987.77 Hz and log it |
+
+## Amendments at finish (converge rounds 1–2, 2026-09-26)
+
+- **Data model:** `Drone`'s `hz`, `target_hz` and `glide_per_frame` are f64 internally (the sketch said f32) — per-frame f32 accumulation drifted 0.019 Hz over the 1920-frame glide; the public signatures stay f32.
+- **Session internals:** no async `acquireSound()` helper — one more awaited hop breaks the fakes' two-flush convention; `start()`, `startDrone()` and `tapNote()` keep the `await sound.start()` block inline and share a synchronous `noticeFromSoundStart`.
+- **Session internals:** the pending-start race (converge C1): `start()` bumps `droneGeneration` before its own await, `startDrone()`'s continuation re-checks `transport.kind === "idle"`, and `stop()` calls `stopDrone()` first when the drone is on; the never-both invariant enumerates a pending drone start (780 interleavings).

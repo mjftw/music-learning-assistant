@@ -2,6 +2,13 @@
 
 Chronological history of this bundle. Newest date first.
 
+## 2026-09-26
+
+- Glossary `docs/glossary.md` → approved (human:merlin-webster)
+- Domain Map `docs/domain.md` → approved (human:merlin-webster)
+- Capability Spec `specs/practice/session.md` → current (human:merlin-webster)
+- Capability Spec `specs/practice/drone.md` → current (human:merlin-webster)
+
 ## 2026-09-24
 
 - Task List `changes/004-the-drone/tasks.md` → approved (human:merlin-webster)

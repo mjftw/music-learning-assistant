@@ -24,6 +24,8 @@ verified:
     at: 2026-09-23T13:44:18Z
   - by: human:merlin-webster
     at: 2026-09-24T04:15:00Z
+  - by: human:merlin-webster
+    at: 2026-09-26T12:17:08Z
 sdd_phase: approved
 ---
 
@@ -43,9 +45,9 @@ sdd_phase: approved
 | Context | Owns (the nouns) | Responsible for (the verbs) | Not responsible for | Code root |
 |---|---|---|---|---|
 | `theory` | Note, Instrument (name + playable range), Key, Scale, Arpeggio, Interval, Circle of Fifths, Temperament (just/equal), NoteSequence | Answering timeless questions: the notes of a scale/arpeggio in a key, a traversal (1–4 octaves or the full range, up, down or both, as a scale or an arpeggio) fitted to an instrument's range, a note's pitch under a temperament, neighbouring keys on the circle | Anything that changes during a session; sound; the microphone | `src/theory/` |
-| `practice` | Session, Mode (tool-leads / learner-leads), Traversal choice, Scale choice (which catalogue scale, per ring), Session settings (sound mode, loop, count-in, rest bar), Target note, Tempo, Drone, Judgement (sharp / flat / in tune, in cents) | Running a session: sounding notes and the drone, holding the current target, consuming detected pitch and judging it against the target, advancing through the sequence | Music-theory facts; how pitch is detected | `src/practice/` |
+| `practice` | Session, Mode (tool-leads / learner-leads), Traversal choice, Scale choice (which catalogue scale, per ring), Session settings (sound mode, loop, count-in, rest bar, drone octave and drone sound), Target note, Tempo, Drone, Judgement (sharp / flat / in tune, in cents) | Running a session: sounding notes and the drone, holding the current target, consuming detected pitch and judging it against the target, advancing through the sequence | Music-theory facts; how pitch is detected | `src/practice/` |
 | `listening` | Detected pitch (frequency, confidence, time) | Capturing the instrument through the microphone and publishing what pitch was heard, fast | Knowing the target note; judging sharp/flat; theory | `src/listening/` |
-| `sound` | Voice (a tone or click with an onset in audio frames), Onset report | Rendering scheduled tones and clicks on the audio clock, sample-accurately, and reporting when each onset actually rendered | What to play or when (practice); what pitch a note has (theory); the microphone (listening) | `src/sound/` |
+| `sound` | Voice (a tone or click with an onset in audio frames, or a drone held until stopped — addressable by tag), Onset report | Rendering scheduled tones and clicks on the audio clock, sample-accurately, and reporting when each onset actually rendered | What to play or when (practice); what pitch a note has (theory); the microphone (listening) | `src/sound/` |
 
 The UI (circle-of-fifths display, stave, transport, tooltips) is the interface
 over the contexts, not a context of its own. `sound` and `listening` together
@@ -88,6 +90,7 @@ are the audio boundary and are Rust compiled to WebAssembly (ADR 0001, ADR
 | `theory` | Neighbouring keys on the Circle of Fifths differ by exactly one accidental. | Circle of Fifths |
 | `practice` | The current target note is always a member of the active sequence. | Session |
 | `practice` | In learner-leads mode, the target never advances unless the note was held in tune for the required duration. | Session |
+| `practice` | A sequence note or click and the drone never sound at once. | Session |
 | `listening` | A PitchDetected fact always carries a positive frequency and a confidence. | Detected pitch |
 | `listening` | Pitch feedback is emitted within a bound that feels instant, or not at all — silence beats late feedback. | Detected pitch |
 | `sound` | An onset renders in the audio quantum containing its frame, or is reported late — it is never silently shifted. | Voice |
