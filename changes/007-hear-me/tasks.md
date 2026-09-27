@@ -16,7 +16,7 @@ verified:
     at: 2026-09-27T22:29:42Z
 sdd_id: 007-hear-me
 sdd_context: listening
-sdd_phase: approved
+sdd_phase: in-progress
 ---
 
 # Tasks: Hear me
