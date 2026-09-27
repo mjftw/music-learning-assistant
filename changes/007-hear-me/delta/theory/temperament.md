@@ -3,7 +3,7 @@ type: Spec Delta
 title: theory.temperament — delta for 007-hear-me
 description: Adds the inverse of REQ-001 — the nearest note to a frequency, with the offset in cents, spelled per the preference.
 resource: /changes/007-hear-me/delta/theory/temperament.md
-status: draft
+status: stable
 tags: [sdd, delta, "change:007-hear-me", "context:theory"]
 sources:
   - resource: /specs/theory/temperament.md
@@ -11,10 +11,13 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-09-27T23:30:00Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-09-27T22:05:30Z
 sdd_id: 007-hear-me
 sdd_context: theory
 sdd_capability: temperament
+sdd_phase: approved
 ---
 
 # Delta: theory / temperament

@@ -3,7 +3,7 @@ type: Change Proposal
 title: Hear me — a tuner that proves listening
 description: A tuner screen hears the instrument and shows the nearest note and how far sharp or flat, within 100 ms, with an optional pinned target — the listening context's first capability, measured against Article V.
 resource: /changes/007-hear-me/proposal.md
-status: draft
+status: stable
 tags: [sdd, proposal, "change:007-hear-me"]
 sources:
   - resource: /changes/007-hear-me/intent.md
@@ -13,10 +13,12 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-09-27T23:30:00Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-09-27T22:05:29Z
 sdd_id: 007-hear-me
 sdd_context: listening
-sdd_phase: draft          # draft | in-review | approved | merged
+sdd_phase: approved
 sdd_constitution: 1.0.0
 ---
 

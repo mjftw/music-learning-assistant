@@ -3,7 +3,7 @@ type: Spec Delta
 title: listening.pitch-detection — delta for 007-hear-me
 description: Creates the listening context's first capability — the microphone captured on request and a detected pitch published fast, or not at all.
 resource: /changes/007-hear-me/delta/listening/pitch-detection.md
-status: draft
+status: stable
 tags: [sdd, delta, "change:007-hear-me", "context:listening"]
 sources:
   - resource: /changes/007-hear-me/proposal.md
@@ -12,10 +12,13 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-09-27T23:30:00Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-09-27T22:05:29Z
 sdd_id: 007-hear-me
 sdd_context: listening
 sdd_capability: pitch-detection
+sdd_phase: approved
 ---
 
 # Delta: listening / pitch-detection

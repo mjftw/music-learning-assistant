@@ -3,7 +3,7 @@ type: Spec Delta
 title: practice.tuner — delta for 007-hear-me
 description: Creates the tuner — a screen that listens and judges the detected pitch against the nearest note or a pinned target, within a measured budget, and sounds nothing while it does.
 resource: /changes/007-hear-me/delta/practice/tuner.md
-status: draft
+status: stable
 tags: [sdd, delta, "change:007-hear-me", "context:practice"]
 sources:
   - resource: /changes/007-hear-me/proposal.md
@@ -13,10 +13,13 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-09-27T23:30:00Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-09-27T22:05:29Z
 sdd_id: 007-hear-me
 sdd_context: practice
 sdd_capability: tuner
+sdd_phase: approved
 ---
 
 # Delta: practice / tuner

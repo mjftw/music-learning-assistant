@@ -4,6 +4,10 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-27
 
+- Spec Delta `changes/007-hear-me/delta/theory/temperament.md` → approved (human:merlin-webster)
+- Spec Delta `changes/007-hear-me/delta/practice/tuner.md` → approved (human:merlin-webster)
+- Spec Delta `changes/007-hear-me/delta/listening/pitch-detection.md` → approved (human:merlin-webster)
+- Change Proposal `changes/007-hear-me/proposal.md` → approved (human:merlin-webster)
 - Design Principles `docs/design.md` → principles (human:merlin-webster)
 - Intent `changes/007-hear-me/intent.md` → resolved (human:merlin-webster)
 
