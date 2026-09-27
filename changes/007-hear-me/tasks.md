@@ -53,7 +53,7 @@ _Nothing user-visible. The detector proven on synthesised buffers, the crate's C
 
 ### T001 · listening.pitch-detection/REQ-002, listening.pitch-detection/REQ-003 · The MPM detector on synthesised buffers, and its cost
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/listening/Cargo.toml`, `src/listening/src/lib.rs` (module declarations only for now; the ABI arrives in T002), `src/listening/src/detector.rs`

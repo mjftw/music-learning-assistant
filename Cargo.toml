@@ -1,5 +1,5 @@
 [workspace]
-members = ["src/sound"]
+members = ["src/sound", "src/listening"]
 resolver = "2"
 
 [profile.release]
