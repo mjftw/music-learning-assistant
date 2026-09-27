@@ -26,30 +26,79 @@ sdd_phase: open           # open | exited
 
 ## Origin
 
-- **Source:** external tool (Claude Design) — decided at the grill
-  (intent Q11): the user iterates the tuner screen in Claude Design, as for
-  003, 004 and 005; it is imported (design MCP, or the exported `.dc.html`)
-  and vendored here, and is the source of truth for the screen. Nothing is
-  in this directory yet; the change waits here until it is brought back.
-- **Files:** to bring back, one per screen and state the intent implies —
-  either the artifact's HTML (`design/tuner.dc.html`, plus any component it
-  imports, as `Drone Ideas.dc.html` + `Drone.dc.html` were for 004) or one
-  PNG per state:
-  - `design/tuner--listening.png` — a note is heard: the reading. The
-    design decides what it shows (intent Q6, still open): the nearest
-    note's name and octave or not, the cents offset, an in-tune band and
-    its width, Hz or not — under A = 440 equal temperament, ♯/♭ per the
-    global spelling preference.
-  - `design/tuner--silent.png` — listening, nothing heard (silence, breath,
-    noise, several pitches): the reading shows nothing rather than a guess.
-  - `design/tuner--cannot-hear.png` — the microphone refused, absent or
-    failing: the visible non-interrupting notice, the tuner showing it
-    cannot hear.
-  - `design/practice--way-in.png` — the practice screen with the control
-    that enters the tuner (intent Q4/Q11: the design decides the way in);
-    entering stops playback and the drone.
-  - The way out is on the tuner screen itself, in every state.
-- **Walkthrough:** not yet — runs on import, before the proposal.
+- **Source:** imported — Claude Design project "Tuner feature design"
+  (`946097da-1312-43a7-b34a-75f6ed30c06d`, the user's), read through the
+  design MCP on 2026-09-27 and vendored here, the pattern of 003/004/005.
+  Decided at the grill (intent Q11): it is the source of truth for the
+  screen.
+- **Files:**
+  - `Practice.dc.html` — the practice screen (005's prototype) with the way
+    in: a **Tuner** pill in the header beside ⚙ (1d: "tapping it stops
+    playback and the drone and opens the tuner; ‹ Practice brings you back,
+    idle"). Its drone pill is a stand-in for the shipped one; its
+    Traversal sheet still carries the stale "Note length" row 005 ruled on.
+  - `Tuner.dc.html` — the tuner screen as a canvas of five turns, newest
+    first: Turn 1 readouts (1a needle, 1b slide rule, 1c level; 1d = the
+    way in, importing Practice); Turn 2 level with more on it (2a
+    graduated rule, 2b zoomed centre, 2c + a stave strip); Turn 3 (3a) the
+    heard note written on the stave — a whole-note head drifting ≤ ±3.5 px
+    on a dotted guide, cents above, a 2.5 s trail, the instrument's clef
+    with 8va/8vb; Turn 4 (4a) = 3a + an optional target (Auto · nearest /
+    Hold / pick a note; − + a semitone; ✕ to auto; "▼ 2 st" beyond 50 ¢; a
+    grey target head on the stave; forgotten on leaving); Turn 5 the
+    target picker (5a chromatic strip over the instrument's range, "the
+    current one"; 5c a pitch spiral in the circle's style). Every turn
+    shares: ‹ Practice, LISTENING / NO MIC, the big note name + octave,
+    "↑ sharp / ↓ flat" with "halfway to <neighbour>", the in-tune band,
+    "Play a note" when silent, "–" + "Can't hear — no microphone" card,
+    "A4 = 440 Hz · in tune ±N ¢", the ♯/♭ toggle. Tweaks (props): state,
+    instrument (flute/guitar/cello), band ±3/±5/±10, showHz, spelling,
+    staveTrail.
+  - `support.js` — the dc runtime, identical to 004's and 005's.
+- **Chosen:** 4a is the tuner screen; the Target sheet is 5c, the pitch
+  spiral (user, 2026-09-27: "4a with 5c" — over the recommended 5a strip).
+  Turns 1–2, 3a alone and 5a are the path to it, kept in the canvas.
+  Choosing 4a reopens intent Q10's "no nearest-note lock or target": the
+  target is in scope, Auto · nearest the default.
+- **Walkthrough:** 2026-09-27. Things on the screen no requirement asked
+  for, and the ruling on each:
+  - The target (4a/5c): in scope — the user's reopening of intent Q10;
+    Auto · nearest is the default; becomes a requirement.
+  - Tweaks → exploration knobs, not scope (user, 2026-09-27): **band** is
+    fixed at ±5 ¢ (±3/±10 are knobs; the tolerance setting is 008's);
+    **showHz** — the big readout never shows Hz, the strip card's HEARD /
+    "<note> IS" Hz stay as 4a draws them (closes intent Q6: note name +
+    octave, cents, ±5 band, Hz in the strip only); **instrument** — the
+    clef is the selected variant's, every catalogued variant is treble
+    (2026-09-19), so guitar treble-8 and cello bass are knobs until such an
+    instrument is catalogued, the 8va/8vb rule stays; **staveTrail** on,
+    no setting; **spelling** — the tuner's ♯/♭ toggle is the circle's
+    global preference (002), not a second one.
+  - Behaviours the prototype's script encodes, all confirmed as
+    requirements (user, 2026-09-27): hand-over hysteresis (the nearest
+    note changes only 6 ¢ past the halfway point, 56 ¢ from the shown
+    note); beyond ±50 ¢ with a target the line pins to the edge and the
+    tag counts semitones ("▲ 2 st"); the target — Hold, a spiral wedge,
+    or −/+ a semitone within the instrument's range, ✕ to auto, forgotten
+    on leaving, the big name stays on the target in silence (greyed),
+    "playing <note>" captioned when a different note is heard; the spiral
+    covers E2–C7 and the instrument's range plus the pinned or heard
+    note, one ring per octave, lowest in the hub, out-of-range wedges
+    dimmed, a needle with a short trail, every C shows its octave, the
+    hub shows the target's name and Hz; the stave strip — a whole-note
+    head drifting ≤ ±3.5 px on a dotted guide, cents above, a 2.5 s
+    trail, the target as a grey head to its right, 8va/8vb past the ledger
+    range; the level — a linear ±50 ¢ rule labelled at 10/25/50, "halfway
+    to <neighbour>" at each end.
+  - Practice.dc.html's "Note length" row: the stale carryover 005 ruled
+    on, not a reintroduction; its drone pill is a stand-in for the
+    shipped one — neither changes anything.
+  Scenarios with no screen or state of their own, and where they happen:
+  page hidden → mic stops, a visible tuner resumes (the listening state
+  again); noise / breath / several pitches → the "Play a note" state;
+  the browser's own microphone prompt on first entry (not the tool's);
+  entering from a playing run or a sounding drone → the practice screen
+  is left idle and silent (1d), no state of its own.
 
 ## Rounds
 
