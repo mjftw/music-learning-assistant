@@ -14,8 +14,10 @@ generated:
 verified:
   - by: human:merlin-webster
     at: 2026-09-27T11:13:59Z
-sdd_phase: principles
-sdd_version: 0.1.0
+  - by: human:merlin-webster
+    at: 2026-09-27T22:18:38Z
+sdd_phase: approved
+sdd_version: 1.0.0
 sdd_interface: yes
 master: ~/.config/sdd/design-taste.md
 ---

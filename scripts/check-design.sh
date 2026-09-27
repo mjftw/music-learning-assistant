@@ -21,8 +21,11 @@ warn() { echo "  ⚠️  $1"; }
 bad()  { echo "  ❌ $1"; FAIL=1; }
 ok()   { echo "  ✅ $1"; }
 
-STYLE_GLOB="${SDD_STYLE_GLOB:-src/**/*.css}"
-TOKENS_FILE="${SDD_TOKENS_FILE:-src/tokens.css}"
+# Set at 007's plan (docs/design.md §7): styles are inline style objects
+# from named constants, so the only stylesheet is global.css; the tokens
+# live in theme.ts.
+STYLE_GLOB="${SDD_STYLE_GLOB:-src/ui/**/*.css}"
+TOKENS_FILE="${SDD_TOKENS_FILE:-src/ui/theme.ts}"
 
 echo "Design"
 if [[ ! -f docs/design.md ]]; then

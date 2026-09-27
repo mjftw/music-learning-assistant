@@ -80,7 +80,16 @@ pnpm check
 pnpm vitest run <path/to/file.test.ts>
 # measured timing budget (Playwright/Chromium, ~3 min, sequential tempos) — required at converge and finish, not per task:
 pnpm test:timing
+# measured tuner budget (Playwright/Chromium; feeds the microphone from the page's own AudioContext,
+# sweeps E2–C7 as a sine and a flute-like tone) — required at converge and finish from 007, not per task:
+pnpm test:tuner
+# design fidelity screenshots against the vendored prototype (dev-only, human-reviewed):
+pnpm design:shots
 ```
+
+`pnpm build:sound` (run by `predev`/`pretest`/`prebuild`) builds **both**
+Rust crates — `src/sound/pkg/sound.wasm` and, from 007,
+`src/listening/pkg/listening.wasm`; the script keeps its name.
 
 Healthy output looks like (last ~8 lines of `pnpm check`: vitest summary,
 then cargo's `test result`):
@@ -120,9 +129,12 @@ Run `check` before calling any task done, and paste the output.
 
 - Runtime / language: TypeScript (strict), browser SPA built with Vite.
   Rust (stable, `wasm32-unknown-unknown`, zero crates) owns the audio
-  boundary — `src/sound/` from change 003 and `src/listening/` from 006 (hear-me)
-  (ADR 0001, ADR 0003); the workspace `Cargo.toml` at the root is the
+  boundary — `src/sound/` from change 003 and `src/listening/` from 007 (hear-me)
+  (ADR 0001, ADR 0003, ADR 0006); the workspace `Cargo.toml` at the root is the
   accepted root-config exception. Rust tests are `cargo test`.
+- Design tokens: `src/ui/theme.ts` (`docs/design.md` §8). Styles are inline
+  style objects from named constants; `scripts/check-design.sh` warns on a
+  colour, size or font hard-coded elsewhere.
 - Package manager (only this one): pnpm.
 - Test framework and where tests live: Vitest (+ Testing Library);
   `tests/<context>/scenarios/` one test per spec scenario named by

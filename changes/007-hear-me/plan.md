@@ -3,7 +3,7 @@ type: Implementation Plan
 title: Hear me — plan
 description: A zero-crate Rust listening crate in the shared AudioWorklet detects pitch by normalised autocorrelation (MPM) and publishes PitchDetected; the session aggregate owns the tuner beside the transport and the drone so nothing sounds while it listens; a second screen in the UI; a Playwright harness feeds the microphone from the page's own AudioContext and measures the 100 ms budget.
 resource: /changes/007-hear-me/plan.md
-status: draft
+status: stable
 tags: [sdd, plan, "change:007-hear-me"]
 sources:
   - resource: /changes/007-hear-me/proposal.md
@@ -14,10 +14,12 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-09-28T00:30:00Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-09-27T22:18:38Z
 sdd_id: 007-hear-me
 sdd_context: listening
-sdd_phase: draft          # draft | in-review | approved
+sdd_phase: approved
 ---
 
 # Plan: Hear me
@@ -459,6 +461,6 @@ crates (name kept; `AGENTS.md` notes it). `pnpm test:tuner` and
 
 | # | Question | Blocks | Recommended answer |
 |---|---|---|---|
-| 1 | Should the harness *gate* on the paint age (main-thread commit → paint, reported by `readingShown`) as well as on onset → first readout and arrival age? Gating on it makes the laptop's headless Chromium paint timing decisive, as 003/004's 30 ms highlight gate did (which passed by 0.57 ms once); reporting it only keeps the gate on what the spec names | the harness task's assertions | Report the paint age in a column, gate on onset → readout ≤ 100 ms and arrival age ≤ 100 ms; revisit after the phone walk, as 004 did |
-| 2 | The budget split — listening ≤ 60 ms (window fill + hop + analysis + message), judgement + paint ≤ 40 ms — is a plan number for the spike to confirm; if the spike measures listening at > 60 ms on the laptop, cut WINDOW to 1536 (then E2 has 2.6 periods and ±2 ¢ at the bottom is at risk) or accept a tighter paint share? | nothing until the spike reports | Measure at T001; prefer the smaller window over a tighter paint share — the phone's paint is the part we cannot speed up |
-| 3 | `VisibilityPort` gains `onShown` (REQ-008/S1 needs it; playback and the drone only ever needed `onHidden`). Add it to the port (every fake and adapter grows one method) or give the tuner its own visibility subscription in the adapter? | the hidden/shown task | Add `onShown` to the port — one port, one adapter, one fake |
+| 1 | *Answered 2026-09-28: report the paint age, gate on onset → readout and arrival age.* Should the harness *gate* on the paint age (main-thread commit → paint, reported by `readingShown`) as well as on onset → first readout and arrival age? Gating on it makes the laptop's headless Chromium paint timing decisive, as 003/004's 30 ms highlight gate did (which passed by 0.57 ms once); reporting it only keeps the gate on what the spec names | the harness task's assertions | Report the paint age in a column, gate on onset → readout ≤ 100 ms and arrival age ≤ 100 ms; revisit after the phone walk, as 004 did |
+| 2 | *Answered 2026-09-28: measure at the spike; a smaller window before a tighter paint share.* The budget split — listening ≤ 60 ms (window fill + hop + analysis + message), judgement + paint ≤ 40 ms — is a plan number for the spike to confirm; if the spike measures listening at > 60 ms on the laptop, cut WINDOW to 1536 (then E2 has 2.6 periods and ±2 ¢ at the bottom is at risk) or accept a tighter paint share? | nothing until the spike reports | Measure at T001; prefer the smaller window over a tighter paint share — the phone's paint is the part we cannot speed up |
+| 3 | *Answered 2026-09-28: add `onShown` to the port.* `VisibilityPort` gains `onShown` (REQ-008/S1 needs it; playback and the drone only ever needed `onHidden`). Add it to the port (every fake and adapter grows one method) or give the tuner its own visibility subscription in the adapter? | the hidden/shown task | Add `onShown` to the port — one port, one adapter, one fake |

@@ -13,7 +13,7 @@ generated:
   by: claude-code/claude-fable-5-1
   at: 2026-09-28T00:30:00Z
 verified: []
-sdd_phase: proposed
+sdd_phase: accepted
 ---
 
 # ADR 0006: Pitch detection by normalised autocorrelation, on the shared audio thread
