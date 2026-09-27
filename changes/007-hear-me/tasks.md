@@ -191,7 +191,7 @@ _Nothing user-visible. The detector proven on synthesised buffers, the crate's C
 
 ### T003 · listening.pitch-detection/REQ-001, listening.pitch-detection/REQ-006 · The published contract: the schema, the worklet shim, `createListener`
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/listening/published/pitch-detected.schema.ts`, `src/listening/published/processor.ts`, `src/listening/published/index.ts`

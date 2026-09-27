@@ -54,3 +54,18 @@ holds in practice.
 - Minor, recorded: `#[allow(clippy::chunks_exact_to_as_chunks)]` scoped to
   the test helper `feed` (clippy 1.98 lint) to keep the brief's test code
   verbatim; function-level, justified in a comment.
+
+## T003 — notes (2026-09-28)
+
+- To confirm at T014's real-browser check: the listening `AudioWorkletNode`
+  is created with `numberOfOutputs: 0` and is not connected to
+  `context.destination`. If LISTENING shows but no reading ever arrives,
+  the first fix is `numberOfOutputs: 1`, silence written, connected to the
+  destination.
+- Plan sketch vs brief: `ListeningEnded` carries `detail: string` (the
+  brief's Interfaces block; the plan's data-model sketch lacked it) — fold
+  into the plan at finish.
+- The jsdom test stubs `WebAssembly.compileStreaming` so that it consumes
+  the rejected `fetch` promise (root-relative `?url` paths do not resolve
+  under Node); production code is unchanged and mirrors `sound`.
+- Untested by scenario (recorded): the `invalid-pitch-report` problem path.
