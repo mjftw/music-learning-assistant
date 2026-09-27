@@ -26,10 +26,30 @@ sdd_phase: open           # open | exited
 
 ## Origin
 
-- **Source:** <imported | external tool (which) | wireframed here | none needed>
-- **Files:** <what is in this directory and what each is>
-- **Walkthrough:** <date; scenarios that had no screen, screens that showed
-  something no requirement asked for, and what was done about each>
+- **Source:** external tool (Claude Design) — decided at the grill
+  (intent Q11): the user iterates the tuner screen in Claude Design, as for
+  003, 004 and 005; it is imported (design MCP, or the exported `.dc.html`)
+  and vendored here, and is the source of truth for the screen. Nothing is
+  in this directory yet; the change waits here until it is brought back.
+- **Files:** to bring back, one per screen and state the intent implies —
+  either the artifact's HTML (`design/tuner.dc.html`, plus any component it
+  imports, as `Drone Ideas.dc.html` + `Drone.dc.html` were for 004) or one
+  PNG per state:
+  - `design/tuner--listening.png` — a note is heard: the reading. The
+    design decides what it shows (intent Q6, still open): the nearest
+    note's name and octave or not, the cents offset, an in-tune band and
+    its width, Hz or not — under A = 440 equal temperament, ♯/♭ per the
+    global spelling preference.
+  - `design/tuner--silent.png` — listening, nothing heard (silence, breath,
+    noise, several pitches): the reading shows nothing rather than a guess.
+  - `design/tuner--cannot-hear.png` — the microphone refused, absent or
+    failing: the visible non-interrupting notice, the tuner showing it
+    cannot hear.
+  - `design/practice--way-in.png` — the practice screen with the control
+    that enters the tuner (intent Q4/Q11: the design decides the way in);
+    entering stops playback and the drone.
+  - The way out is on the tuner screen itself, in every state.
+- **Walkthrough:** not yet — runs on import, before the proposal.
 
 ## Rounds
 
