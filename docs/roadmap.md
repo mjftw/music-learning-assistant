@@ -40,7 +40,7 @@ sdd_phase: approved
 
 | # | Change | Context | Capability (creates / modifies) | Outcome (one line) | Depends on | Status | Dir |
 |---|---|---|---|---|---|---|---|
-| 007 | `hear-me` | `listening` | `listening.pitch-detection` (creates) | Live pitch readout — sharp/flat in cents, inside the latency budget — useful alone as a tuner | — | proposed | |
+| 007 | `hear-me` | `listening` | `listening.pitch-detection` (creates) | Live pitch readout — sharp/flat in cents, inside the latency budget — useful alone as a tuner | — | grilling | `changes/007-hear-me/` |
 | 008 | `learner-leads` | `practice` | `practice.session` (modifies) | The tool shows the target note, listens, and advances when it is held in tune for the required duration | 003, 007 | proposed | |
 | 009 | `temperament` | `theory` | `theory.temperament` (modifies), `practice.session` (modifies) | Choose just vs equal temperament for playback and drone | 003, 004 | proposed | |
 | 010 | `teach-me` | `theory` | `theory.explanations` (creates) | Tooltips that explain the theory behind whatever is on screen | 001 | proposed | |

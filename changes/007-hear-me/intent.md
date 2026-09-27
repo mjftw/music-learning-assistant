@@ -3,7 +3,7 @@ type: Intent
 title: hear-me — intent
 description: Hear the learner: a live pitch readout — nearest note, sharp or flat in cents — inside the latency budget, useful alone as a tuner
 resource: /changes/007-hear-me/intent.md
-status: draft
+status: stable
 tags: [sdd, intent, "change:007-hear-me"]
 sources:
   - resource: conversation:2026-09-27
@@ -12,10 +12,12 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-09-27T09:56:35Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-09-27T10:36:24Z
 sdd_id: 007-hear-me
 sdd_context: listening
-sdd_phase: draft          # draft | resolved
+sdd_phase: resolved
 ---
 
 # Intent: hear-me
