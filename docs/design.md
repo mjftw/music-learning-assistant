@@ -3,18 +3,20 @@ type: Design Principles
 title: Design
 description: How this product looks and behaves — where it is used, its tone, its interaction rules; and, once the first plan has chosen the UI stack, the tokens and patterns every screen is built from.
 resource: /docs/design.md
-status: draft
+status: stable
 tags: [sdd, design]
 sources:
   - resource: conversation:2026-09-27
   - resource: /docs/product.md
 generated:
-  by: claude-code/unknown
-  at: YYYY-MM-DDTHH:MM:SSZ
-verified: []
-sdd_phase: draft          # draft | principles | approved
+  by: claude-code/claude-fable-5-1
+  at: 2026-09-27T10:45:00Z
+verified:
+  - by: human:merlin-webster
+    at: 2026-09-27T11:13:59Z
+sdd_phase: principles
 sdd_version: 0.1.0
-sdd_interface: unknown    # yes | no | unknown
+sdd_interface: yes
 master: ~/.config/sdd/design-taste.md
 ---
 

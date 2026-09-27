@@ -4,6 +4,7 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-27
 
+- Design Principles `docs/design.md` → principles (human:merlin-webster)
 - Intent `changes/007-hear-me/intent.md` → resolved (human:merlin-webster)
 
 ## 2026-09-26
