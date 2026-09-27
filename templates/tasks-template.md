@@ -66,6 +66,11 @@ _Nothing user-visible. Scaffolding, types, schema, test harness._
 - [ ] 5. REFACTOR — <specific cleanup, or "none">
 
 **Verify** — `<exact command>` → `<exact expected output or observation>`
+<!-- A task that builds or alters a screen adds a second Verify line:
+     `python3 scripts/design_snapshot.py changes/NNN-slug live --base <dev url>` →
+     `<screen>--<state>.png` matches `design/<screen>.html?state=<state>` in
+     structure (same elements, same order, same states reachable). Grey is
+     fine: taste comes in the refinement loop, not here. -->
 
 ## Phase 2 — <first vertical slice>
 

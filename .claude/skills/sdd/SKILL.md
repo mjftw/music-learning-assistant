@@ -20,6 +20,11 @@ Classify the request:
 - **Small** — a change whose delta is one MODIFIED requirement or a couple of
   ADDED scenarios, no new interface, no new dependency, no schema change.
   Propose: proposal + delta only, skip the plan. Wait for confirmation.
+- **Design** — shipped screens that work but feel wrong; no behaviour change
+  intended. `./scripts/new-change.sh <slug> --design`: intent, then the
+  refinement loop straight on the live app (`sdd-design` D), no plan or
+  tasks. If a round changes behaviour, the loop writes the delta and the
+  change is no longer small: say so.
 - **Full** — anything else. Full workflow.
 - **Full, no exceptions** — touches auth, payments, personal data, deletion, or
   migrations. Full workflow even if the diff looks tiny. Say why.
@@ -36,6 +41,10 @@ Do this before asking the user anything:
 2. `docs/decisions.md` — read it. Nothing in it is asked again, in any phase.
 3. `memory/constitution.md` — `sdd_phase` not `ratified`, or contains
    `PLACEHOLDER`? Then `sdd-constitution` first.
+4b. `docs/design.md` — `sdd_interface` is `no`: design never applies.
+   `yes`: every change with screens goes through `sdd-design`. Missing or
+   `unknown`: the project predates design or has not answered; the first
+   change that adds a screen runs `sdd-design` A.
 4. `docs/engineering.md` — missing or `sdd_phase` not `approved`? Note it.
    It is needed at `sdd-plan`, not earlier; `sdd-plan` runs
    `sdd-engineering` itself. Never route to it before a spec is approved.
@@ -60,13 +69,16 @@ Running `./scripts/check-specs.sh` answers most of 3–8 in one call.
 | User asks what the system does / how X works now | Read `specs/<context>/<capability>.md` and answer from it. No change needed. |
 | Request does not match a change in `docs/roadmap.md` | Ask whether to add it, and where. Then `grill`. |
 | Change exists, no `intent.md` or `intent.md` not `resolved` | `grill` |
-| `intent.md` resolved, `proposal.md` still template or no deltas | `sdd-specify` |
+| `intent.md` resolved, `design/rounds.md` Origin says external tool and `design/` has no files | Ask the user to bring the design back (`sdd-design` B, import) — **stop** |
+| `intent.md` resolved, `proposal.md` still template or no deltas | `sdd-specify` (runs `sdd-design` B first) |
+| Proposal has `sdd_kind: design` (a `--design` change) and `intent.md` resolved | `sdd-design` D directly on the live app; then `sdd-converge` |
 | `proposal.md` written, `sdd_phase` not `approved` | Present it for approval — **stop** |
 | `proposal.md` approved, `plan.md` still template | `sdd-plan` (runs `sdd-engineering` first if `docs/engineering.md` is missing or unapproved) |
 | `plan.md` written, `sdd_phase` not `approved` | Present it for approval — **stop** |
 | `plan.md` approved, `tasks.md` still template | `sdd-tasks` |
 | `tasks.md` approved, tasks with `**Status:** todo` remain | `sdd-implement` |
-| All tasks `done` | `sdd-converge` |
+| All tasks `done`, Interface not `none`, `design/rounds.md` not `exited` | `sdd-design` D — the refinement loop |
+| All tasks `done` (and loop exited if there were screens) | `sdd-converge` |
 | Converge found gaps (appended tasks) | `sdd-implement` again |
 | Converge reports Converged | `sdd-finish` (merges the deltas into `specs/`) |
 
@@ -91,21 +103,40 @@ Each gate is its own approval.
 ## Model ladder
 
 Judgement lives at the top of the workflow; execution at the bottom. Model
-power follows.
+power follows, and it is enforced, not requested.
 
-| Phase | Runs as | Model |
-|---|---|---|
-| `sdd-init`, `sdd-constitution`, `sdd-engineering`, `grill`, `sdd-specify`, `sdd-plan` | main session | strongest available |
-| `sdd-tasks` | main session | strongest or mid |
-| `sdd-implement` (controller) | main session | mid or strongest |
-| `implementer` (per task) | subagent | mid (sonnet); `Trivial` → small |
-| `task-reviewer` (per task) | subagent | mid (sonnet) |
-| `sdd-converge` → `reviewer` | subagent | strongest — verification is never weaker than what it verifies |
-| `sdd-finish` | main session | any |
+| Phase | Runs as | Model | How it is held there |
+|---|---|---|---|
+| `sdd-init`, `sdd-constitution`, `sdd-engineering`, `grill`, `sdd-specify`, `sdd-plan`, `sdd-design` | main session | Fable | `model: fable` in the skill; `.sdd/phase` + `sdd-continue` every turn; the write guard |
+| `sdd-tasks`, `sdd-implement` (controller), `sdd-finish` | main session | Sonnet | project default (`.claude/settings.json › model`) |
+| `implementer` (per task) | subagent | Sonnet; `Trivial` → Haiku | `model:` in `.claude/agents/implementer.md` |
+| `task-reviewer` (per task) | subagent | Sonnet | agent frontmatter |
+| `sdd-converge` → `reviewer` | subagent | Opus — verification is never weaker than what it verifies | agent frontmatter |
 
-If you are about to run a top-of-ladder phase and have reason to think you are
-a mid or small model, say so once and suggest `/model` before continuing. Do
-not refuse; the user decides.
+Three mechanisms, each covering the others' gaps:
+
+1. **Default down.** The project's session default is Sonnet. Nothing runs
+   on Fable unless a phase asks for it.
+2. **Phase up.** A top skill's `model: fable` lasts only for the turn it is
+   invoked in, and an interview is many turns. So each top skill opens the
+   phase (`./scripts/phase.sh enter <skill>`), the `UserPromptSubmit` hook
+   `scripts/hooks/phase-model.sh` sees the marker at the start of every turn
+   and tells you to invoke `sdd-continue` (also `model: fable`) before
+   replying, and the phase closes (`./scripts/phase.sh leave`) at the gate
+   that hands to a lower phase. Do as the hook says, first, every turn.
+3. **Guard.** `scripts/hooks/guard-paths.sh` reads from the transcript which
+   model issued each write, and refuses writes to intent, proposal, delta,
+   plan, design, and the product, domain, roadmap, glossary, engineering and
+   constitution documents from any model not in `SDD_STRONG_MODELS`
+   (`.claude/settings.json › env`, default `claude-fable-*`). If you are
+   refused: invoke `sdd-continue`, retry. If the model does not change, Fable
+   is unavailable to this account: stop and tell the user. Only the user may
+   consent to writing on another model, by creating `.sdd/unlock-model`.
+   Never create it yourself.
+
+To change the strong model when a better one ships, edit `SDD_STRONG_MODELS`
+and the `model:` line in the eight skills that carry it (the seven above
+and `sdd-continue`).
 
 ## Never
 
@@ -120,6 +151,8 @@ not refuse; the user decides.
 - Edit `memory/constitution.md`, `docs/engineering.md` or `REVIEW.md` outside
   their skills. Propose instead.
 - Hand-edit frontmatter, `index.md` or `log.md`.
+- Create `.sdd/unlock-model`, or carry on a top-of-ladder phase on a model the
+  guard refuses. Tell the user instead.
 - Edit anything under `specs/`. It is the current truth and changes only by
   `merge_delta.py` at `sdd-finish`. Write a delta.
 

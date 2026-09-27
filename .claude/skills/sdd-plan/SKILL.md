@@ -2,6 +2,7 @@
 type: Skill
 name: sdd-plan
 description: Turn an approved spec into a technical implementation plan in changes/NNN-slug/plan.md — stack, data model, interfaces, file structure, test strategy, risks and rollout. Use after a spec is approved, or when the user says "plan this", "write the plan", "how should we build it", or asks for architecture or technology choices for a specced feature.
+model: fable
 ---
 
 # Plan
@@ -9,6 +10,19 @@ description: Turn an approved spec into a technical implementation plan in chang
 Produce `changes/NNN-slug/plan.md`: everything the spec deliberately excluded.
 This is where technology lives, and **every choice names its alternative and its
 reason**.
+
+
+## Model
+
+Top of the ladder: this skill runs on Fable (`model: fable` above). First
+thing, before any question: `./scripts/phase.sh show`. If it prints nothing,
+run `./scripts/phase.sh enter sdd-plan`; if it names a phase, leave it alone
+(you were called from inside that phase). While the marker is set, every
+turn starts with the `sdd-continue` skill, which keeps the interview on Fable
+while the session default stays cheap. Writes to the artefacts this skill
+owns are refused on any other model (`scripts/hooks/guard-paths.sh`); if a
+write is refused, invoke `sdd-continue` and retry. If Fable is not available
+to this account, stop and tell the user; do not carry on in a weaker model.
 
 ## Before writing
 
@@ -38,6 +52,13 @@ reason**.
    architecture choice in the plan follows it. Where the plan must depart (the
    preference does not fit this problem), name the section and the reason under
    `## Open questions` — the user decides, not the plan.
+
+8. If the change's `## Interface` is not `none`: read `docs/design.md`. If
+   §7 is still the template, this plan also fills the system half — run
+   `sdd-design` entry point **C** after the stack is chosen (below), before
+   the gate. Either way the plan's Structure names the tokens file and the
+   Interfaces section lists each screen's route, and you fill the `Route`
+   column of the proposal's Interface table.
 
 ## Choosing the stack
 
@@ -113,7 +134,9 @@ cannot be turned off, that is itself the top risk.
 
 ## Gate
 
-Write the file, then report in at most five lines:
+Write the file, `./scripts/draft.sh changes/NNN-slug/plan.md` (a numbered
+draft commit; again after every revision), then report in at most five
+lines:
 
 - The approach in one sentence
 - The choices most likely to be wrong, and the alternative for each
@@ -133,12 +156,18 @@ On approval:
 - fill `scripts/hooks/post-edit.sh` with the project formatter
 - tune `scripts/check-contexts.sh` (`PUBLISHED`, `IMPORT_RE`) to the chosen
   stack if the defaults do not fit it
+- if the change has screens: `scripts/check-design.sh` (`STYLE_GLOB`,
+  `TOKENS_FILE`) likewise; `docs/design.md` §7–§8 approved via
+  `sdd-design` C (same approval as this plan); the Interface table's
+  `Route` column filled
 - if this change introduces a context, event or invariant not yet in
   `docs/domain.md`, propose the map change and, once the user agrees,
   `./scripts/approve.sh docs/domain.md approved`
 - `./scripts/approve.sh changes/NNN-slug/plan.md approved`
 - set the change's `docs/roadmap.md` status to `planned`
 - `./scripts/index.sh`
-- commit `docs(plan): NNN-slug`, then hand to `sdd-tasks`.
+- commit `docs(plan): NNN-slug`
+- `./scripts/phase.sh leave` — everything below the plan runs on the
+  session default; then hand to `sdd-tasks`.
 
 **Do not write implementation code in this turn.**

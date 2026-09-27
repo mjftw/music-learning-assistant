@@ -49,6 +49,16 @@ else
 fi
 
 echo
+./scripts/check-design.sh | sed -n '1,20p'
+
+echo
+echo "Model ladder"
+echo "  session default: $(python3 -c "import json;print(json.load(open('.claude/settings.json')).get('model','(unset)'))" 2>/dev/null) · strong: ${SDD_STRONG_MODELS:-$(python3 -c "import json;print(json.load(open('.claude/settings.json')).get('env',{}).get('SDD_STRONG_MODELS','claude-fable-*'))" 2>/dev/null)}"
+PH=$(./scripts/phase.sh show 2>/dev/null || true)
+[[ -n "$PH" ]] && echo "  phase open: $PH (every turn moves to the strong model until ./scripts/phase.sh leave)" || echo "  no phase open"
+[[ -f .sdd/unlock-model ]] && warn ".sdd/unlock-model exists: top-of-ladder artefacts can be written on any model. Remove it when done."
+
+echo
 echo "AGENTS.md"
 if grep -q "FILL THIS IN" AGENTS.md 2>/dev/null; then
   warn "AGENTS.md Commands/Conventions/Architecture still unfilled"
@@ -154,6 +164,11 @@ for d in changes/[0-9][0-9][0-9]-*/; do
     fi
   fi
 
+  if [[ -f docs/design.md && "$(./scripts/fm.py get docs/design.md sdd_interface 2>/dev/null)" == "yes" ]]; then
+    ./scripts/check-design.sh --change "$d" | sed -n '/^Interface/,$p' | grep -vE '^(✅|❌) design' | sed 's/^/  /'
+    ./scripts/check-design.sh --change "$d" >/dev/null 2>&1 || FAIL=1
+  fi
+
   UNTOUCHED=false
   grep -qE '<[A-Za-z][^>]*>' "$d/proposal.md" && { warn "proposal.md still contains template placeholders"; UNTOUCHED=true; }
   if $UNTOUCHED; then echo; continue; fi
@@ -163,6 +178,9 @@ for d in changes/[0-9][0-9][0-9]-*/; do
   fi
 
   if [[ -f "$d/tasks.md" ]]; then
+    for t in $(awk '/^### T[0-9]+/{t=$2} /\*\*Status:\*\* *done/{if(t)print t; t=""}' "$d/tasks.md" | sort -u); do
+      compgen -G "$d/record/tasks/$t-review-*.md" >/dev/null || warn "$t is done but has no review in $d/record/tasks/ — run ./scripts/record.sh $d task $t"
+    done
     dupes=$(grep -oE '^### T[0-9]+' "$d/tasks.md" | sed 's/### //' | sort | uniq -d)
     [[ -n "$dupes" ]] && bad "tasks.md has duplicate task IDs: $(echo $dupes | tr '\n' ' ') — the brief would pick the first"
     for t in $(grep -oE '^### T[0-9]+' "$d/tasks.md" | sed 's/### //' | sort -u); do

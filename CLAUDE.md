@@ -17,4 +17,6 @@ agents belongs in AGENTS.md.
 - Subagents: `implementer`, `task-reviewer` and `reviewer` live in
   `.claude/agents/`. Spawn them with the Agent tool; do not do their jobs
   inline. Their model tiers are the ladder in the `sdd` skill.
+- When a `[sdd]` line at the top of a turn says a phase is open, invoke
+  `sdd-continue` before anything else. It moves the turn to Fable.
 - Keep a task list for anything that runs past three steps.

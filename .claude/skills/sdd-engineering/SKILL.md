@@ -2,6 +2,7 @@
 type: Skill
 name: sdd-engineering
 description: Establish, load, or refine the user's cross-project engineering preferences (paradigm, typing, errors, testing, architecture, tooling) — docs/engineering.md, mastered at ~/.config/sdd/engineering.md. Use at the first sdd-plan when docs/engineering.md is missing or unapproved, when the user says "my coding preferences", "how I like code written", "engineering standards", or when a review surfaces a preference not yet recorded. Not during sdd-init.
+model: fable
 ---
 
 # Engineering preferences
@@ -9,6 +10,30 @@ description: Establish, load, or refine the user's cross-project engineering pre
 These do not change per project. They change slowly, across projects, as the
 user learns what they want. So: one master outside the repo, a copy inside,
 and a discipline for keeping them in step.
+
+
+## Model
+
+Top of the ladder: this skill runs on Fable (`model: fable` above). First
+thing, before any question: `./scripts/phase.sh show`. If it prints nothing,
+run `./scripts/phase.sh enter sdd-engineering`; if it names a phase, leave it alone
+(you were called from inside that phase). While the marker is set, every
+turn starts with the `sdd-continue` skill, which keeps the interview on Fable
+while the session default stays cheap. Writes to the artefacts this skill
+owns are refused on any other model (`scripts/hooks/guard-paths.sh`); if a
+write is refused, invoke `sdd-continue` and retry. If Fable is not available
+to this account, stop and tell the user; do not carry on in a weaker model.
+
+## The interview record
+
+Every question this skill asks is written to `docs/interviews/engineering.md`
+(from `templates/interview-template.md`; create it on the first question,
+`sdd_phase: open`) as it is asked and answered: the question, the
+recommendation you offered, the user's answer in their words, and where in
+the artefact it landed. Questions you decided not to ask go under `## Not
+asked` with the reason. When the gate passes, set `sdd_phase: closed` and
+commit the record with the artefact. The artefact is the summary; the
+record is why it says what it says.
 
 ## When this runs
 
@@ -34,7 +59,7 @@ engineering activity init performs.
 
 ## Interview
 
-**Run on the strongest model available.** One question per section of
+One question per section of
 `templates/engineering-template.md`, **one at a time**, each with the
 template's default offered as the recommendation — the user confirms,
 changes, or replaces it.
@@ -111,3 +136,6 @@ recurring review finding reveals a preference that is not written down.
   blocks it.
 - A preference the user has recorded is not re-litigated by an agent. Say
   once that you would do otherwise and why; then follow it. Article I.
+
+When done: if you entered the phase yourself, `./scripts/phase.sh leave`. If
+`sdd-plan` called you, leave the marker; the plan closes it.

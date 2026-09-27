@@ -2,6 +2,7 @@
 type: Skill
 name: sdd-init
 description: Onboard a fresh repository created from the starter — brainstorm what the product is, then product brief, domain map of bounded contexts, constitution, roadmap of changes, glossary — before any change is specified. Use on a new project, when docs/product.md is missing or still a template, or when the user says "init", "set up the project", "new project", "let's start", or describes an app they want to build and no specs exist yet.
+model: fable
 ---
 
 # Init — the opening interviews
@@ -10,11 +11,21 @@ Runs once, on a new repository. It captures what the project *is* before any
 change is specified. Everything written here is what every later phase reads
 first, so these are the highest-leverage questions in the whole workflow.
 
-**Run this on the strongest model available.** If you have reason to think you
-are not it, say so once before starting.
-
 You are mining the user. They hold the picture; you hold the questions. Every
 answer is recorded in their words. Nothing is inferred. Article I.
+
+
+## Model
+
+Top of the ladder: this skill runs on Fable (`model: fable` above). First
+thing, before any question: `./scripts/phase.sh show`. If it prints nothing,
+run `./scripts/phase.sh enter sdd-init`; if it names a phase, leave it alone
+(you were called from inside that phase). While the marker is set, every
+turn starts with the `sdd-continue` skill, which keeps the interview on Fable
+while the session default stays cheap. Writes to the artefacts this skill
+owns are refused on any other model (`scripts/hooks/guard-paths.sh`); if a
+write is refused, invoke `sdd-continue` and retry. If Fable is not available
+to this account, stop and tell the user; do not carry on in a weaker model.
 
 ## The one rule about order
 
@@ -28,6 +39,17 @@ here, not before them.
 If the user volunteers a technology ("it'll be in Rust"), record it under
 `## Constraints` in the intent as *stated by the user*, and move on. Do not
 follow it up here.
+
+## The interview record
+
+Every question this skill asks is written to `docs/interviews/init.md`
+(from `templates/interview-template.md`; create it on the first question,
+`sdd_phase: open`) as it is asked and answered: the question, the
+recommendation you offered, the user's answer in their words, and where in
+the artefact it landed. Questions you decided not to ask go under `## Not
+asked` with the reason. When the gate passes, set `sdd_phase: closed` and
+commit the record with the artefact. The artefact is the summary; the
+record is why it says what it says.
 
 ## Step 1 — Mechanical setup
 
@@ -74,10 +96,20 @@ Fill `title` and `description` in the frontmatter, set `generated.by` to
 `claude-code/<your model id, or unknown>` and `generated.at` to now
 (`./scripts/fm.py set`), and add `/docs/intent-product.md` to `sources`.
 
-**Gate**: show it in full; `AskUserQuestion`: *Approve* / *Revise*. On
+**Gate**: `./scripts/draft.sh docs/product.md`, show it in full;
+`AskUserQuestion`: *Approve* / *Revise* (draft again after each revision). On
 approval `./scripts/approve.sh docs/product.md approved`, then
 `./scripts/index.sh`, and append each decision to `docs/decisions.md` as
 `<date> · init · <decision> · <why>`.
+
+## Step 3b — Interface → `docs/design.md` §1–§6
+
+Hand to `sdd-design` entry point **A**. One question decides whether the
+product has an interface at all; if it does, five more capture where it is
+used, its tone, density, conventions and accessibility floor, in the user's
+words. No colours, fonts or component libraries: those are asked at the
+first plan. If there is no interface, `docs/design.md` records that and
+every later change skips design automatically.
 
 ## Step 4 — Domain discovery → `docs/domain.md`
 
@@ -103,8 +135,9 @@ answer attached:
 Write the file. Three to seven contexts is normal; one is fine for a small
 product. Fill `title`, `description`, `generated.*` with `fm.py set`.
 
-**Gate**: show it in full; *Approve* / *Revise* / *Merge two contexts* /
-*Split one*. On approval `./scripts/approve.sh docs/domain.md approved`,
+**Gate**: `./scripts/draft.sh docs/domain.md`, show it in full; *Approve* /
+*Revise* / *Merge two contexts* / *Split one* (draft again after each
+revision). On approval `./scripts/approve.sh docs/domain.md approved`,
 `./scripts/index.sh`, append decisions.
 
 ## Step 5 — Constitution
@@ -133,8 +166,8 @@ it with the user, one question at a time:
   (`<context>.<capability>`); the first changes create capabilities, later ones
   modify them.
 
-Write the file with every change `proposed`. **Gate**: *Approve* / *Revise* /
-*Re-order*. On approval `./scripts/approve.sh docs/roadmap.md approved`, then
+Write the file with every change `proposed`. **Gate**:
+`./scripts/draft.sh docs/roadmap.md`; *Approve* / *Revise* / *Re-order*. On approval `./scripts/approve.sh docs/roadmap.md approved`, then
 `./scripts/index.sh`; append decisions.
 
 ## Step 7 — Glossary → `docs/glossary.md`
@@ -142,19 +175,25 @@ Write the file with every change `proposed`. **Gate**: *Approve* / *Revise* /
 List the nouns that appeared in Steps 2–6. For each, ask which context it
 belongs to and for the definition the *user* uses in that context, and what it
 must not be confused with. Specs and code will use these terms exactly.
-Write the file. **Gate**: *Approve* / *Revise*, then
-`./scripts/approve.sh docs/glossary.md approved` and `./scripts/index.sh`.
+Write the file. **Gate**: `./scripts/draft.sh docs/glossary.md`; *Approve* /
+*Revise*, then `./scripts/approve.sh docs/glossary.md approved` and
+`./scripts/index.sh`.
 
 ## Step 8 — Hand off
 
-Commit: `docs(init): intent, product brief, domain, roadmap, glossary`.
+`./scripts/fm.py set docs/interviews/init.md sdd_phase closed`. Commit:
+`docs(init): intent, product brief, design principles, domain, roadmap,
+glossary, interview record`.
+Then `./scripts/phase.sh leave`: init is over, and the next phase opens its
+own when the user starts it.
 
 Summarise in five lines: the product in one sentence; N contexts; N changes and
 which is first; the riskiest assumption; the open questions. Then offer to
 start change 1 with `grill`.
 
-Say explicitly: *engineering preferences and the stack are chosen at the first
-plan, from what we recorded today.* If `docs/engineering.md` was copied in by
+Say explicitly: *engineering preferences, the stack, and the design system
+(tokens, components) are chosen at the first plan, from what we recorded
+today.* If `docs/engineering.md` was copied in by
 `init.sh` from a master, say that too, in one line.
 
 ## Rules

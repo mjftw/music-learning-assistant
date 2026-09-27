@@ -1,0 +1,45 @@
+<!doctype html>
+<!-- Wireframe: <screen name> — change NNN-slug.
+     One file per screen; one [data-state] block per state named in the
+     proposal's Interface table. Open with ?state=<name>; no ?state shows the
+     first block. Grey boxes only: wireframe.css is copied next to this file
+     by sdd-design and is not edited. This file is a spec, never a source:
+     the implementation is built in the real stack against it, not from it. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><screen name> — wireframe</title>
+  <link rel="stylesheet" href="wireframe.css">
+</head>
+<body>
+  <div class="wf-label" id="wf-label"></div>
+
+  <section data-state="<state-1>" class="wf-screen" data-viewport="phone">
+    <div class="wf-box">header / title</div>
+    <div class="wf-box tall">main thing on this screen</div>
+    <div class="wf-row">
+      <div class="wf-button primary">primary action</div>
+      <div class="wf-button">secondary</div>
+    </div>
+    <p class="wf-note">annotate anything the boxes cannot say</p>
+  </section>
+
+  <section data-state="<state-2>" class="wf-screen" data-viewport="phone">
+    <div class="wf-box">header / title</div>
+    <div class="wf-box tall">same screen, different state</div>
+  </section>
+
+  <script>
+    (function () {
+      var want = new URLSearchParams(location.search).get('state');
+      var all = document.querySelectorAll('[data-state]');
+      var hit = null;
+      all.forEach(function (el) { if (el.getAttribute('data-state') === want) hit = el; });
+      if (!hit) hit = all[0];
+      if (hit) { hit.classList.add('is-active');
+        document.getElementById('wf-label').textContent = document.title + ' · ' + hit.getAttribute('data-state'); }
+    })();
+  </script>
+</body>
+</html>

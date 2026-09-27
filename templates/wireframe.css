@@ -1,0 +1,24 @@
+/* Wireframe stylesheet. Deliberately grey, boxy and ugly, so that what is
+   being judged is structure, flow and copy, not taste. Taste arrives in the
+   refinement loop on the real build. Do not add colour here. */
+:root { --ink: #333; --line: #888; --fill: #e6e6e6; --fill-2: #cfcfcf; --paper: #fafafa; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--paper); color: var(--ink);
+  font: 16px/1.4 -apple-system, "Helvetica Neue", Arial, sans-serif; }
+body { padding: 16px; }
+.wf-screen { border: 2px solid var(--line); background: #fff; max-width: 420px; margin: 0 auto;
+  min-height: 720px; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.wf-screen[data-viewport="desktop"] { max-width: 1100px; min-height: 640px; }
+.wf-box { border: 1px solid var(--line); background: var(--fill); padding: 8px; min-height: 40px;
+  display: flex; align-items: center; justify-content: center; text-align: center; }
+.wf-box.tall { min-height: 160px; }
+.wf-box.image { background: repeating-linear-gradient(45deg, var(--fill), var(--fill) 8px, var(--fill-2) 8px, var(--fill-2) 16px); }
+.wf-row { display: flex; gap: 8px; }
+.wf-row > * { flex: 1; }
+.wf-text { border-bottom: 1px dashed var(--line); padding: 4px 0; }
+.wf-button { border: 2px solid var(--ink); background: #fff; padding: 8px 12px; text-align: center; font-weight: 600; }
+.wf-button.primary { background: var(--ink); color: #fff; }
+.wf-toggle { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; display: inline-block; }
+.wf-note { font-size: 12px; color: #666; font-style: italic; }
+.wf-screen[data-state]:not(.is-active), [data-state]:not(.is-active) { display: none; }
+.wf-label { position: fixed; top: 4px; left: 8px; font-size: 12px; color: #666; }

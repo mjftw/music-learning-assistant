@@ -33,18 +33,34 @@ If 4 conflicts with 1–3, stop and say so. Do not pick silently.
 - `docs/domain.md` — the bounded contexts, their code roots, the events between
   them, the invariants. A slice belongs to one. Code never crosses a context
   except through `published/`.
+- `docs/design.md` — whether there is an interface; where it is used and
+  how it should feel (§1–§6); the tokens and patterns every screen uses
+  (§7–§9); the living index of screens with their reference screenshots in
+  `docs/design/screens/`. Build screens from it; never restyle one a change
+  did not list.
 - `docs/decisions.md` — every decision the user has made. Never re-ask one.
 - `specs/<context>/<capability>.md` — **what the system does now.** One living
   spec per capability. Read it before touching that capability. Never edit it;
   it is merged from deltas at `sdd-finish`.
 - `changes/NNN-slug/` — a change in flight: `intent.md`, `proposal.md`,
-  `delta/`, `plan.md`, `tasks.md`, `notes.md`. `changes/archive/` — shipped.
+  `delta/`, `design/` (wireframes or imported references, `rounds.md`, the
+  screenshots of every round under `rounds/`, and at the loop's exit
+  `reference/`), `plan.md`, `tasks.md`, `notes.md`, and `record/` — the
+  implementer report and review for every task attempt and every
+  convergence report, copied from `.sdd/` by `scripts/record.sh`.
+  `changes/archive/` — shipped, record included.
+- `docs/interviews/<phase>.md` — every question the init, constitution,
+  engineering and design interviews asked, the recommendation, and the
+  user's answer. Read before re-asking anything; a `grill` intent carries
+  its own record.
 - `REVIEW.md` — the review policy. `docs/adr/` — decision records.
 - `index.md` in any directory — read it first; it lists what is there by type
   and phase. `log.md` — what was approved when.
 - `docs/okf.md` — the frontmatter every artefact carries and what it means.
 - `.claude/skills/` — the workflow. `.claude/agents/` — implementer,
   task-reviewer, reviewer.
+- `.sdd/phase` — the open top-of-ladder phase, if any. While it is set, start
+  every turn by invoking the `sdd-continue` skill (the hook will remind you).
 
 ## Commands
 
@@ -156,10 +172,14 @@ runtime network dependencies.
 ## Never
 
 - Read, print, or write `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*`.
-- Edit `memory/constitution.md`, `docs/engineering.md` or `REVIEW.md` outside
-  their skills; propose instead.
+- Edit `memory/constitution.md`, `docs/engineering.md`, `docs/design.md` or
+  `REVIEW.md` outside their skills; propose instead.
 - Hand-edit YAML frontmatter, `index.md` or `log.md`. Use `scripts/fm.py`,
   `scripts/approve.sh`, `scripts/index.sh`.
+- Delete or rewrite anything under a change's `record/`, `design/rounds/` or
+  `docs/interviews/`. They are append-only; `record.sh` numbers attempts.
+- Show an artefact at a gate without `scripts/draft.sh` having committed
+  that version first.
 - Import another context's internals; only its `published/` interface or its
   events. `scripts/check-contexts.sh` fails otherwise.
 - Write a test that reaches inside the context. Tests go through the published
@@ -170,5 +190,12 @@ runtime network dependencies.
   change.
 - Invent a requirement, a command, or a convention. Ask.
 - Add a feature, abstraction, or dependency the spec and plan do not name.
+- Copy wireframe HTML into the app, or style with a value that is not a
+  token in `docs/design.md` §8 once it is approved. Build the real screen
+  against the wireframe; promote the value or note why not.
+- Create `.sdd/unlock-model`, or write a top-of-ladder artefact (intent,
+  proposal, delta, plan, design, product/domain/roadmap/glossary/engineering,
+  constitution) on a model other than `SDD_STRONG_MODELS`. The guard refuses
+  it; when it does, invoke `sdd-continue` and retry, or tell the user.
 - Claim a test passes without having run it.
 - Mark a task done with a failing test, a stub, or a `TODO` in a covered path.

@@ -91,6 +91,20 @@ whether it happened. One paragraph.>
 | `docs/glossary.md` | <new or changed terms, or "none"> | |
 | `docs/product.md` | <scope or constraint change, or "none"> | |
 
+## Interface
+
+> Every screen and state this change adds or alters, or the single word
+> `none`. Filled by `sdd-design` before the requirements are written, because
+> walking the scenarios across these screens is what finds the missing ones.
+> **Design** is the wireframe or imported reference in `design/`; **Route** is
+> filled at the plan, once the app has one; the refinement loop's reference
+> screenshot lands in `design/reference/<screen>--<state>.png` at its exit.
+> `scripts/check-design.sh` checks the files exist and the citations resolve.
+
+| Screen | State | Route | Design | Requirements seen here |
+|---|---|---|---|---|
+| `<screen>` | `<state>` | | `design/<screen>.html?state=<state>` | `<context>.<capability>/REQ-001` |
+
 ## Non-functional requirements
 
 > Only ones with a number in them. "Fast" is not a requirement; "renders in

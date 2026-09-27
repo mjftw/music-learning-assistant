@@ -43,4 +43,11 @@ done
 [[ -d changes/archive ]] && gen changes/archive "Shipped changes"
 [[ -d changes ]] && gen changes "Changes in flight"
 [[ -d docs/adr ]] && gen docs/adr "Architecture Decision Records"
+[[ -d docs/interviews ]] && gen docs/interviews "Interview records"
+for rec in changes/[0-9][0-9][0-9]-*/record changes/archive/[0-9][0-9][0-9]-*/record; do
+  [[ -d "$rec" ]] || continue
+  id=$(basename "$(dirname "$rec")")
+  [[ -d "$rec/tasks" ]] && gen "$rec/tasks" "Task attempts: $id"
+  gen "$rec" "Record: $id"
+done
 gen docs "Project documents"

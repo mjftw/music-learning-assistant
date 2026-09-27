@@ -138,17 +138,36 @@ power follows.
 
 | Phase | Runs as | Model |
 |---|---|---|
-| `sdd-init`, `sdd-constitution`, `grill`, `sdd-specify`, `sdd-plan` (and `sdd-engineering`, which it runs) | main session | strongest available |
-| `sdd-tasks` | main session | strongest or mid |
-| `sdd-implement` (controller) | main session | mid or strongest |
-| `implementer` (per task) | subagent | mid (sonnet); `Trivial` → small |
-| `task-reviewer` (per task) | subagent | mid (sonnet) |
-| `sdd-converge` → `reviewer` | subagent | strongest |
-| `sdd-finish` | main session | any |
+| `sdd-init`, `sdd-constitution`, `sdd-engineering`, `grill`, `sdd-specify`, `sdd-plan`, `sdd-design` | main session | Fable |
+| `sdd-tasks`, `sdd-implement` (controller), `sdd-finish` | main session | Sonnet, the project default |
+| `implementer`, `task-reviewer` (per task) | subagents | Sonnet (Haiku for a trivial task) |
+| `sdd-converge` → `reviewer` | subagent | Opus |
 
-The one place the ladder bends is the reviewer: verification weaker than what
-it verifies catches nothing, so `converge` runs on the strongest model.
-Overrule it in `.claude/agents/reviewer.md` if you disagree.
+The ladder is enforced, not requested. The session starts on Sonnet
+(`.claude/settings.json`), so nothing runs on Fable unless a phase needs it.
+Each Fable skill carries `model: fable`, but a skill's model only lasts for
+the turn it is invoked in, and an interview is many turns. So the skill also
+opens a phase marker (`.sdd/phase`); while it is open, a hook reminds the
+agent at the start of every turn to invoke `sdd-continue`, a tiny skill whose
+only job is to move that turn to Fable. The marker closes at the gate that
+hands down to a lower phase, and anything left open for twelve hours is
+dropped.
+
+Behind that sits a guard. The write hook reads from the session transcript
+which model issued each write, and refuses writes to the intent, proposal,
+deltas, plan, design files, and the product, domain, roadmap, glossary,
+engineering and constitution documents from any model not in
+`SDD_STRONG_MODELS` (`claude-fable-*` by default, in `.claude/settings.json`).
+If you start a session on Haiku and ask it to spec something, it can talk to
+you, but it cannot write the spec. If Fable is not available to your account
+the agent stops and tells you; creating `.sdd/unlock-model` is how you say
+"write it on this model anyway", and agents are told never to create it.
+
+Verification is never weaker than what it verifies, so the change-level
+reviewer is Opus whatever the session is on. Subagent tiers live in
+`.claude/agents/*.md`. To move the top of the ladder to a newer model, change
+`SDD_STRONG_MODELS` and the `model:` line in the eight skills that carry it;
+`./scripts/selftest-models.sh` checks the guard afterwards.
 
 ## The implementation loop
 
@@ -243,6 +262,67 @@ A removed requirement stays in the living spec, struck through, with the change
 that removed it. IDs are never reused. A capability's history table lists every
 change that shaped it. The first change is not special: it is a delta that is
 all ADDED into a capability that does not exist yet, and the merge creates it.
+
+## Design
+
+Correct code with an unstyled interface is the normal result of a process
+that never asked what the thing should look like. This template asks, but at
+the moments a designer would, not all at once up front.
+
+At init, after the product brief, one question: does this product have an
+interface people look at? If not, docs/design.md records that and design
+never comes up again. If so, five short questions capture where it is used
+(device, distance, hands, attention), its tone, its density, the interaction
+rules that follow, and the accessibility floor. No colours, fonts or
+component libraries: those are technology and wait for the first plan.
+
+Before each change's proposal is written, sdd-design asks whether the change
+touches a screen. If it does: do you already have a design? Import it (Figma,
+exported screens, a Claude Design artifact, a photo of a sketch). Or go and
+make one elsewhere, and the change waits for you to bring it back. Or let the
+agent wireframe it: grey boxes, one file per screen, one block per state,
+screenshotted so the agent can see its own work. Then the walkthrough: every
+scenario is stepped across the screens, and every scenario with no screen, or
+screen element with no requirement, is settled before the requirements are
+written. That walkthrough is where the requirements the interview forgot
+turn up.
+
+The first plan that touches a screen chooses the UI stack and, with it, the
+system half of docs/design.md: a small set of tokens and how styles are
+written. check-design.sh warns from then on about hard-coded values outside
+the tokens file, the way check-contexts.sh warns about imports across
+contexts.
+
+The build is fast and grey. Design happens after it, in the refinement loop:
+the real app running, the user looking at it on the real device, saying what
+is wrong in their own words; the agent trying up to three treatments behind a
+temporary variant switch, screenshotting all of them, the user choosing.
+There is no gate per round. The record is design/rounds.md, one block per
+round with what was tried and why the winner won, so a decision made on the
+fifth try is never undone on the sixth. If a round changes behaviour rather
+than appearance, that is a requirement change and it goes into the delta, out
+loud. When the user says the screens are done, the loop exits: reference
+screenshots are taken, winning values and patterns are promoted into
+docs/design.md, and the reviewer's fidelity pass compares the shipped screens
+to those references and checks that screens the change did not list are
+untouched.
+
+Shipped screens that feel wrong later get a lighter path: new-change.sh with
+--design seeds an intent and goes straight to the loop on the live app, with
+no plan or tasks unless a round changes what the product does.
+
+## What is kept
+
+Nothing that explains a decision is thrown away when the change ships. The
+change directory is archived whole. Each gate commits a numbered draft
+first, so revisions are in git history. record.sh copies every task
+attempt's implementer report and review, and every convergence report, out
+of the ephemeral .sdd/ directory into the change's record/ folder; the
+design loop keeps each round's screenshots, rejected ones included. The init,
+constitution, engineering and design interviews write docs/interviews/, one
+block per question with the recommendation and the user's answer, the shape
+grill already uses for an intent. Only task briefs and the merged preview are
+discarded, since both are regenerated from what is kept.
 
 ## Why it is shaped this way
 

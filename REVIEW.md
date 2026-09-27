@@ -32,6 +32,14 @@ tags: [sdd, review]
    does not appear in domain code; every invariant in `docs/domain.md` that
    this slice could touch has a test that tries to break it. A boundary
    violation is critical.
+3c. **Design fidelity** — when the proposal's Interface is not `none`:
+   `scripts/check-design.sh --change` clean; every Interface row's live
+   screenshot matches its `design/reference/` in structure and tokens;
+   styles use `docs/design.md` §8 tokens only (hard-coded values are a
+   warning unless justified in `notes.md`); screens the change did not list
+   are unchanged against `docs/design/screens/` (a changed unlisted screen is
+   critical). A missing loop exit (`rounds.md` not `exited`) is critical: the
+   user has not said the screens are done.
 4. **Bugs and logic errors** — off-by-one, unhandled state, race, wrong
    default, silent failure.
 5. **Security** — input validation at boundaries, authz on every new surface,

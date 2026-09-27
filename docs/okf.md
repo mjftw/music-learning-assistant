@@ -46,6 +46,7 @@ Extension keys are flat and `sdd_`-prefixed so `grep` and `sed` keep working.
 | `docs/glossary.md` | `Glossary` | `draft \| approved` |
 | `docs/engineering.md` | `Engineering Preferences` | `draft \| approved` (+ `sdd_version`) |
 | `docs/domain.md` | `Domain Map` | `draft \| approved` |
+| `docs/design.md` | `Design Principles` | `draft \| principles \| approved` (+ `sdd_version`, `sdd_interface: yes \| no \| unknown`) |
 | `docs/decisions.md` | `Decision Log` | — |
 | `REVIEW.md` | `Review Policy` | — |
 | `docs/sdd-guide.md`, `docs/okf.md` | `Guide` | — |
@@ -57,6 +58,10 @@ Extension keys are flat and `sdd_`-prefixed so `grep` and `sed` keep working.
 | `changes/NNN/plan.md` | `Implementation Plan` | `draft \| in-review \| approved` |
 | `changes/NNN/tasks.md` | `Task List` | `draft \| approved \| in-progress \| complete` |
 | `changes/NNN/notes.md` | `Implementation Notes` | — |
+| `changes/NNN/design/rounds.md` | `Design Log` | `open \| exited` |
+| `docs/interviews/<phase>.md` | `Interview Record` | `open \| closed` |
+| `changes/NNN/record/tasks/T*-report-N.md`, `T*-review-N.md`, `record/converge-N.md` | copies of the `Implementation Report`, `Task Review` and `Convergence Report` written under `.sdd/`, kept per attempt | — |
+| `changes/NNN/design/*.html`, `*.png` | — (not OKF; wireframes and references, listed by the proposal's Interface table) | — |
 | `.sdd/briefs/**` | `Task Brief` | — (ephemeral; `stale_after` set) |
 | `.sdd/reports/**/T*.md` | `Implementation Report` | — |
 | `.sdd/reviews/**/T*.md` | `Task Review` | — |

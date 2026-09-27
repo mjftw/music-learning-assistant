@@ -9,6 +9,12 @@ description: Break an approved plan into an ordered, dependency-aware task list 
 Produce `changes/NNN-slug/tasks.md`: an ordered checklist an agent can execute one
 item at a time without re-deriving the design.
 
+## Model
+
+Below the top of the ladder: this runs on the session default (Sonnet). First
+thing: `./scripts/phase.sh leave` (a no-op if no phase is open), so later turns
+are not moved up to Fable for nothing.
+
 ## Before writing
 
 1. Read the approved `proposal.md`, its deltas, and `plan.md`. The proposal
@@ -46,7 +52,12 @@ So each task carries everything it needs:
   scenario-driven: RED names the scenario ID (`REQ-00N/Sk`) and gives the
   actual test code, through the published interface (`bdd` skill) → run,
   expect *this* failure → GREEN → run, expect pass, suite green → REFACTOR.
-- **Verify** — the exact command and the exact expected output.
+- **Verify** — the exact command and the exact expected output. A task
+  that builds or alters a screen adds a second line: the
+  `design_snapshot.py … live` command and which wireframe state the
+  screenshot must match *in structure* (elements, order, states reachable).
+  Not taste: the screen is expected to be grey and correct here; taste is the
+  refinement loop after all tasks are done.
 
 **No placeholders.** Automatic failures: "add error handling", "handle edge
 cases", "similar to T011", `TBD`, `TODO`, a test described in prose, a value
@@ -98,6 +109,9 @@ Run these over the whole file and fix what fails before presenting:
   not read as an oversight in three months.
 
 ## Gate
+
+`./scripts/draft.sh changes/NNN-slug/tasks.md` before showing it, and again
+after each revision.
 
 Write the file, then report in at most five lines:
 

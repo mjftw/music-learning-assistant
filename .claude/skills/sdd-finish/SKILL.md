@@ -9,6 +9,12 @@ description: Close out a converged change — merge its deltas into the living s
 Runs only after `sdd-converge` has reported **Converged** for the change. If it
 has not, stop and say so.
 
+## Model
+
+Below the top of the ladder: this runs on the session default (Sonnet). First
+thing: `./scripts/phase.sh leave` (a no-op if no phase is open), so later turns
+are not moved up to Fable for nothing.
+
 ## 1. Confirm the state
 
 - `git status` clean; every task `**Status:** done`; `tasks.md`
@@ -18,6 +24,9 @@ has not, stop and say so.
 - `./scripts/check-scenarios.sh --change changes/<id>` clean: every ADDED and
   MODIFIED scenario has a test; nothing cites a REMOVED one.
 - `./scripts/check-specs.sh` clean for this change.
+- If the change has screens: `design/rounds.md` `sdd_phase: exited` and
+  `./scripts/check-design.sh --change changes/<id>` clean (a reference
+  screenshot per Interface row).
 
 ## 2. Merge the deltas into the living specs
 
@@ -38,11 +47,27 @@ when they approved the proposal; you are executing it.
 
 ## 3. Apply the Affects
 
+The documents named here are top-of-ladder artefacts, and the guard refuses
+edits to them from the session default. So: `./scripts/phase.sh enter
+sdd-finish`, invoke `sdd-continue`, do this step, then `./scripts/phase.sh
+leave`. Skip all of that when every row says "none".
+
 For each row in `proposal.md › Affects` that is not "none": propose the exact
 edit to `docs/domain.md` / `docs/glossary.md` / `docs/product.md`, show the
 diff, `AskUserQuestion` *Apply* / *Skip*. On apply: make the edit,
 `./scripts/approve.sh <doc> approved`, bump `sdd_version` on `domain.md` if
 it has one. Never silently.
+
+## 3b. Record the screens
+
+If the change has screens: copy `changes/<id>/design/reference/*.png` to
+`docs/design/screens/` (overwriting a screen state this change altered),
+then propose the rows for `docs/design.md › Screens` (screen, state, route,
+reference path, since <id>) and show them. `AskUserQuestion` *Apply* /
+*Skip*. On apply: `touch .sdd/unlock-design`, edit, `approve.sh
+docs/design.md approved`, `rm -f .sdd/unlock-design`. The wireframes and
+rounds log stay with the archived change; the references become the living
+truth the next fidelity pass compares against.
 
 ## 4. Archive the change
 
@@ -69,7 +94,14 @@ Per `docs/engineering.md` §13, recommend the one it names:
 ## 6. After
 
 - Worktree, if used: `git worktree remove ../<repo>-<id>`.
-- `.sdd/briefs/<id>`, `.sdd/reviews/<id>`, `.sdd/target/<id>`: delete.
+- `./scripts/record.sh changes/archive/<id> list` — the record travels with
+  the archived change: task reports and reviews per attempt, every
+  convergence report, every design round's screenshots. Check it is not
+  empty for a change that had tasks; if a task's record is missing, the
+  controller skipped step 9 — copy it now from `.sdd/` before the next line.
+- `.sdd/briefs/<id>`, `.sdd/reviews/<id>`, `.sdd/reports/<id>`,
+  `.sdd/target/<id>`, `.sdd/design/<id>`: delete. Everything worth keeping
+  from them is in the record.
 - Say in four lines: which capabilities changed and to what version, what
   shipped, the next change on the roadmap, any open item carried forward.
   Offer `grill` for the next change.

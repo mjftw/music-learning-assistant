@@ -12,6 +12,12 @@ changes pass tests, look reasonable, and still drift from the rules they were
 meant to follow — and a spec only helps if something actually checks the code
 against it.
 
+## Model
+
+Below the top of the ladder: this runs on the session default (Sonnet). First
+thing: `./scripts/phase.sh leave` (a no-op if no phase is open), so later turns
+are not moved up to Fable for nothing.
+
 ## How this phase runs
 
 This phase **always** runs as the `reviewer` subagent
@@ -28,19 +34,25 @@ Your job in the main session:
    path and the instruction to apply `REVIEW.md`, audit against the target
    state under `.sdd/target/<change>/` (build it with
    `./scripts/merge_delta.py preview changes/<change>`), run
-   `./scripts/check-scenarios.sh --change changes/<change>` and
-   `./scripts/check-contexts.sh`, and write its report to
-   `.sdd/reports/<change>/converge.md`.
+   `./scripts/check-scenarios.sh --change changes/<change>`,
+   `./scripts/check-contexts.sh` and `./scripts/check-design.sh --change
+   changes/<change>`, and write its report to
+   `.sdd/reports/<change>/converge.md`. If the change has screens, pass the
+   dev server URL so the reviewer can run the fidelity pass (REVIEW.md 3c);
+   if no server can be started, say so in the report rather than skipping
+   the pass silently.
 2. Receive the report. Do not edit it, soften it, or "fix a couple of things
-   first".
+   first". `./scripts/record.sh changes/<change> converge` — every cycle's
+   report is kept as `record/converge-N.md`; a later cycle never overwrites
+   an earlier one. Commit it.
 3. Act on the verdict (below).
 
 ## Checks
 
 The reviewer runs the passes in `REVIEW.md`. For reference, the shape:
 spec compliance (scenario coverage) → constitution → engineering preferences →
-plan conformance → domain boundaries → bugs → security → scope → hygiene →
-notes fold-back. Severities and thresholds are in `REVIEW.md`.
+plan conformance → domain boundaries → design fidelity → bugs → security →
+scope → hygiene → notes fold-back. Severities and thresholds are in `REVIEW.md`.
 
 Secrets, keys or credentials found anywhere in the tree are reported
 immediately and separately, before anything else.
@@ -62,6 +74,12 @@ Run: <date> · Commit: <sha>
 | REQ-001/S2 | ❌ none | — |
 
 Domain boundaries: `check-contexts.sh` ✅ / ❌ (findings below)
+
+| Screen · state | Reference | Live | Matches | Untouched screens unchanged |
+|---|---|---|---|---|
+| circle · selected | design/reference/circle--selected.png | .sdd/design/<change>/live/circle--selected.png | ✅ | ✅ |
+
+Design: `check-design.sh` ✅ / ❌ · tokens only ✅ / ⚠️ N hard-coded
 
 ### Critical (N)
 - <finding> — <file:line> — <what the artefact requires> — <what the code does>

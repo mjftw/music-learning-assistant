@@ -16,6 +16,12 @@ coordination: build the brief, dispatch, verify, review, loop, commit, record.
 You read the task's **Status** lines and the Coverage table; the subagents
 read the rest.
 
+## Model
+
+Below the top of the ladder: this runs on the session default (Sonnet). First
+thing: `./scripts/phase.sh leave` (a no-op if no phase is open), so later turns
+are not moved up to Fable for nothing.
+
 ## Before starting
 
 1. Confirm `proposal.md`, `plan.md`, `tasks.md` all have
@@ -69,8 +75,13 @@ read the rest.
    - Minor findings → record in `notes.md`; do not loop.
    - `UNVERIFIED` items → resolve each yourself with cross-task context. If
      one is a real gap, it goes back to the implementer as a spec failure.
-9. **Record.** Set the task's `**Status:** done`. Copy CONCERNS and minor
-   findings into `notes.md` as one-liners. If the task is the last in a phase,
+9. **Record.** `./scripts/record.sh changes/<change> task T0NN` — copies the
+   implementer's report and the reviewer's review into
+   `changes/<change>/record/tasks/`, numbered per attempt; run it after
+   *every* review, including the ones that failed, so the fix loop is on the
+   record. Then set the task's `**Status:** done`. Copy CONCERNS and minor
+   findings into `notes.md` as one-liners. Commit the record with the task
+   (`git add changes/<change>/record`). If the task is the last in a phase,
    say so in one line.
 10. **Commit** if the implementer did not. Message:
     `<type>(<scope>): <outcome> (<REQ-ids>)`.
@@ -114,5 +125,13 @@ requirement turns out to be wrong, or a risk from the plan has materialised.
 ## When every task is done
 
 `./scripts/fm.py set changes/<change>/tasks.md sdd_phase complete`. Do not declare
-victory. Hand to `sdd-converge` — the change-level audit is by a reviewer that
+victory.
+
+If the change's proposal `## Interface` is not `none`, hand to `sdd-design`
+entry point **D** first: the screens are correct and grey, and the refinement
+loop on the live build is where they become right. It has no gates and ends
+when the user says so; its exit writes the reference screenshots the reviewer
+compares against.
+
+Then hand to `sdd-converge` — the change-level audit is by a reviewer that
 saw none of this.

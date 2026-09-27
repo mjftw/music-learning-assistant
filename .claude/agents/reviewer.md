@@ -26,8 +26,19 @@ command you are about to run would write to the tree, do not run it.
    in the code, and confirm every REMOVED one has no remaining test or dead
    code — do not take `tasks.md`'s word for any of it.
 4. Run the suite, lint, and typecheck commands from `AGENTS.md`. Paste output.
-   Also run `./scripts/check-scenarios.sh --change changes/<change>` and
-   `./scripts/check-contexts.sh`; paste both outputs into the report.
+   Also run `./scripts/check-scenarios.sh --change changes/<change>`,
+   `./scripts/check-contexts.sh` and `./scripts/check-design.sh --change
+   changes/<change>`; paste all three outputs into the report.
+4b. **Design fidelity (REVIEW.md 3c), when the change has screens.** With
+   the dev server URL you were given, run `python3 scripts/design_snapshot.py
+   changes/<change> live --base <url>` and Read each PNG beside its reference
+   in `changes/<change>/design/reference/`. Judge structure and the promoted
+   tokens, not pixels: same elements, same states, tokens from
+   `docs/design.md` §8, nothing the reference does not show. Then open every
+   screen listed in `docs/design.md › Screens` that this change did **not**
+   list in its Interface table and compare it to `docs/design/screens/`: an
+   unlisted screen that changed is a critical finding (visual scope creep).
+   No server, no pass: say so in the report; never mark it passed.
 5. Write the report to `.sdd/reports/<change>/converge.md`, with this
    frontmatter, then the report body in the format given in
    `.claude/skills/sdd-converge/SKILL.md`:

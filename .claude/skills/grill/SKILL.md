@@ -2,6 +2,7 @@
 type: Skill
 name: grill
 description: Interview the user relentlessly about a plan, feature or design until shared understanding is reached, resolving each branch of the decision tree. Use when the user says "grill me", "grill", "interrogate this", "stress-test this plan", "poke holes in this", or when starting a feature whose requirements are not yet pinned down. Writes the slice's intent.md; no code.
+model: fable
 ---
 
 # Grilling
@@ -13,6 +14,19 @@ where it costs hours.
 
 Adapted from the `grill-me` pattern (Matt Pocock, MIT). Credit in
 `docs/sdd-guide.md`.
+
+
+## Model
+
+Top of the ladder: this skill runs on Fable (`model: fable` above). First
+thing, before any question: `./scripts/phase.sh show`. If it prints nothing,
+run `./scripts/phase.sh enter grill`; if it names a phase, leave it alone
+(you were called from inside that phase). While the marker is set, every
+turn starts with the `sdd-continue` skill, which keeps the interview on Fable
+while the session default stays cheap. Writes to the artefacts this skill
+owns are refused on any other model (`scripts/hooks/guard-paths.sh`); if a
+write is refused, invoke `sdd-continue` and retry. If Fable is not available
+to this account, stop and tell the user; do not carry on in a weaker model.
 
 ## The shape of it
 
@@ -158,6 +172,10 @@ and the user would not correct it.
 
 For any other project-level grilling (a big decision, a direction change),
 write `docs/intent-<topic>.md` the same way.
+
+At the end of every grilling session that does not resolve the tree,
+`./scripts/draft.sh changes/NNN-slug/intent.md` so the partial interview is in
+git and survives a lost session.
 
 When the tree is resolved:
 
