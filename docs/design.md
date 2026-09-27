@@ -132,10 +132,23 @@ inside a tool; motion for its own sake.
 > Filled at the first plan that touches a screen. Technology lives here and
 > nowhere above this line.
 
-- **UI stack:** <from `plan.md`; the plan chose it, this records it>
-- **Components:** <a library, or hand-rolled; if a library, which and why>
-- **Styling:** <how styles are written; where the tokens file lives>
-- **Wireframe fidelity for new screens:** <grey boxes only, until the loop>
+- **UI stack:** TypeScript (strict) SPA — React 19 + Vite, one
+  phone-proportioned column (390 px) centred on wider viewports; chosen at
+  001's plan, recorded here at 007's (the first plan after this file
+  existed).
+- **Components:** hand-rolled. Six shipped changes have needed no library;
+  the design's controls are plain shapes (pills, sheets, a drawer, SVG for
+  the circle, the stave and the spiral). The shared pieces live in
+  `src/ui/overlay.tsx` (`BottomSheet`, `OverlayScrim`, `OverlayHeader`).
+- **Styling:** inline style objects built from named constants at the top
+  of each component; every colour, font, radius and duration comes from
+  the tokens file **`src/ui/theme.ts`** (`paper`, `fonts`, and from 007
+  `tuner`). Self-hosted fonts via `@fontsource` (no runtime network —
+  Article VII). Global CSS is `src/ui/global.css` only (page background,
+  tap-highlight, focus, button font inheritance).
+- **Wireframe fidelity for new screens:** grey boxes, or the vendored
+  Claude Design prototype where the change imported one, until the
+  refinement loop on the live build (entry point D).
 
 ## 8. Tokens
 
@@ -143,9 +156,42 @@ inside a tool; motion for its own sake.
 > hard-coded colours, sizes and fonts outside the tokens file. A value that a
 > refinement loop settled is promoted here at the loop's exit.
 
+Promoted at 007's plan from what 001–006 already used (`src/ui/theme.ts`
+is authoritative for the values; this table names the roles).
+
 | Token | Value | Used for |
 |---|---|---|
-| | | |
+| `paper.frame` | `#efe9dc` | the app column's background |
+| `paper.card` | `#f7f3ea` | cards, sheets, the drawer, pills |
+| `paper.disc` | `#fbf8f1` | the circle's centre disc, the tempo stepper, the spiral hub |
+| `paper.ink` | `#1c1916` | primary text, the big note name |
+| `paper.inkSoft` | `#2b2620` | stave lines, noteheads, clefs |
+| `paper.muted` | `#6f675c` | secondary text, hints, "halfway to" |
+| `paper.mutedMore` | `#7a7167` | the header's range label, ‹ |
+| `paper.faint` | `#9a9186` | chevrons, tick labels, "Play a note", a greyed target name, LISTENING when off |
+| `paper.border` | `#cfc6b4` | pill and column borders |
+| `paper.borderSoft` | `#ddd4c2` | card borders, the level's centre line, the progress track |
+| `paper.drawerBorder` | `#d5cbb8` | sheet and drawer edges; the "cannot hear" dash |
+| `paper.hairline` | `#e6ddcc` | row separators (strong) |
+| `paper.hairlineSoft` | `#ece4d5` | row separators (soft) |
+| `paper.pillActive` | `#e7dcc6` | the selected pill in a segmented control |
+| `paper.accent` | `#8a4b2a` | ▶, the sounding note, the tonic, the distance ring's warm end, TARGET when pinned |
+| `paper.trackOff` | `#c8bfad` | a switch's off track |
+| `paper.scrim` | `rgba(28,25,22,.32)` | behind sheets and the drawer |
+| `tuner.sharp` | `oklch(0.55 0.11 28)` | a sharp reading — line, tag, cents, head (warm, as the circle's sharpward end) |
+| `tuner.flat` | `oklch(0.55 0.11 258)` | a flat reading (cool, as the circle's flatward end) |
+| `tuner.inTune` | `oklch(0.55 0.11 150)` | a reading inside the in-tune band |
+| `tuner.band` | `oklch(0.90 0.045 150)` | the in-tune band behind the level and the stave |
+| `tuner.targetHead` | `#a39a8c` | the pinned target's grey notehead |
+| `tuner.ghostInk` | `#8a8175` | the target head's accidental and octave mark |
+| `fonts.body` | Public Sans (400/500/600/700) | labels, buttons, prose |
+| `fonts.display` | Instrument Serif | the key name, the big note name (164 px on the tuner), sheet titles' numerals |
+| `fonts.mono` | JetBrains Mono (400/500/600) | captions, cents, Hz, tempo, formulas, tick labels, TARGET |
+| `fonts.music` | Noto Music | clefs, accidentals, note-length glyphs |
+| type scale | 164 · 40 · 22 · 20 · 17 · 15 · 14.5 · 14 · 13 · 12.5 · 12 · 11.5 · 11 · 10.5 · 10 · 9.5 px | the sizes the designs use; a new size is a departure noted in `notes.md` |
+| spacing | 2 · 4 · 6 · 8 · 9 · 10 · 12 · 14 · 16 · 18 · 20 · 24 px | gaps and padding |
+| radii | 999 (pill) · 18 (the column) · 16 (transport card) · 14 (cards, sheets' rows) · 12 (tiles) · 10 (segmented pills) · 6 (tags) · 4 (the level's line) | corners |
+| motion | sheet slide `.34s cubic-bezier(.32,.72,0,1)` · scrim `.26s ease` · the tuner head and cents `.18s cubic-bezier(.3,.7,.3,1)` · the strip's vertical centring `.35s cubic-bezier(.3,.7,.3,1)` · drone pill `.2s ease` | the only animations; every one shows a state change or time passing (§3 Unhurried) |
 
 ## 9. Patterns
 

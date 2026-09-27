@@ -188,12 +188,12 @@ side.
 
 | Screen | State | Route | Design | Requirements seen here |
 |---|---|---|---|---|
-| `practice` | `way-in` — the Tuner pill in the header beside ⚙ (1d) | | `design/Practice.dc.html` | `practice.tuner/REQ-001` |
-| `tuner` | `listening` — 4a, State live/sweep: the reading, the level, the stave strip, LISTENING | | `design/Tuner.dc.html` | `practice.tuner/REQ-001` `practice.tuner/REQ-002` `practice.tuner/REQ-005` `practice.tuner/REQ-006` `practice.tuner/REQ-008` `theory.temperament/REQ-002` |
-| `tuner` | `silent` — 4a, State silent: "Play a note" | | `design/Tuner.dc.html` | `practice.tuner/REQ-003` |
-| `tuner` | `cannot-hear` — 4a, State cannot hear: "–", NO MIC, the card | | `design/Tuner.dc.html` | `practice.tuner/REQ-007` |
-| `tuner` | `target-pinned` — 4a with a target: the pill with − / + / ✕, the grey target head, "▲ N st" beyond 50 ¢ | | `design/Tuner.dc.html` | `practice.tuner/REQ-004` `practice.tuner/REQ-005` |
-| `tuner` | `target-sheet` — 5c: Auto / Hold / the pitch spiral | | `design/Tuner.dc.html` | `practice.tuner/REQ-004` `practice.tuner/REQ-009` |
+| `practice` | `way-in` — the Tuner pill in the header beside ⚙ (1d) | `/` (screen: practice — the app has no URL routes; `design-shots`/`design_snapshot` reach a state by driving the UI) | `design/Practice.dc.html` | `practice.tuner/REQ-001` |
+| `tuner` | `listening` — 4a, State live/sweep: the reading, the level, the stave strip, LISTENING | `/` then the Tuner pill (screen: tuner) | `design/Tuner.dc.html` | `practice.tuner/REQ-001` `practice.tuner/REQ-002` `practice.tuner/REQ-005` `practice.tuner/REQ-006` `practice.tuner/REQ-008` `theory.temperament/REQ-002` |
+| `tuner` | `silent` — 4a, State silent: "Play a note" | `/` then the Tuner pill, no signal | `design/Tuner.dc.html` | `practice.tuner/REQ-003` |
+| `tuner` | `cannot-hear` — 4a, State cannot hear: "–", NO MIC, the card | `/` then the Tuner pill, microphone refused | `design/Tuner.dc.html` | `practice.tuner/REQ-007` |
+| `tuner` | `target-pinned` — 4a with a target: the pill with − / + / ✕, the grey target head, "▲ N st" beyond 50 ¢ | `/` then the Tuner pill, then Hold or a wedge | `design/Tuner.dc.html` | `practice.tuner/REQ-004` `practice.tuner/REQ-005` |
+| `tuner` | `target-sheet` — 5c: Auto / Hold / the pitch spiral | `/` then the Tuner pill, then TARGET | `design/Tuner.dc.html` | `practice.tuner/REQ-004` `practice.tuner/REQ-009` |
 
 ## Non-functional requirements
 

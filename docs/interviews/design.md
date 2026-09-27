@@ -130,6 +130,26 @@ own sake. Offered to save them to `~/.config/sdd/design-taste.md`.
 **Became:** `docs/design.md` › Taste; mastered at
 `~/.config/sdd/design-taste.md`
 
+### Q7: §7–§8 (asked at 007's plan, sdd-design C) — the UI stack as the plan chose it, and the tokens
+**Recommended:** §7: React 19 + Vite as the repo (the plan records it);
+components hand-rolled (six shipped changes have no library; the design's
+controls are plain shapes); styles as inline style objects built from
+constants, with `src/ui/theme.ts` the tokens file (the `paper` palette and
+`fonts` already live there and every screen reads them); new screens built
+grey against the vendored design until the refinement loop. §8: the
+existing `paper` palette (17 roles) and the four fonts promoted as they
+are; the tuner adds four colours from the design — sharp
+`oklch(0.55 0.11 28)`, flat `oklch(0.55 0.11 258)`, in-tune
+`oklch(0.55 0.11 150)`, band `oklch(0.90 0.045 150)` — and two greys the
+stave strip uses (target head `#a39a8c`, ghost ink `#8a8175`); the type
+scale, spacing, radii and motion durations the shipped screens already
+use, named. Because the repo has chosen all of this six times over; the
+only new values are the tuner's.
+**Answer:** Agree, as proposed.
+**Status:** decided
+**Became:** `docs/design.md` §7–§8; `scripts/check-design.sh` STYLE_GLOB /
+TOKENS_FILE
+
 ## Not asked
 
 > Questions the interview deliberately skipped, and why (already decided in
