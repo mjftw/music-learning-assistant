@@ -3,7 +3,7 @@ type: Task List
 title: Hear me — tasks
 description: 25 tasks across 5 phases — the listening crate and its contract, the session holding the tuner, the tuner screen, the measured harness, hardening.
 resource: /changes/007-hear-me/tasks.md
-status: draft
+status: stable
 tags: [sdd, tasks, "change:007-hear-me"]
 sources:
   - resource: /changes/007-hear-me/plan.md
@@ -11,10 +11,12 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-09-28T01:30:00Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-09-27T22:29:42Z
 sdd_id: 007-hear-me
 sdd_context: listening
-sdd_phase: draft          # draft | approved | in-progress | complete
+sdd_phase: approved
 ---
 
 # Tasks: Hear me

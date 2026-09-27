@@ -4,6 +4,7 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-27
 
+- Task List `changes/007-hear-me/tasks.md` → approved (human:merlin-webster)
 - Design Principles `docs/design.md` → approved (human:merlin-webster)
 - Implementation Plan `changes/007-hear-me/plan.md` → approved (human:merlin-webster)
 - Spec Delta `changes/007-hear-me/delta/theory/temperament.md` → approved (human:merlin-webster)
