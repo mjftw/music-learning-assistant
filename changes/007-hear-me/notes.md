@@ -48,3 +48,9 @@ holds in practice.
   an assert before every write.
 - Minor, recorded: `lib.rs` already re-exports the detector's public items
   (needed by T002's ABI anyway).
+
+## T002 — notes (2026-09-28)
+
+- Minor, recorded: `#[allow(clippy::chunks_exact_to_as_chunks)]` scoped to
+  the test helper `feed` (clippy 1.98 lint) to keep the brief's test code
+  verbatim; function-level, justified in a comment.

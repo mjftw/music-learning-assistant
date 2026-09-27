@@ -130,7 +130,7 @@ _Nothing user-visible. The detector proven on synthesised buffers, the crate's C
 
 ### T002 · listening.pitch-detection/REQ-003, listening.pitch-detection/REQ-004 · The ring, the hop and the C ABI; both crates built
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/listening/src/ring.rs`
