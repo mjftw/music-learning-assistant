@@ -2,6 +2,10 @@
 
 Chronological history of this bundle. Newest date first.
 
+## 2026-09-27
+
+- Intent `changes/007-hear-me/intent.md` → resolved (human:merlin-webster)
+
 ## 2026-09-26
 
 - Glossary `docs/glossary.md` → approved (human:merlin-webster)
