@@ -198,7 +198,10 @@ sdd_phase: open           # open | exited
 - **Tried next (the timing of B):** live behind the same switch:
   A hold 1 s, fade 0.2 s · B hold 1 s, fade 0.4 s (as first tried) ·
   C hold 0.6 s, fade 0.2 s.
-- **Chose (the timing):** <pending>
+- **Chose (the timing):** C, hold 0.6 s then fade 0.2 s — "Variant C is
+  the best btw" (the user, on the phone, 2026-09-28).
+- **Rejected because (the timing):** A and B, the 1 s hold — not chosen;
+  no words given.
 - **Requirement changed?** <pending — practice.tuner/REQ-003 (what
   silence shows, and when)>
 
