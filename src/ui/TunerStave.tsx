@@ -208,11 +208,9 @@ const TRAIL_X_END = 140;
 const TRAIL_STROKE_WIDTH = 2.2;
 const TRAIL_GRADIENT_ID = "tuner-stave-trail-fade";
 
-// practice.tuner/REQ-005 — the trail's default length in time: age 0 sits
+// practice.tuner/REQ-005 — the trail's length in time: 2.5 s. Age 0 sits
 // at TRAIL_X_END (the head), age TRAIL_MS sits at TRAIL_X_START, linear in
-// between (trailXOf below). The design-loop switch (main.tsx, T029/T030)
-// overrides this by passing a `trailMs` prop through App and TunerScreen;
-// this is only the default when none is passed.
+// between (trailXOf below).
 export const TRAIL_MS = 2500;
 
 // A trail point remembers the reading it came from, when it was taken (an
@@ -227,11 +225,11 @@ export interface TrailPoint {
   readonly runId: number;
 }
 
-// x by age: age 0 (the newest point) sits at TRAIL_X_END, age trailMs sits
-// at TRAIL_X_START; a point older than trailMs (a negative or >TRAIL_X_END-
+// x by age: age 0 (the newest point) sits at TRAIL_X_END, age TRAIL_MS sits
+// at TRAIL_X_START; a point older than TRAIL_MS (a negative or >TRAIL_X_END-
 // clamped x) is filtered out where `trailRenderPoints` is built, below.
-function trailXOf(age: number, trailMs: number): number {
-  return TRAIL_X_END - (age / trailMs) * (TRAIL_X_END - TRAIL_X_START);
+function trailXOf(age: number): number {
+  return TRAIL_X_END - (age / TRAIL_MS) * (TRAIL_X_END - TRAIL_X_START);
 }
 
 const COLUMN_LEFT = 214;
@@ -311,7 +309,7 @@ function referenceNoteOf(
 
 // The treble stave strip (practice.tuner/REQ-005): the heard note as a
 // drifting whole-note head along a dotted guide, its cents, a trail of the
-// last `trailMs` by TIME (x by age, oldest first, dropped past `trailMs`),
+// last TRAIL_MS by TIME (x by age, oldest first, dropped past TRAIL_MS),
 // the pinned target as a grey head to the right, 8va/8vb/15ma/15mb past the
 // ledger range, and the HEARD / "<note> IS" Hz column. WHILE nothing is
 // heard the head/cents/Hz clear as before but the trail carries on moving
@@ -325,9 +323,8 @@ export function TunerStave(props: {
   // TunerScreen's injectable "now" while silent and the trail is still
   // aging (TunerScreen's own rAF-driven re-renders keep advancing it).
   readonly nowMs: number;
-  readonly trailMs: number;
 }): JSX.Element {
-  const { tuner: snapshot, trail, nowMs, trailMs } = props;
+  const { tuner: snapshot, trail, nowMs } = props;
   const reading = snapshot.reading;
   const targetNote = snapshot.targetNote;
 
@@ -379,6 +376,7 @@ export function TunerStave(props: {
   // the same shape of contribution across the note stopping. Once the
   // trail has emptied too, this is `null` and the layout falls back to the
   // stave-lines-only baseline, exactly as an empty reading always did.
+  // TRAIL_MS is used directly for all trail age calculations.
   const layoutHeard =
     heard !== null
       ? heard
@@ -432,15 +430,15 @@ export function TunerStave(props: {
     bot - top > CARD_HEIGHT - 16 ? 8 - top : CARD_HEIGHT / 2 - (top + bot) / 2;
 
   // x by age (practice.tuner/REQ-005/S5, S6) — each point placed by how old
-  // it is relative to `nowMs` (age 0 at TRAIL_X_END, `trailMs` at
-  // TRAIL_X_START), points older than `trailMs` dropped; the whole trail is
+  // it is relative to `nowMs` (age 0 at TRAIL_X_END, TRAIL_MS at
+  // TRAIL_X_START), points older than TRAIL_MS dropped; the whole trail is
   // drawn with `trailAdj` (not a fresh register decision per point) so it
   // never jumps mid-trail as a historical point crosses a register
   // threshold on its own — matching the design's own `p.tot` applied
   // uniformly across `hist` (lines 1257-1264).
   const trailRenderPoints = trail
     .map((point) => ({
-      x: trailXOf(nowMs - point.atMs, trailMs),
+      x: trailXOf(nowMs - point.atMs),
       y: placeHeard(
         point.reading.heard.nearest,
         point.reading.heard.cents,

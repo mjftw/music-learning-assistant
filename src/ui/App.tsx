@@ -240,9 +240,8 @@ export function App(props: {
   readonly onPaintAge?: (ageMs: number) => void;
   // Optional, additive, forwarded straight to TunerScreen (practice.tuner/
   // REQ-005/S5, S6) — TunerScreen already carries its own real defaults, so
-  // App need only pass these through for a test (or main.tsx's design-loop
-  // switch, T029/T030) to reach them; nothing here reads or resolves them.
-  readonly trailMs?: number;
+  // App need only pass these through for a test to reach them; nothing here
+  // reads or resolves them.
   readonly now?: () => number;
   readonly requestFrame?: (callback: FrameRequestCallback) => number;
   readonly cancelFrame?: (handle: number) => void;
@@ -253,7 +252,6 @@ export function App(props: {
     sessionDeps,
     onSessionReady,
     onPaintAge,
-    trailMs,
     now,
     requestFrame,
     cancelFrame,
@@ -696,7 +694,6 @@ export function App(props: {
           onClear={handleClearTarget}
           onSpellingChange={handleSelectSpelling}
           onReadingShown={handleReadingShown}
-          {...(trailMs !== undefined ? { trailMs } : {})}
           {...(now !== undefined ? { now } : {})}
           {...(requestFrame !== undefined ? { requestFrame } : {})}
           {...(cancelFrame !== undefined ? { cancelFrame } : {})}

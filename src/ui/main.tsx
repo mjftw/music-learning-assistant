@@ -112,25 +112,6 @@ exposeSoundForTiming(sound);
 const listening = webAudioListening(audioContext);
 exposeListeningForTiming(listening);
 
-// design-loop variant (007 round 3)
-// The tuner strip's trail length is being tried live on the phone
-// (practice.tuner/REQ-005's amendment) via `?variant=a|b|c`; anything else,
-// including no parameter, is the requirement's own 2.5 s. T030 removes this
-// switch once the user has chosen a length.
-function trailMsFromVariant(search: URLSearchParams): number {
-  switch (search.get("variant")) {
-    case "a":
-      return 2500;
-    case "b":
-      return 1200;
-    case "c":
-      return 550;
-    default:
-      return 2500;
-  }
-}
-const trailMs = trailMsFromVariant(new URLSearchParams(window.location.search));
-
 createRoot(rootElement).render(
   <StrictMode>
     <App
@@ -148,7 +129,6 @@ createRoot(rootElement).render(
         exposeNoteJudgedForTiming(session);
       }}
       onPaintAge={collectPaintAge}
-      trailMs={trailMs}
     />
   </StrictMode>,
 );

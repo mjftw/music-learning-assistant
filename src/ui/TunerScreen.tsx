@@ -34,21 +34,19 @@ function appendTrailPoint(
   reading: NoteJudged,
   atMs: number,
   runId: number,
-  trailMs: number,
 ): readonly TrailPoint[] {
-  return prunedByAge([...trail, { reading, atMs, runId }], atMs, trailMs);
+  return prunedByAge([...trail, { reading, atMs, runId }], atMs);
 }
 
-// Drops points older than `trailMs` relative to `nowMs` — called both when
+// Drops points older than TRAIL_MS relative to `nowMs` — called both when
 // a fresh reading is appended (bounding the trail's memory while sounding)
 // and on every silent render (this is what lets the animation stop: once
 // this returns `[]` there is nothing left to re-draw).
 function prunedByAge(
   trail: readonly TrailPoint[],
   nowMs: number,
-  trailMs: number,
 ): readonly TrailPoint[] {
-  return trail.filter((point) => nowMs - point.atMs <= trailMs);
+  return trail.filter((point) => nowMs - point.atMs <= TRAIL_MS);
 }
 
 // The header row — copied verbatim from the vendored visual reference
@@ -160,11 +158,10 @@ function TunerScreenComponent(props: {
   readonly onClear: () => void;
   readonly onSpellingChange: (preference: SpellingPreference) => void;
   readonly onReadingShown: (atFrame: number) => void;
-  // practice.tuner/REQ-005/S5, S6 — the trail's length and its injectable
-  // clock/frame scheduler; all optional with real defaults (T029's brief)
-  // so a test can drive the trail's ageing without depending on wall-clock
-  // time, and production code never has to pass any of them.
-  readonly trailMs?: number;
+  // practice.tuner/REQ-005/S5, S6 — the injectable clock/frame scheduler;
+  // all optional with real defaults so a test can drive the trail's ageing
+  // without depending on wall-clock time, and production code never has to
+  // pass any of them.
   readonly now?: () => number;
   readonly requestFrame?: (callback: FrameRequestCallback) => number;
   readonly cancelFrame?: (handle: number) => void;
@@ -180,7 +177,6 @@ function TunerScreenComponent(props: {
     onClear,
     onSpellingChange,
     onReadingShown,
-    trailMs = TRAIL_MS,
     now = defaultNow,
     requestFrame = defaultRequestFrame,
     cancelFrame = defaultCancelFrame,
@@ -215,7 +211,7 @@ function TunerScreenComponent(props: {
   );
 
   // The strip's trail (practice.tuner/REQ-005/S5, S6) — points of the last
-  // `trailMs`, kept here (not in the session) so it is pure view state:
+  // TRAIL_MS, kept here (not in the session) so it is pure view state:
   // appended whenever `tuner.reading` becomes a genuinely new reading (a
   // fresh object each commit — domain/session.ts's `commitTunerReading`),
   // kept (not reset) on a gap ("Play a note" — REQ-003/S3) so it can carry
@@ -243,7 +239,7 @@ function TunerScreenComponent(props: {
     wasSilentRef.current = true;
     lastReadingRef.current = null;
     nowMs = now();
-    trailRef.current = prunedByAge(trailRef.current, nowMs, trailMs);
+    trailRef.current = prunedByAge(trailRef.current, nowMs);
   } else if (tuner.reading !== lastReadingRef.current) {
     const atMs = now();
     if (wasSilentRef.current) runIdRef.current += 1;
@@ -254,7 +250,6 @@ function TunerScreenComponent(props: {
       tuner.reading,
       atMs,
       runIdRef.current,
-      trailMs,
     );
     nowMs = atMs;
   } else {
@@ -395,12 +390,7 @@ function TunerScreenComponent(props: {
         onClear={onClear}
       />
       <div style={{ padding: "10px 16px 0" }}>
-        <TunerStave
-          tuner={tuner}
-          trail={trailRef.current}
-          nowMs={nowMs}
-          trailMs={trailMs}
-        />
+        <TunerStave tuner={tuner} trail={trailRef.current} nowMs={nowMs} />
       </div>
       {cannotHear && (
         <div
