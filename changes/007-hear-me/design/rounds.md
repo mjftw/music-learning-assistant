@@ -191,8 +191,14 @@ sdd_phase: open           # open | exited
   until the next note or leaving.
   Durations here are new values; the winner's becomes a motion token at
   exit (docs/design.md §8).
-- **Chose:** <pending>
-- **Rejected because:** <pending>
+- **Chose (the treatment):** B, linger then fade — "b but try with
+  faster fade" (the user, on the phone, 2026-09-28).
+- **Rejected because:** A the plain fade and C the ghost — not chosen; no
+  words given.
+- **Tried next (the timing of B):** live behind the same switch:
+  A hold 1 s, fade 0.2 s · B hold 1 s, fade 0.4 s (as first tried) ·
+  C hold 0.6 s, fade 0.2 s.
+- **Chose (the timing):** <pending>
 - **Requirement changed?** <pending — practice.tuner/REQ-003 (what
   silence shows, and when)>
 
