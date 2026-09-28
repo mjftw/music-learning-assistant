@@ -1133,7 +1133,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 ### T018 · practice.tuner/REQ-007, practice.tuner/REQ-002, practice.tuner/REQ-009 · "Can't hear", the footer's ♯/♭ toggle, the spelling persists
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/TunerScreen.tsx` (the "Can't hear" card; the footer; NO MIC), `src/ui/App.tsx` (the toggle writes `selection.spelling` through the same handler the circle uses)

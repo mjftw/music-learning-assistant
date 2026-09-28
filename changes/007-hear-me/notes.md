@@ -278,3 +278,14 @@ Pending the user's phone check.
   (`CircleOfFifths.wedgeHue` is position-indexed); terse `pol`/`f1` names;
   the hub circle radius 35.5 vs the design's 34.
 - Ripple: `TunerLevel` gained `roundPx` (a float artefact at the ±50 edge).
+
+## T018 — notes (2026-09-28)
+
+- The tuner's ♯/♭ buttons carry the circle's own accessible names ("sharp"
+  / "flat"), not the brief's "Sharp spelling" / "Flat spelling".
+- Minor, recorded (token candidates for design.md §8 at hardening): the
+  segmented-control border `#e0d7c5` and inactive ink `#756c60` are hex
+  literals shared with `CircleOfFifths.tsx`; the ♯/♭ toggle markup is
+  duplicated between the circle and the tuner footer — a `SpellingToggle`
+  extraction would touch `CircleOfFifths.tsx`.
+- Ripple: `TunerLevel` shows "–" (`paper.drawerBorder`) while cannot-hear.
