@@ -1303,7 +1303,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 ### T023 · — · `AGENTS.md` healthy outputs; `pnpm check`, `pnpm test:timing`, `pnpm test:tuner`
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `AGENTS.md` (paste `pnpm test:tuner`'s healthy table under the `test:timing` one; update the `pnpm check` healthy-output counts; the Architecture paragraph's `src/listening/` line: "pitch detection by MPM in a second worklet sharing the AudioContext; ADR 0006")
