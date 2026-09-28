@@ -284,8 +284,8 @@ stave and "<target or nearest note> IS <Hz>"
 
 > Amended 2026-09-28 at design round 3 (`design/rounds.md`), with the
 > user's approval: the trail moves with time and outlives the note; S5,
-> S6. The trail's length (2.5 s) is being tried live and is amended here
-> if the user chooses another.
+> S6. The trail's length was tried live at 2.5 s, 1.2 s and 0.55 s; the
+> user chose 2.5 s.
 
 **Scenarios**
 - **REQ-005/S1 — A4 a little sharp**

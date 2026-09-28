@@ -161,11 +161,18 @@ sdd_phase: open           # open | exited
 - **Found on the way:** the build's trail is the last 50 readings; the
   prototype made 20 readings a second (2.5 s), the build makes about 93
   (about 0.5 s). REQ-005 says 2.5 s.
-- **Tried:** <pending>
-- **Chose:** <pending>
-- **Rejected because:** <pending>
-- **Requirement changed?** <pending — practice.tuner/REQ-005 (the trail),
-  REQ-003 (what silence clears)>
+- **Tried:** the trail placed by age and kept through silence, its
+  length live behind `?variant=a|b|c`: A 2.5 s (the spec) · B 1.2 s ·
+  C 0.55 s (the build as it was). A round about movement; no screenshot
+  kept.
+- **Chose:** A, 2.5 s — "A" (the user, on the phone, 2026-09-28).
+- **Rejected because:** B and C — not chosen; no words given.
+- **Requirement changed?** yes: practice.tuner/REQ-005 (the trail moves
+  with time and outlives the note; S5, S6) and REQ-003's last clause —
+  written to the delta with the user's approval; the length stays the
+  spec's 2.5 s. Built as T029; the switch removed by T030.
+- **Left as built, put to the user, no answer yet:** the trail turns grey
+  the instant the note stops.
 
 ## Exit
 
