@@ -812,7 +812,7 @@ _Ends with the whole tuner observable through `practice/published` with the fake
 
 ### T012 · practice.tuner/REQ-008, listening.pitch-detection/REQ-005 · The page hidden, the screen awake
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (`visibility.onHidden` → stop listening while active; `visibility.onShown` → start again; the wake lock over the tuner)

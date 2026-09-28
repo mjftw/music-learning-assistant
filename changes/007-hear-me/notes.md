@@ -164,3 +164,16 @@ holds in practice.
 - The `onEnded` guard when the tuner is not active is untested (the brief
   asked for no scenario); the wake lock stays held in `cannot-hear` (the
   tuner is still showing).
+
+## T012 — notes (2026-09-28)
+
+- Spec reading settled during the task (no delta change): hidden/shown moves
+  the tuner only between `listening`/`starting` and `off`; a `cannot-hear`
+  state survives a hide, so a show never re-asks for the microphone
+  (REQ-007 "nowhere but on entering the tuner"). Covered by the added test
+  "a hide while the microphone cannot be used does not ask for it again on
+  show" under REQ-008.
+- The wake lock is held across hide/show while the tuner is active (never
+  released on hide); commented in the shown handler.
+- Extractions: `clearTunerReading()` (four sites) and `startListening(
+  generation)` shared by `enterTuner` and the shown handler.
