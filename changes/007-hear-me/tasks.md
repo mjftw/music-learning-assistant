@@ -570,7 +570,7 @@ _Ends with the whole tuner observable through `practice/published` with the fake
 
 ### T008 · practice.tuner/REQ-002, practice.tuner/REQ-003 · The reading: a detected pitch becomes a judgement; nothing heard clears it
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (subscribe to `listening.onPitch` while active; the shown-note hysteresis state; `reading`; `NoteJudged`; the gap rule)

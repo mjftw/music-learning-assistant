@@ -55,18 +55,10 @@ import { canStepTarget, judge } from "./tuner";
 import type { NoteJudged } from "../published/note-judged.schema";
 import type { PitchDetected } from "../../listening/published/pitch-detected.schema";
 
-// practice.tuner/REQ-003 — the gap rule: a detected pitch that stops being
-// published for this long (a breath, silence) clears the reading back to
-// "Play a note". 300 ms per the spec's scenario text, plus the 1 ms
-// `clock.setTimeout(commit, 0)` itself always costs to actually fire: the
-// fake clock's `advance()` needs a non-zero step to flush a zero-delay
-// timer, and every detection re-arms this timer at the *same* instant it
-// arms the commit timer — so, measured against `FakeClock`, the two are
-// 1 ms apart even though both are armed "now". `tests/practice/fakes.ts`'
-// `hear()` pays that 1 ms so a just-committed reading is visible at once
-// (REQ-002's scenarios); REQ-003/S1's 300 ms of silence and S3's 299-then-1
-// split both land correctly only once this constant absorbs the same 1 ms.
-const TUNER_GAP_MS = 301;
+// practice.tuner/REQ-003 — the gap rule: the length of silence, measured
+// from the last detection, after which the reading clears back to
+// "Play a note".
+const TUNER_GAP_MS = 300;
 
 export interface SessionContext {
   readonly key: Key;

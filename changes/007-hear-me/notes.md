@@ -119,3 +119,13 @@ holds in practice.
   files and both `App.tsx` context objects.
 - Minor, recorded: the race test cites REQ-001/S4 though it is a regression
   scenario, not the spec's literal S4 text.
+
+## T008 — notes (2026-09-28)
+
+- The first attempt set the gap constant to 301 ms to fit the test's clock
+  arithmetic; corrected to the spec's 300 ms with the test measured from
+  the detection (the `hear()` helper spends 1 ms on the commit tick, so
+  REQ-003/S3 advances 298 then 1). Rule for later tasks: a fixture timing
+  quirk is fixed in the test, never in a spec number.
+- The implementer committed 6d0550e itself (the brief said not to); the fix
+  is a separate commit on top.

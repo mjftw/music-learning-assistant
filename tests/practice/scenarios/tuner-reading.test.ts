@@ -106,7 +106,9 @@ test("practice.tuner/REQ-003/S3 — a breath between notes", async () => {
   const f = sessionOn("G", "flute-concert");
   await enter(f.session);
   hear(f, 440.0);
-  f.clock.advanceMs(299);
+  // hear() already spent 1 ms on the commit tick, so the clock is at t0 + 1
+  // here; advancing 298 more reaches t0 + 299, one short of the 300 ms gap.
+  f.clock.advanceMs(298);
   expect(f.session.snapshot().tuner.reading).not.toBeNull();
   f.clock.advanceMs(1);
   expect(f.session.snapshot().tuner.reading).toBeNull();
