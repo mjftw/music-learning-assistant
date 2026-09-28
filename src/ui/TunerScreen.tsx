@@ -1,6 +1,8 @@
 import { memo, type JSX } from "react";
 import type { TunerSnapshot } from "../practice/published";
+import type { SpellingPreference } from "../theory/published";
 import { fonts, paper } from "./theme";
+import { TunerLevel } from "./TunerLevel";
 
 // The header row — copied verbatim from the vendored visual reference
 // (changes/007-hear-me/design/Tuner.dc.html, frame #4a, markup lines
@@ -54,9 +56,10 @@ function isListening(tuner: TunerSnapshot): boolean {
 // target row (T017) and the footer (T018). Empty now.
 function TunerScreenComponent(props: {
   readonly tuner: TunerSnapshot;
+  readonly spelling: SpellingPreference;
   readonly onLeave: () => void;
 }): JSX.Element {
-  const { tuner, onLeave } = props;
+  const { tuner, spelling, onLeave } = props;
   const listening = isListening(tuner);
 
   return (
@@ -130,8 +133,7 @@ function TunerScreenComponent(props: {
           <span>{listening ? "LISTENING" : "NO MIC"}</span>
         </span>
       </div>
-      {/* T015 — the level area */}
-      <div />
+      <TunerLevel tuner={tuner} spelling={spelling} />
       {/* T016 — the stave strip */}
       <div />
       {/* T017 — the target row */}

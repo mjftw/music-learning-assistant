@@ -627,7 +627,11 @@ export function App(props: {
       }}
     >
       {screen === "tuner" && snapshot !== null ? (
-        <TunerScreen tuner={snapshot.tuner} onLeave={handleLeaveTuner} />
+        <TunerScreen
+          tuner={snapshot.tuner}
+          spelling={selection.spelling}
+          onLeave={handleLeaveTuner}
+        />
       ) : (
         <>
           <Header

@@ -235,3 +235,12 @@ Pending the user's phone check.
 - No jest-dom in this repo: the briefs' `toHaveTextContent`/
   `toBeInTheDocument` are adapted to `.textContent`/`toBeTruthy()` in every
   UI task from here.
+
+## T015 — notes (2026-09-28)
+
+- The beyond-±50 / pinned form ("▲ N st", `playing <note>`, the greyed
+  name in silence) is built from the spec prose here and first exercised
+  by T017's tests.
+- Reviewer's aside: the report attributed `pitchClassLabel`'s use to a
+  brief section that lives in the controller's dispatch, not the brief —
+  the choice itself is necessary (the name and octave render separately).

@@ -954,7 +954,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 ### T015 · practice.tuner/REQ-002, practice.tuner/REQ-003 · The level, the big name, the tag; "Play a note"
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/TunerLevel.tsx`
