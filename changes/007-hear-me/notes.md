@@ -471,3 +471,17 @@ test:tuner: PASS — first readout ≤100 ms, arrival age ≤100 ms, ≥20 readi
 ```
 
 Worst first readout 94.5 ms (E2, the sine sweep) — 5.5 ms of headroom on the laptop against the 100 ms budget, the same shape 003/004 saw; every other row well inside.
+
+## T024 — the user's walk on the phone (2026-09-28)
+
+Verbatim: "Works great! It's a bit flickery though - I think we could do
+with smoothing the signal a bit. Currently when playing the exact right
+note it flickers around the in tune mark by a few cents either way and
+it's a bit jarring."
+
+Sign-off on practice.tuner/REQ-006/S3 (names each note, moves with the
+embouchure, never feels behind). The flicker is a behaviour the design's
+own script had (`sp = shownP + (pitch − shownP) × 0.35` per 50 ms tick —
+Tuner.dc.html line 1064) and the walkthrough did not carry into the spec.
+Taken to the refinement loop (design D) as round 1; if a treatment wins it
+is written to the practice.tuner delta (REQ-002) there.

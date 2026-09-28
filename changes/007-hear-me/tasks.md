@@ -1316,7 +1316,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 ### T024 · practice.tuner/REQ-006 · The phone: the harness against `pnpm dev:phone`, and the user's walk
 
-**Status:** in-progress
+**Status:** done
 
 **Files**
 - Modify: `changes/007-hear-me/notes.md`
