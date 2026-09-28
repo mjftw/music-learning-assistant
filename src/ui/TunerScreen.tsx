@@ -8,13 +8,10 @@ import { TunerLevel } from "./TunerLevel";
 import { TunerStave } from "./TunerStave";
 
 // practice.tuner/REQ-005 — the strip's 2.5 s trail is the last 50 readings,
-// oldest first (T016's brief). Exported (with `appendToTrail`) so
-// TargetSheet.tsx's own trail — the same shape, fed to PitchSpiral rather
-// than TunerStave — can share the arithmetic instead of duplicating it
-// (docs/engineering.md, AGENTS.md "things agents get wrong here").
-export const TRAIL_CAPACITY = 50;
+// oldest first (T016's brief).
+const TRAIL_CAPACITY = 50;
 
-export function appendToTrail(
+function appendToTrail(
   trail: readonly NoteJudged[],
   reading: NoteJudged,
 ): readonly NoteJudged[] {
@@ -228,6 +225,7 @@ function TunerScreenComponent(props: {
         tuner={tuner}
         spelling={spelling}
         range={range}
+        trail={trailRef.current}
         onClose={handleCloseTarget}
         onAuto={handleAuto}
         onHold={handleHold}

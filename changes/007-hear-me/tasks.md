@@ -1056,7 +1056,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 ### T017 · practice.tuner/REQ-004 · The target pill, the Target sheet, the pitch spiral
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/TargetPill.tsx`, `src/ui/TargetSheet.tsx`, `src/ui/PitchSpiral.tsx`

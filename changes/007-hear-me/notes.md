@@ -260,3 +260,21 @@ Pending the user's phone check.
   literal — a hardening candidate for design.md §8).
 - The trail applies the current reading's register shift uniformly, as the
   design's `p.tot` does.
+
+## T017 — notes (2026-09-28)
+
+- **For the refinement loop (design §5):** the spiral's innermost ring
+  wedges are ~25 px on the flute (dr ≈ 24.7), under a fingertip; the
+  geometry is the design's own — the user decides on the live build.
+- Round 1 found two duplications (the published E2/C7 constants copied;
+  the trail block re-implemented in the sheet) — fixed: imported, and the
+  trail passed as a prop from `TunerScreen`.
+- `TargetSheet` gates its content on `open` (siblings rely on display:none)
+  because the brief's S1 assertion uses `queryByText`; commented. Its ✕ is
+  labelled "Close" where siblings say "Close <x> sheet".
+- The design's `spSep` separator spiral is dead code in the design's own
+  markup — not drawn. Hover state not built (Article VIII).
+- Minor, recorded: the FIFTHS hue formula re-derived in `PitchSpiral`
+  (`CircleOfFifths.wedgeHue` is position-indexed); terse `pol`/`f1` names;
+  the hub circle radius 35.5 vs the design's 34.
+- Ripple: `TunerLevel` gained `roundPx` (a float artefact at the ±50 edge).

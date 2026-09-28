@@ -1,5 +1,9 @@
-import { useRef, type JSX } from "react";
+import { type JSX } from "react";
 import type { NoteJudged, TunerSnapshot } from "../practice/published";
+import {
+  TUNER_HIGHEST_POSITION,
+  TUNER_LOWEST_POSITION,
+} from "../practice/published";
 import {
   noteAtPosition,
   noteLabel,
@@ -8,7 +12,6 @@ import {
   type SpellingPreference,
 } from "../theory/published";
 import { PitchSpiral } from "./PitchSpiral";
-import { appendToTrail } from "./TunerScreen";
 import { BottomSheet, OverlayHeader, OverlayScrim } from "./overlay";
 import { fonts, paper } from "./theme";
 
@@ -49,14 +52,6 @@ const TAP_RANGE_COLOR = paper.muted;
 
 const SPIRAL_WRAPPER_PADDING = "0 0 10px";
 
-// practice.tuner/REQ-004 — E2–C7 (`TUNER_LOWEST_POSITION`/
-// `TUNER_HIGHEST_POSITION` from practice/published, reproduced here as the
-// plan's data model names them) ∪ the instrument's range ∪ wherever the
-// last reading or the pinned target sits — the vendored reference's own
-// `sLo`/`sHi` (script lines 1382-1384).
-const SPIRAL_FLOOR = 40; // E2
-const SPIRAL_CEILING = 96; // C7
-
 interface SpiralSpan {
   readonly lowest: number;
   readonly highest: number;
@@ -70,13 +65,13 @@ function spiralSpanOf(range: NoteRange, tuner: TunerSnapshot): SpiralSpan {
   const pinnedPosition =
     tuner.target.kind === "pinned" ? tuner.target.position : null;
   const candidates = [
-    SPIRAL_FLOOR,
+    TUNER_LOWEST_POSITION,
     rangeLowest,
     ...(nowPosition === null ? [] : [nowPosition]),
     ...(pinnedPosition === null ? [] : [pinnedPosition]),
   ];
   const highCandidates = [
-    SPIRAL_CEILING,
+    TUNER_HIGHEST_POSITION,
     rangeHighest,
     ...(nowPosition === null ? [] : [nowPosition]),
     ...(pinnedPosition === null ? [] : [pinnedPosition]),
@@ -202,27 +197,23 @@ export function TargetSheet(props: {
   readonly tuner: TunerSnapshot;
   readonly spelling: SpellingPreference;
   readonly range: NoteRange;
+  readonly trail: readonly NoteJudged[];
   readonly onClose: () => void;
   readonly onAuto: () => void;
   readonly onHold: () => void;
   readonly onPin: (position: number) => void;
 }): JSX.Element {
-  const { open, tuner, spelling, range, onClose, onAuto, onHold, onPin } =
-    props;
-
-  // The spiral's own trail (practice.tuner/REQ-004/S6) — the same shape and
-  // capping rule as TunerScreen's strip trail (`appendToTrail`), kept
-  // separately since the spiral is a different view of the same readings
-  // and this sheet has no access to TunerScreen's own ref.
-  const trailRef = useRef<readonly NoteJudged[]>([]);
-  const lastReadingRef = useRef<NoteJudged | null>(null);
-  if (tuner.reading === null) {
-    trailRef.current = [];
-    lastReadingRef.current = null;
-  } else if (tuner.reading !== lastReadingRef.current) {
-    lastReadingRef.current = tuner.reading;
-    trailRef.current = appendToTrail(trailRef.current, tuner.reading);
-  }
+  const {
+    open,
+    tuner,
+    spelling,
+    range,
+    trail,
+    onClose,
+    onAuto,
+    onHold,
+    onPin,
+  } = props;
 
   const span = spiralSpanOf(range, tuner);
   const rangeLowest = pitchPosition(range.lowest);
@@ -301,7 +292,7 @@ export function TargetSheet(props: {
                 rangeHighest={rangeHighest}
                 target={tuner.target}
                 reading={tuner.reading}
-                trail={trailRef.current}
+                trail={trail}
                 spelling={spelling}
                 onPick={onPin}
               />
