@@ -155,3 +155,12 @@ holds in practice.
 - Minor, recorded: the report's justification for dropping an unused test
   helper cited a note the brief did not contain; the outcome (no dead code,
   tests verbatim) is right.
+
+## T011 — notes (2026-09-28)
+
+- Minor, recorded: `tunerReading = null; tunerShownPosition = null;` now
+  appears in three places (gap timer, `leaveTuner`, `onEnded`) — a
+  `clearTunerReading()` extraction is a candidate for T012 or hardening.
+- The `onEnded` guard when the tuner is not active is untested (the brief
+  asked for no scenario); the wake lock stays held in `cannot-hear` (the
+  tuner is still showing).

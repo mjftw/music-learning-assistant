@@ -773,7 +773,7 @@ _Ends with the whole tuner observable through `practice/published` with the fake
 
 ### T011 · practice.tuner/REQ-007 · When the microphone cannot be used
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (`cannot-hear` from a failed `start()` and from `onEnded`)

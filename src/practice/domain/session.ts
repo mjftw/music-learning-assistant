@@ -808,6 +808,22 @@ export function createSession(
   // unsubscribeVisibility above.
   const unsubscribeListeningPitch = listening.onPitch(onPitchDetected);
 
+  // practice.tuner/REQ-007/S3 — the microphone unplugged or its permission
+  // revoked mid-session: subscribed once, for the session's whole lifetime,
+  // the same shape as onPitchDetected above. Ignored unless the tuner is
+  // active — an onEnded firing after leaveTuner() (FakeListening.stop()
+  // does not itself fire onEnded, but a real track ending after release
+  // well might) must not resurrect a state leaveTuner() already cleared.
+  const unsubscribeListeningEnded = listening.onEnded(() => {
+    if (!tunerActive) return;
+    invalidateSnapshot();
+    tunerListeningState = { kind: "cannot-hear", reason: "failed" };
+    tunerReading = null;
+    tunerShownPosition = null;
+    cancelTunerTimers();
+    notifyChange();
+  });
+
   function next(onsetFrame: number): TickPlan | null {
     invalidateSnapshot();
     const advanced = pendingAdvance
@@ -1519,6 +1535,7 @@ export function createSession(
     cancelIdleTimer();
     unsubscribeVisibility();
     unsubscribeListeningPitch();
+    unsubscribeListeningEnded();
     cancelTunerTimers();
     // practice.drone/REQ-007 — release the drone's own voice and wake lock
     // before the port itself goes away, rather than leaving it to whatever
