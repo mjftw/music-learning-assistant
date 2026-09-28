@@ -295,3 +295,64 @@ Pending the user's phone check.
 - Minor, recorded: why two distinct readings never share an `atFrame`
   (the listening port stamps `now_frame + 127` per hop, monotonic) is true
   but not stated at the effect.
+
+## T020 — design shots
+
+`scripts/design-shots.mjs` now points at this change's two vendored
+prototypes (`Practice.dc.html`, one frame; `Tuner.dc.html`, a canvas —
+`data-screen-label`s "4a Auto or target" and "5c Pitch spiral") and drives
+six states: `practice-way-in`, `tuner-listening`, `tuner-silent`,
+`tuner-cannot-hear`, `tuner-target-pinned`, `tuner-target-sheet`. Run with
+`APP_URL=https://localhost:5173 pnpm design:shots` (the running
+`pnpm dev:phone`); twelve PNGs landed in `.sdd/design-review/`. Every
+`state` Tweak used (`sweep` / `silent` / `cannot hear`) was reachable
+through the dc-runtime's own `window.__dcSetProps`/`window.__dcRootName`
+bridge (support.js's `Object.assign(window, api)`), so no fallback to the
+live-script default was needed. The target-pinned state is reached the
+same way on both sides: opening the target sheet, then Hold.
+
+Headless Chromium has no real microphone signal, so the app's
+`tuner-listening` and `tuner-silent` screenshots are the same shot (both
+silence) — compared against the prototype's `sweep` and `silent` renderings
+respectively; this is a limitation of the harness, not a finding.
+
+**Structural differences, by pair** (colour/spacing/size/type differences
+are taste and are left to the refinement loop):
+
+- **practice-way-in** — the design's bottom summary row reads
+  "↑↓ · 1 oct · scale · ♩ · loop" (a fifth segment, a quarter-note glyph,
+  between "scale" and "loop"); the app's reads "↑↓ · 1 oct · scale · loop"
+  — that segment is missing. `grep`-confirmed absent from `src/ui/`
+  entirely (not state-gated). This row is not part of 007-hear-me's own
+  Files (it is the practice screen's run/traversal summary chip, built in
+  an earlier change) — flagging it here since this comparison surfaced it,
+  for whichever task owns it.
+- **tuner-listening** — structural: the "TARGET auto · nearest" pill and
+  the stave card are swapped. The design (4a) places the pill *between*
+  the level and the stave card; `TunerScreen.tsx` renders `TunerLevel`,
+  then `TunerStave` (in its padded wrapper), then `TargetPill` — so the
+  pill draws *below* the card instead of above it. (Confirmed by reading
+  `TunerScreen.tsx`'s JSX order, not just the screenshot.)
+- **tuner-silent** — the same pill/stave-card order swap as
+  tuner-listening. Also, borderline: the stave card's second caption reads
+  "— IS" in the design (an em-dash standing in for the unknown note name,
+  keeping the word "IS") when nothing is pinned and nothing is detected;
+  the app shows a bare "—", dropping "IS" (`TunerStave.tsx`:
+  `referenceNote === null ? "—" : `${noteLabel(referenceNote)} IS`;`). This
+  reads as a text/content gap rather than a missing element, but is
+  source-confirmed, not a taste call — worth a look by whoever owns
+  `TunerStave.tsx`.
+- **tuner-cannot-hear** — the same pill/stave-card order swap. The "Can't
+  hear — no microphone" card's position, copy and layout otherwise match
+  the design closely.
+- **tuner-target-pinned** — the same pill/stave-card order swap (the
+  pinned "− TARGET A4 + ✕" pill sits below the stave card in the app,
+  above it in the design). The pinned pill's own layout, the stave's grey
+  target head and the "A4 IS 440.0 Hz" caption all match.
+- **tuner-target-sheet** — none. The sheet's header, Auto/Hold cards, "Or
+  tap a note" row, range caption and the pitch spiral (wedges, dimming,
+  hub, "pick a note") all match the design; no missing or misplaced
+  element found.
+
+The pill/stave-card order swap is the same root cause in all four 4a-based
+pairs (one line in `TunerScreen.tsx`), not four separate findings.
