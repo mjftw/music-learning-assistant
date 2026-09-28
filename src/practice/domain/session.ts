@@ -386,6 +386,17 @@ export function createSession(
   // drone voice.
   let tappedTag: number | null = null;
   let tapCounter = 0;
+  // Bumped by tapNote() itself (every call, sync or async) and by
+  // enterTuner() — mirrors droneGeneration: a first-ever tapNote() still
+  // awaiting sound.start() compares this after its await and posts nothing
+  // if it no longer matches, so a second tapNote() landing before the
+  // first resolves (found by T013's fixer-round enumeration:
+  // tapNotePending → tapNote → enterTuner — the first tap's continuation
+  // would otherwise post after being superseded, orphaning its voice with
+  // no tag endTapIfSounding() still knows to stop) or an enterTuner()
+  // landing meanwhile (practice.tuner/REQ-001/S3's own race, brief T013's
+  // fixer round) is never overridden by a stale post arriving after it.
+  let tapGeneration = 0;
   // Cancel functions for the sounding tap's two timers (set tappedRunIndex
   // at the audible onset, clear it a beat later) — both cleared together
   // whenever the tap ends (a retap, start(), restartIfPlaying()), so a
@@ -1303,6 +1314,13 @@ export function createSession(
     const target = run[runIndex];
     if (target === undefined) return;
 
+    // Bumped unconditionally, before endTapIfSounding() — see tapGeneration
+    // above: this supersedes a still-pending earlier tapNote() (or an
+    // enterTuner() that bumps it too) the instant this call starts, exactly
+    // where start()'s own droneGeneration bump sits relative to stopDrone().
+    tapGeneration += 1;
+    const startedAtGeneration = tapGeneration;
+
     endTapIfSounding();
 
     // `target` is passed in rather than closed over: TypeScript does not
@@ -1362,6 +1380,19 @@ export function createSession(
         notifyChange();
         return;
       }
+      // practice.tuner/REQ-001/S3, practice.session/REQ-013 — the guards at
+      // the top of tapNote() only run once, synchronously, before this
+      // await: an enterTuner() (found by T013's fixer-round enumeration:
+      // tapNotePending → enterTuner) or a second tapNote() (tapNotePending
+      // → tapNote → enterTuner — the first tap's continuation would
+      // otherwise post an orphaned voice no later endTapIfSounding() still
+      // knows the tag of) that lands while this first-ever tap is still
+      // awaiting sound.start() would otherwise pass unnoticed. A plain
+      // `if (tunerActive) return` here would catch the first case but not
+      // the second (tunerActive is still false while only a later tap has
+      // superseded this one) — tapGeneration catches both, since
+      // enterTuner() bumps it too.
+      if (tapGeneration !== startedAtGeneration) return;
       post(target.note);
     })();
   }
@@ -1483,7 +1514,31 @@ export function createSession(
   // before it); one that lands while listening.start() itself is resolving
   // is caught by startListening()'s own check.
   function enterTuner(): void {
+    // practice.tuner/REQ-001/S3 — a tapped note is a named way in (its Given
+    // lists "a tapped note sounding") and nothing sounds once the tuner
+    // screen shows: end an already-*posted* tap the same way start() does,
+    // before anything else — stop() below only reaches a sounding tap when
+    // transport.kind is not "idle", but a tap only ever sounds while idle,
+    // so without this an already-posted tap left sounding on entry never
+    // gets silenced at all (found by T013's fixer-round enumeration:
+    // tapNote → enterTuner). Bumping tapGeneration too supersedes a tap
+    // that is only still *pending* (tappedTag still null, awaiting
+    // sound.start()) — endTapIfSounding() alone cannot reach that one,
+    // since it has no tag yet to stop (tapNotePending → enterTuner; see
+    // tapGeneration above).
+    endTapIfSounding();
+    tapGeneration += 1;
     if (transport.kind !== "idle") stop();
+    // Bumped unconditionally — mirrors start()'s own T022 fix: a
+    // startDrone() that is only still pending (droneOn still false,
+    // awaiting sound.start()/wakeLock.acquire()) is not caught by the
+    // `if (droneOn) stopDrone()` below, since droneOn only flips true once
+    // that call's own post lands; without this, its continuation would
+    // pass its own generation check and post a drone after tunerActive is
+    // already true (found by T013's widened never-both enumeration:
+    // droneOnPending → enterTuner). stopDrone() below bumps it again when
+    // the drone was actually on; a second bump there is harmless.
+    droneGeneration += 1;
     if (droneOn) stopDrone();
     invalidateSnapshot();
     tunerActive = true;

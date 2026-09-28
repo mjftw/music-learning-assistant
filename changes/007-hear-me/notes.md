@@ -177,3 +177,21 @@ holds in practice.
   released on hide); commented in the shown handler.
 - Extractions: `clearTunerReading()` (four sites) and `startListening(
   generation)` shared by `enterTuner` and the shown handler.
+
+## T013 — notes (2026-09-28)
+
+- Round 1's enumeration omitted `tapNote`, hiding two REQ-001 violations
+  (a sounding tap not ended by `enterTuner`; a first-ever tap's pending
+  `sound.start()` posting after entry) and, once added, a third (a second
+  pending tap orphaning the first). Fixed: `enterTuner` ends the tap and
+  bumps a new `tapGeneration`; `tapNote`'s continuation checks it. Nine
+  verbs, 7380 sequences, ~1.5 s.
+- The drone invariant's `sequenceIntervals` now exempts tapped tones
+  (`practice.drone/REQ-004`: the one thing that sounds over the drone).
+- **For converge (pre-existing, practice.session):** a pending first-ever
+  tap racing ▶ or ❚❚ is not superseded — `start()`/`stop()` do not bump
+  `tapGeneration`; REQ-013 covers a new tap while playing, not a pending
+  tap's late post. Outside 007's requirements; reported, not fixed here.
+- Minor, recorded: the test duplicates `TAP_TAG_BASE = 2_000_000` (private
+  to session.ts; the session-tap test does the same). A stale "(500 ms)"
+  comment gloss corrected to 80 ms by the controller (trivial).

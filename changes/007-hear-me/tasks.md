@@ -862,7 +862,7 @@ _Ends with the whole tuner observable through `practice/published` with the fake
 
 ### T013 · practice.tuner/REQ-001 · Never both: the invariant over every interleaving, with the tuner
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `tests/practice/invariants/never-both.test.ts` (the verb set gains `enterTuner` and `leaveTuner`; the check gains "no tone, click or drone live while the tuner is active")
