@@ -601,3 +601,16 @@ of readings; the raw cents column has the same shape.
 For converge (T030's review): `src/ui/TunerStave.tsx:379` carries a
 misplaced one-line comment about `TRAIL_MS` at the end of the
 vertical-centring comment block.
+
+## Design round 4 — found on the way (2026-09-28)
+
+For converge:
+- `docs/design.md` §8's motion row names "the strip's vertical centring
+  `.35s cubic-bezier(.3,.7,.3,1)`"; `src/ui/TunerStave.tsx` has no such
+  transition (the implementer's grep, confirmed by the controller).
+  Either the token is unbuilt or the row is wrong.
+- `docs/design.md` §6 says motion respects reduce-motion; nothing in
+  `src/ui/` checked it before round 4's fades (which do). The sheet slide,
+  the scrim and the head's `.18s` do not.
+- The in-tune band on the stave strip is drawn only while a note sounds
+  and does not linger with the head.
