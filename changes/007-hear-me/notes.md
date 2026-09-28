@@ -244,3 +244,19 @@ Pending the user's phone check.
 - Reviewer's aside: the report attributed `pitchClassLabel`'s use to a
   brief section that lives in the controller's dispatch, not the brief —
   the choice itself is necessary (the name and octave render separately).
+
+## T016 — notes (2026-09-28)
+
+- Ripple bug found and fixed: `App.tsx`'s `setContext` effect lacked
+  `selection.spelling` in its dependency array (from T007's ripple), so a
+  spelling-only toggle on C major never reached the session.
+- Round 1 found the design's two-tier low-register rule collapsed into one
+  threshold (E3 written wrongly) — reproduced exactly (`REGISTER_*` 49/24
+  from the reference note; the heard head's own `WRAP_*` loop 49/23), with
+  an added E3 test; and copy-pasted helpers — `formatCents` now lives in
+  `src/ui/cents-label.ts`, the accidental glyph map in `key-label.ts`
+  beside `diatonicIndex`, and `#4a4136` is promoted to `paper.inkMid`
+  (used in TunerStave, StaveView, Header; six other files still carry the
+  literal — a hardening candidate for design.md §8).
+- The trail applies the current reading's register shift uniformly, as the
+  design's `p.tot` does.

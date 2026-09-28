@@ -14,6 +14,7 @@ import {
   type Note,
   type SpellingPreference,
 } from "../theory/published";
+import { formatCents } from "./cents-label";
 import { fonts, paper, tuner } from "./theme";
 
 // Geometry below is copied verbatim from the vendored visual reference
@@ -90,14 +91,6 @@ const WORD_BY_VERDICT: Record<Verdict, string> = {
   flat: "flat",
   "in-tune": "in tune",
 };
-
-// "+12" / "−16" / "0" — U+2212 MINUS SIGN, not a hyphen (matches the
-// reference's own `k > 0 ? "+"+k : "−"+(-k)`).
-function formatCents(cents: number): string {
-  if (cents > 0) return `+${cents}`;
-  if (cents < 0) return `−${-cents}`;
-  return "0";
-}
 
 interface Tick {
   readonly cents: number;

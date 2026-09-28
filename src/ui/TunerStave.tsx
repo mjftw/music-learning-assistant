@@ -1,12 +1,8 @@
 import type { JSX } from "react";
 import type { NoteJudged, TunerSnapshot, Verdict } from "../practice/published";
-import {
-  noteLabel,
-  pitchHzOf,
-  type Accidental,
-  type Note,
-} from "../theory/published";
-import { diatonicIndex } from "./key-label";
+import { noteLabel, pitchHzOf, type Note } from "../theory/published";
+import { formatCents } from "./cents-label";
+import { ACCIDENTAL_GLYPH, diatonicIndex } from "./key-label";
 import { fonts, paper, tuner } from "./theme";
 
 // Geometry below is copied verbatim from the vendored visual reference
@@ -42,11 +38,30 @@ function writtenY(index: number): number {
 }
 
 // A note beyond the ledger range is instead written an octave (or two) in,
-// under an 8va/15ma (too high) or 8vb/15mb (too low) mark — the design's
-// own wrap bounds (`bottom + 19`, `bottom - 7`), reproduced as named
-// constants derived the same way from BOTTOM_LINE_INDEX.
-const WRAP_HIGH_INDEX = BOTTOM_LINE_INDEX + 19; // 49 — C7 fits exactly; above it wraps
-const WRAP_LOW_INDEX = BOTTOM_LINE_INDEX - 7; // 23 — E3 fits exactly; below it wraps
+// under an 8va/15ma (too high) or 8vb/15mb (too low) mark. The design (
+// `changes/007-hear-me/design/Tuner.dc.html` lines 1222-1241) uses two
+// distinct thresholds rather than one shared one:
+//
+//  - the register decision (`REGISTER_HIGH_LIMIT`/`REGISTER_LOW_LIMIT`) is
+//    made once, from whichever note governs the reading (the pinned target
+//    when there is one, else the heard note) — it decides a single ±7
+//    shift (`adj`) that is applied to the target's placement directly
+//    (never re-wrapped), and to the heard note's placement as a baseline;
+//  - the heard note's own correction loop then wraps that baseline into
+//    the ledger range using its own, slightly wider bounds
+//    (`WRAP_HIGH_INDEX`/`WRAP_LOW_INDEX`) — this is the loop that can
+//    double up into 15ma/15mb, and it alone governs the heard note.
+//
+// `REGISTER_HIGH_LIMIT` and `WRAP_HIGH_INDEX` share a value (49 — C7 fits
+// exactly, above it wraps) but `REGISTER_LOW_LIMIT` (24) sits one step
+// above `WRAP_LOW_INDEX` (23 — E3 fits exactly): a heard E3 (raw index 23)
+// is below the register decision's own threshold and so is written an
+// octave up under 8vb, even though 23 itself already fits the heard note's
+// own wrap floor.
+const REGISTER_HIGH_LIMIT = BOTTOM_LINE_INDEX + 19; // 49
+const REGISTER_LOW_LIMIT = BOTTOM_LINE_INDEX - 6; // 24
+const WRAP_HIGH_INDEX = BOTTOM_LINE_INDEX + 19; // 49
+const WRAP_LOW_INDEX = BOTTOM_LINE_INDEX - 7; // 23
 const OCTAVE_SHIFT = 7; // diatonic steps in one octave
 
 type OctaveMark = "" | "8va" | "15ma" | "8vb" | "15mb";
@@ -57,28 +72,58 @@ interface WrittenPosition {
   readonly mark: OctaveMark;
 }
 
-function writtenPositionOf(rawIndex: number): WrittenPosition {
-  let index = rawIndex;
-  let shift = 0;
-  while (index > WRAP_HIGH_INDEX) {
-    index -= OCTAVE_SHIFT;
-    shift -= OCTAVE_SHIFT;
-  }
-  while (index < WRAP_LOW_INDEX) {
-    index += OCTAVE_SHIFT;
-    shift += OCTAVE_SHIFT;
-  }
-  const mark: OctaveMark =
-    shift === 0
-      ? ""
-      : shift < 0
-        ? shift <= -2 * OCTAVE_SHIFT
-          ? "15ma"
-          : "8va"
-        : shift >= 2 * OCTAVE_SHIFT
-          ? "15mb"
-          : "8vb";
-  return { index, y: writtenY(index), mark };
+// The register decision: the single ±7 shift, if any, that governs both
+// the target's placement and the heard note's baseline, from whichever raw
+// index governs the reading (`referenceRawIndexOf`, below).
+function registerAdjOf(referenceRawIndex: number): number {
+  if (referenceRawIndex > REGISTER_HIGH_LIMIT) return -OCTAVE_SHIFT;
+  if (referenceRawIndex < REGISTER_LOW_LIMIT) return OCTAVE_SHIFT;
+  return 0;
+}
+
+// octLab: the octave mark for a total shift — ±7 → 8va/8vb, ±14 → 15ma/15mb.
+function octaveMarkOf(totalShift: number): OctaveMark {
+  if (totalShift === 0) return "";
+  if (totalShift < 0) return totalShift <= -2 * OCTAVE_SHIFT ? "15ma" : "8va";
+  return totalShift >= 2 * OCTAVE_SHIFT ? "15mb" : "8vb";
+}
+
+// The target is written at the raw index shifted once by the register
+// decision's `adj` — never re-wrapped (the design's `place(tgt, 182)`,
+// called without `own`).
+function targetWrittenPositionOf(
+  rawIndex: number,
+  adj: number,
+): WrittenPosition {
+  const index = rawIndex + adj;
+  return { index, y: writtenY(index), mark: octaveMarkOf(adj) };
+}
+
+// The heard note is written at the raw index shifted by the register
+// decision's `adj`, then wrapped by its own correction loop so it always
+// lands within the ledger range (the design's `place(r.m, 150, true)`, the
+// `own`-only loop bounded by `WRAP_HIGH_INDEX`/`WRAP_LOW_INDEX`).
+function heardWrittenPositionOf(
+  rawIndex: number,
+  adj: number,
+): WrittenPosition {
+  const base = rawIndex + adj;
+  let ownShift = 0;
+  while (base + ownShift > WRAP_HIGH_INDEX) ownShift -= OCTAVE_SHIFT;
+  while (base + ownShift < WRAP_LOW_INDEX) ownShift += OCTAVE_SHIFT;
+  const index = base + ownShift;
+  return { index, y: writtenY(index), mark: octaveMarkOf(adj + ownShift) };
+}
+
+// The raw index that governs the register decision: the pinned target when
+// there is one, else the heard note (the design's `ref`).
+function referenceRawIndexOf(
+  targetNote: Note | null,
+  reading: NoteJudged | null,
+): number | null {
+  if (targetNote !== null) return diatonicIndex(targetNote);
+  if (reading !== null) return diatonicIndex(reading.heard.nearest);
+  return null;
 }
 
 interface Ledger {
@@ -131,14 +176,6 @@ const ACCIDENTAL_X_TARGET = 167;
 const ACCIDENTAL_FONT_SIZE = 20;
 const ACCIDENTAL_LOWERED_Y_ADJUST = -3; // a flat's descender needs a nudge up
 
-const ACCIDENTAL_GLYPH: Record<Accidental, string> = {
-  doubleFlat: "𝄫",
-  flat: "♭",
-  natural: "",
-  sharp: "♯",
-  doubleSharp: "𝄪",
-};
-
 const GUIDE_X1 = 52;
 const GUIDE_X2 = 166;
 const GUIDE_DASH = "2 4";
@@ -178,25 +215,12 @@ const COLUMN_BOTTOM = 30;
 const COLUMN_CAPTION_FONT_SIZE = 9.5;
 const COLUMN_CAPTION_LETTER_SPACING = "0.08em";
 const COLUMN_VALUE_FONT_SIZE = 15;
-// Module-local one-off colour, matching the reference's reference-value ink
-// — not lifted into theme.ts (the same pattern StaveView.tsx's NAME_INK
-// follows).
-const REFERENCE_VALUE_INK = "#4a4136";
 
 const TONE_BY_VERDICT: Record<Verdict, string> = {
   sharp: tuner.sharp,
   flat: tuner.flat,
   "in-tune": tuner.inTune,
 };
-
-// "+12" / "−16" / "0" — U+2212 MINUS SIGN, matching TunerLevel's own
-// `formatCents` (not imported: TunerLevel.tsx is outside this task's file
-// list, and the formatter is a four-line, side-effect-free expression).
-function formatCents(cents: number): string {
-  if (cents > 0) return `+${cents}`;
-  if (cents < 0) return `−${-cents}`;
-  return "0";
-}
 
 function pxValue(value: number): string {
   return `${Number(value.toFixed(2))}px`;
@@ -212,8 +236,8 @@ interface HeardPlacement {
   readonly ledgers: readonly Ledger[];
 }
 
-function placeHeard(note: Note, cents: number): HeardPlacement {
-  const position = writtenPositionOf(diatonicIndex(note));
+function placeHeard(note: Note, cents: number, adj: number): HeardPlacement {
+  const position = heardWrittenPositionOf(diatonicIndex(note), adj);
   const clampedCents = Math.max(
     -MAX_DRIFT_CENTS,
     Math.min(MAX_DRIFT_CENTS, cents),
@@ -230,8 +254,8 @@ interface TargetPlacement {
   readonly ledgers: readonly Ledger[];
 }
 
-function placeTarget(note: Note): TargetPlacement {
-  const position = writtenPositionOf(diatonicIndex(note));
+function placeTarget(note: Note, adj: number): TargetPlacement {
+  const position = targetWrittenPositionOf(diatonicIndex(note), adj);
   return { position, ledgers: ledgersFor(position.index, TARGET_X) };
 }
 
@@ -272,14 +296,20 @@ export function TunerStave(props: {
   const reading = snapshot.reading;
   const targetNote = snapshot.targetNote;
 
+  // The register decision is made once, from whichever note governs the
+  // reading (the pinned target when there is one, else the heard note —
+  // `referenceRawIndexOf`), and its `adj` governs both placements below.
+  const referenceRawIndex = referenceRawIndexOf(targetNote, reading);
+  const adj = referenceRawIndex === null ? 0 : registerAdjOf(referenceRawIndex);
+
   const heard =
     reading === null
       ? null
-      : placeHeard(reading.heard.nearest, reading.heard.cents);
-  const target = targetNote === null ? null : placeTarget(targetNote);
+      : placeHeard(reading.heard.nearest, reading.heard.cents, adj);
+  const target = targetNote === null ? null : placeTarget(targetNote, adj);
 
   const tone =
-    reading === null ? tuner.inTune : TONE_BY_VERDICT[reading.verdict];
+    reading === null ? paper.faint : TONE_BY_VERDICT[reading.verdict];
 
   const heardMarkY =
     heard !== null && heard.position.mark !== ""
@@ -325,7 +355,16 @@ export function TunerStave(props: {
     heard === null || trail.length < 2
       ? []
       : trail.map((entry, index) => {
-          const placement = placeHeard(entry.heard.nearest, entry.heard.cents);
+          // The whole trail is drawn with the current reading's own `adj`
+          // (not a fresh register decision per point) so it never jumps
+          // mid-trail as a historical point crosses a register threshold on
+          // its own — matching the design's own `p.tot` applied uniformly
+          // across `hist` (lines 1257-1264).
+          const placement = placeHeard(
+            entry.heard.nearest,
+            entry.heard.cents,
+            adj,
+          );
           const x =
             TRAIL_X_START +
             index * ((TRAIL_X_END - TRAIL_X_START) / (trail.length - 1));
@@ -668,7 +707,7 @@ export function TunerStave(props: {
               fontFamily: fonts.mono,
               fontSize: COLUMN_VALUE_FONT_SIZE,
               fontWeight: 600,
-              color: REFERENCE_VALUE_INK,
+              color: paper.inkMid,
             }}
           >
             {hzText(referenceHz)}

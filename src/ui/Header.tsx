@@ -36,9 +36,7 @@ const TUNER_PILL_GAP = 6;
 const TUNER_PILL_PADDING = "0 12px 0 10px";
 const TUNER_PILL_BORDER = paper.border;
 const TUNER_PILL_BACKGROUND = paper.card;
-// Module-local one-off colour, per the codebase's convention (see e.g.
-// ScaleRow.tsx's FORMULA_COLOR) — not one of theme.ts's tokens.
-const TUNER_PILL_INK = "#4a4136";
+const TUNER_PILL_INK = paper.inkMid;
 const TUNER_PILL_FONT_SIZE = 12.5;
 const TUNER_PILL_FONT_WEIGHT = 600;
 

@@ -998,7 +998,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 ### T016 · practice.tuner/REQ-005 · The stave strip
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/TunerStave.tsx`

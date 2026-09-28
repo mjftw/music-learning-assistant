@@ -8,7 +8,12 @@ import {
   type Note,
   type Variant,
 } from "../theory/published";
-import { diatonicIndex, noteLabel, pitchClassLabel } from "./key-label";
+import {
+  ACCIDENTAL_GLYPH,
+  diatonicIndex,
+  noteLabel,
+  pitchClassLabel,
+} from "./key-label";
 import { fonts, paper } from "./theme";
 
 // Geometry and colour below are copied verbatim from the vendored visual
@@ -82,13 +87,6 @@ const FLAT_GLYPH_CHAR = "♭";
 const INLINE_ACCIDENTAL_X_OFFSET = 6.5;
 const INLINE_ACCIDENTAL_LOWERED_Y_ADJUST = -3;
 const INLINE_ACCIDENTAL_SIZE_RATIO = 2.7;
-const ACCIDENTAL_GLYPH: Record<Accidental, string> = {
-  doubleFlat: "𝄫",
-  flat: "♭",
-  natural: "♮",
-  sharp: "♯",
-  doubleSharp: "𝄪",
-};
 function isLowered(accidental: Accidental): boolean {
   return accidental === "flat" || accidental === "doubleFlat";
 }
@@ -98,9 +96,7 @@ function isLowered(accidental: Accidental): boolean {
 const TONIC_INK = paper.accent;
 const NOTE_INK = paper.ink;
 const TONIC_NAME_INK = paper.accent;
-// Module-local one-off colour, matching the reference's name-row ink — not
-// lifted into theme.ts (see e.g. SettingsDrawer.tsx's CLOSE_ICON_COLOR).
-const NAME_INK = "#4a4136";
+const NAME_INK = paper.inkMid;
 const SIG_GLYPH_ACCENT = paper.accent;
 const SIG_GLYPH_INK = paper.inkSoft;
 

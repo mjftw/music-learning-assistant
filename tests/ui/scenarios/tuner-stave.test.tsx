@@ -44,6 +44,14 @@ test("practice.tuner/REQ-005/S3 — the low end takes 8vb", async () => {
   expect(screen.getByText("15mb")).toBeTruthy(); // C2 → written C4, i = 28 → y 136
 });
 
+test("practice.tuner/REQ-005 — E3 is written an octave up under 8vb", async () => {
+  await enterAndHear(164.81);
+  expect(screen.getByText("8vb")).toBeTruthy();
+  expect(screen.getByTestId("heard-head").style.transform).toBe(
+    "translateY(126px)",
+  ); // written at E4, i = 30 → y 126, cents 0
+});
+
 test("practice.tuner/REQ-005/S4 — the target beside the heard note", async () => {
   const f = await enterAndHear(440.0);
   act(() => {

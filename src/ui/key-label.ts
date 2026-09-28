@@ -1,7 +1,28 @@
-import type { Key, Note, NoteLetter, Scale } from "../theory/published";
+import type {
+  Accidental,
+  Key,
+  Note,
+  NoteLetter,
+  Scale,
+} from "../theory/published";
 import { pitchClassLabel } from "../theory/published";
 
 export { pitchClassLabel, noteLabel } from "../theory/published";
+
+// The accidental glyph shared by every hand-drawn stave in this app
+// (StaveView's inline accidentals, TunerStave's heard/target accidentals) —
+// extracted here once TunerStave needed the same map StaveView already had,
+// rather than duplicating it (docs/engineering.md, AGENTS.md "things agents
+// get wrong here"). `natural` is `"♮"` for StaveView's inline accidentals;
+// TunerStave never indexes it (it only ever renders a heard/target
+// accidental when `accidental !== "natural"`).
+export const ACCIDENTAL_GLYPH: Record<Accidental, string> = {
+  doubleFlat: "𝄫",
+  flat: "♭",
+  natural: "♮",
+  sharp: "♯",
+  doubleSharp: "𝄪",
+};
 
 const DIATONIC_LETTERS: readonly NoteLetter[] = [
   "C",

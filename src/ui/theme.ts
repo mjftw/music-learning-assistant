@@ -4,6 +4,7 @@ export const paper = {
   disc: "#fbf8f1",
   ink: "#1c1916",
   inkSoft: "#2b2620",
+  inkMid: "#4a4136",
   muted: "#6f675c",
   mutedMore: "#7a7167",
   faint: "#9a9186",
