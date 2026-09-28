@@ -688,14 +688,19 @@ export function App(props: {
     [session, selection.mode],
   );
 
+  // design-loop variant (007 round 5)
+  const fitsVisibleHeight =
+    screen === "tuner" && fit !== undefined && fit !== "fixed";
+
   return (
     <div
+      className={fitsVisibleHeight ? "visible-height" : undefined}
       style={{
         position: "relative",
         display: "flex",
         flexDirection: "column",
         maxWidth: COLUMN_MAX_WIDTH,
-        minHeight: COLUMN_MIN_HEIGHT,
+        ...(fitsVisibleHeight ? {} : { minHeight: COLUMN_MIN_HEIGHT }),
         margin: COLUMN_CENTERING_MARGIN,
         overflow: "hidden",
         background: COLUMN_BACKGROUND,

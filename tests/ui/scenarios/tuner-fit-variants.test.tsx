@@ -72,3 +72,12 @@ test("design-loop variant (007 round 5) — fixed (no prop): the level is 536px 
   expect(levelContainer.style.height).toBe("536px");
   expect(screen.getByText("A4 = 440 Hz · in tune ±5 ¢")).toBeTruthy();
 });
+
+test("design-loop variant (007 round 5) — the screen takes the visible height by class, not by an inline height", async () => {
+  await enterAndHear(440.0, undefined, { fit: "flex" });
+  const visibleHeightElement = document.querySelector(".visible-height");
+  expect(visibleHeightElement).toBeTruthy();
+  if (visibleHeightElement !== null) {
+    expect((visibleHeightElement as HTMLElement).style.minHeight).toBe("");
+  }
+});

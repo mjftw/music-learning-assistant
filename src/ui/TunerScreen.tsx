@@ -586,23 +586,6 @@ function TunerScreenComponent(props: {
     if (atFrame !== undefined) onReadingShown(atFrame);
   }, [atFrame, onReadingShown]);
 
-  // design-loop variant (007 round 5) — a/b's own screen height: `100dvh`
-  // (the dynamic viewport height, following the browser's own bars showing
-  // or hiding), `100vh` as the fallback where `dvh` isn't understood. A
-  // single React style object can express only one value per property (no
-  // CSS-cascade fallback within one declaration), so `100vh` is the base
-  // inline value (universally supported) and `100dvh` is applied by direct
-  // DOM assignment after mount — a browser that doesn't understand it
-  // rejects the assignment silently, leaving the `100vh` already in place.
-  // "fixed" touches neither: the screen stays exactly what it is today.
-  const screenRef = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    if (fit === "fixed") return;
-    const element = screenRef.current;
-    if (element === null) return;
-    element.style.minHeight = "100dvh";
-  }, [fit]);
-
   const micIndicator = (
     <span
       data-testid="mic-indicator"
@@ -635,13 +618,13 @@ function TunerScreenComponent(props: {
 
   return (
     <div
-      ref={screenRef}
+      // design-loop variant (007 round 5)
+      className={fit === "fixed" ? undefined : "visible-height"}
       style={{
         position: "relative",
         display: "flex",
         flexDirection: "column",
         flex: 1,
-        ...(fit === "fixed" ? {} : { minHeight: "100vh" }),
       }}
     >
       <div
