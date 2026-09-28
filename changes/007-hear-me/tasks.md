@@ -1407,7 +1407,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 > Appended 2026-09-28 by design round 3.
 
-**Status:** in-progress
+**Status:** done
 
 **Files**
 - Modify: `src/ui/TunerScreen.tsx`, `src/ui/App.tsx`, `src/ui/main.tsx` (one named length; the switch and its plumbing gone)

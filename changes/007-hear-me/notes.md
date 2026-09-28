@@ -597,3 +597,7 @@ of readings; the raw cents column has the same shape.
   oldest first, placed by age" feeds a reading every 50 ms, so its count
   bound does not tell age from a 50-point cap; S5 and S6 do.
 - Open with the user: the trail turns grey the instant the note stops.
+
+For converge (T030's review): `src/ui/TunerStave.tsx:379` carries a
+misplaced one-line comment about `TRAIL_MS` at the end of the
+vertical-centring comment block.
