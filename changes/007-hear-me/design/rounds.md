@@ -202,6 +202,31 @@ sdd_phase: open           # open | exited
 - **Requirement changed?** <pending — practice.tuner/REQ-003 (what
   silence shows, and when)>
 
+### Round 5 — tuner · every state (the screen on the user's phone)
+
+- **Looked at:** the user's phone, a Galaxy S24 — 360 CSS px wide, 780
+  tall, about 660 visible in the browser with its bars showing.
+- **Problem:** "The screen is a bit too tall and doesn't fit on my phone
+  without scrolling up and down. I have a Galaxy s24."
+- **Measured (the controller, headless Chromium):** the tuner is a fixed
+  844 px tall at any viewport — the design's 390 × 844 frame built
+  literally (the level alone is a fixed 536 px): 64 px over at 360 × 780,
+  184 px over at 360 × 660. At 360 wide the stave strip's card also runs
+  off the right edge. `rounds/round-5/before--tuner-silent-360x660.png`.
+  The width is a structural miss, fixed whichever treatment wins.
+- **Tried:** live behind `?fit=a|b` (no parameter = the build as it is):
+  A the level flexes — the screen is the visible height, the header, the
+  target pill, the strip and the footer keep their sizes, the level takes
+  what is left and its scale shrinks to fit ·
+  B the same, and the footer's line (A4 = 440 Hz · in tune ±5 ¢, ♯/♭)
+  moves up beside LISTENING, giving its height to the level.
+  Not built: scaling the whole frame down — the reading must stay legible
+  at arm's length (docs/design.md §2).
+- **Chose:** <pending>
+- **Rejected because:** <pending>
+- **Requirement changed?** <pending — none expected: no requirement
+  names a size; a pattern for docs/design.md §9 at exit>
+
 ## Exit
 
 - **Exited:** <date>
