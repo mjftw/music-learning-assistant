@@ -69,6 +69,7 @@ test("practice.tuner/REQ-001/S4 — out", async () => {
     target: { kind: "auto" },
     targetNote: null,
     reading: null,
+    lastHeard: null,
     canStepDown: false,
     canStepUp: false,
   });

@@ -48,6 +48,7 @@ const placeholderTuner: TunerSnapshot = {
   target: { kind: "auto" },
   targetNote: null,
   reading: null,
+  lastHeard: null,
   canStepDown: false,
   canStepUp: false,
 };

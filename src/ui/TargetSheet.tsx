@@ -127,12 +127,17 @@ function AutoCard(props: {
   );
 }
 
+// practice.tuner/REQ-004/S7, S8 — the Hold card's three states: `active`
+// (a reading showing, or the last note heard while nothing is) styles the
+// card and shows `holdName`, exactly as the reading-showing state always
+// did; `subtitle` carries which of the three texts applies.
 function HoldCard(props: {
-  readonly hasReading: boolean;
+  readonly active: boolean;
   readonly holdName: string;
+  readonly subtitle: string;
   readonly onHold: () => void;
 }): JSX.Element {
-  const { hasReading, holdName, onHold } = props;
+  const { active, holdName, subtitle, onHold } = props;
   return (
     <button
       type="button"
@@ -146,7 +151,7 @@ function HoldCard(props: {
         gap: 3,
         padding: CARD_PADDING,
         borderRadius: CARD_RADIUS,
-        border: `1px solid ${hasReading ? HOLD_CARD_BORDER_ON : HOLD_CARD_BORDER_OFF}`,
+        border: `1px solid ${active ? HOLD_CARD_BORDER_ON : HOLD_CARD_BORDER_OFF}`,
         background: "none",
         cursor: "pointer",
         textAlign: "left",
@@ -157,12 +162,12 @@ function HoldCard(props: {
           style={{
             fontSize: CARD_TITLE_FONT_SIZE,
             fontWeight: 600,
-            color: hasReading ? HOLD_TITLE_COLOR_ON : HOLD_TITLE_COLOR_OFF,
+            color: active ? HOLD_TITLE_COLOR_ON : HOLD_TITLE_COLOR_OFF,
           }}
         >
           Hold
         </span>
-        {hasReading && (
+        {active && (
           <span
             style={{
               fontFamily: fonts.mono,
@@ -182,7 +187,7 @@ function HoldCard(props: {
           whiteSpace: "nowrap",
         }}
       >
-        {hasReading ? "what you're playing" : "play a note first"}
+        {subtitle}
       </span>
     </button>
   );
@@ -222,8 +227,18 @@ export function TargetSheet(props: {
     noteAtPosition(span.highest, spelling),
   )} · low in the middle`;
 
-  const holdName =
-    tuner.reading === null ? "" : noteLabel(tuner.reading.heard.nearest);
+  // practice.tuner/REQ-004/S7, S8 — the note Hold would pin: the note
+  // playing now, or, while nothing is heard, the last note heard.
+  const holdNote =
+    tuner.reading !== null ? tuner.reading.heard.nearest : tuner.lastHeard;
+  const holdActive = holdNote !== null;
+  const holdName = holdNote === null ? "" : noteLabel(holdNote);
+  const holdSubtitle =
+    tuner.reading !== null
+      ? "what you're playing"
+      : tuner.lastHeard !== null
+        ? "the last note you played"
+        : "play a note first";
 
   return (
     <>
@@ -258,8 +273,9 @@ export function TargetSheet(props: {
             >
               <AutoCard auto={tuner.target.kind === "auto"} onAuto={onAuto} />
               <HoldCard
-                hasReading={tuner.reading !== null}
+                active={holdActive}
                 holdName={holdName}
+                subtitle={holdSubtitle}
                 onHold={onHold}
               />
             </div>
@@ -292,6 +308,7 @@ export function TargetSheet(props: {
                 rangeHighest={rangeHighest}
                 target={tuner.target}
                 reading={tuner.reading}
+                lastHeard={tuner.lastHeard}
                 trail={trail}
                 spelling={spelling}
                 onPick={onPin}

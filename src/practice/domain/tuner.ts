@@ -40,6 +40,12 @@ export interface TunerSnapshot {
   readonly target: TunerTarget;
   readonly targetNote: Note | null;
   readonly reading: NoteJudged | null;
+  // practice.tuner/REQ-004/S7, REQ-009/S3 — the last note heard since the
+  // tuner was entered, spelled per the preference like `targetNote`; kept
+  // through a gap, a hidden page or a failed microphone, forgotten only on
+  // leaveTuner(). Hold pins this once `reading` has cleared, and the
+  // spiral's needle rests greyed on it.
+  readonly lastHeard: Note | null;
   readonly canStepDown: boolean;
   readonly canStepUp: boolean;
 }

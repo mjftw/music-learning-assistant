@@ -1,7 +1,7 @@
-import { act, cleanup, screen } from "@testing-library/react";
+import { act, cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test } from "vitest";
-import { enterAndHear } from "./tuner-helpers";
+import { enterAndHear, enterTuner, letGapPass } from "./tuner-helpers";
 
 // No global `afterEach` in scope (vitest globals are off), so
 // @testing-library/react's automatic cleanup never registers itself; without
@@ -93,6 +93,50 @@ test("practice.tuner/REQ-004/S5 — back to auto", async () => {
   f.clock.advanceMs(1);
   await act(async () => {});
   expect(screen.getByTestId("tuner-name").textContent).toBe("A4");
+});
+
+test("practice.tuner/REQ-004/S7 — Hold after the note has stopped", async () => {
+  const f = await enterAndHear(440.0);
+  await letGapPass(f);
+  f.clock.advanceMs(2000);
+  await userEvent.click(screen.getByRole("button", { name: "Target" }));
+  const holdCard = screen.getByRole("button", { name: "Hold" });
+  expect(holdCard.textContent).toContain("A4");
+  expect(holdCard.textContent).toContain("the last note you played");
+  expect(screen.getByTestId("spiral-needle").getAttribute("data-state")).toBe(
+    "last-heard",
+  );
+  expect(screen.queryByTestId("spiral-trail")).toBeNull();
+  await userEvent.click(holdCard);
+  expect(screen.getByRole("button", { name: "Target" }).textContent).toContain(
+    "TARGETA4",
+  );
+});
+
+test("practice.tuner/REQ-004/S8 — nothing heard yet", async () => {
+  await enterTuner();
+  await userEvent.click(screen.getByRole("button", { name: "Target" }));
+  const holdCard = screen.getByRole("button", { name: "Hold" });
+  expect(holdCard.textContent).toContain("play a note first");
+  expect(screen.queryByTestId("spiral-needle")).toBeNull();
+  await userEvent.click(holdCard);
+  expect(screen.getByRole("button", { name: "Target" }).textContent).toContain(
+    "auto · nearest",
+  );
+});
+
+test("practice.tuner/REQ-009/S3 — leaving forgets the last note heard", async () => {
+  const f = await enterAndHear(440.0);
+  await letGapPass(f);
+  await userEvent.click(screen.getByRole("button", { name: "Practice" }));
+  await userEvent.click(screen.getByRole("button", { name: "Tuner" }));
+  await waitFor(() =>
+    expect(screen.getByTestId("mic-indicator").textContent).toBe("LISTENING"),
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Target" }));
+  const holdCard = screen.getByRole("button", { name: "Hold" });
+  expect(holdCard.textContent).toContain("play a note first");
+  expect(screen.queryByTestId("spiral-needle")).toBeNull();
 });
 
 test("practice.tuner/REQ-004/S6 — the sheet is not a stop", async () => {

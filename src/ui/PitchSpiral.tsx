@@ -6,6 +6,7 @@ import {
   pitchClassLabel,
   pitchHzOf,
   pitchPosition,
+  type Note,
   type SpellingPreference,
 } from "../theory/published";
 import { fonts, paper, tuner } from "./theme";
@@ -132,6 +133,9 @@ export function PitchSpiral(props: {
   readonly rangeHighest: number;
   readonly target: TunerTarget;
   readonly reading: NoteJudged | null;
+  // practice.tuner/REQ-004/S7, S8 — while nothing is heard, the needle
+  // rests greyed on the last note heard instead of following `reading`.
+  readonly lastHeard: Note | null;
   readonly trail: readonly NoteJudged[];
   readonly spelling: SpellingPreference;
   readonly onPick: (position: number) => void;
@@ -143,6 +147,7 @@ export function PitchSpiral(props: {
     rangeHighest,
     target,
     reading,
+    lastHeard,
     trail,
     spelling,
     onPick,
@@ -202,11 +207,22 @@ export function PitchSpiral(props: {
     });
   }
 
+  // practice.tuner/REQ-004/S7, S8 — while a reading is showing, the needle
+  // tracks it at its own verdict colour; while nothing is heard but a note
+  // was, it rests exactly on that note (zero cents) in the grey
+  // `tuner.ghostInk` token instead; while neither, no needle at all.
   const needleQ =
-    reading === null
-      ? null
-      : clamp(fractionalPositionOf(reading), lowest - 0.5, highest + 0.5);
-  const needleTone = reading === null ? null : TONE_BY_VERDICT[reading.verdict];
+    reading !== null
+      ? clamp(fractionalPositionOf(reading), lowest - 0.5, highest + 0.5)
+      : lastHeard !== null
+        ? clamp(pitchPosition(lastHeard), lowest - 0.5, highest + 0.5)
+        : null;
+  const needleTone =
+    reading !== null
+      ? TONE_BY_VERDICT[reading.verdict]
+      : lastHeard !== null
+        ? tuner.ghostInk
+        : null;
   let needleD = "";
   if (needleQ !== null) {
     const deg = (((needleQ % 12) + 12) % 12) * HUE_STEP_DEGREES;
@@ -275,7 +291,11 @@ export function PitchSpiral(props: {
           stroke={paper.border}
           strokeWidth={HUB_STROKE_WIDTH}
         />
-        {trailD !== "" && needleTone !== null && (
+        {/* practice.tuner/REQ-004/S7 — no trail while the needle is
+            resting greyed on the last note heard: `reading !== null` is
+            the live state's own condition, same as needleTone/needleQ
+            above. */}
+        {trailD !== "" && reading !== null && needleTone !== null && (
           <path
             data-testid="spiral-trail"
             d={trailD}
@@ -289,7 +309,11 @@ export function PitchSpiral(props: {
           />
         )}
         {needleQ !== null && needleTone !== null && (
-          <g data-testid="spiral-needle" style={{ pointerEvents: "none" }}>
+          <g
+            data-testid="spiral-needle"
+            data-state={reading !== null ? "heard" : "last-heard"}
+            style={{ pointerEvents: "none" }}
+          >
             <path
               d={needleD}
               stroke={paper.card}

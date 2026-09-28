@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import type { NoteJudged } from "../../../src/practice/published";
 import { noteLabel } from "../../../src/theory/published";
 import { sessionOn } from "../fakes";
-import { enter, hear } from "../tuner-helpers";
+import { enter, hear, hearSteady, letGapPass } from "../tuner-helpers";
 
 test("practice.tuner/REQ-004/S1 — Hold", async () => {
   const f = sessionOn("G", "flute-concert");
@@ -97,6 +97,42 @@ test("practice.tuner/REQ-004 — a spelling change re-spells the pinned target",
   expect(noteLabel(f.session.snapshot().tuner.targetNote!)).toBe("B♭4");
   hear(f, 466.16);
   expect(noteLabel(f.session.snapshot().tuner.reading!.target)).toBe("B♭4");
+});
+
+test("practice.tuner/REQ-004/S7 — Hold after the note has stopped", async () => {
+  const f = sessionOn("G", "flute-concert");
+  await enter(f.session);
+  hearSteady(f, 440.0);
+  letGapPass(f);
+  expect(f.session.snapshot().tuner.reading).toBeNull();
+  f.clock.advanceMs(2000);
+  f.session.holdTarget();
+  expect(f.session.snapshot().tuner.target).toEqual({
+    kind: "pinned",
+    position: 69,
+  });
+  expect(noteLabel(f.session.snapshot().tuner.targetNote!)).toBe("A4");
+  expect(f.session.snapshot().tuner.reading).toBeNull();
+});
+
+test("practice.tuner/REQ-004/S8 — nothing heard yet", async () => {
+  const f = sessionOn("G", "flute-concert");
+  await enter(f.session);
+  expect(f.session.snapshot().tuner.lastHeard).toBeNull();
+  f.session.holdTarget();
+  expect(f.session.snapshot().tuner.target).toEqual({ kind: "auto" });
+  expect(f.session.snapshot().tuner.targetNote).toBeNull();
+});
+
+test("practice.tuner/REQ-004 — a spelling change re-spells the last note heard", async () => {
+  const f = sessionOn("G", "flute-concert");
+  await enter(f.session);
+  hearSteady(f, 466.16);
+  expect(noteLabel(f.session.snapshot().tuner.lastHeard!)).toBe("A♯4");
+  letGapPass(f);
+  expect(f.session.snapshot().tuner.reading).toBeNull();
+  f.session.setContext({ ...f.context, spelling: "flat" });
+  expect(noteLabel(f.session.snapshot().tuner.lastHeard!)).toBe("B♭4");
 });
 
 test("practice.tuner/REQ-004/S6 — the sheet is not a stop", async () => {

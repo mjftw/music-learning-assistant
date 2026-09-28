@@ -336,16 +336,18 @@ function snapshotsMateriallyEqual(
     // practice.tuner/REQ-001 — `active`, `listening` and `reading` are only
     // ever reassigned by enterTuner()/leaveTuner()/commitTunerReading()
     // (never mutated in place), so reference equality is enough, the same
-    // reasoning as settings/traversal/run above; `target` and `targetNote`
-    // compare by value (targetEqual/targetNoteEqual, above) — targetNote is
-    // now derived fresh on every buildSnapshot() call and would otherwise
-    // never compare equal, and comparing target by value too keeps a
-    // scheduler poll while pinned from ever firing a spurious notify.
+    // reasoning as settings/traversal/run above; `target`, `targetNote` and
+    // `lastHeard` compare by value (targetEqual/targetNoteEqual, above) —
+    // targetNote and lastHeard are now derived fresh on every
+    // buildSnapshot() call and would otherwise never compare equal, and
+    // comparing target by value too keeps a scheduler poll while pinned
+    // from ever firing a spurious notify.
     a.tuner.active === b.tuner.active &&
     a.tuner.listening === b.tuner.listening &&
     targetEqual(a.tuner.target, b.tuner.target) &&
     targetNoteEqual(a.tuner.targetNote, b.tuner.targetNote) &&
-    a.tuner.reading === b.tuner.reading
+    a.tuner.reading === b.tuner.reading &&
+    targetNoteEqual(a.tuner.lastHeard, b.tuner.lastHeard)
   );
 }
 
@@ -456,6 +458,14 @@ export function createSession(
   let tunerListeningState: ListeningState = { kind: "off" };
   let tunerTarget: TunerTarget = { kind: "auto" };
   let tunerReading: NoteJudged | null = null;
+  // practice.tuner/REQ-004/S7, REQ-009/S3 — the pitch position of
+  // `heard.nearest` of the last committed reading, kept through a gap (a
+  // page hidden, or the microphone failing) and forgotten only on
+  // leaveTuner(): NOT reset by clearTunerReading() below, which runs on
+  // every gap. Hold pins this once `tunerReading` has cleared, and
+  // buildSnapshot() derives `lastHeard` from it, spelled per the
+  // preference like `targetNote`.
+  let tunerLastHeardPosition: number | null = null;
   // practice.tuner/REQ-002 — the shown-note hysteresis position
   // (nearestWithHandover's `shown`), reset alongside `tunerReading` on a gap
   // or on leaveTuner(): a fresh reading after silence starts from the
@@ -837,6 +847,9 @@ export function createSession(
     invalidateSnapshot();
     tunerReading = tunerPendingReading.judged;
     tunerShownPosition = tunerPendingReading.shown;
+    // practice.tuner/REQ-004/S7 — every committed reading, not only a
+    // pinned one, updates what was last heard.
+    tunerLastHeardPosition = pitchPosition(tunerReading.heard.nearest);
     tunerPendingReading = null;
     for (const listener of noteJudgedListeners) listener(tunerReading);
     notifyChange();
@@ -1049,6 +1062,13 @@ export function createSession(
             ? noteAtPosition(tunerTarget.position, currentContext.spelling)
             : null,
         reading: tunerReading,
+        // practice.tuner/REQ-004/S7, REQ-009/S3 — derived, not stored, the
+        // same reasoning as targetNote above: a spelling change re-spells
+        // this for free.
+        lastHeard:
+          tunerLastHeardPosition === null
+            ? null
+            : noteAtPosition(tunerLastHeardPosition, currentContext.spelling),
         canStepDown: canStepTarget(tunerTarget, -1),
         canStepUp: canStepTarget(tunerTarget, 1),
       },
@@ -1598,6 +1618,9 @@ export function createSession(
     tunerListeningState = { kind: "off" };
     tunerTarget = { kind: "auto" };
     clearTunerReading();
+    // practice.tuner/REQ-009/S3 — the last note heard is forgotten only
+    // here, not by clearTunerReading()'s gap (that runs on every silence).
+    tunerLastHeardPosition = null;
     releaseWakeLockIfSilent();
     notifyChange();
   }
@@ -1614,11 +1637,17 @@ export function createSession(
     notifyChange();
   }
 
-  // practice.tuner/REQ-004/S1 — Hold: pins the last committed reading's
-  // nearest note; a no-op while nothing has been heard yet.
+  // practice.tuner/REQ-004/S1, S7, S8 — Hold: pins the note playing now if
+  // a reading is showing; otherwise, while nothing is heard, pins the last
+  // note heard since the tuner was entered; a no-op while neither exists.
   function holdTarget(): void {
-    if (tunerReading === null) return;
-    pinTargetAt(pitchPosition(tunerReading.heard.nearest));
+    if (tunerReading !== null) {
+      pinTargetAt(pitchPosition(tunerReading.heard.nearest));
+      return;
+    }
+    if (tunerLastHeardPosition !== null) {
+      pinTargetAt(tunerLastHeardPosition);
+    }
   }
 
   // practice.tuner/REQ-004/S2 — a wedge of the spiral: clamped to E2–C7 so a

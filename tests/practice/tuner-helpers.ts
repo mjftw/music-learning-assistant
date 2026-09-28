@@ -34,3 +34,13 @@ const SETTLE_READINGS = 50;
 export function hearSteady(f: SessionFixture, hz: number): void {
   for (let i = 0; i < SETTLE_READINGS; i += 1) hear(f, hz);
 }
+
+// practice.tuner/REQ-003 — the gap rule: advances the fake clock past the
+// session's 300 ms silence timer (domain/session.ts's private
+// TUNER_GAP_MS, mirrored here rather than exported since it is an
+// implementation detail — the existing REQ-003 scenarios advance the same
+// 300 ms inline), clearing the reading back to "Play a note" without
+// touching what was last heard (REQ-004/S7, REQ-009/S3).
+export function letGapPass(f: SessionFixture): void {
+  f.clock.advanceMs(300);
+}
