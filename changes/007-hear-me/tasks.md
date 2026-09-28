@@ -1417,6 +1417,26 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 **Verify** — `pnpm check` → green; `grep -rn "design-loop variant" src tests` → nothing.
 
+### T031 · practice.tuner/REQ-003 · The last reading lingers and fades (design round 4: the rule)
+
+> Appended 2026-09-28 by design round 4 (`design/rounds.md`); REQ-003
+> amended with the user's approval (the linger clause, S4–S6, S1 and S3
+> reworded).
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/TunerScreen.tsx`, `src/ui/TunerLevel.tsx`, `src/ui/TunerStave.tsx` (linger 600 ms grey, fade 200 ms, as the one rule; the "fade" and "ghost" treatments, the `silence` / `lingerMs` / `lingerFadeMs` props and every `design-loop variant (007 round 4)` marker removed), `src/ui/tuner-silence.ts` (kept only if still needed, renamed if not the right home), `src/ui/App.tsx`, `src/ui/main.tsx` (the `?variant` switch removed)
+- Modify: `src/ui/theme.ts` (the two durations as motion tokens, promoted at the loop's exit)
+- Test: `tests/ui/scenarios/tuner-screen.test.tsx`, `tests/ui/scenarios/tuner-stave.test.tsx`; `tests/ui/scenarios/tuner-silence-variants.test.tsx` becomes the scenario tests or is removed
+
+**Steps**
+- [ ] 1. Red: `practice.tuner/REQ-003/S4`, `S5`, `S6` by their full IDs.
+- [ ] 2. Green: the linger as the only path; the switch and the unchosen treatments deleted.
+- [ ] 3. Existing REQ-003 tests that read the silent state let the linger pass first; no assertion is loosened.
+
+**Verify** — `pnpm check` → green; `check-scenarios.sh` shows REQ-003/S4–S6 tested; `grep -rn "design-loop variant (007 round 4)" src tests` → nothing.
+
 ### T025 · — · Converge
 
 **Status:** todo
@@ -1441,7 +1461,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 | listening.pitch-detection/REQ-006 | T003 | ✅ |
 | practice.tuner/REQ-001 | T007, T013, T014 | ✅ |
 | practice.tuner/REQ-002 | T006, T008, T015, T018, T026, T027 | ✅ |
-| practice.tuner/REQ-003 | T008, T015 | ✅ |
+| practice.tuner/REQ-003 | T008, T015, T031 | ✅ |
 | practice.tuner/REQ-004 | T006, T009, T017, T028 | ✅ |
 | practice.tuner/REQ-005 | T016, T029, T030 | ✅ |
 | practice.tuner/REQ-006 | T010, T019, T021, T024 | ✅ |
@@ -1450,7 +1470,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 | practice.tuner/REQ-009 | T009, T018, T028 | ✅ |
 | theory.temperament/REQ-002 | T004 | ✅ |
 
-Scenario → task: listening REQ-001/S1–S3 T003; REQ-002/S1–S5 T001 (S5 also T021); REQ-003/S1, S2, S4 T001, S3 T002; REQ-004/S1, S2 T021, S3 T002 + T010; REQ-005/S1–S2 T012; REQ-006/S1–S3 T003. practice.tuner REQ-001/S1, S2, S4 T007, S3 T013; REQ-002/S1–S5 T008 (S1, S2, S5 also T015/T018), S6–S8 T026, S9 T027; REQ-003/S1–S3 T008 (S1 also T015); REQ-004/S1–S6 T009 (S1, S2, S4–S6 also T017), S7–S8 T028; REQ-005/S1–S4 T016, S5–S6 T029; REQ-006/S1 T021, S2 T010, S3 T024; REQ-007/S1–S3 T011 (also T018); REQ-008/S1–S2 T012; REQ-009/S1 T018, S2 T009, S3 T028. theory.temperament REQ-002/S1–S5 T004.
+Scenario → task: listening REQ-001/S1–S3 T003; REQ-002/S1–S5 T001 (S5 also T021); REQ-003/S1, S2, S4 T001, S3 T002; REQ-004/S1, S2 T021, S3 T002 + T010; REQ-005/S1–S2 T012; REQ-006/S1–S3 T003. practice.tuner REQ-001/S1, S2, S4 T007, S3 T013; REQ-002/S1–S5 T008 (S1, S2, S5 also T015/T018), S6–S8 T026, S9 T027; REQ-003/S1–S3 T008 (S1 also T015), S4–S6 T031; REQ-004/S1–S6 T009 (S1, S2, S4–S6 also T017), S7–S8 T028; REQ-005/S1–S4 T016, S5–S6 T029; REQ-006/S1 T021, S2 T010, S3 T024; REQ-007/S1–S3 T011 (also T018); REQ-008/S1–S2 T012; REQ-009/S1 T018, S2 T009, S3 T028. theory.temperament REQ-002/S1–S5 T004.
 
 ## Interface consistency
 

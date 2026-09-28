@@ -193,6 +193,20 @@ user has only seen the short one.
 **Became:** `changes/007-hear-me/delta/practice/tuner.md` REQ-005 (S5,
 S6), REQ-003's last clause; the length pending the live choice
 
+### Q11: 007 design round 4 (sdd-design D) — the last reading lingers and fades (practice.tuner/REQ-003)
+**Recommended:** Approve as worded: when the detected pitch stops the
+last reading stays where it was, greyed and no longer updated, for 0.6 s,
+fades over 0.2 s, and only then "Play a note" shows; a pitch detected
+meanwhile is shown at once at full strength; reduced motion removes it at
+the end of the same 0.8 s without fading; hidden from assistive
+technology. Because it is the treatment and the timing the user chose on
+the phone ("b but try with faster fade"; "Variant C is the best btw").
+Offered alongside: the in-tune band on the strip lingering too; revise.
+**Answer:** Approve (Recommended).
+**Status:** decided
+**Became:** `changes/007-hear-me/delta/practice/tuner.md` REQ-003 (the
+linger clause, S4–S6, S1 and S3 reworded)
+
 ## Not asked
 
 > Questions the interview deliberately skipped, and why (already decided in

@@ -165,15 +165,27 @@ line, tag, head or Hz shown, and WHERE a target is pinned SHALL keep the
 target's name and octave as the big name, greyed, with "Play a note"
 beneath; the trail already drawn on the stave strip (REQ-005) and the
 spiral's greyed needle (REQ-004) show what was heard, are not a reading,
-and stay
+and stay; and WHEN the detected pitch stops THE SYSTEM SHALL keep the last
+reading where it was, greyed and no longer updated, for 0.6 s, then fade
+it out over 0.2 s, and only then show "Play a note" — the big name, the
+line and the tag on the level and, on the stave strip, the head with its
+accidental, ledger lines, guide and octave mark, its cents, and the Hz; a
+pitch detected meanwhile SHALL be shown at once, at full strength; WHERE
+the device asks for reduced motion the last reading SHALL be removed at
+the end of the same 0.8 s without fading; and the lingering reading SHALL
+be hidden from assistive technology
 
 > Amended 2026-09-28 at design rounds 2 and 3, with the user's approval:
-> the last clause.
+> the trail and the needle stay. Amended 2026-09-28 at design round 4,
+> with the user's approval: the last reading lingers and fades; S4–S6; S1
+> and S3 reworded to allow for it (the session's reading still clears
+> after 300 ms — the linger is the screen's).
 
 **Scenarios**
 - **REQ-003/S1 — silence on auto**
   Given the tuner is listening, Auto
-  When nothing is detected for 300 ms
+  When nothing is detected for 300 ms and any last reading has lingered
+  and gone (S4)
   Then the level shows no line and no tag, the stave strip no head, the
   Hz read "—", and "Play a note" is shown in the middle
 - **REQ-003/S2 — silence with a target**
@@ -184,8 +196,26 @@ and stay
 - **REQ-003/S3 — a breath between notes**
   Given a note has been showing
   When the detected pitch stops for the length of a breath and resumes
-  Then the reading clears to "Play a note" while nothing is published and
-  returns with the next detected pitch, with no stale reading in between
+  Then the last reading lingers and fades (S4), "Play a note" shows once
+  it has gone, and the next detected pitch is shown at once as a reading
+  of its own, never smoothed from or joined to the last
+- **REQ-003/S4 — the last reading lingers, then goes**
+  Given A4 +20 is showing, Auto
+  When the note stops and nothing is detected for 300 ms
+  Then the big name, the line, the tag, the stave's head, its cents and
+  the Hz stay where they were, grey; 0.5 s later they are still shown;
+  0.8 s after they turned grey they are gone and "Play a note" is shown
+- **REQ-003/S5 — a note during the linger**
+  Given the last reading is lingering, grey
+  When C5 is detected
+  Then C5 is shown at once at full strength, nothing grey is left, and no
+  "Play a note" appeared in between
+- **REQ-003/S6 — lingering with a target**
+  Given the target A4 is pinned and C5 was showing
+  When the note stops
+  Then the big name reads A 4 greyed with "Play a note" beneath at once
+  (S2), and the line, the tag, the stave's heard head and the Hz linger
+  grey and fade as in S4
 
 ### REQ-004: A target
 
