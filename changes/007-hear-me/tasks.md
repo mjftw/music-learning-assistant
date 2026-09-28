@@ -894,7 +894,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 ### T014 · practice.tuner/REQ-001 · The Tuner pill, the `screen` state, the tuner screen's shell; one AudioContext for both worklets
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/ui/TunerScreen.tsx`

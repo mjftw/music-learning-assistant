@@ -49,6 +49,25 @@ function exposeSoundForTiming(sound: ReturnType<typeof fallbackSound>): void {
   ).__sound = sound;
 }
 
+// T014 also exposes the listening port, alongside `__session`/`__sound`, for
+// the tuner's own dev-time inspection (e.g. the phone's track settings —
+// changes/007-hear-me/notes.md).
+function exposeListeningForTiming(
+  listening: ReturnType<typeof webAudioListening>,
+): void {
+  if (!import.meta.env.DEV) return;
+  (
+    window as unknown as { __listening?: ReturnType<typeof webAudioListening> }
+  ).__listening = listening;
+}
+
+// One AudioContext for both worklets (ADR 0006): one audio thread, one
+// clock. `webAudioSound` and `webAudioListening` each call this on their
+// own first `start()` — whichever runs first creates it, the other gets the
+// same instance back.
+let context: AudioContext | null = null;
+const audioContext = (): AudioContext => (context ??= new AudioContext());
+
 const sound = fallbackSound(
   // The default `AudioContext` (no `latencyHint`), not "playback": the
   // browser's reported `outputLatency` is only an estimate and tends to run
@@ -59,10 +78,13 @@ const sound = fallbackSound(
   // fixes (no parsing on the audio thread, the hoisted output view,
   // stop_all's fade) do the rest of the underrun-avoidance work that
   // "playback" used to buy.
-  webAudioSound(() => new AudioContext()),
+  webAudioSound(audioContext),
   silentSound(() => performance.now()),
 );
 exposeSoundForTiming(sound);
+
+const listening = webAudioListening(audioContext);
+exposeListeningForTiming(listening);
 
 createRoot(rootElement).render(
   <StrictMode>
@@ -74,11 +96,7 @@ createRoot(rootElement).render(
         clock: browserClock(),
         wakeLock: screenWakeLock(navigator),
         visibility: pageVisibility(document),
-        // T014 replaces this with the same memoised AudioContext factory
-        // `sound` shares (main.tsx: `const audioContext = memoised(() =>
-        // new AudioContext())`, passed to both) — for now the tuner's own
-        // context is created on its own first start().
-        listening: webAudioListening(() => new AudioContext()),
+        listening,
       }}
       onSessionReady={exposeSessionForTiming}
     />

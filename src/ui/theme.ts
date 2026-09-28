@@ -24,3 +24,14 @@ export const fonts = {
   mono: "'JetBrains Mono', monospace",
   music: "'Noto Music', serif",
 } as const;
+
+// practice.tuner — docs/design.md §8: the reading's colours (sharp/flat/
+// in-tune, the in-tune band's fill) and the pinned target's grey notehead.
+export const tuner = {
+  sharp: "oklch(0.55 0.11 28)",
+  flat: "oklch(0.55 0.11 258)",
+  inTune: "oklch(0.55 0.11 150)",
+  band: "oklch(0.90 0.045 150)",
+  targetHead: "#a39a8c",
+  ghostInk: "#8a8175",
+} as const;

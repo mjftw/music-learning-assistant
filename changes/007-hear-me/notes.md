@@ -195,3 +195,43 @@ holds in practice.
 - Minor, recorded: the test duplicates `TAP_TAG_BASE = 2_000_000` (private
   to session.ts; the session-tap test does the same). A stale "(500 ms)"
   comment gloss corrected to 80 ms by the controller (trivial).
+
+## T014 — the phone's track settings
+
+Pending the user's phone check.
+
+## T014 — notes (2026-09-28)
+
+- Real-browser check (headless Chromium, `--use-fake-ui-for-media-stream`,
+  the real worklet): clicking Tuner logs `listening: track settings
+  {autoGainControl: false, channelCount: 2, deviceId: default,
+  echoCancellation: false, groupId: …}` to the console, and no
+  `PitchDetected`-related error appears — T003's "first fix if LISTENING
+  shows but no reading ever arrives" note is not needed yet.
+- Ripple beyond the brief's Files list (AGENTS.md rule): `tests/ui/
+  scenarios/circle-interaction.test.tsx`'s Tab-order test — the new Tuner
+  pill adds a tab stop before the circle, so its comment/tab count moved
+  from three tabs to four.
+- The brief's verbatim RED test code uses jest-dom matchers
+  (`toHaveTextContent`, `toBeInTheDocument`) that are not installed/
+  configured in this repo (no `@testing-library/jest-dom` dependency, no
+  vitest `setupFiles`) — confirmed by grep and by running the literal
+  code (`Invalid Chai property: toHaveTextContent`). Adapted to the
+  convention every other UI scenario test already uses instead
+  (`.textContent`/`toBeTruthy()` — see app-drone.test.tsx, app-session.
+  test.tsx); the scenario IDs, structure and assertions are otherwise
+  unchanged.
+
+## T014 — review notes (2026-09-28)
+
+- Structural screenshots produced with the repo's Node Playwright
+  (`.sdd/design/007-hear-me/live/`) — Playwright for Python is not
+  installed, so `design_snapshot.py` is unavailable on this machine.
+- Headless Chromium with the real worklet: the mic was granted, `listening:
+  track settings` logged (echoCancellation/noiseSuppression/autoGainControl
+  all false), no errors.
+- Minor, recorded: `isListening()`'s comment says the `off` state never
+  reaches the render; it can, for one microtask at entry (harmless).
+- No jest-dom in this repo: the briefs' `toHaveTextContent`/
+  `toBeInTheDocument` are adapted to `.textContent`/`toBeTruthy()` in every
+  UI task from here.

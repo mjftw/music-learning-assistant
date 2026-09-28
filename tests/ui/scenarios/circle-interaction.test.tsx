@@ -87,8 +87,10 @@ test("Tab-focusing a wedge shows a focus ring that follows focus, and disappears
 
   expect(screen.queryByTestId("wedge-focus-ring")).toBeNull();
 
-  // The instrument pill and settings button precede the circle in tab
-  // order; three tabs reaches the first wedge (C major, outer ring).
+  // The instrument pill, the Tuner pill (practice.tuner/REQ-001, T014) and
+  // the settings button precede the circle in tab order; four tabs reaches
+  // the first wedge (C major, outer ring).
+  await user.tab();
   await user.tab();
   await user.tab();
   await user.tab();
