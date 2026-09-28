@@ -166,6 +166,33 @@ revise.
 **Became:** `changes/007-hear-me/delta/practice/tuner.md` REQ-002 (the
 smoothing clause, S6–S9); `changes/007-hear-me/design/rounds.md` round 1
 
+### Q9: 007 design round 2 (sdd-design D) — Hold after the note has stopped (practice.tuner/REQ-004)
+**Recommended:** Approve, the needle stays greyed: Hold pins the note
+playing now or, while nothing is heard, the last note heard since the
+tuner was entered; the Hold card names it ("what you're playing" / "the
+last note you played" / "play a note first"); the spiral's needle stays
+greyed on the last note heard; leaving forgets it. Because the hands are
+on the flute while a note sounds (design §2), and the needle shows what
+Hold will pin before it is tapped.
+**Answer:** Approve, needle stays greyed (Recommended).
+**Status:** decided
+**Became:** `changes/007-hear-me/delta/practice/tuner.md` REQ-004 (S7,
+S8), REQ-009/S3, REQ-003's last clause
+
+### Q10: 007 design round 3 (sdd-design D) — the trail outlives the note (practice.tuner/REQ-005), and its length
+**Recommended:** Approve, and try the lengths live: the trail moves left
+with time; in silence nothing is added and what is drawn carries on
+leftward until it has left the strip; a new note starts a new trail apart
+from the old; the head, cents and Hz still clear. The build's trail is
+about 0.5 s (50 readings at ~93 a second), the spec's 2.5 s (50 at the
+prototype's 20 a second) — 2.5 s, 1.2 s and 0.5 s behind a temporary
+switch, the length written to the delta after the choice. Because the
+user has only seen the short one.
+**Answer:** Approve, try lengths live (Recommended).
+**Status:** decided
+**Became:** `changes/007-hear-me/delta/practice/tuner.md` REQ-005 (S5,
+S6), REQ-003's last clause; the length pending the live choice
+
 ## Not asked
 
 > Questions the interview deliberately skipped, and why (already decided in

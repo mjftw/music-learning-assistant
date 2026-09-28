@@ -163,7 +163,12 @@ WHILE the tuner is listening and no detected pitch is being published
 THE SYSTEM SHALL show "Play a note" in place of the big name, with no
 line, tag, head or Hz shown, and WHERE a target is pinned SHALL keep the
 target's name and octave as the big name, greyed, with "Play a note"
-beneath
+beneath; the trail already drawn on the stave strip (REQ-005) and the
+spiral's greyed needle (REQ-004) show what was heard, are not a reading,
+and stay
+
+> Amended 2026-09-28 at design rounds 2 and 3, with the user's approval:
+> the last clause.
 
 **Scenarios**
 - **REQ-003/S1 — silence on auto**
@@ -184,7 +189,8 @@ beneath
 
 ### REQ-004: A target
 
-WHERE a target note is pinned — by Hold (the note playing now), by a wedge
+WHERE a target note is pinned — by Hold (the note playing now or, while
+nothing is heard, the last note heard since the tuner was entered), by a wedge
 of the pitch spiral in the Target sheet, or by − / + moving the pinned note
 a semitone within E2–C7 —
 THE SYSTEM SHALL measure every detected pitch from the target instead of
@@ -193,13 +199,20 @@ verdict give the offset from it, and IF the offset exceeds ±50 ¢ THEN THE
 SYSTEM SHALL pin the line to the level's edge, read the tag as "▲ N st" or
 "▼ N st" (whole semitones), and caption "playing <the nearest note>"; the
 Target sheet SHALL show Auto · nearest (ticked when no target is pinned),
-Hold with the note playing now, and the spiral — one ring of wedges per
+Hold with the note it would pin ("what you're playing" while it sounds,
+"the last note you played" once it has stopped, "play a note first" until
+a first note has been heard), and the spiral — one ring of wedges per
 octave from E2 to C7 and the instrument's range, the lowest in the hub
 winding outward, wedges outside the instrument's range dimmed, each C
-labelled with its octave, a needle marking the detected pitch, the hub
+labelled with its octave, a needle marking the detected pitch and, while
+nothing is heard, staying greyed on the last note heard, the hub
 naming the target and its pitch in hertz; WHEN ✕ on the target pill is
 tapped or Auto is chosen THE SYSTEM SHALL return to the nearest note; and
 THE SYSTEM SHALL start every entry to the tuner on Auto
+
+> Amended 2026-09-28 at design round 2 (`design/rounds.md`), with the
+> user's approval: Hold and the needle remember the last note heard; S7,
+> S8.
 
 **Scenarios**
 - **REQ-004/S1 — Hold**
@@ -237,6 +250,18 @@ THE SYSTEM SHALL start every entry to the tuner on Auto
   When the Target sheet is opened, left open through a note, and closed
   Then listening never stopped and the needle in the spiral followed the
   note while it was open
+- **REQ-004/S7 — Hold after the note has stopped**
+  Given A4 was heard, Auto, and nothing has been heard for two seconds
+  When TARGET is tapped
+  Then the Hold card reads "Hold A4" with "the last note you played" and
+  the spiral's needle rests greyed on A4; when Hold is tapped the sheet
+  closes, the pill reads "TARGET A4", and the big name reads A 4 greyed
+  with "Play a note" beneath
+- **REQ-004/S8 — nothing heard yet**
+  Given the tuner has just been entered and nothing has been heard
+  When TARGET is tapped
+  Then the Hold card reads "play a note first", the spiral shows no
+  needle, and tapping Hold pins nothing
 
 ### REQ-005: The stave strip
 
@@ -247,11 +272,20 @@ nearest the detected pitch) as a whole-note head at its written position
 with its accidental, moved with the offset — up when sharp, down when flat,
 never as far as the next staff position — along a dotted guide at the true
 position, the offset in cents written above the head, and a trail of the
-last 2.5 s of the head's movement; WHERE a target is pinned SHALL draw it
+last 2.5 s of the head's movement, moving left at a steady pace as it
+ages; WHILE nothing is heard SHALL draw no new trail and let the trail
+already drawn carry on moving left until it has left the strip, and WHEN a
+note is heard again before it has gone SHALL start the new trail apart
+from the old one, not joined to it; WHERE a target is pinned SHALL draw it
 as a grey head to the right; SHALL write a note above the ledger range an
 octave lower under 8va (two under 15ma) and below it an octave higher
 under 8vb (15mb); and SHALL show "HEARD <Hz>" to one decimal beside the
 stave and "<target or nearest note> IS <Hz>"
+
+> Amended 2026-09-28 at design round 3 (`design/rounds.md`), with the
+> user's approval: the trail moves with time and outlives the note; S5,
+> S6. The trail's length (2.5 s) is being tried live and is amended here
+> if the user chooses another.
 
 **Scenarios**
 - **REQ-005/S1 — A4 a little sharp**
@@ -275,6 +309,18 @@ stave and "<target or nearest note> IS <Hz>"
   When the strip is read
   Then the heard head is at C5, a grey head at A4 to its right, and the
   captions read "HEARD 523.3 Hz" and "A4 IS 440.0 Hz"
+- **REQ-005/S5 — the trail outlives the note**
+  Given A4 was heard for a second and has stopped
+  When one second of silence has passed
+  Then the strip shows no head, no cents and no Hz, and the trail is still
+  drawn, further left than when the note stopped, with nothing added to
+  it; once the trail's length in time has passed since the note stopped
+  the strip shows no trail
+- **REQ-005/S6 — a new note does not join the old trail**
+  Given the trail of A4 is moving left in silence
+  When C5 is heard
+  Then a new trail starts at the head and the old one carries on leftward,
+  the two not joined by a line
 
 ### REQ-006: The readout keeps up (Article V)
 
@@ -373,3 +419,8 @@ tuner SHALL persist as the circle's own preference does
   Given the target D5 is pinned
   When ‹ Practice is tapped and the Tuner pill tapped again
   Then the pill reads "TARGET auto · nearest"
+- **REQ-009/S3 — leaving forgets the last note heard**
+  Given A4 was heard and has stopped
+  When ‹ Practice is tapped, the Tuner pill tapped again and TARGET tapped
+  Then the Hold card reads "play a note first" and the spiral shows no
+  needle

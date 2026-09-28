@@ -1365,6 +1365,58 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 **Verify** — `pnpm test:tuner` → PASS with the new column; `pnpm check` → green; `check-scenarios.sh` shows S9 tested.
 
+### T028 · practice.tuner/REQ-004 · Hold and the needle remember the last note heard
+
+> Appended 2026-09-28 by design round 2 (`design/rounds.md`); REQ-004
+> (S7, S8), REQ-009/S3 and REQ-003 amended with the user's approval.
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/domain/session.ts` (the last note heard, kept from each committed reading, kept through a gap, forgotten on leaving; `holdTarget()` pins it when no reading is showing), `src/practice/domain/tuner.ts` (`TunerSnapshot.lastHeard: Note | null`, spelled per the preference like `targetNote`)
+- Modify: `src/ui/TargetSheet.tsx` (the Hold card's three states), `src/ui/PitchSpiral.tsx` (the needle greyed on the last note heard while nothing is heard, no trail)
+- Test: `tests/practice/scenarios/tuner-target.test.ts`, `tests/practice/scenarios/tuner-memory.test.ts`, `tests/ui/scenarios/target-sheet.test.tsx`
+
+**Steps**
+- [ ] 1. Red: `practice.tuner/REQ-004/S7`, `S8`, `practice.tuner/REQ-009/S3` by their full IDs — the session's side through `published/`, the sheet's side in `tests/ui/scenarios/`.
+- [ ] 2. Green: the session keeps and forgets the last note heard; the sheet and the spiral show it.
+- [ ] 3. The never-both invariant and every existing target scenario pass untouched.
+
+**Verify** — `pnpm check` → green; `check-scenarios.sh` shows REQ-004/S7, S8 and REQ-009/S3 tested.
+
+### T029 · practice.tuner/REQ-005 · The trail moves with time and outlives the note
+
+> Appended 2026-09-28 by design round 3; REQ-005 (S5, S6) amended with the
+> user's approval. The length is tried live behind a temporary
+> `?variant=a|b|c` switch (2.5 s, 1.2 s, 0.5 s) and fixed by T030.
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/TunerScreen.tsx` (the trail keeps each point's time and its run; kept through silence; dropped by age), `src/ui/TunerStave.tsx` (x by age; one path per run; drawn in silence), `src/ui/App.tsx`, `src/ui/main.tsx` (the temporary switch)
+- Test: `tests/ui/scenarios/tuner-stave.test.tsx`, `tests/ui/scenarios/tuner-screen.test.tsx`
+
+**Steps**
+- [ ] 1. Red: `practice.tuner/REQ-005/S5`, `S6` by their full IDs.
+- [ ] 2. Green: the trail by time; redrawn in silence only while a trail is left to move.
+- [ ] 3. The spiral's needle trail is unchanged while a note sounds and absent in silence.
+
+**Verify** — `pnpm check` → green; `check-scenarios.sh` shows REQ-005/S5, S6 tested; on the phone the trail drifts off in silence at each of the three lengths.
+
+### T030 · practice.tuner/REQ-005 · The trail's length as chosen; the switch removed
+
+> Appended 2026-09-28 by design round 3.
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/TunerScreen.tsx`, `src/ui/App.tsx`, `src/ui/main.tsx` (one named length; the switch and its plumbing gone)
+
+**Steps**
+- [ ] 1. The chosen length as the one constant; S5's test reads it.
+
+**Verify** — `pnpm check` → green; `grep -rn "design-loop variant" src tests` → nothing.
+
 ### T025 · — · Converge
 
 **Status:** todo
@@ -1390,15 +1442,15 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 | practice.tuner/REQ-001 | T007, T013, T014 | ✅ |
 | practice.tuner/REQ-002 | T006, T008, T015, T018, T026, T027 | ✅ |
 | practice.tuner/REQ-003 | T008, T015 | ✅ |
-| practice.tuner/REQ-004 | T006, T009, T017 | ✅ |
-| practice.tuner/REQ-005 | T016 | ✅ |
+| practice.tuner/REQ-004 | T006, T009, T017, T028 | ✅ |
+| practice.tuner/REQ-005 | T016, T029, T030 | ✅ |
 | practice.tuner/REQ-006 | T010, T019, T021, T024 | ✅ |
 | practice.tuner/REQ-007 | T011, T018 | ✅ |
 | practice.tuner/REQ-008 | T012 | ✅ |
-| practice.tuner/REQ-009 | T009, T018 | ✅ |
+| practice.tuner/REQ-009 | T009, T018, T028 | ✅ |
 | theory.temperament/REQ-002 | T004 | ✅ |
 
-Scenario → task: listening REQ-001/S1–S3 T003; REQ-002/S1–S5 T001 (S5 also T021); REQ-003/S1, S2, S4 T001, S3 T002; REQ-004/S1, S2 T021, S3 T002 + T010; REQ-005/S1–S2 T012; REQ-006/S1–S3 T003. practice.tuner REQ-001/S1, S2, S4 T007, S3 T013; REQ-002/S1–S5 T008 (S1, S2, S5 also T015/T018), S6–S8 T026, S9 T027; REQ-003/S1–S3 T008 (S1 also T015); REQ-004/S1–S6 T009 (S1, S2, S4–S6 also T017); REQ-005/S1–S4 T016; REQ-006/S1 T021, S2 T010, S3 T024; REQ-007/S1–S3 T011 (also T018); REQ-008/S1–S2 T012; REQ-009/S1 T018, S2 T009. theory.temperament REQ-002/S1–S5 T004.
+Scenario → task: listening REQ-001/S1–S3 T003; REQ-002/S1–S5 T001 (S5 also T021); REQ-003/S1, S2, S4 T001, S3 T002; REQ-004/S1, S2 T021, S3 T002 + T010; REQ-005/S1–S2 T012; REQ-006/S1–S3 T003. practice.tuner REQ-001/S1, S2, S4 T007, S3 T013; REQ-002/S1–S5 T008 (S1, S2, S5 also T015/T018), S6–S8 T026, S9 T027; REQ-003/S1–S3 T008 (S1 also T015); REQ-004/S1–S6 T009 (S1, S2, S4–S6 also T017), S7–S8 T028; REQ-005/S1–S4 T016, S5–S6 T029; REQ-006/S1 T021, S2 T010, S3 T024; REQ-007/S1–S3 T011 (also T018); REQ-008/S1–S2 T012; REQ-009/S1 T018, S2 T009, S3 T028. theory.temperament REQ-002/S1–S5 T004.
 
 ## Interface consistency
 
