@@ -24,9 +24,14 @@ are not moved up to Fable for nothing.
 - `./scripts/check-scenarios.sh --change changes/<id>` clean: every ADDED and
   MODIFIED scenario has a test; nothing cites a REMOVED one.
 - `./scripts/check-specs.sh` clean for this change.
-- If the change has screens: `design/rounds.md` `sdd_phase: exited` and
-  `./scripts/check-design.sh --change changes/<id>` clean (a reference
-  screenshot per Interface row).
+- If the change has screens: `./scripts/check-design.sh --change
+  changes/<id>` clean, and `python3 scripts/design_snapshot.py changes/<id>
+  live --base <dev url>` run now, so the run report can show each screen.
+  No design round is required to finish; the user's visual check comes
+  after, from the report.
+- Tasks with `**Status:** parked` do not block finish. Only what was built
+  is merged: a requirement whose tasks are all parked is moved from the
+  delta to a follow-up (step 2b).
 
 ## 2. Merge the deltas into the living specs
 
@@ -45,6 +50,14 @@ when they approved the proposal; you are executing it.
    the living specs must be clean. If it is not, stop: something the reviewer
    missed is now in the truth. Report it before going on.
 
+## 2b. Split off what was parked
+
+If any requirement's tasks are all parked: `./scripts/new-change.sh
+<slug>-followup`, move those requirement blocks from this change's delta to
+the new change's delta, copy the escalated verdicts into its `intent.md` as
+the open questions, and re-run the merge preview for both. The follow-up
+starts at its proposal gate, with the user.
+
 ## 3. Apply the Affects
 
 The documents named here are top-of-ladder artefacts, and the guard refuses
@@ -52,11 +65,14 @@ edits to them from the session default. So: `./scripts/phase.sh enter
 sdd-finish`, invoke `sdd-continue`, do this step, then `./scripts/phase.sh
 leave`. Skip all of that when every row says "none".
 
-For each row in `proposal.md › Affects` that is not "none": propose the exact
-edit to `docs/domain.md` / `docs/glossary.md` / `docs/product.md`, show the
-diff, `AskUserQuestion` *Apply* / *Skip*. On apply: make the edit,
+Apply them without asking (`AUTONOMY.md`): the proposal that listed them was
+approved. Record each as a decided verdict (`record.sh … decision`) with the
+diff under `## Amendment`, so it appears in the run report for review.
+
+For each row in `proposal.md › Affects` that is not "none": make the exact
+edit to `docs/domain.md` / `docs/glossary.md` / `docs/product.md`,
 `./scripts/approve.sh <doc> approved`, bump `sdd_version` on `domain.md` if
-it has one. Never silently.
+it has one. Never silently: every edit is in the run report.
 
 ## 3b. Record the screens
 
@@ -78,18 +94,22 @@ truth the next fidelity pass compares against.
 - `./scripts/index.sh`
 - Commit: `feat(<id>): merge into specs — <capabilities> (<summary>)`
 
-## 5. Ask — one question, four options, recommended first
+## 5. Prepare the branch, do not ask
 
-Per `docs/engineering.md` §13, recommend the one it names:
+Per `docs/engineering.md` §13, prepare what it names (default: a pull
+request). Write the PR title `<id>: <proposal title>` and body (the
+proposal's Outcome, each capability's delta summary +adds ~modifies
+-removes, the convergence verdict, the decisions digest, ADRs proposed) to
+`changes/archive/<id>/record/pr.md`. `git push` is denied to agents; the
+run report gives the user the exact commands. Never merge to `main`
+yourself and never discard.
 
-- **Open a pull request (Recommended when a remote exists)** — PR title
-  `<id>: <proposal title>`; body = the proposal's Outcome, each capability's
-  delta summary (+adds ~modifies -removes), the convergence report, ADRs
-  proposed. `git push` is denied to agents; give the user the exact commands.
-- **Merge locally** — `git checkout main && git merge --squash <branch>` (or
-  `--no-ff` per §13), delete the branch.
-- **Keep the branch** — say why; note it in the roadmap row.
-- **Discard** — only if the user says so explicitly, twice. Never recommend.
+## 5b. The run report
+
+`./scripts/report.sh changes/archive/<id>`: what needs the user (escalations,
+parked work, the visual check for any screens), what was decided for them,
+the amendments, the result. Commit it. That report, and the push commands
+from step 5, are the last thing the run says.
 
 ## 6. After
 

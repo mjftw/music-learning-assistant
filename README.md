@@ -196,9 +196,11 @@ sections, your preferences, the commands and the constitution into one file. It
 dispatches an `implementer` subagent that reads only that brief and works TDD.
 It re-runs the verification itself. It packages the diff, dispatches a
 `task-reviewer` for two verdicts on spec compliance and then quality, and loops
-a fixer on failures for at most three rounds before bringing them to you. Then
-it marks the task done and commits. An implementer that hits a gap reports
-`NEEDS_CONTEXT` and the question comes to you. It never guesses.
+a fixer on failures; after three rounds the decider rules on it. Then it
+marks the task done and commits. An implementer that hits a question about
+what to build reports `DECISION_NEEDED`, and the decider answers it on the
+strongest model and records why. It never guesses, and it never waits for
+you.
 
 `sdd-converge` puts a `reviewer` subagent on the strongest model, one that did
 not watch any of the above, to audit the change against its proposal, its
@@ -382,6 +384,41 @@ changed.
 For shipped screens that work but feel wrong, new-change.sh --design skips
 the plan and tasks and goes straight to the loop.
 
+## After the plan, nobody needs to be there
+
+All the questions come before the plan is approved: the product, the
+domain, the intent, the proposal and its deltas, the plan. The plan's gate
+is the last one. Approving it starts an unattended run that writes the
+tasks, builds them, reviews them, fixes what the reviews find, audits the
+result and finishes the change, without asking you anything. Implementation
+takes hours; a run that stops to ask whether a helper belongs in one file or
+another wastes them.
+
+The rules are in AUTONOMY.md, which is yours to edit. The implementer
+decides the craft of its own task and lists what it chose. Anything bigger,
+such as what a requirement means, a case the spec never covered, or a
+value that contradicts another, goes to a decider agent on the strongest
+model. There is no list of permitted decisions. The decider asks four
+questions of each one: what reversing it later would cost, how much will be
+built on top of it, whether it reaches outside the change, and whether it
+changes what a requirement promises or only how the promise is kept. A
+two-way door it decides, with the options, its reasoning, and how to undo
+it. A one-way door it escalates: that task and anything depending on it are
+parked, and everything else is still built.
+
+When a decision needs the spec's wording to change, the decider writes the
+exact amendment, and once the last task is done the amendments are applied
+to the delta on the strong model, before the audit, so the reviewer checks
+the code against a spec that says what was actually built. The reviewer
+also re-judges every decision, and one it thinks should have been escalated
+is a critical finding.
+
+You come back to a run report. It opens with what needs you: escalations,
+parked work, and for any change that touched a screen, a visual check,
+listing each screen and state with its route and a live screenshot, asking
+you to look at it on the real device. Then what was decided for you, then
+the amendments, then the result, and the commands to push the branch.
+
 ## What is kept
 
 Consolidating a change into the living specs would be a bad trade if it
@@ -487,6 +524,7 @@ All stdlib bash and Python 3, no dependencies.
 | `check-scenarios.sh` | every live scenario has a test and no test cites a removed requirement; `--change` checks a change's target state |
 | `check-design.sh` | docs/design.md state and hard-coded values outside the tokens file; `--change` checks a change's Interface table: design files and states exist, cited requirements are in the target state, every row has a reference once the loop has exited |
 | `record.sh <change> task T0NN\|converge\|design-round N\|list` | copies the implementer report and task review, the convergence report, or a design round's screenshots from the ephemeral .sdd/ into the change's committed record, numbered per attempt |
+| `report.sh <change>` | writes the end-of-run report: what needs you (escalations, parked tasks, the visual check), the decisions digest, the amendments, the result |
 | `draft.sh <path> [path...]` | commits the artefact as a numbered draft before a gate, so rejected versions stay in git history |
 | `phase.sh enter <skill>\|leave\|show` | opens and closes the top-of-ladder phase marker that keeps an interview on Fable; skills call it, you rarely need to |
 | `selftest-models.sh` | checks the model ladder's enforcement on this install: the write guard, the phase marker, the skill and agent model lines |

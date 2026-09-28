@@ -108,24 +108,18 @@ Run these over the whole file and fix what fails before presenting:
 - Put deliberately-deferred work under `## Deferred` with a reason, so it does
   not read as an oversight in three months.
 
-## Gate
+## No gate: self-approve and build
 
-`./scripts/draft.sh changes/NNN-slug/tasks.md` before showing it, and again
-after each revision.
+Tasks are the first artefact after the plan, and the plan was the last thing
+the user approved (`AUTONOMY.md`). Nobody reviews this file; the
+self-review above is the review. So:
 
-Write the file, then report in at most five lines:
-
-- Task count, and phase breakdown
-- The coverage table result — every requirement covered, or which are not
-- Placeholder scan result (must be clean)
-- Which tasks are riskiest or most likely to reveal a spec problem
-- Anything deferred
-- Open questions
-
-Then `AskUserQuestion`: *Approve and start implementing*, *Approve, stop here*,
-*Revise*, *Re-order*.
-
-On approval: `./scripts/approve.sh changes/NNN-slug/tasks.md approved`, set the
-slice's `docs/roadmap.md` status to `building`, `./scripts/index.sh`, commit
-`docs(tasks): NNN-slug`, and hand to `sdd-implement` only if the user chose to
-start.
+1. `./scripts/draft.sh changes/NNN-slug/tasks.md`.
+2. The coverage table must show every requirement covered and the
+   placeholder scan must be clean. If either is not, fix the tasks; do not
+   hand over a list with gaps.
+3. `./scripts/approve.sh changes/NNN-slug/tasks.md approved` (the approval is
+   the plan's; this records that the tasks follow from it), set the change's
+   `docs/roadmap.md` status to `building`, `./scripts/index.sh`, commit
+   `docs(tasks): NNN-slug`.
+4. Hand straight to `sdd-implement`. Do not report and wait.

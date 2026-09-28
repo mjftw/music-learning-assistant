@@ -181,6 +181,13 @@ for d in changes/[0-9][0-9][0-9]-*/; do
     for t in $(awk '/^### T[0-9]+/{t=$2} /\*\*Status:\*\* *done/{if(t)print t; t=""}' "$d/tasks.md" | sort -u); do
       compgen -G "$d/record/tasks/$t-review-*.md" >/dev/null || warn "$t is done but has no review in $d/record/tasks/ — run ./scripts/record.sh $d task $t"
     done
+    parked=$(grep -cE '\*\*Status:\*\* *parked' "$d/tasks.md" || true)
+    esc=$(grep -l '^sdd_verdict: escalated' "$d"/record/decisions/D*.md 2>/dev/null | wc -l)
+    ndec=$(ls "$d"/record/decisions/D*.md 2>/dev/null | wc -l)
+    [[ $ndec -gt 0 ]] && echo "  · $ndec decision(s) recorded, $esc escalated"
+    [[ $parked -gt 0 ]] && warn "$parked task(s) parked on an escalation — see ./scripts/report.sh $d"
+    pend=$(./scripts/record.sh "$d" amendments 2>/dev/null | grep -c '→' || true)
+    [[ $pend -gt 0 && "$(./scripts/fm.py get "$d/tasks.md" sdd_phase 2>/dev/null)" == complete ]] && bad "$pend decided amendment(s) not applied to the delta"
     dupes=$(grep -oE '^### T[0-9]+' "$d/tasks.md" | sed 's/### //' | sort | uniq -d)
     [[ -n "$dupes" ]] && bad "tasks.md has duplicate task IDs: $(echo $dupes | tr '\n' ' ') — the brief would pick the first"
     for t in $(grep -oE '^### T[0-9]+' "$d/tasks.md" | sed 's/### //' | sort -u); do
