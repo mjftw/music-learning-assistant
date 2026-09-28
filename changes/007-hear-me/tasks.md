@@ -1327,6 +1327,44 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 **Verify** — `notes.md` carries the phone-server table and the user's walk.
 
+### T026 · practice.tuner/REQ-002 · The shown offset is smoothed (design round 1: variant A becomes the rule)
+
+> Appended 2026-09-28 by design round 1 (`design/rounds.md`); the delta's
+> REQ-002 was amended with the user's approval (S6–S9).
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/domain/tuner.ts` (the smoothing as the one rule: `SMOOTHING_FACTOR = 0.1`, `SNAP_CENTS = 25`; delete `TunerSmoothing`, variants b and c and every `design-loop variant` marker)
+- Modify: `src/practice/domain/session.ts` (one smoothed pitch held by the session; reset with the reading, on a change of shown note, on a change of target; `heard.hz` stays the detected pitch; delete `SessionOptions` and `createSession`'s last argument)
+- Modify: `src/practice/published/index.ts`, `src/ui/App.tsx`, `src/ui/main.tsx`, `tests/practice/fakes.ts` (the `?variant` switch and its plumbing removed)
+- Modify: `tests/practice/scenarios/tuner-smoothing.test.ts` (becomes `practice.tuner/REQ-002/S6`, `S7`, `S8`; the variant tests deleted)
+- Modify: every test that feeds one reading per pitch and reads a settled offset (`tests/practice/scenarios/tuner-*.test.ts`, `tests/ui/scenarios/tuner-*.test.tsx`, `tuner-helpers.ts`) — feed the steady pitch the scenario names
+
+**Steps**
+- [ ] 1. Red: S6, S7, S8 by their full IDs, through the published interface, with no smoothing switch passed.
+- [ ] 2. Green: variant A's behaviour as the only path; the switch, b, c and the options plumbing deleted.
+- [ ] 3. Existing scenarios that say "steady" feed a steady pitch; no assertion is loosened.
+
+**Verify** — `pnpm check` → green; `./scripts/check-scenarios.sh --change changes/007-hear-me` shows S6–S8 tested; `grep -rn "design-loop variant\|tunerSmoothing\|TunerSmoothing" src tests` → nothing.
+
+### T027 · practice.tuner/REQ-002 · The harness gates the shown offset (S9)
+
+> Appended 2026-09-28 by design round 1.
+
+**Status:** todo
+
+**Files**
+- Modify: `scripts/tuner-timing-test.mjs` (a gated column: the shown offset — `NoteJudged.cents` — half a second into each steady tone, within ±2 ¢ of the tone fed)
+- Modify: `tests/listening/scenarios/tuner-harness.test.ts` (cites `practice.tuner/REQ-002/S9`)
+- Modify: `AGENTS.md` (the `test:tuner` healthy table and the `pnpm check` counts)
+
+**Steps**
+- [ ] 1. Add the column and the gate; the PASS / FAIL lines name it.
+- [ ] 2. Run `pnpm test:tuner` and paste the table into `notes.md` and `AGENTS.md`.
+
+**Verify** — `pnpm test:tuner` → PASS with the new column; `pnpm check` → green; `check-scenarios.sh` shows S9 tested.
+
 ### T025 · — · Converge
 
 **Status:** todo
@@ -1350,7 +1388,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 | listening.pitch-detection/REQ-005 | T012 | ✅ |
 | listening.pitch-detection/REQ-006 | T003 | ✅ |
 | practice.tuner/REQ-001 | T007, T013, T014 | ✅ |
-| practice.tuner/REQ-002 | T006, T008, T015, T018 | ✅ |
+| practice.tuner/REQ-002 | T006, T008, T015, T018, T026, T027 | ✅ |
 | practice.tuner/REQ-003 | T008, T015 | ✅ |
 | practice.tuner/REQ-004 | T006, T009, T017 | ✅ |
 | practice.tuner/REQ-005 | T016 | ✅ |
@@ -1360,7 +1398,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 | practice.tuner/REQ-009 | T009, T018 | ✅ |
 | theory.temperament/REQ-002 | T004 | ✅ |
 
-Scenario → task: listening REQ-001/S1–S3 T003; REQ-002/S1–S5 T001 (S5 also T021); REQ-003/S1, S2, S4 T001, S3 T002; REQ-004/S1, S2 T021, S3 T002 + T010; REQ-005/S1–S2 T012; REQ-006/S1–S3 T003. practice.tuner REQ-001/S1, S2, S4 T007, S3 T013; REQ-002/S1–S5 T008 (S1, S2, S5 also T015/T018); REQ-003/S1–S3 T008 (S1 also T015); REQ-004/S1–S6 T009 (S1, S2, S4–S6 also T017); REQ-005/S1–S4 T016; REQ-006/S1 T021, S2 T010, S3 T024; REQ-007/S1–S3 T011 (also T018); REQ-008/S1–S2 T012; REQ-009/S1 T018, S2 T009. theory.temperament REQ-002/S1–S5 T004.
+Scenario → task: listening REQ-001/S1–S3 T003; REQ-002/S1–S5 T001 (S5 also T021); REQ-003/S1, S2, S4 T001, S3 T002; REQ-004/S1, S2 T021, S3 T002 + T010; REQ-005/S1–S2 T012; REQ-006/S1–S3 T003. practice.tuner REQ-001/S1, S2, S4 T007, S3 T013; REQ-002/S1–S5 T008 (S1, S2, S5 also T015/T018), S6–S8 T026, S9 T027; REQ-003/S1–S3 T008 (S1 also T015); REQ-004/S1–S6 T009 (S1, S2, S4–S6 also T017); REQ-005/S1–S4 T016; REQ-006/S1 T021, S2 T010, S3 T024; REQ-007/S1–S3 T011 (also T018); REQ-008/S1–S2 T012; REQ-009/S1 T018, S2 T009. theory.temperament REQ-002/S1–S5 T004.
 
 ## Interface consistency
 
