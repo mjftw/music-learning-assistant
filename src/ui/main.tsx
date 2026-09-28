@@ -18,6 +18,7 @@ import {
   silentSound,
   webAudioListening,
   webAudioSound,
+  type NoteJudged,
   type Session,
 } from "../practice/published";
 import { builtInCatalogue } from "../theory/published";
@@ -36,6 +37,20 @@ if (rootElement === null) {
 function exposeSessionForTiming(session: Session): void {
   if (!import.meta.env.DEV) return;
   (window as unknown as { __session?: Session }).__session = session;
+}
+
+// T021's measured tuner harness (pnpm test:tuner) reads NoteJudged events
+// straight off the session, alongside `__session` above — its own hook
+// rather than routing through `__session.onNoteJudged` so the harness need
+// not know the session's shape, only that this subscribes and returns an
+// unsubscribe function (Session.onNoteJudged's own signature).
+function exposeNoteJudgedForTiming(session: Session): void {
+  if (!import.meta.env.DEV) return;
+  (
+    window as unknown as {
+      __noteJudged?: (listener: (event: NoteJudged) => void) => () => void;
+    }
+  ).__noteJudged = (listener) => session.onNoteJudged(listener);
 }
 
 // T018 also reads the sound port directly — `sampleRate()`/`onOnset()` for
@@ -109,7 +124,10 @@ createRoot(rootElement).render(
         visibility: pageVisibility(document),
         listening,
       }}
-      onSessionReady={exposeSessionForTiming}
+      onSessionReady={(session) => {
+        exposeSessionForTiming(session);
+        exposeNoteJudgedForTiming(session);
+      }}
       onPaintAge={collectPaintAge}
     />
   </StrictMode>,
