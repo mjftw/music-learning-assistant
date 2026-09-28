@@ -99,8 +99,15 @@ test("practice.tuner/REQ-003/S1 — silence on auto", async () => {
   expect(f.session.snapshot().tuner.reading).toBeNull();
 });
 
-// holdTarget() arrives in T009; T009 un-todos this scenario.
-test.todo("practice.tuner/REQ-003/S2 — silence with a target");
+test("practice.tuner/REQ-003/S2 — silence with a target", async () => {
+  const f = sessionOn("G", "flute-concert");
+  await enter(f.session);
+  f.session.pinTarget(69);
+  hear(f, 445.0);
+  f.clock.advanceMs(300);
+  expect(f.session.snapshot().tuner.reading).toBeNull();
+  expect(noteLabel(f.session.snapshot().tuner.targetNote!)).toBe("A4");
+});
 
 test("practice.tuner/REQ-003/S3 — a breath between notes", async () => {
   const f = sessionOn("G", "flute-concert");

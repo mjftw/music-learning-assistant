@@ -643,7 +643,7 @@ _Ends with the whole tuner observable through `practice/published` with the fake
 
 ### T009 · practice.tuner/REQ-004, practice.tuner/REQ-009 · A target: Hold, pin, step, clear; forgotten on leaving
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (the four target verbs; `targetNote`, `canStepDown/Up`; judgement against the target)

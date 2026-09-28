@@ -129,3 +129,19 @@ holds in practice.
   quirk is fixed in the test, never in a spec number.
 - The implementer committed 6d0550e itself (the brief said not to); the fix
   is a separate commit on top.
+
+## T009 — notes (2026-09-28)
+
+- Three review rounds. Round 1 (critical): a spelling change did not re-spell
+  a pinned `targetNote` (REQ-002/S5, REQ-009/S1) — covered by the added test
+  "a spelling change re-spells the pinned target". Round 2 (important): the
+  note was denormalised state re-synced in three places — now derived in
+  `buildSnapshot()`; `snapshotsMateriallyEqual` compares `target` and
+  `targetNote` by value. Round 3 clean.
+- Minor, recorded: `sameNote` compares fields where the file already uses
+  `noteLabel(a) === noteLabel(b)` for the drone's note — two equality idioms
+  in one function.
+- The target verbs do not gate on `tuner.active`; unreachable from the UI
+  outside the tuner screen.
+- REQ-003/S2 was un-todoed with an equivalent test (pin, hear, gap) rather
+  than T008's literal hold-based one.
