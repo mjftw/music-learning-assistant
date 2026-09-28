@@ -132,6 +132,35 @@ sdd_phase: open           # open | exited
   shown offset: worst 0 ¢ sine, 1 ¢ flute-like). The user, on the phone
   with the rule in place: "looks good on phone".
 
+### Round 2 — tuner · target sheet (Hold after the note has stopped)
+
+- **Looked at:** the phone on the stand, the flute in both hands — the
+  user cannot tap while playing (docs/design.md §2).
+- **Problem:** "on note selector spiral I'd like it to remember the last
+  heard so you can press hold on this without needing to press while
+  you're playing which is often not possible."
+- **Tried:** <pending>
+- **Chose:** <pending>
+- **Rejected because:** <pending>
+- **Requirement changed?** <pending — practice.tuner/REQ-004 (Hold, the
+  needle), REQ-009 (what leaving forgets)>
+
+### Round 3 — tuner · silent (the stave strip's trail)
+
+- **Looked at:** the same.
+- **Problem:** "I want the stave tail stay when no note playing.
+  currently it gets wiped as soon as no note which feels jarring. should
+  just see previous tail go off to left with no new tail being made until
+  its off screen." (spelling tidied)
+- **Found on the way:** the build's trail is the last 50 readings; the
+  prototype made 20 readings a second (2.5 s), the build makes about 93
+  (about 0.5 s). REQ-005 says 2.5 s.
+- **Tried:** <pending>
+- **Chose:** <pending>
+- **Rejected because:** <pending>
+- **Requirement changed?** <pending — practice.tuner/REQ-005 (the trail),
+  REQ-003 (what silence clears)>
+
 ## Exit
 
 - **Exited:** <date>
