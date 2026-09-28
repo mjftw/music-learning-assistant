@@ -69,3 +69,11 @@ holds in practice.
   the rejected `fetch` promise (root-relative `?url` paths do not resolve
   under Node); production code is unchanged and mirrors `sound`.
 - Untested by scenario (recorded): the `invalid-pitch-report` problem path.
+
+## T004 — notes (2026-09-28)
+
+- Spec correction (decisions.md): REQ-002/S4's example 452.89 → 452.90 Hz.
+- `nearestNoteOf` normalises `-0` to `0` (`Math.round(...) + 0`), commented.
+- Minor, recorded: the `hz > 0` guard's comment refers to the listening
+  schema by name from theory's domain code — a forward reference in prose
+  only.

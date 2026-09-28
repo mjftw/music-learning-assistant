@@ -1,3 +1,5 @@
+import type { SpellingPreference } from "./arc";
+
 export type NoteLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 export type Accidental =
   "doubleFlat" | "flat" | "natural" | "sharp" | "doubleSharp";
@@ -66,6 +68,54 @@ export function parseNoteString(input: string): Note | null {
     accidental,
     octave: Number.parseInt(octaveDigits, 10),
   };
+}
+
+// The pitch class (0..11, 0 = C) spelled with sharps and with flats — the
+// fixed enharmonic table equal temperament actually uses: a natural letter
+// where one lands exactly on the pitch class, otherwise the neighbouring
+// letter raised or lowered by a single accidental.
+const PITCH_CLASS_SHARP: readonly PitchClass[] = [
+  { letter: "C", accidental: "natural" },
+  { letter: "C", accidental: "sharp" },
+  { letter: "D", accidental: "natural" },
+  { letter: "D", accidental: "sharp" },
+  { letter: "E", accidental: "natural" },
+  { letter: "F", accidental: "natural" },
+  { letter: "F", accidental: "sharp" },
+  { letter: "G", accidental: "natural" },
+  { letter: "G", accidental: "sharp" },
+  { letter: "A", accidental: "natural" },
+  { letter: "A", accidental: "sharp" },
+  { letter: "B", accidental: "natural" },
+];
+
+const PITCH_CLASS_FLAT: readonly PitchClass[] = [
+  { letter: "C", accidental: "natural" },
+  { letter: "D", accidental: "flat" },
+  { letter: "D", accidental: "natural" },
+  { letter: "E", accidental: "flat" },
+  { letter: "E", accidental: "natural" },
+  { letter: "F", accidental: "natural" },
+  { letter: "G", accidental: "flat" },
+  { letter: "G", accidental: "natural" },
+  { letter: "A", accidental: "flat" },
+  { letter: "A", accidental: "natural" },
+  { letter: "B", accidental: "flat" },
+  { letter: "B", accidental: "natural" },
+];
+
+// The inverse of pitchPosition: the note at `position` (C4 = 60), spelled
+// per `spelling`. octave increments at C, matching pitchPosition's "+ 1"
+// group of twelve semitones.
+export function noteAtPosition(
+  position: number,
+  spelling: SpellingPreference,
+): Note {
+  const pitchClass = ((position % 12) + 12) % 12;
+  const octave = Math.floor(position / 12) - 1;
+  const table = spelling === "sharp" ? PITCH_CLASS_SHARP : PITCH_CLASS_FLAT;
+  const { letter, accidental } = table[pitchClass]!;
+  return { letter, accidental, octave };
 }
 
 // Internal helper shared by keys.ts and circle.ts — not part of the

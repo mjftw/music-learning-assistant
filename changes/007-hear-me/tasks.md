@@ -301,7 +301,7 @@ _Nothing user-visible. The detector proven on synthesised buffers, the crate's C
 
 ### T004 [P] · theory.temperament/REQ-002 · The nearest note to a frequency
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/theory/domain/notes.ts` (add `noteAtPosition`), `src/theory/domain/temperament.ts` (add `nearestNoteOf`), `src/theory/published/index.ts` (export both)
@@ -333,7 +333,7 @@ _Nothing user-visible. The detector proven on synthesised buffers, the crate's C
     expect(near(466.16, "sharp")).toEqual(["A♯4", 0]); expect(near(466.16, "flat")).toEqual(["B♭4", 0]);
   });
   test("theory.temperament/REQ-002/S4 — halfway belongs to the note above", () => {
-    expect(near(452.89)).toEqual(["A♯4", -50]); expect(near(452.8)).toEqual(["A4", 50]);
+    expect(near(452.90)).toEqual(["A♯4", -50]); expect(near(452.8)).toEqual(["A4", 50]);
   });
   ```
   and `tests/theory/invariants/nearest-note-inverse.test.ts`:

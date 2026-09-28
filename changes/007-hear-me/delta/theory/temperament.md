@@ -53,7 +53,7 @@ spelling preference
   Then it is A♯4 then B♭4, 0 cents either way
 - **REQ-002/S4 — halfway belongs to the note above**
   Given equal temperament
-  When the nearest note to 452.89 Hz (50 cents above A4) is read
+  When the nearest note to 452.90 Hz (just above the point 50 cents above A4, 452.893 Hz) is read
   Then it is A♯4 (or B♭4), −50 cents; for 452.8 Hz it is A4, +50
 - **REQ-002/S5 — the inverse of REQ-001 (invariant)**
   Given every note from A0 to C8

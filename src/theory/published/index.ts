@@ -1,5 +1,5 @@
 export type { Accidental, Note, NoteLetter, PitchClass } from "../domain/notes";
-export { pitchPosition } from "../domain/notes";
+export { noteAtPosition, pitchPosition } from "../domain/notes";
 export type { Key, KeyId, Mode } from "../domain/keys";
 export { keyId, scaleNotesOf } from "../domain/keys";
 export type { Signature, SignatureKind } from "../domain/signatures";
@@ -42,7 +42,11 @@ export {
 } from "../domain/traversal";
 export { pitchClassLabel, noteLabel } from "../domain/labels";
 export { inlineAccidentalsOf } from "../domain/notation";
-export { pitchHzOf, REFERENCE_A4_HZ } from "../domain/temperament";
+export {
+  nearestNoteOf,
+  pitchHzOf,
+  REFERENCE_A4_HZ,
+} from "../domain/temperament";
 export type {
   Catalogue,
   CatalogueNotice,
