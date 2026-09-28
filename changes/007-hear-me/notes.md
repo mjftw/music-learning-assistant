@@ -145,3 +145,13 @@ holds in practice.
   outside the tuner screen.
 - REQ-003/S2 was un-todoed with an equivalent test (pin, hear, gap) rather
   than T008's literal hold-based one.
+
+## T010 — notes (2026-09-28)
+
+- A dropped (late) detection re-arms neither the commit tick nor the gap
+  timer: a sustained stall reads as silence ("Play a note") after 300 ms
+  rather than a stale reading — Article V's "silence beats late feedback";
+  no scenario pins the sustained-stall case; recorded for converge.
+- Minor, recorded: the report's justification for dropping an unused test
+  helper cited a note the brief did not contain; the outcome (no dead code,
+  tests verbatim) is right.

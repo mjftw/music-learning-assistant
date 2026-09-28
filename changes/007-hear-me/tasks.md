@@ -722,7 +722,7 @@ _Ends with the whole tuner observable through `practice/published` with the fake
 
 ### T010 · practice.tuner/REQ-006, listening.pitch-detection/REQ-004 · A late detection is dropped; a burst is coalesced; the paint age is reported
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (the age check before `judge`; `readingShown`)
