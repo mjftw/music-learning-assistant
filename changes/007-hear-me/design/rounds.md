@@ -174,6 +174,28 @@ sdd_phase: open           # open | exited
 - **Left as built, put to the user, no answer yet:** the trail turns grey
   the instant the note stops.
 
+### Round 4 — tuner · listening → silent (the reading going away)
+
+- **Looked at:** the phone on the stand, glancing between breaths
+  (docs/design.md §2).
+- **Problem:** "Looks good but it's very abrupt how quickly everything
+  disappears when going from hearing something to nothing, could it do
+  more of a soft fade out?"
+- **Tried:** live behind `?variant=a|b|c` (no parameter = the build as it
+  is, the reading cut 300 ms after the note stops):
+  A fade — the last reading stays where it was and fades out over 0.6 s,
+  then "Play a note" fades in ·
+  B linger, then fade — the last reading turns grey and holds for 1 s (to
+  be read between breaths), then fades over 0.4 s ·
+  C ghost — the last reading stays, grey, with "Play a note" beneath,
+  until the next note or leaving.
+  Durations here are new values; the winner's becomes a motion token at
+  exit (docs/design.md §8).
+- **Chose:** <pending>
+- **Rejected because:** <pending>
+- **Requirement changed?** <pending — practice.tuner/REQ-003 (what
+  silence shows, and when)>
+
 ## Exit
 
 - **Exited:** <date>
