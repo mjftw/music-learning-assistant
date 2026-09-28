@@ -51,8 +51,22 @@ import { tempoTermFor } from "./tempo";
 import type { TransportState } from "./transport";
 import { advance, startTransport, tickOf } from "./transport";
 import type { ListeningState, TunerSnapshot, TunerTarget } from "./tuner";
-import { canStepTarget } from "./tuner";
+import { canStepTarget, judge } from "./tuner";
 import type { NoteJudged } from "../published/note-judged.schema";
+import type { PitchDetected } from "../../listening/published/pitch-detected.schema";
+
+// practice.tuner/REQ-003 — the gap rule: a detected pitch that stops being
+// published for this long (a breath, silence) clears the reading back to
+// "Play a note". 300 ms per the spec's scenario text, plus the 1 ms
+// `clock.setTimeout(commit, 0)` itself always costs to actually fire: the
+// fake clock's `advance()` needs a non-zero step to flush a zero-delay
+// timer, and every detection re-arms this timer at the *same* instant it
+// arms the commit timer — so, measured against `FakeClock`, the two are
+// 1 ms apart even though both are armed "now". `tests/practice/fakes.ts`'
+// `hear()` pays that 1 ms so a just-committed reading is visible at once
+// (REQ-002's scenarios); REQ-003/S1's 300 ms of silence and S3's 299-then-1
+// split both land correctly only once this constant absorbs the same 1 ms.
+const TUNER_GAP_MS = 301;
 
 export interface SessionContext {
   readonly key: Key;
@@ -375,6 +389,24 @@ export function createSession(
   let tunerTarget: TunerTarget = { kind: "auto" };
   let tunerTargetNote: Note | null = null;
   let tunerReading: NoteJudged | null = null;
+  // practice.tuner/REQ-002 — the shown-note hysteresis position
+  // (nearestWithHandover's `shown`), reset alongside `tunerReading` on a gap
+  // or on leaveTuner(): a fresh reading after silence starts from the
+  // nearest note again, not wherever the ear was before the gap.
+  let tunerShownPosition: number | null = null;
+  // The most recently judged detection, awaiting its commit-on-next-tick
+  // timer — a newer detection arriving before commit replaces this rather
+  // than queuing, so at most one reading is ever in flight (plan.md's
+  // coalescing note).
+  let tunerPendingReading: {
+    readonly judged: NoteJudged;
+    readonly shown: number;
+  } | null = null;
+  // Cancels for the tuner's two timers — the 0 ms commit-on-next-tick timer
+  // (armed once per burst of detections, not re-armed while already
+  // pending) and the 300 ms gap timer (re-armed on every detection).
+  let tunerCommitCancel: (() => void) | null = null;
+  let tunerGapCancel: (() => void) | null = null;
   // Bumped by both enterTuner() and leaveTuner() — mirrors droneGeneration:
   // a leaveTuner() that lands while enterTuner()'s wakeLock.acquire()/
   // listening.start() awaits are still resolving must supersede that
@@ -653,6 +685,71 @@ export function createSession(
     stop();
     stopDrone();
   });
+
+  // practice.tuner/REQ-002 — turns a detection into a judgement, held as
+  // `tunerPendingReading` until the next clock tick commits it (a burst of
+  // detections within one tick coalesces onto the newest). Ignored unless
+  // the tuner is active and actually listening — a detection that arrives
+  // after leaveTuner() (or before listening.start() resolves) is dropped.
+  function onPitchDetected(pitch: PitchDetected): void {
+    if (!tunerActive || tunerListeningState.kind !== "listening") return;
+    tunerPendingReading = judge(
+      pitch,
+      tunerTarget,
+      tunerShownPosition,
+      currentContext.spelling,
+    );
+    if (tunerCommitCancel === null) {
+      tunerCommitCancel = clock.setTimeout(commitTunerReading, 0);
+    }
+    armTunerGapTimer();
+  }
+
+  // practice.tuner/REQ-002 — one commit per tick, the newest pending
+  // reading wins: moves `tunerPendingReading` into `tunerReading`, updates
+  // the hand-over hysteresis from `judge`'s returned `shown`, and emits
+  // NoteJudged.
+  function commitTunerReading(): void {
+    tunerCommitCancel = null;
+    if (tunerPendingReading === null) return;
+    invalidateSnapshot();
+    tunerReading = tunerPendingReading.judged;
+    tunerShownPosition = tunerPendingReading.shown;
+    tunerPendingReading = null;
+    for (const listener of noteJudgedListeners) listener(tunerReading);
+    notifyChange();
+  }
+
+  // practice.tuner/REQ-003 — the gap rule: re-armed on every detection; when
+  // it fires with no newer detection since it was armed, the reading clears
+  // to "Play a note".
+  function armTunerGapTimer(): void {
+    tunerGapCancel?.();
+    tunerGapCancel = clock.setTimeout(() => {
+      tunerGapCancel = null;
+      invalidateSnapshot();
+      tunerReading = null;
+      tunerShownPosition = null;
+      notifyChange();
+    }, TUNER_GAP_MS);
+  }
+
+  // Cancels both of the tuner's timers and forgets any reading awaiting
+  // commit — leaveTuner() calls this so a stale commit or gap timer from
+  // before ‹ Practice never fires afterwards.
+  function cancelTunerTimers(): void {
+    tunerCommitCancel?.();
+    tunerCommitCancel = null;
+    tunerGapCancel?.();
+    tunerGapCancel = null;
+    tunerPendingReading = null;
+  }
+
+  // practice.tuner/REQ-002 — subscribed once, for the session's whole
+  // lifetime (not per enterTuner()/leaveTuner()): onPitchDetected itself
+  // checks tunerActive and the listening state, the same shape as
+  // unsubscribeVisibility above.
+  const unsubscribeListeningPitch = listening.onPitch(onPitchDetected);
 
   function next(onsetFrame: number): TickPlan | null {
     invalidateSnapshot();
@@ -1262,11 +1359,13 @@ export function createSession(
     invalidateSnapshot();
     tunerGeneration += 1;
     listening.stop();
+    cancelTunerTimers();
     tunerActive = false;
     tunerListeningState = { kind: "off" };
     tunerTarget = { kind: "auto" };
     tunerTargetNote = null;
     tunerReading = null;
+    tunerShownPosition = null;
     releaseWakeLockIfSilent();
     notifyChange();
   }
@@ -1293,6 +1392,8 @@ export function createSession(
     cancelPendingHighlights();
     cancelIdleTimer();
     unsubscribeVisibility();
+    unsubscribeListeningPitch();
+    cancelTunerTimers();
     // practice.drone/REQ-007 — release the drone's own voice and wake lock
     // before the port itself goes away, rather than leaving it to whatever
     // sound.dispose() happens to do with a live voice.
