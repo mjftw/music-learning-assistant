@@ -1,27 +1,8 @@
 import { expect, test } from "vitest";
-import type { NoteJudged, Session } from "../../../src/practice/published";
+import type { NoteJudged } from "../../../src/practice/published";
 import { noteLabel } from "../../../src/theory/published";
-import { sessionOn, type SessionFixture } from "../fakes";
-
-const flush = () => new Promise((r) => setTimeout(r, 0));
-
-// practice.tuner/REQ-002, REQ-003 — enters the tuner and drives it past
-// both of enterTuner()'s awaits (wakeLock.acquire(), then listening.start()),
-// the same "two flushes" shape tuner-way-in-out.test.ts uses, so
-// `listening.listening` is true before a scenario feeds a pitch.
-async function enter(session: Session): Promise<void> {
-  session.enterTuner();
-  await flush();
-  await flush();
-}
-
-// Feeds a detected pitch and advances the fake clock past the session's
-// commit-on-next-tick timer (`clock.setTimeout(commit, 0)`), so the
-// committed reading is visible in the snapshot right after this returns.
-function hear(f: SessionFixture, hz: number): void {
-  f.listening.feed(hz);
-  f.clock.advanceMs(1);
-}
+import { sessionOn } from "../fakes";
+import { enter, hear, hearSteady } from "../tuner-helpers";
 
 test("practice.tuner/REQ-002/S1 — a little sharp", async () => {
   const f = sessionOn("G", "flute-concert");
@@ -45,7 +26,10 @@ test("practice.tuner/REQ-002/S2 — in tune", async () => {
     cents: 4,
     verdict: "in-tune",
   });
-  hear(f, 442.0);
+  // practice.tuner/REQ-002's smoothing is always on (T026): 442.0 Hz is
+  // less than SNAP_CENTS from 441.0, so a single reading would only creep
+  // towards it — settle on the new steady pitch instead.
+  hearSteady(f, 442.0);
   expect(f.session.snapshot().tuner.reading).toMatchObject({
     cents: 8,
     verdict: "sharp",
@@ -67,17 +51,21 @@ test("practice.tuner/REQ-002/S4 — the name holds across the boundary (hysteres
   const f = sessionOn("G", "flute-concert");
   await enter(f.session);
   hear(f, 440.0);
+  // practice.tuner/REQ-002's smoothing is always on (T026): each of these
+  // is a steady pitch (the scenario itself: "rises steadily through …",
+  // "coming back down"), not a single nearby reading, so each is settled
+  // before the name/tag is read.
   for (const hz of [452.9, 454.0]) {
-    hear(f, hz);
+    hearSteady(f, hz);
     expect(noteLabel(f.session.snapshot().tuner.reading!.target)).toBe("A4");
     expect(f.session.snapshot().tuner.reading!.cents).toBe(50);
   }
-  hear(f, 455.0);
+  hearSteady(f, 455.0);
   expect(noteLabel(f.session.snapshot().tuner.reading!.target)).toBe("A♯4");
   expect(f.session.snapshot().tuner.reading!.cents).toBe(-42);
-  hear(f, 452.0);
+  hearSteady(f, 452.0);
   expect(noteLabel(f.session.snapshot().tuner.reading!.target)).toBe("A♯4"); // 52 ¢ below A♯4: still A♯4
-  hear(f, 450.0);
+  hearSteady(f, 450.0);
   expect(noteLabel(f.session.snapshot().tuner.reading!.target)).toBe("A4"); // 61 ¢ below: handed over
 });
 

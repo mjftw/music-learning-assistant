@@ -1,26 +1,8 @@
 import { expect, test } from "vitest";
-import type { Session } from "../../../src/practice/published";
-import { sessionOn, type SessionFixture } from "../fakes";
+import { sessionOn } from "../fakes";
+import { enter, hear } from "../tuner-helpers";
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
-
-// practice.tuner/REQ-002, REQ-003 — enters the tuner and drives it past
-// both of enterTuner()'s awaits (wakeLock.acquire(), then listening.start()),
-// the same "two flushes" shape tuner-way-in-out.test.ts uses, so
-// `listening.listening` is true before a scenario feeds a pitch.
-async function enter(session: Session): Promise<void> {
-  session.enterTuner();
-  await flush();
-  await flush();
-}
-
-// Feeds a detected pitch and advances the fake clock past the session's
-// commit-on-next-tick timer (`clock.setTimeout(commit, 0)`), so the
-// committed reading is visible in the snapshot right after this returns.
-function hear(f: SessionFixture, hz: number): void {
-  f.listening.feed(hz);
-  f.clock.advanceMs(1);
-}
 
 test("practice.tuner/REQ-008/S1 — hidden means deaf, shown means listening", async () => {
   const f = sessionOn("G", "flute-concert");

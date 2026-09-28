@@ -1332,7 +1332,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 > Appended 2026-09-28 by design round 1 (`design/rounds.md`); the delta's
 > REQ-002 was amended with the user's approval (S6–S9).
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/tuner.ts` (the smoothing as the one rule: `SMOOTHING_FACTOR = 0.1`, `SNAP_CENTS = 25`; delete `TunerSmoothing`, variants b and c and every `design-loop variant` marker)
@@ -1346,7 +1346,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 - [ ] 2. Green: variant A's behaviour as the only path; the switch, b, c and the options plumbing deleted.
 - [ ] 3. Existing scenarios that say "steady" feed a steady pitch; no assertion is loosened.
 
-**Verify** — `pnpm check` → green; `./scripts/check-scenarios.sh --change changes/007-hear-me` shows S6–S8 tested; `grep -rn "design-loop variant\|tunerSmoothing\|TunerSmoothing" src tests` → nothing.
+**Verify** — `pnpm check` → green; `./scripts/check-scenarios.sh --change changes/007-hear-me` shows S6–S8 tested; `grep -rn "design-loop variant\|TunerSmoothing\|SessionOptions" src tests` → nothing.
 
 ### T027 · practice.tuner/REQ-002 · The harness gates the shown offset (S9)
 

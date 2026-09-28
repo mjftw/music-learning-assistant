@@ -51,11 +51,18 @@ import type { TempoTerm } from "./tempo";
 import { tempoTermFor } from "./tempo";
 import type { TransportState } from "./transport";
 import { advance, startTransport, tickOf } from "./transport";
-import type { ListeningState, TunerSnapshot, TunerTarget } from "./tuner";
+import type {
+  ListeningState,
+  SmoothingState,
+  TunerSnapshot,
+  TunerTarget,
+} from "./tuner";
 import {
   canStepTarget,
+  initialSmoothingState,
   judge,
   READING_MAX_AGE_MS,
+  smoothedPitchHzOf,
   TUNER_HIGHEST_POSITION,
   TUNER_LOWEST_POSITION,
 } from "./tuner";
@@ -454,6 +461,10 @@ export function createSession(
   // or on leaveTuner(): a fresh reading after silence starts from the
   // nearest note again, not wherever the ear was before the gap.
   let tunerShownPosition: number | null = null;
+  // practice.tuner/REQ-002 — the smoothing filter's own state, reset
+  // alongside `tunerReading`/`tunerShownPosition` (see `clearTunerReading`
+  // below) and on enterTuner().
+  let tunerSmoothingState: SmoothingState = initialSmoothingState;
   // The most recently judged detection, awaiting its commit-on-next-tick
   // timer — a newer detection arriving before commit replaces this rather
   // than queuing, so at most one reading is ever in flight (plan.md's
@@ -787,12 +798,29 @@ export function createSession(
       ((listening.currentFrame() - pitch.atFrame) / listening.sampleRate()) *
       1000;
     if (ageMs > READING_MAX_AGE_MS) return;
-    tunerPendingReading = judge(
-      pitch,
+    // practice.tuner/REQ-002 — judge a smoothed pitch (never holding the
+    // reading back), but keep `heard.hz` the raw detected value: the
+    // measured harness reads it, and the spec says the Hz stays detected.
+    const { hz: smoothedHz, state } = smoothedPitchHzOf(
+      tunerSmoothingState,
+      tunerTarget,
+      tunerShownPosition,
+      pitch.hz,
+    );
+    tunerSmoothingState = state;
+    const result = judge(
+      { ...pitch, hz: smoothedHz },
       tunerTarget,
       tunerShownPosition,
       currentContext.spelling,
     );
+    tunerPendingReading = {
+      judged: {
+        ...result.judged,
+        heard: { ...result.judged.heard, hz: pitch.hz },
+      },
+      shown: result.shown,
+    };
     if (tunerCommitCancel === null) {
       tunerCommitCancel = clock.setTimeout(commitTunerReading, 0);
     }
@@ -822,6 +850,8 @@ export function createSession(
   function clearTunerReading(): void {
     tunerReading = null;
     tunerShownPosition = null;
+    // practice.tuner/REQ-002 — the smoothing filter resets in lockstep.
+    tunerSmoothingState = initialSmoothingState;
   }
 
   // practice.tuner/REQ-003 — the gap rule: re-armed on every detection; when
@@ -1579,6 +1609,8 @@ export function createSession(
   function pinTargetAt(position: number): void {
     invalidateSnapshot();
     tunerTarget = { kind: "pinned", position };
+    // practice.tuner/REQ-002 — the first reading after the target changes is as detected
+    tunerSmoothingState = initialSmoothingState;
     notifyChange();
   }
 
@@ -1618,6 +1650,8 @@ export function createSession(
   function clearTarget(): void {
     invalidateSnapshot();
     tunerTarget = { kind: "auto" };
+    // practice.tuner/REQ-002 — the first reading after the target changes is as detected
+    tunerSmoothingState = initialSmoothingState;
     notifyChange();
   }
 

@@ -518,3 +518,27 @@ every variant leaves raw — so the harness says nothing about the accuracy
 or the lag of the *shown* offset under a or c. If a or c is chosen, the
 harness needs a gate on the shown cents (settled value within ±2 ¢ of the
 fed tone) before converge.
+
+## T026 — the shown offset is smoothed (2026-09-28)
+
+- Variant A is the rule: `SMOOTHING_FACTOR` 0.1, `SNAP_CENTS` 25
+  (`src/practice/domain/tuner.ts`); the `?variant` switch, variants b and
+  c and their plumbing are gone.
+- **`NoteJudged.heard`**: `heard.hz` is the detected frequency;
+  `heard.nearest` and `heard.cents` follow the smoothed pitch, because the
+  stave strip's head and cents, the trail and the spiral's needle read
+  them and REQ-002 smooths what is shown. The plan's data-model comment
+  ("the raw detection and its nearest note") is amended at finish.
+- The session resets the smoothing with the reading (a gap, leaving,
+  hidden), on a hand-over (the key), and in every target verb that
+  changes the target.
+- Tests that fed one reading per pitch and read a settled offset now feed
+  a steady pitch (`hearSteady`, `tests/practice/tuner-helpers.ts`); no
+  assertion or expected value changed. The coalescing test in
+  `tuner-budget.test.ts` feeds one pitch at three frames and asserts the
+  newest frame.
+- For converge: that coalescing test cites
+  `listening.pitch-detection/REQ-004/S3`, which is "late is dropped" — a
+  mislabel from T010, not T026's.
+- The fix round (haiku) pasted the documented `pnpm check` counts rather
+  than its own; the controller's run: 75 files, 314 tests, exit 0.

@@ -1,17 +1,6 @@
 import { expect, test } from "vitest";
-import type { Session } from "../../../src/practice/published";
 import { sessionOn } from "../fakes";
-
-const flush = () => new Promise((r) => setTimeout(r, 0));
-
-// practice.tuner/REQ-009 — enters the tuner and drives it past both of
-// enterTuner()'s awaits (wakeLock.acquire(), then listening.start()), the
-// same "two flushes" shape tuner-reading.test.ts uses.
-async function enter(session: Session): Promise<void> {
-  session.enterTuner();
-  await flush();
-  await flush();
-}
+import { enter } from "../tuner-helpers";
 
 test("practice.tuner/REQ-009/S2 — leaving forgets the target", async () => {
   const f = sessionOn("G", "flute-concert");

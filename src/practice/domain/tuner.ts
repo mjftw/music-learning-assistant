@@ -142,3 +142,57 @@ export function judge(
   // then resumes from wherever the ear actually was.
   return { judged, shown: pitchPosition(nearest.note) };
 }
+
+// practice.tuner/REQ-002 — the shown pitch is smoothed: each reading moves
+// the smoothed pitch a tenth of the way from where it was to the detected
+// pitch (an exponential low-pass filter, ~100 ms time constant at the
+// tuner's ~90 readings/s); a detected pitch more than SNAP_CENTS away is a
+// new pitch and is shown as detected, at once.
+export const SMOOTHING_FACTOR = 0.1;
+export const SNAP_CENTS = 25;
+
+export interface SmoothingState {
+  readonly key: number | null; // the shown/pinned position this state was built for
+  readonly emaHz: number | null; // the smoothed pitch, in Hz
+}
+
+export const initialSmoothingState: SmoothingState = { key: null, emaHz: null };
+
+// Which note `hz` is judged against: pinned, the target; auto, the same
+// hand-over `judge` itself would land on.
+function smoothingKeyOf(
+  target: TunerTarget,
+  shown: number | null,
+  hz: number,
+): number {
+  return target.kind === "pinned"
+    ? target.position
+    : nearestWithHandover(shown, hz);
+}
+
+/**
+ * practice.tuner/REQ-002 — moves the smoothed pitch a tenth of the way to
+ * `hz`, or snaps to `hz` at once: on the first reading after a reset
+ * (`state.emaHz === null`), when `hz` is more than SNAP_CENTS from the
+ * smoothed pitch, or when the shown note or target has changed since the
+ * last reading (the key mismatch).
+ */
+export function smoothedPitchHzOf(
+  state: SmoothingState,
+  target: TunerTarget,
+  shown: number | null,
+  hz: number,
+): { readonly hz: number; readonly state: SmoothingState } {
+  const continuedHz =
+    state.emaHz !== null
+      ? state.emaHz + (hz - state.emaHz) * SMOOTHING_FACTOR
+      : hz;
+  const jumped =
+    state.emaHz !== null &&
+    Math.abs(1200 * Math.log2(hz / state.emaHz)) > SNAP_CENTS;
+  const continuedKey = smoothingKeyOf(target, shown, continuedHz);
+  const continues = !jumped && state.key !== null && state.key === continuedKey;
+  const smoothedHz = continues ? continuedHz : hz;
+  const key = smoothingKeyOf(target, shown, smoothedHz);
+  return { hz: smoothedHz, state: { key, emaHz: smoothedHz } };
+}

@@ -1,18 +1,7 @@
 import { expect, test } from "vitest";
-import type { NoteJudged, Session } from "../../../src/practice/published";
+import type { NoteJudged } from "../../../src/practice/published";
 import { sessionOn } from "../fakes";
-
-const flush = () => new Promise((r) => setTimeout(r, 0));
-
-// practice.tuner/REQ-002, REQ-003 — enters the tuner and drives it past
-// both of enterTuner()'s awaits (wakeLock.acquire(), then listening.start()),
-// the same "two flushes" shape tuner-way-in-out.test.ts uses, so
-// `listening.listening` is true before a scenario feeds a pitch.
-async function enter(session: Session): Promise<void> {
-  session.enterTuner();
-  await flush();
-  await flush();
-}
+import { enter } from "../tuner-helpers";
 
 test("practice.tuner/REQ-006/S2 — late is dropped", async () => {
   const f = sessionOn("G", "flute-concert");
@@ -34,12 +23,17 @@ test("listening.pitch-detection/REQ-004/S3 — a burst before the commit is coal
   await enter(f.session);
   const judged: NoteJudged[] = [];
   f.session.onNoteJudged((e) => judged.push(e));
-  f.listening.feed(440.0);
-  f.listening.feed(441.0);
-  f.listening.feed(442.0);
+  // practice.tuner/REQ-002's smoothing is always on (T026): three
+  // detections of the same steady 442.0 Hz, at three different frames,
+  // arrive before the session's commit-on-next-tick timer fires — still
+  // only one NoteJudged, carrying the newest (last-fed) detection's frame.
+  f.listening.feed(442.0, 0);
+  f.listening.feed(442.0, 1);
+  f.listening.feed(442.0, 2);
   f.clock.advanceMs(1);
   expect(judged).toHaveLength(1);
   expect(judged[0]!.cents).toBe(8);
+  expect(judged[0]!.atFrame).toBe(2);
 });
 
 test("practice.tuner/REQ-006 — readingShown reports the age at paint", async () => {
