@@ -1198,7 +1198,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 ### T019 · practice.tuner/REQ-006 · The paint is reported; the dev hooks the harness needs
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/TunerScreen.tsx` (`useLayoutEffect` on `tuner.reading?.atFrame` → `onReadingShown(atFrame)`), `src/ui/App.tsx` (`onReadingShown` → `session.readingShown(atFrame)` → pushes the returned age to `props.onPaintAge?.(ageMs)`), `src/ui/main.tsx` (DEV: `window.__paintAgesMs: number[]` collected via `onPaintAge`; `window.__enterTuner = () => …` is **not** added — the harness clicks the pill)

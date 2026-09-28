@@ -61,6 +61,17 @@ function exposeListeningForTiming(
   ).__listening = listening;
 }
 
+// T019 — practice.tuner/REQ-006's measured harness (pnpm test:tuner) reads
+// every painted reading's age back from `window.__paintAgesMs`, alongside
+// `__session`/`__sound`/`__listening` above; App's `onPaintAge` reports one
+// age per painted reading via this array's push, dev-only, same guard as
+// the other three.
+function collectPaintAge(ageMs: number): void {
+  if (!import.meta.env.DEV) return;
+  const withPaintAges = window as unknown as { __paintAgesMs?: number[] };
+  (withPaintAges.__paintAgesMs ??= []).push(ageMs);
+}
+
 // One AudioContext for both worklets (ADR 0006): one audio thread, one
 // clock. `webAudioSound` and `webAudioListening` each call this on their
 // own first `start()` — whichever runs first creates it, the other gets the
@@ -99,6 +110,7 @@ createRoot(rootElement).render(
         listening,
       }}
       onSessionReady={exposeSessionForTiming}
+      onPaintAge={collectPaintAge}
     />
   </StrictMode>,
 );

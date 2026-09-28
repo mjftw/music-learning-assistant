@@ -1,4 +1,11 @@
-import { memo, useCallback, useRef, useState, type JSX } from "react";
+import {
+  memo,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type JSX,
+} from "react";
 import type { NoteJudged, TunerSnapshot } from "../practice/published";
 import type { NoteRange, SpellingPreference } from "../theory/published";
 import { TargetPill } from "./TargetPill";
@@ -126,6 +133,7 @@ function TunerScreenComponent(props: {
   readonly onStep: (delta: -1 | 1) => void;
   readonly onClear: () => void;
   readonly onSpellingChange: (preference: SpellingPreference) => void;
+  readonly onReadingShown: (atFrame: number) => void;
 }): JSX.Element {
   const {
     tuner,
@@ -137,6 +145,7 @@ function TunerScreenComponent(props: {
     onStep,
     onClear,
     onSpellingChange,
+    onReadingShown,
   } = props;
   const listening = isListening(tuner);
   const cannotHear = tuner.listening.kind === "cannot-hear";
@@ -186,6 +195,17 @@ function TunerScreenComponent(props: {
     lastReadingRef.current = tuner.reading;
     trailRef.current = appendToTrail(trailRef.current, tuner.reading);
   }
+
+  // practice.tuner/REQ-006 — the paint is reported once per distinct
+  // reading, right after React has committed it (useLayoutEffect, not
+  // useEffect, so the report reflects this exact commit rather than a
+  // later one); the dependency is the reading's own `atFrame`, not the
+  // `NoteJudged` object, so two commits of the same reading (a re-render
+  // with nothing new) report only once. No reading, nothing to report.
+  const atFrame = tuner.reading?.atFrame;
+  useLayoutEffect(() => {
+    if (atFrame !== undefined) onReadingShown(atFrame);
+  }, [atFrame, onReadingShown]);
 
   return (
     <div

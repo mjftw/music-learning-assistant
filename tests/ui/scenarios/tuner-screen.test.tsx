@@ -153,6 +153,19 @@ test("practice.tuner/REQ-007/S3 — failed while listening", async () => {
   expect(screen.queryByTestId("tuner-line")).toBeNull();
 });
 
+test("practice.tuner/REQ-006 — every painted reading is reported with its age", async () => {
+  const ages: number[] = [];
+  const f = await enterAndHear(440.0, "sharp", {
+    onPaintAge: (ms) => ages.push(ms),
+  });
+  f.listening.frame = 4800;
+  f.listening.feed(440.0, 4800);
+  f.clock.advanceMs(1);
+  f.listening.frame = 4800 + 480;
+  await act(async () => {});
+  expect(ages.at(-1)).toBe(10);
+});
+
 test("practice.tuner/REQ-002/S5 — the spelling toggle is the circle's preference", async () => {
   const f = await enterAndHear(466.16);
   expect(screen.getByTestId("tuner-name").textContent).toBe("A♯4");

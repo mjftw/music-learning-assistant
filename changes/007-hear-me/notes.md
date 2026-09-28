@@ -289,3 +289,9 @@ Pending the user's phone check.
   duplicated between the circle and the tuner footer — a `SpellingToggle`
   extraction would touch `CircleOfFifths.tsx`.
 - Ripple: `TunerLevel` shows "–" (`paper.drawerBorder`) while cannot-hear.
+
+## T019 — notes (2026-09-28)
+
+- Minor, recorded: why two distinct readings never share an `atFrame`
+  (the listening port stamps `now_frame + 127` per hop, monotonic) is true
+  but not stated at the effect.

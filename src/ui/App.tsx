@@ -232,8 +232,15 @@ export function App(props: {
   // hook. Keeping it optional and additive leaves App fully testable
   // without it.
   readonly onSessionReady?: (session: Session) => void;
+  // Optional: practice.tuner/REQ-006 — the age (ms) of each reading at the
+  // instant it was painted, one call per `TunerScreen.onReadingShown`
+  // (T019's own `useLayoutEffect`). main.tsx collects these into the
+  // dev-only `window.__paintAgesMs` the measured harness reads; App stays
+  // fully testable without it, as `onSessionReady` does above.
+  readonly onPaintAge?: (ageMs: number) => void;
 }): JSX.Element {
-  const { catalogue, selectionStore, sessionDeps, onSessionReady } = props;
+  const { catalogue, selectionStore, sessionDeps, onSessionReady, onPaintAge } =
+    props;
   const [selection, setSelection] = useState<Selection>(() =>
     initialSelection(catalogue, selectionStore),
   );
@@ -528,6 +535,18 @@ export function App(props: {
     () => session?.clearTarget(),
     [session],
   );
+  // practice.tuner/REQ-006 — TunerScreen reports each painted reading back
+  // here; the session turns the frame it was painted at into the reading's
+  // age at that instant, and this forwards it to `onPaintAge` for the
+  // harness (main.tsx) to collect. A no-op before the session-creating
+  // effect has run, mirroring every other session-reaching handler above.
+  const handleReadingShown = useCallback(
+    (atFrame: number) => {
+      if (session === null) return;
+      onPaintAge?.(session.readingShown(atFrame));
+    },
+    [session, onPaintAge],
+  );
 
   const handleSelectKey = useCallback((selectedWedgeKey: Key) => {
     setSelection((current) => {
@@ -659,6 +678,7 @@ export function App(props: {
           onStep={handleStepTarget}
           onClear={handleClearTarget}
           onSpellingChange={handleSelectSpelling}
+          onReadingShown={handleReadingShown}
         />
       ) : (
         <>
