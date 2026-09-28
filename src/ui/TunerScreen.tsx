@@ -179,6 +179,64 @@ const FLAT_GLYPH = "♭";
 // the spiral's needle trail: the newest 50 readings of the current run
 const SPIRAL_TRAIL_READINGS = 50;
 
+// design-loop variant (007 round 5) — the ♯/♭ segmented control's own
+// markup, extracted so "flex-compact" (the header) and "fixed"/"flex" (the
+// footer, below) render the identical control rather than two copies of it
+// (AGENTS.md "Things agents get wrong here" — extract, don't duplicate).
+function SpellingToggle(props: {
+  readonly sharpSelected: boolean;
+  readonly onSpellingChange: (preference: SpellingPreference) => void;
+}): JSX.Element {
+  const { sharpSelected, onSpellingChange } = props;
+  return (
+    <div
+      style={{
+        display: "flex",
+        border: `1px solid ${SPELLING_PILL_BORDER}`,
+        borderRadius: 999,
+        overflow: "hidden",
+      }}
+    >
+      <button
+        type="button"
+        aria-label="sharp"
+        aria-pressed={sharpSelected}
+        onClick={() => onSpellingChange("sharp")}
+        style={{
+          padding: SPELLING_BUTTON_PADDING,
+          fontSize: SPELLING_BUTTON_FONT_SIZE,
+          fontWeight: 600,
+          lineHeight: SPELLING_BUTTON_LINE_HEIGHT,
+          color: sharpSelected ? SPELLING_ACTIVE_INK : SPELLING_INACTIVE_INK,
+          background: sharpSelected ? SPELLING_ACTIVE_BG : "transparent",
+          border: "none",
+          cursor: "pointer",
+        }}
+      >
+        {SHARP_GLYPH}
+      </button>
+      <button
+        type="button"
+        aria-label="flat"
+        aria-pressed={!sharpSelected}
+        onClick={() => onSpellingChange("flat")}
+        style={{
+          padding: SPELLING_BUTTON_PADDING,
+          fontSize: SPELLING_BUTTON_FONT_SIZE,
+          fontWeight: 600,
+          lineHeight: SPELLING_BUTTON_LINE_HEIGHT,
+          color: !sharpSelected ? SPELLING_ACTIVE_INK : SPELLING_INACTIVE_INK,
+          background: !sharpSelected ? SPELLING_ACTIVE_BG : "transparent",
+          border: "none",
+          cursor: "pointer",
+        }}
+      >
+        {FLAT_GLYPH}
+      </button>
+    </div>
+  );
+}
+
 // practice.tuner/REQ-001 — "LISTENING" covers both "starting" (the
 // microphone has been asked for but capture has not begun yet) and
 // "listening" itself; only "cannot-hear" reads "NO MIC" (REQ-007). The
@@ -222,6 +280,12 @@ function TunerScreenComponent(props: {
   // switch can offer several timings of the same treatment side by side.
   readonly lingerMs?: number;
   readonly lingerFadeMs?: number;
+  // design-loop variant (007 round 5) — "fixed" (today, the default): no
+  // change. "flex": the screen is exactly the viewport's visible height,
+  // the level takes whatever's left. "flex-compact": as "flex", and the
+  // footer's two parts move into the header row (below). Forwarded to
+  // TunerLevel unchanged.
+  readonly fit?: "fixed" | "flex" | "flex-compact";
 }): JSX.Element {
   const {
     tuner,
@@ -242,7 +306,11 @@ function TunerScreenComponent(props: {
     clearTimer = defaultClearTimer,
     lingerMs = LINGER_MS,
     lingerFadeMs = LINGER_FADE_MS,
+    fit = "fixed",
   } = props;
+  // design-loop variant (007 round 5) — "flex-compact" only: the footer
+  // row is removed, its two parts moved into the header (below).
+  const compactFooter = fit === "flex-compact";
   const listening = isListening(tuner);
   const cannotHear = tuner.listening.kind === "cannot-hear";
   const sharpSelected = spelling === "sharp";
@@ -518,13 +586,62 @@ function TunerScreenComponent(props: {
     if (atFrame !== undefined) onReadingShown(atFrame);
   }, [atFrame, onReadingShown]);
 
+  // design-loop variant (007 round 5) — a/b's own screen height: `100dvh`
+  // (the dynamic viewport height, following the browser's own bars showing
+  // or hiding), `100vh` as the fallback where `dvh` isn't understood. A
+  // single React style object can express only one value per property (no
+  // CSS-cascade fallback within one declaration), so `100vh` is the base
+  // inline value (universally supported) and `100dvh` is applied by direct
+  // DOM assignment after mount — a browser that doesn't understand it
+  // rejects the assignment silently, leaving the `100vh` already in place.
+  // "fixed" touches neither: the screen stays exactly what it is today.
+  const screenRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (fit === "fixed") return;
+    const element = screenRef.current;
+    if (element === null) return;
+    element.style.minHeight = "100dvh";
+  }, [fit]);
+
+  const micIndicator = (
+    <span
+      data-testid="mic-indicator"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: INDICATOR_GAP,
+        fontFamily: fonts.mono,
+        fontSize: INDICATOR_FONT_SIZE,
+        fontWeight: INDICATOR_FONT_WEIGHT,
+        letterSpacing: INDICATOR_LETTER_SPACING,
+        color: listening ? LISTENING_INK : NO_MIC_INK,
+      }}
+    >
+      <span
+        style={{
+          width: DOT_SIZE,
+          height: DOT_SIZE,
+          borderRadius: 999,
+          boxSizing: "border-box",
+          background: listening ? LISTENING_DOT : NO_MIC_DOT,
+          border: `${DOT_BORDER_WIDTH}px solid ${
+            listening ? LISTENING_RING : NO_MIC_RING
+          }`,
+        }}
+      />
+      <span>{listening ? "LISTENING" : "NO MIC"}</span>
+    </span>
+  );
+
   return (
     <div
+      ref={screenRef}
       style={{
         position: "relative",
         display: "flex",
         flexDirection: "column",
         flex: 1,
+        ...(fit === "fixed" ? {} : { minHeight: "100vh" }),
       }}
     >
       <div
@@ -568,37 +685,28 @@ function TunerScreenComponent(props: {
             Practice
           </span>
         </button>
-        <span
-          data-testid="mic-indicator"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: INDICATOR_GAP,
-            fontFamily: fonts.mono,
-            fontSize: INDICATOR_FONT_SIZE,
-            fontWeight: INDICATOR_FONT_WEIGHT,
-            letterSpacing: INDICATOR_LETTER_SPACING,
-            color: listening ? LISTENING_INK : NO_MIC_INK,
-          }}
-        >
-          <span
+        {compactFooter ? (
+          <div
             style={{
-              width: DOT_SIZE,
-              height: DOT_SIZE,
-              borderRadius: 999,
-              boxSizing: "border-box",
-              background: listening ? LISTENING_DOT : NO_MIC_DOT,
-              border: `${DOT_BORDER_WIDTH}px solid ${
-                listening ? LISTENING_RING : NO_MIC_RING
-              }`,
+              display: "flex",
+              alignItems: "center",
+              gap: HEADER_ROW_GAP,
             }}
-          />
-          <span>{listening ? "LISTENING" : "NO MIC"}</span>
-        </span>
+          >
+            {micIndicator}
+            <SpellingToggle
+              sharpSelected={sharpSelected}
+              onSpellingChange={onSpellingChange}
+            />
+          </div>
+        ) : (
+          micIndicator
+        )}
       </div>
       <TunerLevel
         tuner={tuner}
         spelling={spelling}
+        fit={fit}
         {...(stale !== undefined ? { stale } : {})}
         {...(emptyOpacity !== undefined ? { emptyOpacity } : {})}
       />
@@ -647,76 +755,33 @@ function TunerScreenComponent(props: {
           </div>
         </div>
       )}
-      <div
-        style={{
-          marginTop: "auto",
-          padding: FOOTER_PADDING,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: FOOTER_GAP,
-        }}
-      >
+      {!compactFooter && (
         <div
           style={{
-            fontFamily: fonts.mono,
-            fontSize: FOOTER_TEXT_FONT_SIZE,
-            letterSpacing: FOOTER_TEXT_LETTER_SPACING,
-            color: paper.muted,
-          }}
-        >
-          {FOOTER_TEXT}
-        </div>
-        <div
-          style={{
+            marginTop: "auto",
+            padding: FOOTER_PADDING,
             display: "flex",
-            border: `1px solid ${SPELLING_PILL_BORDER}`,
-            borderRadius: 999,
-            overflow: "hidden",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: FOOTER_GAP,
           }}
         >
-          <button
-            type="button"
-            aria-label="sharp"
-            aria-pressed={sharpSelected}
-            onClick={() => onSpellingChange("sharp")}
+          <div
             style={{
-              padding: SPELLING_BUTTON_PADDING,
-              fontSize: SPELLING_BUTTON_FONT_SIZE,
-              fontWeight: 600,
-              lineHeight: SPELLING_BUTTON_LINE_HEIGHT,
-              color: sharpSelected
-                ? SPELLING_ACTIVE_INK
-                : SPELLING_INACTIVE_INK,
-              background: sharpSelected ? SPELLING_ACTIVE_BG : "transparent",
-              border: "none",
-              cursor: "pointer",
+              fontFamily: fonts.mono,
+              fontSize: FOOTER_TEXT_FONT_SIZE,
+              letterSpacing: FOOTER_TEXT_LETTER_SPACING,
+              color: paper.muted,
             }}
           >
-            {SHARP_GLYPH}
-          </button>
-          <button
-            type="button"
-            aria-label="flat"
-            aria-pressed={!sharpSelected}
-            onClick={() => onSpellingChange("flat")}
-            style={{
-              padding: SPELLING_BUTTON_PADDING,
-              fontSize: SPELLING_BUTTON_FONT_SIZE,
-              fontWeight: 600,
-              lineHeight: SPELLING_BUTTON_LINE_HEIGHT,
-              color: !sharpSelected
-                ? SPELLING_ACTIVE_INK
-                : SPELLING_INACTIVE_INK,
-              background: !sharpSelected ? SPELLING_ACTIVE_BG : "transparent",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            {FLAT_GLYPH}
-          </button>
+            {FOOTER_TEXT}
+          </div>
+          <SpellingToggle
+            sharpSelected={sharpSelected}
+            onSpellingChange={onSpellingChange}
+          />
         </div>
-      </div>
+      )}
       <TargetSheet
         open={targetSheetOpen}
         tuner={tuner}

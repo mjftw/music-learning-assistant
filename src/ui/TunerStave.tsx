@@ -5,6 +5,7 @@ import { formatCents } from "./cents-label";
 import { ACCIDENTAL_GLYPH, diatonicIndex } from "./key-label";
 import { fonts, paper, tuner } from "./theme";
 import { staleAttrs, type StaleReading } from "./tuner-silence";
+import { useMeasuredSize } from "./use-measured-size";
 
 // Geometry below is copied verbatim from the vendored visual reference
 // (changes/007-hear-me/design/Tuner.dc.html, frame #4a, markup lines
@@ -334,6 +335,21 @@ export function TunerStave(props: {
   const { tuner: snapshot, trail, nowMs, stale } = props;
   const reading = snapshot.reading;
   const targetNote = snapshot.targetNote;
+  // design-loop variant (007 round 5) — the structural fix (not behind the
+  // switch): at any column width down to 360px the card must fit inside it
+  // (the design's own CARD_WIDTH, 358, was sized for the 390px column) —
+  // rather than changing TRAIL_X_START/TRAIL_X_END or any other of this
+  // file's own fixed coordinates, the drawing (the `<svg>` and the HTML
+  // glyphs beside it that share its coordinate space — the clef, the
+  // octave marks, the accidentals, the cents figure) is measured and
+  // scaled down as one unit, preserving its aspect ratio, leaving the
+  // HEARD/IS column (a separate element, positioned by left/right, not by
+  // this scale) at its own font sizes. `null` before the first measurement
+  // and always in jsdom (this repo's test environment implements no
+  // ResizeObserver) — the fallback (1, unscaled) is exactly today's card.
+  const { ref: sizeRef, size: cardSize } = useMeasuredSize<HTMLDivElement>();
+  const cardScale =
+    cardSize === null ? 1 : Math.min(1, cardSize.width / CARD_WIDTH);
   // design-loop variant (007 round 4) — the reading the head/cents/Hz
   // display: live when there is one, else the stale reading while it's
   // fading/ghosted, so those elements linger in place rather than
@@ -534,9 +550,11 @@ export function TunerStave(props: {
 
   return (
     <div
+      ref={sizeRef}
       style={{
         position: "relative",
-        width: CARD_WIDTH,
+        width: "100%",
+        maxWidth: CARD_WIDTH,
         height: CARD_HEIGHT,
         background: paper.card,
         border: `1px solid ${paper.borderSoft}`,
@@ -552,7 +570,8 @@ export function TunerStave(props: {
           left: 0,
           right: 0,
           height: SVG_HEIGHT,
-          transform: `translateY(${shift}px)`,
+          transformOrigin: "top left",
+          transform: `scale(${cardScale}) translateY(${shift}px)`,
         }}
       >
         <svg

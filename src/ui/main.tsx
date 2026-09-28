@@ -144,6 +144,20 @@ function silenceVariantFromUrl(): SilenceVariant {
 
 const silenceVariant = silenceVariantFromUrl();
 
+// design-loop variant (007 round 5) — the tuner's two layout treatments,
+// explored on the phone via `?fit=a|b` alongside `?variant=` (round 4,
+// above — the two switches work together in one URL, e.g. `?variant=c&fit=a`).
+// TEMPORARY — deleted, along with every other block carrying this comment,
+// once one treatment is chosen.
+function fitFromUrl(): "fixed" | "flex" | "flex-compact" {
+  const fit = new URLSearchParams(window.location.search).get("fit");
+  if (fit === "a") return "flex";
+  if (fit === "b") return "flex-compact";
+  return "fixed";
+}
+
+const fit = fitFromUrl();
+
 createRoot(rootElement).render(
   <StrictMode>
     <App
@@ -164,6 +178,7 @@ createRoot(rootElement).render(
       silence={silenceVariant.silence}
       lingerMs={silenceVariant.lingerMs}
       lingerFadeMs={silenceVariant.lingerFadeMs}
+      fit={fit}
     />
   </StrictMode>,
 );

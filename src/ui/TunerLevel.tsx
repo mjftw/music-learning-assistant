@@ -1,4 +1,4 @@
-import { Fragment, type JSX } from "react";
+import { Fragment, useMemo, type JSX } from "react";
 import {
   IN_TUNE_BAND_CENTS,
   semitoneCountOf,
@@ -17,6 +17,7 @@ import {
 import { formatCents } from "./cents-label";
 import { fonts, paper, tuner } from "./theme";
 import { staleAttrs, type StaleReading } from "./tuner-silence";
+import { useMeasuredSize } from "./use-measured-size";
 
 // design-loop variant (007 round 4) — "Play a note"'s own entrance once a's
 // or b's own fade has finished (TunerScreen's `emptyOpacity` prop, below).
@@ -28,16 +29,14 @@ const EMPTY_FADE_IN_MS = 200;
 // lin(5.1), every5, [0, 10, 25, 50], dv)`) — named here rather than
 // re-derived by eye or copied as markup.
 const AREA_HEIGHT = 536;
-const AREA_MID = AREA_HEIGHT / 2; // 268 — level()'s `mid`
 const PX_PER_CENT = 5.1; // level()'s `lin(5.1)` map
 
-const CENTRE_LINE_TOP = 267;
 const CENTRE_LINE_HEIGHT = 2;
 
-// The ±5 ¢ in-tune band, shaded — bandTop = mid - map(band), bandHeight =
-// 2 * map(band).
-const BAND_TOP = AREA_MID - IN_TUNE_BAND_CENTS * PX_PER_CENT; // 242.5
-const BAND_HEIGHT = 2 * IN_TUNE_BAND_CENTS * PX_PER_CENT; // 51
+// design-loop variant (007 round 5) — the level's own minimum height while
+// flexible ("flex"/"flex-compact"): below it the page scrolls vertically,
+// exactly as it does today whenever the fixed layout doesn't fit.
+const LEVEL_MIN_HEIGHT = 300;
 
 // Ticks every 5 ¢; the three labelled radii (10, 25, 50) draw wider and
 // taller than the rest, and carry a "+N"/"−N" label at the left edge.
@@ -58,7 +57,10 @@ const SHARP_FLAT_FONT_SIZE = 13;
 const HALFWAY_LABEL_FONT_SIZE = 11.5;
 const HALFWAY_NOTE_FONT_SIZE = 20;
 
-const NAME_AREA_TOP = 183;
+// NAME_AREA_HEIGHT (170) sits centred on AREA_HEIGHT's own mid (268 −
+// 170/2 = 183 — today's own NAME_AREA_TOP) — `levelGeometryFor` (below)
+// reproduces that centring at any height, so this is the only one of the
+// pair still named.
 const NAME_AREA_HEIGHT = 170;
 const NAME_FONT_SIZE = 164;
 const OCTAVE_FONT_SIZE = 22;
@@ -113,11 +115,16 @@ interface Tick {
   readonly labelTop: number;
 }
 
-function buildTicks(): readonly Tick[] {
+// design-loop variant (007 round 5) — `areaMid`/`pxPerCent` are parameters,
+// not the old module-level `AREA_MID`/`PX_PER_CENT` constants, so the same
+// arithmetic serves "fixed" (called with today's exact numbers, below) and
+// "flex"/"flex-compact" (called with the scaled-to-height pair `levelGeometryFor`
+// derives).
+function buildTicks(areaMid: number, pxPerCent: number): readonly Tick[] {
   const ticks: Tick[] = [];
   for (let cents = -50; cents <= 50; cents += TICK_STEP_CENTS) {
     const major = MAJOR_TICK_CENTS.includes(Math.abs(cents));
-    const centreY = AREA_MID - cents * PX_PER_CENT;
+    const centreY = areaMid - cents * pxPerCent;
     ticks.push({
       cents,
       top: centreY - (major ? 1 : 0.75),
@@ -131,9 +138,7 @@ function buildTicks(): readonly Tick[] {
   return ticks;
 }
 
-const TICKS = buildTicks();
-
-// `AREA_MID - lineCents * PX_PER_CENT - LINE_TOP_ADJUST` at the pinned rule's
+// `areaMid - lineCents * pxPerCent - LINE_TOP_ADJUST` at the pinned rule's
 // own edge (lineCents = ±50 — practice.tuner/REQ-004) lands on a value like
 // 9.500000000000028, not 9.5: PX_PER_CENT (5.1) has no exact binary
 // representation, so `50 * 5.1` is already off by a sliver before the
@@ -145,8 +150,13 @@ function roundPx(value: number): number {
 
 // The reading's line + tag, clamped to the rule's ±50 ¢ edge when a pinned
 // target's offset runs past it (practice.tuner/REQ-004) — the line stays
-// at the edge and the tag switches to "▲ N st" / "▼ N st".
-function readingGeometry(reading: NoteJudged): {
+// at the edge and the tag switches to "▲ N st" / "▼ N st". `areaMid`/
+// `pxPerCent` parameterised the same way `buildTicks` is (007 round 5).
+function readingGeometry(
+  reading: NoteJudged,
+  areaMid: number,
+  pxPerCent: number,
+): {
   readonly lineTop: number;
   readonly tagTop: number;
   readonly tone: string;
@@ -158,7 +168,7 @@ function readingGeometry(reading: NoteJudged): {
     -LINE_CENTS_LIMIT,
     Math.min(LINE_CENTS_LIMIT, cents),
   );
-  const lineTop = roundPx(AREA_MID - lineCents * PX_PER_CENT - LINE_TOP_ADJUST);
+  const lineTop = roundPx(areaMid - lineCents * pxPerCent - LINE_TOP_ADJUST);
   const tagTop =
     lineCents >= 0 ? lineTop - TAG_ABOVE_OFFSET : lineTop + TAG_BELOW_OFFSET;
   const tone = TONE_BY_VERDICT[reading.verdict];
@@ -168,6 +178,48 @@ function readingGeometry(reading: NoteJudged): {
     : formatCents(cents);
   const wordText = over ? "" : WORD_BY_VERDICT[reading.verdict];
   return { lineTop, tagTop, tone, primaryText, wordText };
+}
+
+export interface LevelGeometry {
+  readonly areaHeight: number;
+  readonly areaMid: number;
+  readonly pxPerCent: number;
+  readonly centreLineTop: number;
+  readonly bandTop: number;
+  readonly bandHeight: number;
+  readonly ticks: readonly Tick[];
+  readonly nameAreaTop: number;
+  readonly nameAreaHeight: number;
+}
+
+// design-loop variant (007 round 5) — the level's whole geometry as a
+// function of its own rendered height: "fixed" always calls this with
+// AREA_HEIGHT (536) — the ratio below is then exactly 1, reproducing every
+// one of today's numbers bit-for-bit; "flex"/"flex-compact" call it with the
+// container's own measured height, keeping the same ratio of span (cents) to
+// height throughout (today's 5.1 px/¢ at 536 px — "keep the same ratio of
+// span to height" per the round's own brief). `NAME_AREA_TOP`/
+// `NAME_AREA_HEIGHT` (183/170) sit exactly centred on `AREA_HEIGHT`'s own mid
+// (183 + 170/2 = 268), so the name area scales the same way, centred on
+// `areaMid` at any height. Exported so the shape can be tested directly —
+// jsdom does no layout, so a rendered TunerLevel never actually measures
+// anything but this same 536 px fallback.
+export function levelGeometryFor(areaHeight: number): LevelGeometry {
+  const ratio = areaHeight / AREA_HEIGHT;
+  const areaMid = areaHeight / 2;
+  const pxPerCent = ratio * PX_PER_CENT;
+  const nameAreaHalfHeight = ratio * (NAME_AREA_HEIGHT / 2);
+  return {
+    areaHeight,
+    areaMid,
+    pxPerCent,
+    centreLineTop: areaMid - CENTRE_LINE_HEIGHT / 2,
+    bandTop: areaMid - IN_TUNE_BAND_CENTS * pxPerCent,
+    bandHeight: 2 * IN_TUNE_BAND_CENTS * pxPerCent,
+    ticks: buildTicks(areaMid, pxPerCent),
+    nameAreaTop: areaMid - nameAreaHalfHeight,
+    nameAreaHeight: 2 * nameAreaHalfHeight,
+  };
 }
 
 export function TunerLevel(props: {
@@ -180,8 +232,20 @@ export function TunerLevel(props: {
   // no style change, exactly today's behaviour).
   readonly stale?: StaleReading;
   readonly emptyOpacity?: number;
+  // design-loop variant (007 round 5) — "fixed" (today, the default): the
+  // level is exactly AREA_HEIGHT (536px) tall, unmeasured. "flex"/
+  // "flex-compact": the level takes all the height its container leaves it
+  // (`flex: 1, minHeight: LEVEL_MIN_HEIGHT`), measured via ResizeObserver so
+  // `levelGeometryFor` can scale the rule to fit.
+  readonly fit?: "fixed" | "flex" | "flex-compact";
 }): JSX.Element {
-  const { tuner: snapshot, spelling, stale, emptyOpacity } = props;
+  const {
+    tuner: snapshot,
+    spelling,
+    stale,
+    emptyOpacity,
+    fit = "fixed",
+  } = props;
   const reading = snapshot.reading;
   const cannotHear = snapshot.listening.kind === "cannot-hear";
   const targetPinnedSilent = snapshot.targetNote !== null && reading === null;
@@ -238,8 +302,29 @@ export function TunerLevel(props: {
       ? `playing ${noteLabel(effectiveReading.heard.nearest)}`
       : "";
 
+  // design-loop variant (007 round 5) — "fixed" never measures (`sizeRef`
+  // stays unattached — see the container `ref` below) and always uses
+  // AREA_HEIGHT, so its geometry is bit-for-bit today's; "flex"/
+  // "flex-compact" fall back to the same AREA_HEIGHT until the container has
+  // actually been measured (mount, and jsdom — this repo's test environment
+  // implements no ResizeObserver, so every existing test keeps exercising
+  // exactly today's numbers).
+  const { ref: sizeRef, size } = useMeasuredSize<HTMLDivElement>();
+  const areaHeight =
+    fit === "fixed" ? AREA_HEIGHT : (size?.height ?? AREA_HEIGHT);
+  const levelGeometry = useMemo(
+    () => levelGeometryFor(areaHeight),
+    [areaHeight],
+  );
+
   const geometry =
-    effectiveReading === null ? null : readingGeometry(effectiveReading);
+    effectiveReading === null
+      ? null
+      : readingGeometry(
+          effectiveReading,
+          levelGeometry.areaMid,
+          levelGeometry.pxPerCent,
+        );
   // design-loop variant (007 round 4) — a's own fade keeps the verdict's own
   // colour (only opacity changes); b's/c's stale states grey it instead. Only
   // read when `geometry` is non-null (the line/tag's own render guard), so
@@ -250,14 +335,22 @@ export function TunerLevel(props: {
   const lineTagStaleAttrs = staleAttrs(reading === null ? stale : undefined);
 
   return (
-    <div style={{ position: "relative", height: AREA_HEIGHT, flex: "none" }}>
+    <div
+      ref={fit === "fixed" ? undefined : sizeRef}
+      style={{
+        position: "relative",
+        ...(fit === "fixed"
+          ? { height: AREA_HEIGHT, flex: "none" }
+          : { flex: 1, minHeight: LEVEL_MIN_HEIGHT }),
+      }}
+    >
       <div
         style={{
           position: "absolute",
           left: 0,
           right: 0,
-          top: BAND_TOP,
-          height: BAND_HEIGHT,
+          top: levelGeometry.bandTop,
+          height: levelGeometry.bandHeight,
           background: tuner.band,
         }}
       />
@@ -266,12 +359,12 @@ export function TunerLevel(props: {
           position: "absolute",
           left: 0,
           right: 0,
-          top: CENTRE_LINE_TOP,
+          top: levelGeometry.centreLineTop,
           height: CENTRE_LINE_HEIGHT,
           background: paper.borderSoft,
         }}
       />
-      {TICKS.map((tick) => (
+      {levelGeometry.ticks.map((tick) => (
         <Fragment key={tick.cents}>
           <div
             style={{
@@ -394,8 +487,8 @@ export function TunerLevel(props: {
             position: "absolute",
             left: 0,
             right: 0,
-            top: NAME_AREA_TOP,
-            height: NAME_AREA_HEIGHT,
+            top: levelGeometry.nameAreaTop,
+            height: levelGeometry.nameAreaHeight,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",

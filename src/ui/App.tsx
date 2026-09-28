@@ -256,6 +256,10 @@ export function App(props: {
   // own hold/fade timing, forwarded the same way.
   readonly lingerMs?: number;
   readonly lingerFadeMs?: number;
+  // design-loop variant (007 round 5) — optional, additive, forwarded
+  // straight to TunerScreen: the two layout treatments' own switch.
+  // TEMPORARY — deleted along with the rest of this exploration.
+  readonly fit?: "fixed" | "flex" | "flex-compact";
 }): JSX.Element {
   const {
     catalogue,
@@ -271,6 +275,7 @@ export function App(props: {
     clearTimer,
     lingerMs,
     lingerFadeMs,
+    fit,
   } = props;
   const [selection, setSelection] = useState<Selection>(() =>
     initialSelection(catalogue, selectionStore),
@@ -718,6 +723,7 @@ export function App(props: {
           {...(clearTimer !== undefined ? { clearTimer } : {})}
           {...(lingerMs !== undefined ? { lingerMs } : {})}
           {...(lingerFadeMs !== undefined ? { lingerFadeMs } : {})}
+          {...(fit !== undefined ? { fit } : {})}
         />
       ) : (
         <>
