@@ -80,7 +80,22 @@ the scenario lines, and where they go>
 
 ## For the implementer
 <what to do now, in the imperative, if decided; "park this task" if escalated>
+
+## Still buildable
+<only when escalated. The run must get as far as it can without the answer.
+Name exactly what does not depend on it:
+- Split: <the steps of this task that do not depend on the escalation, as a
+  new task; or "none" if every step does>
+- Unaffected: <later tasks that consume something from this task but not
+  the thing in question, each with one line on why it is safe; or "none">
+- Blocked: <the tasks that genuinely cannot proceed until the user answers>>
 ```
+
+When you escalate, the run parks only what you list as Blocked. Be precise
+rather than cautious: a task wrongly listed as Blocked is hours of the
+user's absence wasted, and a task wrongly listed as Unaffected is caught by
+review and converge. Judge by what a task actually uses, not by the fact
+that it touches the same module.
 
 Lean towards deciding. The user asked for a run that finishes, and a wrong
 two-way decision costs an afternoon. But never decide a question that

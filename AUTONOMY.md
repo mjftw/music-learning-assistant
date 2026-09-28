@@ -35,9 +35,13 @@ end, in the end-of-run report:
    (`sdd-design` D) on the same branch before merge, or a `--design` change
    after. The visual check is explicit: the report does not call the change
    done until the user has answered it.
-2. **Any one-way door**, judged as below. Even then the run carries on: the
-   blocked task, and anything that depends on it, is parked; everything
-   independent is built; the blocker is reported with the rest.
+2. **Any one-way door**, judged as below. Even then the run carries on and
+   gets as far as it can. The decider names exactly what still depends on
+   the answer: the parts of the blocked task that do not are split off and
+   built, tasks that touch the same area but not the question go ahead, and
+   only what genuinely needs the answer is parked. Implementation ends only
+   when nothing left can be built without the user; the built part is still
+   converged and finished, and the blocker is reported with the rest.
 
 Nothing else is a reason to stop. Not an ambiguity, not a spec that is
 slightly wrong, not a choice between two reasonable options, not a failed fix

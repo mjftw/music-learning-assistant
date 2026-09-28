@@ -29,6 +29,11 @@ command you are about to run would write to the tree, do not run it.
    Also run `./scripts/check-scenarios.sh --change changes/<change>`,
    `./scripts/check-contexts.sh` and `./scripts/check-design.sh --change
    changes/<change>`; paste all three outputs into the report.
+4a. **Parked work.** For each escalated verdict, check its `Still buildable`
+   judgement against the code: a task marked Unaffected that in fact depends
+   on the open question is a **critical** finding (it was built on an answer
+   nobody gave). A task marked Blocked that plainly did not need the answer
+   is a **warning** (progress was left on the table).
 4b. **Design fidelity (REVIEW.md 3c), when the change has screens.** With
    the dev server URL you were given, run `python3 scripts/design_snapshot.py
    changes/<change> live --base <url>` and Read each PNG beside its reference

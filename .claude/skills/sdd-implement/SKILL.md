@@ -67,10 +67,22 @@ are not moved up to Fable for nothing.
      Otherwise continue and pass it to the reviewer.
    - `DONE` → continue. Copy its `CHOICES MADE` into `notes.md` as one-liners.
 
-   **Park.** Set the task's `**Status:** parked`, add a line under it naming
-   the decision (`Parked on D003`). Park every later task whose Interfaces
-   *Consumes* something the parked task Produces, transitively. Carry on with
-   the next task that is not parked.
+   **Park, but only what is blocked.** The goal is to get as far as
+   possible without the answer. Follow the escalated verdict's
+   `## Still buildable`:
+   - **Split**: if it names steps that do not depend on the escalation,
+     append them to `tasks.md` as a new task with the next free ID, in the
+     full anatomy, citing the same requirements, and cut them from the
+     original task. The original keeps only the blocked steps.
+   - **Park** the task (what is left of it) and every task the verdict lists
+     as **Blocked**: `**Status:** parked` and a line `Parked on D003`.
+   - Tasks it lists as **Unaffected** stay `todo`, with a line
+     `Checked against D003: unaffected`.
+   Then carry on with the next task that is not parked. If a later task
+   turns out to need the answer after all, that is a new `DECISION_NEEDED`
+   on that task, and the decider parks it then.
+   Only when every remaining task is `parked` does implementation end; the
+   run still goes on to amendments, converge and finish for what was built.
 5. **Verify independently.** Run the task's Verify line and the `check`
    command yourself. Do not accept the pasted output. Disagreement → treat as
    a failed review with your own finding.
