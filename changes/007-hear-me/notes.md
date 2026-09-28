@@ -485,3 +485,36 @@ own script had (`sp = shownP + (pitch − shownP) × 0.35` per 50 ms tick —
 Tuner.dc.html line 1064) and the walkthrough did not carry into the spec.
 Taken to the refinement loop (design D) as round 1; if a treatment wins it
 is written to the practice.tuner delta (REQ-002) there.
+
+## Design round 1 — test:tuner against the smoothing variants (2026-09-28)
+
+Run against `dev:phone` with `APP_URL="https://localhost:5173/?variant=<v>"`
+and the real node binary (the asdf shim drops an environment value that
+contains `=`, so `pnpm test:tuner` with that address falls back to plain
+HTTP and fails to load).
+
+```
+=== variant a (low-pass, α = 0.1) ===
+case                 tones  first readout max (ms)  arrival age max (ms)  paint age max (ms)  readings/s min  cents err max  status
+sine E2–C7           57     86.20                   63.98                 18.69               92.86           0.09           PASS
+flute-like E2–C7     57     77.10                   66.65                 16.02               92.86           0.65           PASS
+hand-over glissando  1      54.10                   58.65                 13.35               93.81           —              PASS
+silence              —      —                       —                     —                   0.00            —              PASS
+white noise          —      —                       —                     —                   0.00            —              PASS
+test:tuner: PASS
+=== variant c (moving average, 8 readings) ===
+sine E2–C7           57     70.60                   61.31                 18.69               92.86           0.09           PASS
+flute-like E2–C7     57     69.30                   61.31                 8.02                92.86           0.65           PASS
+hand-over glissando  1      55.70                   58.65                 8.02                93.81           —              PASS
+silence              —      —                       —                     —                   0.00            —              PASS
+white noise          —      —                       —                     —                   0.00            —              PASS
+test:tuner: PASS
+```
+
+What this does and does not show: the first readout, arrival age and
+reading rate are unchanged by smoothing (the first reading after a gap is
+the raw one). The cents-error and hand-over gates read `heard.hz`, which
+every variant leaves raw — so the harness says nothing about the accuracy
+or the lag of the *shown* offset under a or c. If a or c is chosen, the
+harness needs a gate on the shown cents (settled value within ±2 ¢ of the
+fed tone) before converge.

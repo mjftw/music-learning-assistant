@@ -150,6 +150,22 @@ only new values are the tuner's.
 **Became:** `docs/design.md` §7–§8; `scripts/check-design.sh` STYLE_GLOB /
 TOKENS_FILE
 
+### Q8: 007 design round 1 (sdd-design D) — the smoothing amendment to practice.tuner/REQ-002
+**Recommended:** Approve as worded: the shown offset follows the detected
+pitch through a low-pass filter (one tenth of the way per reading, about
+100 ms), a detected pitch more than 25 ¢ from the shown pitch is shown as
+detected at once, the first reading after silence / a change of shown note
+/ a change of target is as detected, the Hz in the stave strip stays the
+detected pitch; scenarios S6–S9. Because it is variant A as the user tried
+it on the phone and chose it ("A is pretty good, I think a bit better than
+C"; "B is bad"), and the first-readout budget is untouched. Offered
+alongside: smooth the Hz too; lighter smoothing (one fifth per reading);
+revise.
+**Answer:** Approve (Recommended).
+**Status:** decided
+**Became:** `changes/007-hear-me/delta/practice/tuner.md` REQ-002 (the
+smoothing clause, S6–S9); `changes/007-hear-me/design/rounds.md` round 1
+
 ## Not asked
 
 > Questions the interview deliberately skipped, and why (already decided in

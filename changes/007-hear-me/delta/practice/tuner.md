@@ -92,7 +92,21 @@ halfway to <the note above>" at the top and "↓ flat · halfway to <the note
 below>" at the bottom; the line, tag and cents SHALL be coloured warm when
 sharp, cool when flat, and green when in tune; and THE SYSTEM SHALL keep
 the shown note until the detected pitch is 56 ¢ from it, clamping the
-offset to ±50 meanwhile
+offset to ±50 meanwhile; and THE SYSTEM SHALL smooth the shown offset:
+while the same note stays shown, each reading moves the shown pitch one
+tenth of the way from where it was to the detected pitch (a low-pass
+filter, a time constant of about 100 ms at the tuner's reading rate); a
+detected pitch more than 25 ¢ from the shown pitch is a new pitch and
+SHALL be shown as detected, at once; and the first reading after nothing
+was heard, after the shown note changes, or after the target changes
+SHALL be shown as detected. The smoothing SHALL never hold a reading back
+— each is still shown within REQ-006's bound of its newest sound.
+`NoteJudged` carries the smoothed offset and verdict; the heard frequency
+(the Hz in the stave strip) stays the detected pitch
+
+> Amended 2026-09-28 at design round 1 (`design/rounds.md`), with the
+> user's approval: the smoothing clause and S6–S9. S1–S5 feed a steady
+> pitch, so they read the same smoothed or not.
 
 **Scenarios**
 - **REQ-002/S1 — a little sharp**
@@ -123,6 +137,25 @@ offset to ±50 meanwhile
   When ♭ is tapped on the tuner's footer
   Then the tuner spells in flats at once and, on ‹ Practice, the circle
   shows the flat spelling too (`theory.circle-of-fifths/REQ-002`)
+- **REQ-002/S6 — a steady note does not flicker**
+  Given A4 is shown
+  When the detected pitch alternates between 440.0 Hz and 441.5 Hz for 20
+  readings
+  Then the shown offset settles between +2 and +4, and no reading differs
+  from the one before it by more than 1 ¢
+- **REQ-002/S7 — a new note is shown at once**
+  Given A4 has settled at 440.0 Hz
+  When 466.16 Hz is detected
+  Then that reading shows A♯4 at 0, with no creep towards it; a following
+  467.5 Hz (+5 ¢) is smoothed, showing less than +5
+- **REQ-002/S8 — the first reading is as detected**
+  Given nothing was heard
+  When 445.0 Hz is detected
+  Then the first reading shows A4, +20
+- **REQ-002/S9 — the shown offset settles on the truth (measured)**
+  Given the steady tones of REQ-006/S1, E2–C7
+  When the shown offset is read half a second into each tone
+  Then it is within ±2 ¢ of the tone fed
 
 ### REQ-003: Nothing heard
 

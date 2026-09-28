@@ -102,14 +102,33 @@ sdd_phase: open           # open | exited
 
 ## Rounds
 
-### Round 1 — <screen · state>
+### Round 1 — tuner · listening (the reading on a steady note)
 
-- **Looked at:** <where: device, distance, situation from docs/design.md §2>
-- **Problem:** <the user's words>
-- **Tried:** A <one line> · B <one line> · C <one line>
-- **Chose:** <A/B/C or a mix> — <why, the user's words>
-- **Rejected because:** A <…> · C <…>
-- **Requirement changed?** <no | yes: <context>.<capability>/REQ-NNN — noted for the delta>
+- **Looked at:** the phone on the stand, the flute in both hands, long
+  tones (docs/design.md §2) — the user's walk for T024, 2026-09-28.
+- **Problem:** "It's working well on phone apart from it's quite flickery.
+  E.g. if I play a perfect note it jumps around 'in tune' a lot and it's
+  quite jarring. I think we need to smooth it a little - something like a
+  moving average or a low pass filter."
+- **Tried:** live behind `?variant=a|b|c` (no parameter = the build as
+  walked). In a and c a reading more than 25 ¢ from the smoothed value is a
+  new pitch and snaps to it, so a note change is named on its first
+  reading; a gap, a hand-over or a re-pin starts the smoothing again.
+  A low-pass filter — exponential, α = 0.1 per reading (≈ 110 ms; the
+  prototype's 0.35 per 50 ms tick, rescaled to ~93 readings/s) ·
+  B no smoothing of the value — the in-tune verdict latches (in at ±5 ¢,
+  out past ±7 ¢) and the number moves in 2 ¢ steps ·
+  C moving average of the last 8 readings (≈ 85 ms).
+  A round about movement: a screenshot cannot show it, so none is kept for
+  this round; the measured harness is run against a and c instead
+  (`notes.md`).
+- **Chose:** A, the low-pass filter — "A is pretty good, I think a bit
+  better than C" (the user, on the phone with the flute, 2026-09-28).
+- **Rejected because:** B "B is bad" · C a little behind A ("A … a bit
+  better than C").
+- **Requirement changed?** yes: practice.tuner/REQ-002 — the shown offset
+  is the detected pitch smoothed, a jump is shown at once; put to the user
+  for the delta.
 
 ## Exit
 
