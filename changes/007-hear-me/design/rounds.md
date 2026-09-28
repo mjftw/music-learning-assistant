@@ -225,8 +225,19 @@ sdd_phase: open           # open | exited
   moves up beside LISTENING, giving its height to the level.
   Not built: scaling the whole frame down — the reading must stay legible
   at arm's length (docs/design.md §2).
-- **Chose:** <pending>
-- **Rejected because:** <pending>
+- **Chose:** A, the level flexes, the footer stays — "A is better but
+  still needs a small amount of scrolling" (the user, on the phone,
+  2026-09-29). `rounds/round-5/a--tuner-listening-360x660.png`.
+- **Rejected because:** B — "A is better"; B also dropped the "A4 = 440
+  Hz · in tune ±5 ¢" line for want of room.
+  `rounds/round-5/b--tuner-listening-360x660.png`.
+- **Still scrolling (found 2026-09-29):** the column that wraps every
+  screen (`App.tsx`) has `min-height: 100vh`; on a phone `100vh` is the
+  height with the browser's bars hidden, so with the bars showing the
+  page is taller than what is visible by the bars' height, and the tuner
+  inside stretches to fill it. Headless Chromium has no bars, so the
+  measurement did not see it. The column takes the visible height
+  (`100dvh`) while the tuner shows.
 - **Requirement changed?** <pending — none expected: no requirement
   names a size; a pattern for docs/design.md §9 at exit>
 
