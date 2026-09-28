@@ -35,6 +35,7 @@ import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
 import {
   FakeClock,
+  FakeListening,
   FakeSound,
   FakeVisibility,
   FakeWakeLock,
@@ -55,6 +56,7 @@ test("practice.session/REQ-002/S2 (app) — ▶ tapped while playing is stop", a
     clock,
     wakeLock: new FakeWakeLock(),
     visibility: new FakeVisibility(),
+    listening: new FakeListening(),
   };
 
   render(
@@ -96,6 +98,7 @@ test("practice.session/REQ-011/S4 (ui) — a v2 payload predating scale choice r
     clock: new FakeClock(sound),
     wakeLock: new FakeWakeLock(),
     visibility: new FakeVisibility(),
+    listening: new FakeListening(),
   };
 
   render(

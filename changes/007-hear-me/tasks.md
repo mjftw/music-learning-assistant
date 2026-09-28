@@ -360,7 +360,7 @@ _Nothing user-visible. The detector proven on synthesised buffers, the crate's C
 
 ### T005 · — · The `ListeningPort`, its adapter, `onShown` on the visibility port, and the fakes
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/practice/ports/listening.ts`, `src/practice/adapters/web-audio-listening.ts`

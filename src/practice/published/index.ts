@@ -44,6 +44,7 @@ export {
 // practice/published rather than reaching into practice/ports directly
 // (docs/engineering.md §6: contexts communicate only through published/).
 export type { ClockPort } from "../ports/clock";
+export type { ListeningPort } from "../ports/listening";
 export type { Result } from "../ports/result";
 export type { SoundPort } from "../ports/sound";
 export type { VisibilityPort } from "../ports/visibility";
@@ -52,6 +53,7 @@ export type { WakeLockPort } from "../ports/wake-lock";
 // implementation main.tsx needs to wire up (T016) is re-exported here.
 export { fallbackSound } from "../adapters/fallback-sound";
 export { webAudioSound } from "../adapters/web-audio-sound";
+export { webAudioListening } from "../adapters/web-audio-listening";
 export { silentSound } from "../adapters/silent-sound";
 export { screenWakeLock } from "../adapters/screen-wake-lock";
 export { pageVisibility } from "../adapters/page-visibility";

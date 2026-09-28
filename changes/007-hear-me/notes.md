@@ -77,3 +77,15 @@ holds in practice.
 - Minor, recorded: the `hz > 0` guard's comment refers to the listening
   schema by name from theory's domain code — a forward reference in prose
   only.
+
+## T005 — notes (2026-09-28)
+
+- Ripple beyond the brief's Files list (AGENTS.md rule): `src/ui/main.tsx`
+  (a temporary `webAudioListening(() => new AudioContext())`, replaced by
+  the shared memoised factory at T014), `tests/practice/invariants/
+  target-in-sequence.test.ts` and `tests/ui/scenarios/edge-cases.test.tsx`
+  (hand-built `SessionDeps` gained a `FakeListening`).
+- `webAudioListening.start()` calls `listener.start()` every time and
+  memoises only `createListener` — REQ-006/S3's "each later request tries
+  again"; a `resume()` failure maps to reason `"failed"` (no dedicated
+  no-audio-context reason in `ListeningUnavailable`).

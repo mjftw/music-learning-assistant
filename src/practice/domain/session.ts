@@ -34,6 +34,7 @@ import {
 import type { TickPlan } from "../adapters/lookahead-scheduler";
 import { createLookaheadScheduler } from "../adapters/lookahead-scheduler";
 import type { ClockPort } from "../ports/clock";
+import type { ListeningPort } from "../ports/listening";
 import type { Result } from "../ports/result";
 import type { SoundPort } from "../ports/sound";
 import type { VisibilityPort } from "../ports/visibility";
@@ -59,6 +60,9 @@ export interface SessionDeps {
   readonly clock: ClockPort;
   readonly wakeLock: WakeLockPort;
   readonly visibility: VisibilityPort;
+  // practice.tuner/REQ-001 — wired by a later task (T007); stored here only
+  // so every SessionDeps carries it from this task on.
+  readonly listening: ListeningPort;
 }
 
 export interface TargetAdvanced {
@@ -260,6 +264,9 @@ export function createSession(
   droneSettings: DroneSettings,
   deps: SessionDeps,
 ): Session {
+  // `deps.listening` is accepted here (SessionDeps requires it) but not yet
+  // wired to anything — T007 reaches through `deps` to add
+  // enterTuner/leaveTuner and the reading pipeline.
   const { sound, clock, wakeLock, visibility } = deps;
   const scheduler = createLookaheadScheduler(sound, clock);
 

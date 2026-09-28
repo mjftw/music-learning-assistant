@@ -26,7 +26,13 @@ import type {
   Shape,
   Variant,
 } from "../../../src/theory/published";
-import { FakeClock, FakeSound, FakeVisibility, FakeWakeLock } from "../fakes";
+import {
+  FakeClock,
+  FakeListening,
+  FakeSound,
+  FakeVisibility,
+  FakeWakeLock,
+} from "../fakes";
 
 const SHAPES: readonly Shape[] = ["scale", "arpeggio"];
 const DIRECTIONS: readonly Direction[] = ["up", "down", "updown"];
@@ -80,13 +86,14 @@ test("practice.session/REQ-006/S5 — the target is always in the sequence (inva
               const clock = new FakeClock(sound);
               const wakeLock = new FakeWakeLock();
               const visibility = new FakeVisibility();
+              const listening = new FakeListening();
               const session = createSession(
                 { key, variant },
                 traversal,
                 scaleChoice,
                 { ...defaultSessionSettings, countIn: false, loop: false },
                 defaultDroneSettings,
-                { sound, clock, wakeLock, visibility },
+                { sound, clock, wakeLock, visibility, listening },
               );
 
               const events: TargetAdvanced[] = [];

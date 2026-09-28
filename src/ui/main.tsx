@@ -16,6 +16,7 @@ import {
   pageVisibility,
   screenWakeLock,
   silentSound,
+  webAudioListening,
   webAudioSound,
   type Session,
 } from "../practice/published";
@@ -73,6 +74,11 @@ createRoot(rootElement).render(
         clock: browserClock(),
         wakeLock: screenWakeLock(navigator),
         visibility: pageVisibility(document),
+        // T014 replaces this with the same memoised AudioContext factory
+        // `sound` shares (main.tsx: `const audioContext = memoised(() =>
+        // new AudioContext())`, passed to both) — for now the tuner's own
+        // context is created on its own first start().
+        listening: webAudioListening(() => new AudioContext()),
       }}
       onSessionReady={exposeSessionForTiming}
     />
