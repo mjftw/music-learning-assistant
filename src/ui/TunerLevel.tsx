@@ -122,6 +122,16 @@ function buildTicks(): readonly Tick[] {
 
 const TICKS = buildTicks();
 
+// `AREA_MID - lineCents * PX_PER_CENT - LINE_TOP_ADJUST` at the pinned rule's
+// own edge (lineCents = ±50 — practice.tuner/REQ-004) lands on a value like
+// 9.500000000000028, not 9.5: PX_PER_CENT (5.1) has no exact binary
+// representation, so `50 * 5.1` is already off by a sliver before the
+// subtraction. Rounded to hundredths — far finer than a visible pixel, so
+// nothing on screen moves — so the style's own `px` string reads "9.5px".
+function roundPx(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 // The reading's line + tag, clamped to the rule's ±50 ¢ edge when a pinned
 // target's offset runs past it (practice.tuner/REQ-004) — the line stays
 // at the edge and the tag switches to "▲ N st" / "▼ N st".
@@ -137,7 +147,7 @@ function readingGeometry(reading: NoteJudged): {
     -LINE_CENTS_LIMIT,
     Math.min(LINE_CENTS_LIMIT, cents),
   );
-  const lineTop = AREA_MID - lineCents * PX_PER_CENT - LINE_TOP_ADJUST;
+  const lineTop = roundPx(AREA_MID - lineCents * PX_PER_CENT - LINE_TOP_ADJUST);
   const tagTop =
     lineCents >= 0 ? lineTop - TAG_ABOVE_OFFSET : lineTop + TAG_BELOW_OFFSET;
   const tone = TONE_BY_VERDICT[reading.verdict];

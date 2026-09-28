@@ -512,6 +512,22 @@ export function App(props: {
     session?.leaveTuner();
     setScreen("practice");
   }, [session]);
+  // practice.tuner/REQ-004 — the four target verbs, wired straight to the
+  // session (TunerScreen composes its own sheet-closing on top of these —
+  // opening/closing the Target sheet never reaches here, REQ-004/S6).
+  const handleHoldTarget = useCallback(() => session?.holdTarget(), [session]);
+  const handlePinTarget = useCallback(
+    (position: number) => session?.pinTarget(position),
+    [session],
+  );
+  const handleStepTarget = useCallback(
+    (delta: -1 | 1) => session?.stepTarget(delta),
+    [session],
+  );
+  const handleClearTarget = useCallback(
+    () => session?.clearTarget(),
+    [session],
+  );
 
   const handleSelectKey = useCallback((selectedWedgeKey: Key) => {
     setSelection((current) => {
@@ -632,11 +648,16 @@ export function App(props: {
         fontFamily: fonts.body,
       }}
     >
-      {screen === "tuner" && snapshot !== null ? (
+      {screen === "tuner" && snapshot !== null && variant !== undefined ? (
         <TunerScreen
           tuner={snapshot.tuner}
           spelling={selection.spelling}
+          range={variant.range}
           onLeave={handleLeaveTuner}
+          onHold={handleHoldTarget}
+          onPin={handlePinTarget}
+          onStep={handleStepTarget}
+          onClear={handleClearTarget}
         />
       ) : (
         <>

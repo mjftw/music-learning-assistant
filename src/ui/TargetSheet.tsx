@@ -1,0 +1,314 @@
+import { useRef, type JSX } from "react";
+import type { NoteJudged, TunerSnapshot } from "../practice/published";
+import {
+  noteAtPosition,
+  noteLabel,
+  pitchPosition,
+  type NoteRange,
+  type SpellingPreference,
+} from "../theory/published";
+import { PitchSpiral } from "./PitchSpiral";
+import { appendToTrail } from "./TunerScreen";
+import { BottomSheet, OverlayHeader, OverlayScrim } from "./overlay";
+import { fonts, paper } from "./theme";
+
+// Geometry and colour below are copied verbatim from the vendored visual
+// reference (changes/007-hear-me/design/Tuner.dc.html, frame #5c, markup
+// lines 69-84 — the header and the Auto/Hold cards are the same block 4a's
+// own target sheet uses, lines 290-306) — named here rather than re-derived
+// by eye or copied as markup.
+const SCRIM_Z_INDEX = 15;
+const SHEET_Z_INDEX = 16;
+const SHEET_PADDING_BOTTOM = 16;
+
+const HEADER_PADDING = "16px 18px 12px";
+const SUBTITLE_TEXT = "Measure from the nearest note, or pin one";
+
+const CARDS_ROW_PADDING = "14px 18px 6px";
+const CARDS_GAP = 8;
+const CARD_PADDING = "11px 13px 12px";
+const CARD_RADIUS = 12;
+const CARD_TITLE_FONT_SIZE = 14;
+const CARD_SUBTITLE_FONT_SIZE = 11.5;
+const CARD_SUBTITLE_COLOR = paper.muted;
+
+const AUTO_CARD_BORDER = "#e0d7c5";
+const AUTO_CARD_BACKGROUND_ON = paper.pillActive;
+const AUTO_TICK_COLOR = paper.accent;
+
+const HOLD_CARD_BORDER_ON = "#e0d7c5";
+const HOLD_CARD_BORDER_OFF = "#ece4d5";
+const HOLD_TITLE_COLOR_ON = paper.ink;
+const HOLD_TITLE_COLOR_OFF = "#b0a797";
+const HOLD_NAME_FONT_SIZE = 13;
+
+const TAP_ROW_PADDING = "10px 18px 0";
+const TAP_LABEL_FONT_SIZE = 13;
+const TAP_RANGE_FONT_SIZE = 11;
+const TAP_RANGE_COLOR = paper.muted;
+
+const SPIRAL_WRAPPER_PADDING = "0 0 10px";
+
+// practice.tuner/REQ-004 — E2–C7 (`TUNER_LOWEST_POSITION`/
+// `TUNER_HIGHEST_POSITION` from practice/published, reproduced here as the
+// plan's data model names them) ∪ the instrument's range ∪ wherever the
+// last reading or the pinned target sits — the vendored reference's own
+// `sLo`/`sHi` (script lines 1382-1384).
+const SPIRAL_FLOOR = 40; // E2
+const SPIRAL_CEILING = 96; // C7
+
+interface SpiralSpan {
+  readonly lowest: number;
+  readonly highest: number;
+}
+
+function spiralSpanOf(range: NoteRange, tuner: TunerSnapshot): SpiralSpan {
+  const rangeLowest = pitchPosition(range.lowest);
+  const rangeHighest = pitchPosition(range.highest);
+  const nowPosition =
+    tuner.reading === null ? null : pitchPosition(tuner.reading.heard.nearest);
+  const pinnedPosition =
+    tuner.target.kind === "pinned" ? tuner.target.position : null;
+  const candidates = [
+    SPIRAL_FLOOR,
+    rangeLowest,
+    ...(nowPosition === null ? [] : [nowPosition]),
+    ...(pinnedPosition === null ? [] : [pinnedPosition]),
+  ];
+  const highCandidates = [
+    SPIRAL_CEILING,
+    rangeHighest,
+    ...(nowPosition === null ? [] : [nowPosition]),
+    ...(pinnedPosition === null ? [] : [pinnedPosition]),
+  ];
+  return {
+    lowest: Math.min(...candidates),
+    highest: Math.max(...highCandidates),
+  };
+}
+
+function AutoCard(props: {
+  readonly auto: boolean;
+  readonly onAuto: () => void;
+}): JSX.Element {
+  const { auto, onAuto } = props;
+  return (
+    <button
+      type="button"
+      aria-label="Auto"
+      onClick={onAuto}
+      style={{
+        flex: 1,
+        minWidth: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+        padding: CARD_PADDING,
+        borderRadius: CARD_RADIUS,
+        border: `1px solid ${AUTO_CARD_BORDER}`,
+        background: auto ? AUTO_CARD_BACKGROUND_ON : "transparent",
+        cursor: "pointer",
+        textAlign: "left",
+      }}
+    >
+      <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <span style={{ fontSize: CARD_TITLE_FONT_SIZE, fontWeight: 600 }}>
+          Auto
+        </span>
+        <span
+          style={{
+            fontSize: CARD_SUBTITLE_FONT_SIZE,
+            color: CARD_SUBTITLE_COLOR,
+          }}
+        >
+          nearest note
+        </span>
+      </span>
+      <span style={{ fontSize: 13, color: AUTO_TICK_COLOR }}>
+        {auto ? "✓" : ""}
+      </span>
+    </button>
+  );
+}
+
+function HoldCard(props: {
+  readonly hasReading: boolean;
+  readonly holdName: string;
+  readonly onHold: () => void;
+}): JSX.Element {
+  const { hasReading, holdName, onHold } = props;
+  return (
+    <button
+      type="button"
+      aria-label="Hold"
+      onClick={onHold}
+      style={{
+        flex: 1,
+        minWidth: 0,
+        display: "flex",
+        flexDirection: "column",
+        gap: 3,
+        padding: CARD_PADDING,
+        borderRadius: CARD_RADIUS,
+        border: `1px solid ${hasReading ? HOLD_CARD_BORDER_ON : HOLD_CARD_BORDER_OFF}`,
+        background: "none",
+        cursor: "pointer",
+        textAlign: "left",
+      }}
+    >
+      <span style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+        <span
+          style={{
+            fontSize: CARD_TITLE_FONT_SIZE,
+            fontWeight: 600,
+            color: hasReading ? HOLD_TITLE_COLOR_ON : HOLD_TITLE_COLOR_OFF,
+          }}
+        >
+          Hold
+        </span>
+        {hasReading && (
+          <span
+            style={{
+              fontFamily: fonts.mono,
+              fontSize: HOLD_NAME_FONT_SIZE,
+              fontWeight: 600,
+              color: paper.inkMid,
+            }}
+          >
+            {holdName}
+          </span>
+        )}
+      </span>
+      <span
+        style={{
+          fontSize: CARD_SUBTITLE_FONT_SIZE,
+          color: CARD_SUBTITLE_COLOR,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {hasReading ? "what you're playing" : "play a note first"}
+      </span>
+    </button>
+  );
+}
+
+// practice.tuner/REQ-004 — the Target sheet: Auto, Hold, and the pitch
+// spiral, on the shared BottomSheet shell. Never touches the session on
+// open or close (REQ-004/S6) — `onAuto`/`onHold`/`onPin` are the only calls
+// that reach the session, and only when the learner actually picks one.
+export function TargetSheet(props: {
+  readonly open: boolean;
+  readonly tuner: TunerSnapshot;
+  readonly spelling: SpellingPreference;
+  readonly range: NoteRange;
+  readonly onClose: () => void;
+  readonly onAuto: () => void;
+  readonly onHold: () => void;
+  readonly onPin: (position: number) => void;
+}): JSX.Element {
+  const { open, tuner, spelling, range, onClose, onAuto, onHold, onPin } =
+    props;
+
+  // The spiral's own trail (practice.tuner/REQ-004/S6) — the same shape and
+  // capping rule as TunerScreen's strip trail (`appendToTrail`), kept
+  // separately since the spiral is a different view of the same readings
+  // and this sheet has no access to TunerScreen's own ref.
+  const trailRef = useRef<readonly NoteJudged[]>([]);
+  const lastReadingRef = useRef<NoteJudged | null>(null);
+  if (tuner.reading === null) {
+    trailRef.current = [];
+    lastReadingRef.current = null;
+  } else if (tuner.reading !== lastReadingRef.current) {
+    lastReadingRef.current = tuner.reading;
+    trailRef.current = appendToTrail(trailRef.current, tuner.reading);
+  }
+
+  const span = spiralSpanOf(range, tuner);
+  const rangeLowest = pitchPosition(range.lowest);
+  const rangeHighest = pitchPosition(range.highest);
+  const rangeLabel = `${noteLabel(noteAtPosition(span.lowest, spelling))}–${noteLabel(
+    noteAtPosition(span.highest, spelling),
+  )} · low in the middle`;
+
+  const holdName =
+    tuner.reading === null ? "" : noteLabel(tuner.reading.heard.nearest);
+
+  return (
+    <>
+      <OverlayScrim open={open} zIndex={SCRIM_Z_INDEX} onClose={onClose} />
+      <BottomSheet
+        open={open}
+        zIndex={SHEET_Z_INDEX}
+        paddingBottom={SHEET_PADDING_BOTTOM}
+      >
+        {/* BottomSheet itself always renders its children (its own doc
+            comment: `display` alone gates visibility, for every other
+            sheet's sake). This sheet additionally gates its own content on
+            `open` — REQ-004/S6 (closed means gone, not just off-screen: no
+            lingering "Measure from the nearest note…" text, no reachable
+            Auto/Hold/wedge buttons) and, practically, so the spiral's 57-
+            wedge geometry is never computed while nobody can see it. */}
+        {open && (
+          <>
+            <OverlayHeader
+              title="Target"
+              subtitle={SUBTITLE_TEXT}
+              padding={HEADER_PADDING}
+              closeAriaLabel="Close"
+              onClose={onClose}
+            />
+            <div
+              style={{
+                display: "flex",
+                gap: CARDS_GAP,
+                padding: CARDS_ROW_PADDING,
+              }}
+            >
+              <AutoCard auto={tuner.target.kind === "auto"} onAuto={onAuto} />
+              <HoldCard
+                hasReading={tuner.reading !== null}
+                holdName={holdName}
+                onHold={onHold}
+              />
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+                padding: TAP_ROW_PADDING,
+              }}
+            >
+              <div style={{ fontSize: TAP_LABEL_FONT_SIZE, fontWeight: 600 }}>
+                Or tap a note
+              </div>
+              <div
+                style={{
+                  fontFamily: fonts.mono,
+                  fontSize: TAP_RANGE_FONT_SIZE,
+                  color: TAP_RANGE_COLOR,
+                }}
+              >
+                {rangeLabel}
+              </div>
+            </div>
+            <div style={{ padding: SPIRAL_WRAPPER_PADDING }}>
+              <PitchSpiral
+                lowest={span.lowest}
+                highest={span.highest}
+                rangeLowest={rangeLowest}
+                rangeHighest={rangeHighest}
+                target={tuner.target}
+                reading={tuner.reading}
+                trail={trailRef.current}
+                spelling={spelling}
+                onPick={onPin}
+              />
+            </div>
+          </>
+        )}
+      </BottomSheet>
+    </>
+  );
+}

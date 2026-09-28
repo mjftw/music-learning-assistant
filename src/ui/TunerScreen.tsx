@@ -1,13 +1,28 @@
-import { memo, useRef, type JSX } from "react";
+import { memo, useCallback, useRef, useState, type JSX } from "react";
 import type { NoteJudged, TunerSnapshot } from "../practice/published";
-import type { SpellingPreference } from "../theory/published";
+import type { NoteRange, SpellingPreference } from "../theory/published";
+import { TargetPill } from "./TargetPill";
+import { TargetSheet } from "./TargetSheet";
 import { fonts, paper } from "./theme";
 import { TunerLevel } from "./TunerLevel";
 import { TunerStave } from "./TunerStave";
 
 // practice.tuner/REQ-005 — the strip's 2.5 s trail is the last 50 readings,
-// oldest first (T016's brief).
-const TRAIL_CAPACITY = 50;
+// oldest first (T016's brief). Exported (with `appendToTrail`) so
+// TargetSheet.tsx's own trail — the same shape, fed to PitchSpiral rather
+// than TunerStave — can share the arithmetic instead of duplicating it
+// (docs/engineering.md, AGENTS.md "things agents get wrong here").
+export const TRAIL_CAPACITY = 50;
+
+export function appendToTrail(
+  trail: readonly NoteJudged[],
+  reading: NoteJudged,
+): readonly NoteJudged[] {
+  const appended = [...trail, reading];
+  return appended.length > TRAIL_CAPACITY
+    ? appended.slice(appended.length - TRAIL_CAPACITY)
+    : appended;
+}
 
 // The header row — copied verbatim from the vendored visual reference
 // (changes/007-hear-me/design/Tuner.dc.html, frame #4a, markup lines
@@ -62,10 +77,41 @@ function isListening(tuner: TunerSnapshot): boolean {
 function TunerScreenComponent(props: {
   readonly tuner: TunerSnapshot;
   readonly spelling: SpellingPreference;
+  readonly range: NoteRange;
   readonly onLeave: () => void;
+  readonly onHold: () => void;
+  readonly onPin: (position: number) => void;
+  readonly onStep: (delta: -1 | 1) => void;
+  readonly onClear: () => void;
 }): JSX.Element {
-  const { tuner, spelling, onLeave } = props;
+  const { tuner, spelling, range, onLeave, onHold, onPin, onStep, onClear } =
+    props;
   const listening = isListening(tuner);
+
+  // practice.tuner/REQ-004/S6 — the Target sheet's open/closed state is
+  // local to this screen: opening or closing it never touches the session.
+  // Hold, Auto and a spiral wedge each close the sheet as they pin/clear the
+  // target (the vendored reference's own `pickAuto`/`holdNote`/wedge `pick`,
+  // each `sheet: false` alongside its target change) — composed here rather
+  // than in TargetSheet, which only knows the handlers it was given.
+  const [targetSheetOpen, setTargetSheetOpen] = useState(false);
+  const handleOpenTarget = useCallback(() => setTargetSheetOpen(true), []);
+  const handleCloseTarget = useCallback(() => setTargetSheetOpen(false), []);
+  const handleAuto = useCallback(() => {
+    onClear();
+    setTargetSheetOpen(false);
+  }, [onClear]);
+  const handleHold = useCallback(() => {
+    onHold();
+    setTargetSheetOpen(false);
+  }, [onHold]);
+  const handlePin = useCallback(
+    (position: number) => {
+      onPin(position);
+      setTargetSheetOpen(false);
+    },
+    [onPin],
+  );
 
   // The strip's trail (practice.tuner/REQ-005) — a ring of the last 50
   // NoteJudged, oldest first, kept here (not in the session) so it is pure
@@ -84,15 +130,18 @@ function TunerScreenComponent(props: {
     lastReadingRef.current = null;
   } else if (tuner.reading !== lastReadingRef.current) {
     lastReadingRef.current = tuner.reading;
-    const appended = [...trailRef.current, tuner.reading];
-    trailRef.current =
-      appended.length > TRAIL_CAPACITY
-        ? appended.slice(appended.length - TRAIL_CAPACITY)
-        : appended;
+    trailRef.current = appendToTrail(trailRef.current, tuner.reading);
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+    <div
+      style={{
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        flex: 1,
+      }}
+    >
       <div
         style={{
           display: "flex",
@@ -166,10 +215,24 @@ function TunerScreenComponent(props: {
       <div style={{ padding: "10px 16px 0" }}>
         <TunerStave tuner={tuner} trail={trailRef.current} />
       </div>
-      {/* T017 — the target row */}
-      <div />
+      <TargetPill
+        tuner={tuner}
+        onOpen={handleOpenTarget}
+        onStep={onStep}
+        onClear={onClear}
+      />
       {/* T018 — the footer */}
       <div />
+      <TargetSheet
+        open={targetSheetOpen}
+        tuner={tuner}
+        spelling={spelling}
+        range={range}
+        onClose={handleCloseTarget}
+        onAuto={handleAuto}
+        onHold={handleHold}
+        onPin={handlePin}
+      />
     </div>
   );
 }
