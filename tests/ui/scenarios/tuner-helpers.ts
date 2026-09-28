@@ -111,18 +111,51 @@ export async function letGapPass(f: {
 // `setState`) and reports whether one was actually pending, and `pending`
 // lets a scenario assert the loop is/isn't running without inspecting
 // TunerScreen's own internals.
+//
+// design-loop variant (007 round 4) — extended with a fake setTimeout/
+// clearTimeout pair (`setTimer`/`clearTimer`, `timerPending`) sharing this
+// same `ms`, for TunerScreen's injectable silence-treatment timers (the
+// fade/linger/ghost hold and fade-out). Unlike the frame slot above, more
+// than one timer can be pending at once (mirroring real setTimeout), and
+// `advanceMs` itself fires whatever is due — including one a just-fired
+// timer schedules, if its own delay lands within the same advance (b's
+// hold → fade chain) — so a scenario drives everything through the one
+// `now`/`advanceMs` pair already in hand, exactly as the acceptance text
+// describes ("advance 600 ms → they are gone").
 export function manualAnimationClock(startMs = 0): {
   readonly now: () => number;
   readonly requestFrame: (callback: FrameRequestCallback) => number;
   readonly cancelFrame: (handle: number) => void;
+  readonly setTimer: (callback: () => void, delayMs: number) => number;
+  readonly clearTimer: (handle: number) => void;
   readonly advanceMs: (deltaMs: number) => void;
   readonly runFrame: () => boolean;
   readonly pending: boolean;
+  readonly timerPending: boolean;
 } {
   let ms = startMs;
   let nextId = 1;
   let pendingId: number | null = null;
   let pendingCallback: FrameRequestCallback | null = null;
+  const timers = new Map<number, { dueAt: number; callback: () => void }>();
+
+  function fireDueTimers(): void {
+    for (;;) {
+      let earliestId: number | null = null;
+      let earliestDueAt = Infinity;
+      for (const [id, timer] of timers) {
+        if (timer.dueAt <= ms && timer.dueAt < earliestDueAt) {
+          earliestId = id;
+          earliestDueAt = timer.dueAt;
+        }
+      }
+      if (earliestId === null) return;
+      const timer = timers.get(earliestId);
+      timers.delete(earliestId);
+      timer?.callback();
+    }
+  }
+
   return {
     now: () => ms,
     requestFrame: (callback) => {
@@ -138,8 +171,18 @@ export function manualAnimationClock(startMs = 0): {
         pendingCallback = null;
       }
     },
+    setTimer: (callback, delayMs) => {
+      const id = nextId;
+      nextId += 1;
+      timers.set(id, { dueAt: ms + delayMs, callback });
+      return id;
+    },
+    clearTimer: (handle) => {
+      timers.delete(handle);
+    },
     advanceMs: (deltaMs) => {
       ms += deltaMs;
+      fireDueTimers();
     },
     runFrame: () => {
       const callback = pendingCallback;
@@ -151,6 +194,9 @@ export function manualAnimationClock(startMs = 0): {
     },
     get pending() {
       return pendingCallback !== null;
+    },
+    get timerPending() {
+      return timers.size > 0;
     },
   };
 }

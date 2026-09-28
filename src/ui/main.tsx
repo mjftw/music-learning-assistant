@@ -24,6 +24,7 @@ import {
 import { builtInCatalogue } from "../theory/published";
 import { App } from "./App";
 import { localStorageSelectionStore } from "./selection-store";
+import type { SilenceMode } from "./tuner-silence";
 
 const rootElement = document.getElementById("root");
 if (rootElement === null) {
@@ -112,6 +113,37 @@ exposeSoundForTiming(sound);
 const listening = webAudioListening(audioContext);
 exposeListeningForTiming(listening);
 
+// design-loop variant (007 round 4) — the tuner's silence treatment,
+// exploring "it's very abrupt how quickly everything disappears when going
+// from hearing something to nothing" on the phone via `?variant=a|b|c`.
+// TEMPORARY — deleted, along with every other block carrying this comment,
+// once one treatment/timing is chosen.
+//
+// design-loop variant (007 round 4, follow-up 2) — the user picked b
+// (linger) and asked to try it with a faster fade ("b but try with faster
+// fade"), so all three letters are now the linger treatment at different
+// timings rather than three different treatments: `a` fades twice as fast
+// as `b` (the one the user tried), `c` also shortens the hold. Anything
+// else, including no parameter, is still `"cut"`, today's behaviour,
+// untouched — `lingerMs`/`lingerFadeMs` go unread in that case.
+interface SilenceVariant {
+  readonly silence: SilenceMode;
+  readonly lingerMs: number;
+  readonly lingerFadeMs: number;
+}
+function silenceVariantFromUrl(): SilenceVariant {
+  const variant = new URLSearchParams(window.location.search).get("variant");
+  if (variant === "a")
+    return { silence: "linger", lingerMs: 1000, lingerFadeMs: 200 };
+  if (variant === "b")
+    return { silence: "linger", lingerMs: 1000, lingerFadeMs: 400 };
+  if (variant === "c")
+    return { silence: "linger", lingerMs: 600, lingerFadeMs: 200 };
+  return { silence: "cut", lingerMs: 1000, lingerFadeMs: 400 };
+}
+
+const silenceVariant = silenceVariantFromUrl();
+
 createRoot(rootElement).render(
   <StrictMode>
     <App
@@ -129,6 +161,9 @@ createRoot(rootElement).render(
         exposeNoteJudgedForTiming(session);
       }}
       onPaintAge={collectPaintAge}
+      silence={silenceVariant.silence}
+      lingerMs={silenceVariant.lingerMs}
+      lingerFadeMs={silenceVariant.lingerFadeMs}
     />
   </StrictMode>,
 );

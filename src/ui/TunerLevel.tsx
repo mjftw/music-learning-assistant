@@ -16,6 +16,11 @@ import {
 } from "../theory/published";
 import { formatCents } from "./cents-label";
 import { fonts, paper, tuner } from "./theme";
+import { staleAttrs, type StaleReading } from "./tuner-silence";
+
+// design-loop variant (007 round 4) — "Play a note"'s own entrance once a's
+// or b's own fade has finished (TunerScreen's `emptyOpacity` prop, below).
+const EMPTY_FADE_IN_MS = 200;
 
 // Geometry below is copied verbatim from the vendored visual reference
 // (changes/007-hear-me/design/Tuner.dc.html, frame #4a, markup lines
@@ -168,16 +173,36 @@ function readingGeometry(reading: NoteJudged): {
 export function TunerLevel(props: {
   readonly tuner: TunerSnapshot;
   readonly spelling: SpellingPreference;
+  // design-loop variant (007 round 4) — `stale` is the last reading, still
+  // shown fading or ghosted (`undefined` when nothing is: live, "cut", or
+  // truly nothing to show); `emptyOpacity` drives "Play a note"'s own
+  // entrance once a's/b's fade has ended (`undefined` outside that moment —
+  // no style change, exactly today's behaviour).
+  readonly stale?: StaleReading;
+  readonly emptyOpacity?: number;
 }): JSX.Element {
-  const { tuner: snapshot, spelling } = props;
+  const { tuner: snapshot, spelling, stale, emptyOpacity } = props;
   const reading = snapshot.reading;
   const cannotHear = snapshot.listening.kind === "cannot-hear";
+  const targetPinnedSilent = snapshot.targetNote !== null && reading === null;
+
+  // design-loop variant (007 round 4) — with a target pinned, the big name
+  // always follows REQ-003/S2 below, unaffected by the silence treatment
+  // (`staleForName` stays `undefined`); with none pinned, `stale` (when
+  // present) stands in for the reading that just cleared, so the name
+  // doesn't disappear on its own ahead of the line/tag/stave.
+  const staleForName = !targetPinnedSilent ? stale : undefined;
 
   // The note the big name shows: the current reading's target (the
   // pinned note, or the nearest note with hysteresis) when there is one,
   // else the pinned target alone (practice.tuner/REQ-003/S2 — the target
-  // stays shown, greyed, through a silence).
-  const referenceNote: Note | null = reading?.target ?? snapshot.targetNote;
+  // stays shown, greyed, through a silence), else the stale reading's own
+  // target while fading/ghosted.
+  const referenceNote: Note | null =
+    reading?.target ??
+    (snapshot.targetNote !== null
+      ? snapshot.targetNote
+      : (staleForName?.reading.target ?? null));
   const referencePosition =
     referenceNote === null ? null : pitchPosition(referenceNote);
   const aboveLabel =
@@ -190,20 +215,39 @@ export function TunerLevel(props: {
       : noteLabel(noteAtPosition(referencePosition - 1, spelling));
 
   // practice.tuner/REQ-003 — greyed once a target is pinned but nothing is
-  // currently heard; otherwise the normal ink.
-  const nameInk =
-    snapshot.targetNote !== null && reading === null ? paper.faint : paper.ink;
+  // currently heard; otherwise the normal ink, except while an unpinned
+  // stale reading is greyed too (b, c — design-loop variant, 007 round 4).
+  const nameInk = targetPinnedSilent
+    ? paper.faint
+    : staleForName !== undefined && staleForName.grey
+      ? paper.faint
+      : paper.ink;
+
+  const nameStaleAttrs = staleAttrs(staleForName);
 
   // The "playing <heard note>" caption — only while pinned and the heard
-  // note differs from the target (practice.tuner/REQ-004/S1, S3).
+  // note differs from the target (practice.tuner/REQ-004/S1, S3). Reads off
+  // `effectiveReading` (design-loop variant, 007 round 4) so it fades/ghosts
+  // with the rest of the tag rather than vanishing ahead of it.
+  const effectiveReading = reading ?? stale?.reading ?? null;
   const captionText =
-    reading !== null &&
+    effectiveReading !== null &&
     snapshot.target.kind === "pinned" &&
-    pitchPosition(reading.heard.nearest) !== pitchPosition(reading.target)
-      ? `playing ${noteLabel(reading.heard.nearest)}`
+    pitchPosition(effectiveReading.heard.nearest) !==
+      pitchPosition(effectiveReading.target)
+      ? `playing ${noteLabel(effectiveReading.heard.nearest)}`
       : "";
 
-  const geometry = reading === null ? null : readingGeometry(reading);
+  const geometry =
+    effectiveReading === null ? null : readingGeometry(effectiveReading);
+  // design-loop variant (007 round 4) — a's own fade keeps the verdict's own
+  // colour (only opacity changes); b's/c's stale states grey it instead. Only
+  // read when `geometry` is non-null (the line/tag's own render guard), so
+  // the `paper.faint` fallback here is never actually shown.
+  const displayTone = stale?.grey
+    ? paper.faint
+    : (geometry?.tone ?? paper.faint);
+  const lineTagStaleAttrs = staleAttrs(reading === null ? stale : undefined);
 
   return (
     <div style={{ position: "relative", height: AREA_HEIGHT, flex: "none" }}>
@@ -376,10 +420,17 @@ export function TunerLevel(props: {
               {referenceNote !== null && (
                 <div
                   data-testid="tuner-name"
+                  {...(nameStaleAttrs !== undefined
+                    ? {
+                        "data-state": nameStaleAttrs["data-state"],
+                        "aria-hidden": nameStaleAttrs["aria-hidden"],
+                      }
+                    : {})}
                   style={{
                     display: "flex",
                     alignItems: "flex-start",
                     gap: 4,
+                    ...(nameStaleAttrs?.style ?? {}),
                   }}
                 >
                   <div
@@ -405,26 +456,44 @@ export function TunerLevel(props: {
                   </div>
                 </div>
               )}
-              {reading === null && (
-                <div
-                  data-testid="tuner-empty"
-                  style={{
-                    fontSize: EMPTY_FONT_SIZE,
-                    color: paper.faint,
-                    background: paper.frame,
-                    padding: "4px 10px",
-                  }}
-                >
-                  Play a note
-                </div>
-              )}
+              {/* design-loop variant (007 round 4) — "Play a note" shows
+                  whenever nothing live is heard, except while a/b's stale
+                  reading is still fading (absent until its timer ends);
+                  c's ghost shows it at once, alongside the still-ghosted
+                  reading (REQ-003/S2's own layout, reused). */}
+              {reading === null &&
+                (stale === undefined || stale.dataState === "ghost") && (
+                  <div
+                    data-testid="tuner-empty"
+                    style={{
+                      fontSize: EMPTY_FONT_SIZE,
+                      color: paper.faint,
+                      background: paper.frame,
+                      padding: "4px 10px",
+                      ...(emptyOpacity !== undefined
+                        ? {
+                            opacity: emptyOpacity,
+                            transition: `opacity ${EMPTY_FADE_IN_MS}ms`,
+                          }
+                        : {}),
+                    }}
+                  >
+                    Play a note
+                  </div>
+                )}
             </>
           )}
         </div>
-        {reading !== null && geometry !== null && (
+        {effectiveReading !== null && geometry !== null && (
           <>
             <div
               data-testid="tuner-line"
+              {...(lineTagStaleAttrs !== undefined
+                ? {
+                    "data-state": lineTagStaleAttrs["data-state"],
+                    "aria-hidden": lineTagStaleAttrs["aria-hidden"],
+                  }
+                : {})}
               style={{
                 position: "absolute",
                 left: LINE_LEFT,
@@ -432,11 +501,18 @@ export function TunerLevel(props: {
                 top: geometry.lineTop,
                 height: LINE_HEIGHT,
                 borderRadius: LINE_RADIUS,
-                background: geometry.tone,
+                background: displayTone,
+                ...(lineTagStaleAttrs?.style ?? {}),
               }}
             />
             <div
               data-testid="tuner-tag"
+              {...(lineTagStaleAttrs !== undefined
+                ? {
+                    "data-state": lineTagStaleAttrs["data-state"],
+                    "aria-hidden": lineTagStaleAttrs["aria-hidden"],
+                  }
+                : {})}
               style={{
                 position: "absolute",
                 right: TAG_RIGHT,
@@ -448,7 +524,8 @@ export function TunerLevel(props: {
                 whiteSpace: "nowrap",
                 background: paper.frame,
                 borderRadius: TAG_RADIUS,
-                color: geometry.tone,
+                color: displayTone,
+                ...(lineTagStaleAttrs?.style ?? {}),
               }}
             >
               {captionText !== "" && (
@@ -468,7 +545,7 @@ export function TunerLevel(props: {
                   fontFamily: fonts.mono,
                   fontSize: TAG_CENTS_FONT_SIZE,
                   fontWeight: 600,
-                  color: geometry.tone,
+                  color: displayTone,
                 }}
               >
                 {geometry.primaryText}
@@ -478,7 +555,7 @@ export function TunerLevel(props: {
                   style={{
                     fontSize: TAG_WORD_FONT_SIZE,
                     fontWeight: 600,
-                    color: geometry.tone,
+                    color: displayTone,
                   }}
                 >
                   {geometry.wordText}

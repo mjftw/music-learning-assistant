@@ -4,6 +4,7 @@ import { noteLabel, pitchHzOf, type Note } from "../theory/published";
 import { formatCents } from "./cents-label";
 import { ACCIDENTAL_GLYPH, diatonicIndex } from "./key-label";
 import { fonts, paper, tuner } from "./theme";
+import { staleAttrs, type StaleReading } from "./tuner-silence";
 
 // Geometry below is copied verbatim from the vendored visual reference
 // (changes/007-hear-me/design/Tuner.dc.html, frame #4a, markup lines
@@ -323,15 +324,28 @@ export function TunerStave(props: {
   // TunerScreen's injectable "now" while silent and the trail is still
   // aging (TunerScreen's own rAF-driven re-renders keep advancing it).
   readonly nowMs: number;
+  // design-loop variant (007 round 4) — the last reading, still shown
+  // fading or ghosted; `undefined` when nothing is (live, "cut", or truly
+  // nothing to show). Only the head, its cents and the Hz figure read it
+  // (below) — the ledgers, guide and accidental stay tied to a live
+  // `reading` only, disappearing at once as they always have.
+  readonly stale?: StaleReading;
 }): JSX.Element {
-  const { tuner: snapshot, trail, nowMs } = props;
+  const { tuner: snapshot, trail, nowMs, stale } = props;
   const reading = snapshot.reading;
   const targetNote = snapshot.targetNote;
+  // design-loop variant (007 round 4) — the reading the head/cents/Hz
+  // display: live when there is one, else the stale reading while it's
+  // fading/ghosted, so those elements linger in place rather than
+  // disappearing with the rest.
+  const effectiveReading = reading ?? stale?.reading ?? null;
 
   // The register decision is made once, from whichever note governs the
   // reading (the pinned target when there is one, else the heard note —
   // `referenceRawIndexOf`), and its `adj` governs both placements below.
-  const referenceRawIndex = referenceRawIndexOf(targetNote, reading);
+  // Reads `effectiveReading`, not `reading`, so the register doesn't shift
+  // under the still-fading head the instant live sounding stops.
+  const referenceRawIndex = referenceRawIndexOf(targetNote, effectiveReading);
   const adj = referenceRawIndex === null ? 0 : registerAdjOf(referenceRawIndex);
 
   // The trail's own register decision: `adj` above whenever something
@@ -355,14 +369,44 @@ export function TunerStave(props: {
       ? null
       : placeHeard(reading.heard.nearest, reading.heard.cents, adj);
   const target = targetNote === null ? null : placeTarget(targetNote, adj);
+  // design-loop variant (007 round 4) — the head/cents/Hz's own placement,
+  // off `effectiveReading` rather than `heard` (which stays live-only, still
+  // governing the ledgers/guide/accidental below): identical to `heard`
+  // while live, and the last reading's placement while fading/ghosted.
+  const heardStale =
+    effectiveReading === null
+      ? null
+      : placeHeard(
+          effectiveReading.heard.nearest,
+          effectiveReading.heard.cents,
+          adj,
+        );
 
   const tone =
     reading === null ? paper.faint : TONE_BY_VERDICT[reading.verdict];
+  // design-loop variant (007 round 4) — a's own fade keeps the verdict's own
+  // colour (only opacity changes); b's/c's stale states grey it instead.
+  // Drives the head/cents/Hz only (`tone` above stays live-only, still
+  // governing the trail gradient and the accidental).
+  const displayTone = stale?.grey
+    ? paper.faint
+    : effectiveReading === null
+      ? paper.faint
+      : TONE_BY_VERDICT[effectiveReading.verdict];
+  const headStaleAttrs = staleAttrs(reading === null ? stale : undefined);
 
-  const heardMarkY =
-    heard !== null && heard.position.mark !== ""
-      ? octaveMarkY(heard.position.mark, heard.position.y, heard.hy)
+  // design-loop variant (007 round 4, follow-up 1) — off `heardStale`, not
+  // `heard`, so the octave mark lingers with the head; the same grey as the
+  // lingering head in b/c, its own ink otherwise (never verdict-toned).
+  const heardStaleMarkY =
+    heardStale !== null && heardStale.position.mark !== ""
+      ? octaveMarkY(
+          heardStale.position.mark,
+          heardStale.position.y,
+          heardStale.hy,
+        )
       : null;
+  const headOctaveMarkColor = stale?.grey ? paper.faint : paper.inkSoft;
   const targetMarkYValue =
     target !== null && target.position.mark !== ""
       ? targetMarkY(target.position.mark, target.position.y)
@@ -377,9 +421,17 @@ export function TunerStave(props: {
   // trail has emptied too, this is `null` and the layout falls back to the
   // stave-lines-only baseline, exactly as an empty reading always did.
   // TRAIL_MS is used directly for all trail age calculations.
+  //
+  // design-loop variant (007 round 4, follow-up 1) — off `heardStale`
+  // first, not `heard`: while a/b/c's own lingering head (and its
+  // furniture) is still drawn, the layout must keep seeing exactly that
+  // head's own contribution, not the trail's (which can itself go empty —
+  // c's own ghost outlives the 2.5 s trail) — the trail fallback below
+  // only ever stands in once `heardStale` itself is `null` too (the
+  // lingering head has actually been removed).
   const layoutHeard =
-    heard !== null
-      ? heard
+    heardStale !== null
+      ? heardStale
       : newestTrailPoint === null
         ? null
         : placeHeard(
@@ -401,9 +453,11 @@ export function TunerStave(props: {
   // (lines 1271-1279), reproduced with our simplified single-clef model.
   const tops: number[] = [82];
   const bots: number[] = [136];
+  // design-loop variant (007 round 4) — off `heardStale`, not `heard`, so
+  // the cents figure stays in place through a's/b's/c's own fade/ghost.
   const centsTop =
-    heard !== null
-      ? Math.min(heard.position.y, heard.hy) - CENTS_TOP_OFFSET
+    heardStale !== null
+      ? Math.min(heardStale.position.y, heardStale.hy) - CENTS_TOP_OFFSET
       : null;
   if (layoutHeard !== null) {
     tops.push(
@@ -474,7 +528,9 @@ export function TunerStave(props: {
   const referenceHz = referenceNote === null ? null : pitchHzOf(referenceNote);
   const referenceLabel =
     referenceNote === null ? "— IS" : `${noteLabel(referenceNote)} IS`;
-  const heardHz = reading === null ? null : reading.heard.hz;
+  // design-loop variant (007 round 4) — off `effectiveReading`, so the Hz
+  // figure lingers with the rest through a's/b's/c's own fade/ghost.
+  const heardHz = effectiveReading === null ? null : effectiveReading.heard.hz;
 
   return (
     <div
@@ -578,27 +634,50 @@ export function TunerStave(props: {
               />
             </>
           )}
-          {heard !== null && (
+          {/* design-loop variant (007 round 4, follow-up 1) — the heard
+              head's own furniture: gated on `heardStale`, not `heard`, and
+              carrying the head's own data-state/aria-hidden/opacity, so the
+              ledgers and the dotted guide linger with the head rather than
+              vanishing out from under it (leaving it floating with no
+              ledger lines). Colour untouched — neither is verdict-toned
+              today, so only opacity animates. */}
+          {heardStale !== null && (
             <>
-              {heard.ledgers.map((ledger, index) => (
+              {heardStale.ledgers.map((ledger, index) => (
                 <line
                   key={index}
+                  data-testid="heard-ledger"
+                  {...(headStaleAttrs !== undefined
+                    ? {
+                        "data-state": headStaleAttrs["data-state"],
+                        "aria-hidden": headStaleAttrs["aria-hidden"],
+                      }
+                    : {})}
                   x1={ledger.x1}
                   y1={ledger.y}
                   x2={ledger.x2}
                   y2={ledger.y}
                   stroke={paper.inkSoft}
                   strokeWidth={LEDGER_STROKE_WIDTH}
+                  style={headStaleAttrs?.style}
                 />
               ))}
               <line
+                data-testid="heard-guide"
+                {...(headStaleAttrs !== undefined
+                  ? {
+                      "data-state": headStaleAttrs["data-state"],
+                      "aria-hidden": headStaleAttrs["aria-hidden"],
+                    }
+                  : {})}
                 x1={GUIDE_X1}
-                y1={heard.position.y}
+                y1={heardStale.position.y}
                 x2={GUIDE_X2}
-                y2={heard.position.y}
+                y2={heardStale.position.y}
                 stroke={paper.faint}
                 strokeWidth={GUIDE_STROKE_WIDTH}
                 strokeDasharray={GUIDE_DASH}
+                style={headStaleAttrs?.style}
               />
             </>
           )}
@@ -617,17 +696,26 @@ export function TunerStave(props: {
               strokeLinejoin="round"
             />
           )}
-          {heard !== null && (
+          {heardStale !== null && (
             <g
               data-testid="heard-head"
-              style={{ transform: `translateY(${pxValue(heard.hy)})` }}
+              {...(headStaleAttrs !== undefined
+                ? {
+                    "data-state": headStaleAttrs["data-state"],
+                    "aria-hidden": headStaleAttrs["aria-hidden"],
+                  }
+                : {})}
+              style={{
+                transform: `translateY(${pxValue(heardStale.hy)})`,
+                ...(headStaleAttrs?.style ?? {}),
+              }}
             >
               <ellipse
                 cx={HEARD_X}
                 cy={0}
                 rx={HEAD_RX}
                 ry={HEAD_RY}
-                fill={tone}
+                fill={displayTone}
               />
               <ellipse
                 cx={HEARD_X}
@@ -696,65 +784,101 @@ export function TunerStave(props: {
               {ACCIDENTAL_GLYPH[targetNote.accidental]}
             </div>
           )}
-        {heard !== null &&
-          reading !== null &&
-          reading.heard.nearest.accidental !== "natural" && (
+        {/* design-loop variant (007 round 4, follow-up 1) — off
+            `heardStale`/`effectiveReading`, not `heard`/`reading`, and
+            `displayTone` (not `tone`, which the trail's gradient must keep
+            reading unchanged), so the accidental lingers with the head at
+            the colour/opacity/grey it carries, instead of losing its own
+            sharp/flat while the head is still shown. */}
+        {heardStale !== null &&
+          effectiveReading !== null &&
+          effectiveReading.heard.nearest.accidental !== "natural" && (
             <div
               data-testid="heard-accidental"
+              {...(headStaleAttrs !== undefined
+                ? {
+                    "data-state": headStaleAttrs["data-state"],
+                    "aria-hidden": headStaleAttrs["aria-hidden"],
+                  }
+                : {})}
               style={{
                 position: "absolute",
                 left: ACCIDENTAL_X_HEARD,
                 top:
-                  heard.hy +
-                  (reading.heard.nearest.accidental === "flat"
+                  heardStale.hy +
+                  (effectiveReading.heard.nearest.accidental === "flat"
                     ? ACCIDENTAL_LOWERED_Y_ADJUST
                     : 0),
                 transform: "translate(-50%,-50%)",
                 fontFamily: fonts.music,
                 fontSize: ACCIDENTAL_FONT_SIZE,
                 lineHeight: 1,
-                color: tone,
+                color: displayTone,
+                ...(headStaleAttrs?.style ?? {}),
               }}
             >
-              {ACCIDENTAL_GLYPH[reading.heard.nearest.accidental]}
+              {ACCIDENTAL_GLYPH[effectiveReading.heard.nearest.accidental]}
             </div>
           )}
-        {heard !== null && reading !== null && centsTop !== null && (
-          <div
-            data-testid="strip-cents"
-            style={{
-              position: "absolute",
-              left: CENTS_X,
-              top: centsTop,
-              transform: "translateX(-50%)",
-              fontFamily: fonts.mono,
-              fontSize: CENTS_FONT_SIZE,
-              fontWeight: 600,
-              lineHeight: 1,
-              color: tone,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {formatCents(reading.heard.cents)}
-          </div>
-        )}
-        {heard !== null &&
-          heard.position.mark !== "" &&
-          heardMarkY !== null && (
+        {heardStale !== null &&
+          effectiveReading !== null &&
+          centsTop !== null && (
             <div
+              data-testid="strip-cents"
+              {...(headStaleAttrs !== undefined
+                ? {
+                    "data-state": headStaleAttrs["data-state"],
+                    "aria-hidden": headStaleAttrs["aria-hidden"],
+                  }
+                : {})}
+              style={{
+                position: "absolute",
+                left: CENTS_X,
+                top: centsTop,
+                transform: "translateX(-50%)",
+                fontFamily: fonts.mono,
+                fontSize: CENTS_FONT_SIZE,
+                fontWeight: 600,
+                lineHeight: 1,
+                color: displayTone,
+                whiteSpace: "nowrap",
+                ...(headStaleAttrs?.style ?? {}),
+              }}
+            >
+              {formatCents(effectiveReading.heard.cents)}
+            </div>
+          )}
+        {/* design-loop variant (007 round 4, follow-up 1) — off
+            `heardStale`, not `heard` (and a new test id — there wasn't one
+            today), so the octave mark lingers with the head; the same grey
+            as the lingering head in b/c (`headOctaveMarkColor`), its own
+            ink otherwise — it was never verdict-toned, so a's own fade
+            leaves its colour alone too. */}
+        {heardStale !== null &&
+          heardStale.position.mark !== "" &&
+          heardStaleMarkY !== null && (
+            <div
+              data-testid="heard-octave-mark"
+              {...(headStaleAttrs !== undefined
+                ? {
+                    "data-state": headStaleAttrs["data-state"],
+                    "aria-hidden": headStaleAttrs["aria-hidden"],
+                  }
+                : {})}
               style={{
                 position: "absolute",
                 left: HEARD_X,
-                top: heardMarkY,
+                top: heardStaleMarkY,
                 transform: "translateX(-50%)",
                 fontFamily: fonts.display,
                 fontSize: OCTAVE_MARK_FONT_SIZE,
                 fontStyle: "italic",
                 lineHeight: 1,
-                color: paper.inkSoft,
+                color: headOctaveMarkColor,
+                ...(headStaleAttrs?.style ?? {}),
               }}
             >
-              {heard.position.mark}
+              {heardStale.position.mark}
             </div>
           )}
       </div>
@@ -783,11 +907,18 @@ export function TunerStave(props: {
           </div>
           <div
             data-testid="heard-hz"
+            {...(headStaleAttrs !== undefined
+              ? {
+                  "data-state": headStaleAttrs["data-state"],
+                  "aria-hidden": headStaleAttrs["aria-hidden"],
+                }
+              : {})}
             style={{
               fontFamily: fonts.mono,
               fontSize: COLUMN_VALUE_FONT_SIZE,
               fontWeight: 600,
-              color: tone,
+              color: displayTone,
+              ...(headStaleAttrs?.style ?? {}),
             }}
           >
             {hzText(heardHz)}
