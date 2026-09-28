@@ -40,6 +40,24 @@ export {
   FIRST_TICK_LEAD_MS,
   HIGHLIGHT_LEAD_MS,
 } from "../domain/session";
+export type {
+  ListeningState,
+  TunerSnapshot,
+  TunerTarget,
+} from "../domain/tuner";
+export {
+  canStepTarget,
+  HANDOVER_CENTS,
+  IN_TUNE_BAND_CENTS,
+  judge,
+  nearestWithHandover,
+  READING_MAX_AGE_MS,
+  semitoneCountOf,
+  TUNER_HIGHEST_POSITION,
+  TUNER_LOWEST_POSITION,
+} from "../domain/tuner";
+export type { NoteJudged, Verdict } from "./note-judged.schema";
+export { verdictSchema } from "./note-judged.schema";
 // Port types — published so consumers (including test fakes) depend on
 // practice/published rather than reaching into practice/ports directly
 // (docs/engineering.md §6: contexts communicate only through published/).

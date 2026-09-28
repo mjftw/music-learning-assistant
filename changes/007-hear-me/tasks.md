@@ -429,7 +429,7 @@ _Ends with the whole tuner observable through `practice/published` with the fake
 
 ### T006 · practice.tuner/REQ-002, practice.tuner/REQ-004 · The tuner's rules, pure
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/practice/domain/tuner.ts`, `src/practice/published/note-judged.schema.ts`

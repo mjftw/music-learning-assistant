@@ -89,3 +89,16 @@ holds in practice.
   memoises only `createListener` — REQ-006/S3's "each later request tries
   again"; a `resume()` failure maps to reason `"failed"` (no dedicated
   no-audio-context reason in `ListeningUnavailable`).
+
+## T006 — notes (2026-09-28)
+
+- Minor, recorded: `centsFrom` in `practice/domain/tuner.ts` inlines the
+  same one-line cents formula as theory's `nearestNoteOf` (theory exposes
+  no arbitrary-note-to-cents primitive; candidate for one if it recurs).
+- Deliberate, recorded for the finish: the `NoteJudged` interface lives in
+  `practice/published/note-judged.schema.ts` (the brief's placement), where
+  the sibling `TargetAdvanced` interface lives in `domain/session.ts` with
+  a Zod mirror in `published/`.
+- `judge` while pinned returns `shown` = the nearest note's position so the
+  hand-over state is warm for a later `clearTarget` (commented; exercised
+  at T009).
