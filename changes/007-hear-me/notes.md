@@ -573,3 +573,14 @@ For converge (T027's review): a tone whose readings stop between about
 350 ms and 500 ms passes the shown-offset gate with an error of 0 — the
 column is seeded at 0 and the readings-per-second gate needs only ~150 ms
 of readings; the raw cents column has the same shape.
+
+## T028 — Hold and the needle remember the last note heard (2026-09-28)
+
+- `tunerLastHeardPosition` in the session: written where a reading is
+  committed, cleared only by `leaveTuner()`; `TunerSnapshot.lastHeard`
+  derived with the spelling, as `targetNote` is.
+- For converge (T028's review): the sheet-side REQ-004/S7 test asserts
+  the pill after Hold, not the greyed big name with "Play a note" —
+  covered between the session-side S7 test and REQ-003/S2's.
+- For the plan at finish: `TunerSnapshot.lastHeard`; `NoteJudged.heard`'s
+  comment (T026).

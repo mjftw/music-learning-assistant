@@ -139,11 +139,17 @@ sdd_phase: open           # open | exited
 - **Problem:** "on note selector spiral I'd like it to remember the last
   heard so you can press hold on this without needing to press while
   you're playing which is often not possible."
-- **Tried:** <pending>
-- **Chose:** <pending>
-- **Rejected because:** <pending>
-- **Requirement changed?** <pending — practice.tuner/REQ-004 (Hold, the
-  needle), REQ-009 (what leaving forgets)>
+- **Tried:** one treatment, as asked, with one choice put to the user —
+  whether the spiral's needle stays in silence. No switch: nothing to
+  compare but that.
+- **Chose:** Hold pins the last note heard once the note has stopped; the
+  Hold card names it; the needle stays greyed on it — "Approve, needle
+  stays greyed" (the user, 2026-09-28).
+- **Rejected because:** the needle vanishing in silence — not chosen; it
+  would leave nothing on the spiral to show what Hold will pin.
+- **Requirement changed?** yes: practice.tuner/REQ-004 (S7, S8),
+  REQ-009/S3, REQ-003's last clause — written to the delta with the
+  user's approval; built as T028.
 
 ### Round 3 — tuner · silent (the stave strip's trail)
 

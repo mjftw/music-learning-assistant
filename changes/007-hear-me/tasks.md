@@ -1370,7 +1370,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 > Appended 2026-09-28 by design round 2 (`design/rounds.md`); REQ-004
 > (S7, S8), REQ-009/S3 and REQ-003 amended with the user's approval.
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (the last note heard, kept from each committed reading, kept through a gap, forgotten on leaving; `holdTarget()` pins it when no reading is showing), `src/practice/domain/tuner.ts` (`TunerSnapshot.lastHeard: Note | null`, spelled per the preference like `targetNote`)
@@ -1390,7 +1390,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 > user's approval. The length is tried live behind a temporary
 > `?variant=a|b|c` switch (2.5 s, 1.2 s, 0.5 s) and fixed by T030.
 
-**Status:** todo
+**Status:** in-progress
 
 **Files**
 - Modify: `src/ui/TunerScreen.tsx` (the trail keeps each point's time and its run; kept through silence; dropped by age), `src/ui/TunerStave.tsx` (x by age; one path per run; drawn in silence), `src/ui/App.tsx`, `src/ui/main.tsx` (the temporary switch)
