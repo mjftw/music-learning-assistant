@@ -1289,7 +1289,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 ### T022 · — · Every row of the proposal's edge-case table has a test; scenario coverage is complete
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: `tests/practice/scenarios/tuner-edge-cases.test.ts`; any file `./scripts/check-scenarios.sh changes/007-hear-me` names

@@ -257,6 +257,18 @@ mod tests {
         }
     }
 
+    // listening.pitch-detection/REQ-002/S5's last clause — "outside E2–C7
+    // nothing is promised, and anything published still obeys REQ-003": a
+    // note below E2 (60 Hz, outside the tuner's E2–C7 range) must not crash
+    // or report a non-positive frequency — either no detection, or a
+    // positive hz, is acceptable.
+    #[test]
+    fn req_002_s5_a_note_outside_e2_to_c7() {
+        if let Some(d) = detect(&sine(60.0), SR) {
+            assert!(d.hz > 0.0, "{}", d.hz);
+        }
+    }
+
     // listening.pitch-detection/REQ-003/S1 — silence
     #[test]
     fn req_003_s1_silence() {
