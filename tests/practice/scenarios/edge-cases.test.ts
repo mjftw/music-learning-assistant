@@ -71,7 +71,11 @@ test("practice.session/REQ-007 — key changed during a count-in continues the c
     beatsLeft: 3,
   });
 
-  session.setContext({ key: keyOf("D"), variant: variantOf("flute-concert") });
+  session.setContext({
+    key: keyOf("D"),
+    variant: variantOf("flute-concert"),
+    spelling: "sharp",
+  });
 
   // The count-in is untouched by the key change.
   expect(session.snapshot().transport).toEqual({

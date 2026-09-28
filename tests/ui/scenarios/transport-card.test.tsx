@@ -8,6 +8,7 @@ import {
   defaultTraversal,
   type SessionSnapshot,
   type TempoTerm,
+  type TunerSnapshot,
 } from "../../../src/practice/published";
 import {
   pitchHzOf,
@@ -37,6 +38,19 @@ const defaultScale = scaleById("major");
 // TransportCard renders nothing about the drone either (the pill and sheet
 // are T007+) — another valid placeholder, same reasoning as defaultScale.
 const placeholderDroneNote: Note = { ...keyOf("G").tonic, octave: 5 };
+
+// TransportCard renders nothing about the tuner either (the pill and
+// screen are T007+) — the default, off shape practice.tuner/REQ-001/S4
+// pins the snapshot to before enterTuner() is ever called.
+const placeholderTuner: TunerSnapshot = {
+  active: false,
+  listening: { kind: "off" },
+  target: { kind: "auto" },
+  targetNote: null,
+  reading: null,
+  canStepDown: false,
+  canStepUp: false,
+};
 
 function baseSnapshot(
   overrides: Partial<SessionSnapshot> = {},
@@ -70,6 +84,7 @@ function baseSnapshot(
     // TransportCard renders nothing about a tapped note either (T007+) —
     // same reasoning as defaultScale/placeholderDroneNote above.
     tappedRunIndex: null,
+    tuner: placeholderTuner,
     ...overrides,
   };
 }

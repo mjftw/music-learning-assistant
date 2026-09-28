@@ -277,7 +277,7 @@ export function App(props: {
     }
     const stored = selectionStore.load();
     const session = createSession(
-      { key: selectedKey, variant },
+      { key: selectedKey, variant, spelling: selection.spelling },
       initialTraversalOf(stored),
       stored?.scale ?? defaultScaleChoice,
       initialSettingsOf(stored),
@@ -335,7 +335,11 @@ export function App(props: {
   // and restart the sequence each time.
   useEffect(() => {
     if (variant === undefined || session === null) return;
-    session.setContext({ key: selectedKey, variant });
+    session.setContext({
+      key: selectedKey,
+      variant,
+      spelling: selection.spelling,
+    });
   }, [session, keyIdOf(selectedKey), variant?.variantId]);
 
   useEffect(() => {

@@ -102,3 +102,20 @@ holds in practice.
 - `judge` while pinned returns `shown` = the nearest note's position so the
   hand-over state is warm for a later `clearTarget` (commented; exercised
   at T009).
+
+## T007 — notes (2026-09-28)
+
+- Round 1 found a real race (critical): `leaveTuner()` during `enterTuner()`'s
+  pending `wakeLock.acquire()` left the microphone open, because the
+  generation check ran only after `listening.start()` — the mic-opening
+  call — unlike `startDrone()` where the committing call comes after the
+  check. Fixed with a two-sided check (before `start()`, and `stop()` when
+  stale after it), covered by the added "leaving before the microphone was
+  granted still releases it" test under REQ-001/S4.
+- Fixture ripples: the brief's test used `sound.posted[i].command`; the
+  fake's frame-paired array is `sound.posts` — the test uses that.
+  `sessionOn` gained default traversal/settings and returns `context`;
+  `SessionContext.spelling` rippled `spelling: "sharp"` into seven test
+  files and both `App.tsx` context objects.
+- Minor, recorded: the race test cites REQ-001/S4 though it is a regression
+  scenario, not the spec's literal S4 text.

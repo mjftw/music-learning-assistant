@@ -494,7 +494,7 @@ _Ends with the whole tuner observable through `practice/published` with the fake
 
 ### T007 · practice.tuner/REQ-001 · The session enters and leaves the tuner; nothing sounds while it listens
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts` (`SessionContext` gains `spelling`; `Session` gains `enterTuner`, `leaveTuner`, `onNoteJudged`; `SessionSnapshot` gains `tuner`; the guards on `start`, `startDrone`, `tapNote`), `src/practice/published/index.ts`

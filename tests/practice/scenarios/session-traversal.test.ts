@@ -79,7 +79,11 @@ test("practice.session/REQ-001/S4 — an octave choice that no longer fits is cl
     defaultSessionSettings,
   );
 
-  session.setContext({ key: keyOf("C"), variant: variantOf("ocarina-alto-c") });
+  session.setContext({
+    key: keyOf("C"),
+    variant: variantOf("ocarina-alto-c"),
+    spelling: "sharp",
+  });
   const onOcarina = session.snapshot();
   expect(onOcarina.effectiveOctaves).toEqual({ kind: "count", count: 1 });
   expect(onOcarina.traversal.octaves).toEqual({ kind: "count", count: 3 });
@@ -94,7 +98,11 @@ test("practice.session/REQ-001/S4 — an octave choice that no longer fits is cl
     "C6",
   ]);
 
-  session.setContext({ key: keyOf("C"), variant: variantOf("flute-concert") });
+  session.setContext({
+    key: keyOf("C"),
+    variant: variantOf("flute-concert"),
+    spelling: "sharp",
+  });
   const backOnFlute = session.snapshot();
   expect(backOnFlute.run).toHaveLength(22);
   expect(noteLabel(backOnFlute.run[0]!.note)).toBe("C4");

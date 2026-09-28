@@ -88,7 +88,7 @@ test("practice.session/REQ-006/S5 — the target is always in the sequence (inva
               const visibility = new FakeVisibility();
               const listening = new FakeListening();
               const session = createSession(
-                { key, variant },
+                { key, variant, spelling: "sharp" },
                 traversal,
                 scaleChoice,
                 { ...defaultSessionSettings, countIn: false, loop: false },

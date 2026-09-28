@@ -10,6 +10,7 @@ import type {
   Result,
   ScaleChoice,
   Session,
+  SessionContext,
   SessionDeps,
   SessionSettings,
   SoundPort,
@@ -20,6 +21,7 @@ import {
   createSession,
   defaultDroneSettings,
   defaultScaleChoice,
+  defaultSessionSettings,
 } from "../../src/practice/published";
 import type {
   ListeningEnded,
@@ -138,6 +140,13 @@ export class FakeSound implements SoundPort {
     return this.latencyMs;
   }
 
+  // How many `{ kind: "stopAll" }` commands have been posted —
+  // practice.tuner/REQ-001/S2 asserts enterTuner() silenced a running
+  // sequence this way, the same command stop() itself posts.
+  get stopAllCalls(): number {
+    return this.posted.filter((command) => command.kind === "stopAll").length;
+  }
+
   post(command: SoundCommand): void {
     this.posted.push(command);
     this.posts.push({ command, atFrame: this.frame });
@@ -215,6 +224,12 @@ export class FakeClock implements ClockPort {
       entry!.callback();
     }
     this.setNow(target);
+  }
+
+  // An alias for `advance` some scenarios reach for by a name that says
+  // what the unit is (practice.tuner/REQ-001/S2) — identical behaviour.
+  advanceMs(ms: number): void {
+    this.advance(ms);
   }
 
   private setNow(ms: number): void {
@@ -411,13 +426,25 @@ export interface SessionFixture {
   readonly wake: FakeWakeLock;
   readonly visibility: FakeVisibility;
   readonly listening: FakeListening;
+  readonly context: SessionContext;
 }
+
+// practice.tuner/REQ-001 — the traversal a fixture gets when a scenario
+// doesn't care what the run is, only that entering/leaving the tuner
+// behaves: two octaves of G major updown on flute Concert, the same run
+// `GMajorTwoOctaves` names in the session-transport/session-traversal
+// scenarios, producing "29 notes · G4–G6".
+const twoOctaveUpdownScale: Traversal = {
+  direction: "updown",
+  octaves: { kind: "count", count: 2 },
+  shape: "scale",
+};
 
 export function sessionOn(
   keyLetter: string,
   variantId: string,
-  traversal: Traversal,
-  settings: SessionSettings,
+  traversal: Traversal = twoOctaveUpdownScale,
+  settings: SessionSettings = defaultSessionSettings,
   scaleChoice: ScaleChoice = defaultScaleChoice,
   droneSettings: DroneSettings = defaultDroneSettings,
 ): SessionFixture {
@@ -426,6 +453,11 @@ export function sessionOn(
   const wake = new FakeWakeLock();
   const visibility = new FakeVisibility();
   const listening = new FakeListening();
+  const context: SessionContext = {
+    key: keyOf(keyLetter),
+    variant: variantOf(variantId),
+    spelling: "sharp",
+  };
   const deps: SessionDeps = {
     sound,
     clock,
@@ -434,14 +466,14 @@ export function sessionOn(
     listening,
   };
   const session = createSession(
-    { key: keyOf(keyLetter), variant: variantOf(variantId) },
+    context,
     traversal,
     scaleChoice,
     settings,
     droneSettings,
     deps,
   );
-  return { session, sound, clock, wake, visibility, listening };
+  return { session, sound, clock, wake, visibility, listening, context };
 }
 
 // Drives startDrone() through its two internal awaits (sound.start(), then
