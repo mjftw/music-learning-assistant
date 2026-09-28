@@ -57,6 +57,51 @@ const NO_MIC_INK = paper.faint;
 const NO_MIC_DOT = "transparent";
 const NO_MIC_RING = paper.faint;
 
+// The "Can't hear" card (practice.tuner/REQ-007) — geometry and text copied
+// verbatim from the vendored visual reference (Tuner.dc.html, the
+// `cannotHear` sc-if at markup lines 169-172): absolutely positioned over
+// the level/strip/target row rather than replacing them (REQ-007's own
+// text: "visible, non-interrupting, no modal" — the level, strip and
+// footer stay drawn underneath, S1).
+const CARD_TOP = 440;
+const CARD_SIDE = 16;
+const CARD_PADDING = "13px 16px 14px";
+const CARD_RADIUS = 14;
+const CARD_GAP = 5;
+const CARD_TITLE_FONT_SIZE = 14;
+const CARD_BODY_FONT_SIZE = 12.5;
+const CARD_BODY_LINE_HEIGHT = 1.45;
+const CARD_TITLE_TEXT = "Can't hear — no microphone";
+const CARD_BODY_TEXT =
+  "It was refused or isn't there. Allow the microphone for this site, then go back and open the tuner again.";
+
+// The footer (practice.tuner/REQ-002/S5, REQ-007) — geometry copied
+// verbatim from the reference (Tuner.dc.html markup lines 282-287). The
+// ♯/♭ segmented control writes the same `selection.spelling` the circle's
+// own toggle does (App.tsx's `onSpellingChange` — `handleSelectSpelling`),
+// so it carries the circle's own accessible names, "sharp"/"flat"
+// (CircleOfFifths.tsx lines 808-840), not "Sharp spelling"/"Flat spelling"
+// — one preference, one pair of names — and the same `aria-pressed`
+// pattern.
+const FOOTER_PADDING = "14px 16px 20px";
+const FOOTER_GAP = 10;
+const FOOTER_TEXT_FONT_SIZE = 10.5;
+const FOOTER_TEXT_LETTER_SPACING = "0.02em";
+const FOOTER_TEXT = "A4 = 440 Hz · in tune ±5 ¢";
+
+// Border and inactive ink copied from CircleOfFifths.tsx's own
+// PILL_BORDER/PILL_INACTIVE_INK (not named `paper` tokens there either) so
+// the two segmented controls read as the same control.
+const SPELLING_PILL_BORDER = "#e0d7c5";
+const SPELLING_BUTTON_PADDING = "4px 13px 6px";
+const SPELLING_BUTTON_FONT_SIZE = 14;
+const SPELLING_BUTTON_LINE_HEIGHT = 1.2;
+const SPELLING_ACTIVE_BG = paper.pillActive;
+const SPELLING_ACTIVE_INK = paper.inkMid;
+const SPELLING_INACTIVE_INK = "#756c60";
+const SHARP_GLYPH = "♯";
+const FLAT_GLYPH = "♭";
+
 // practice.tuner/REQ-001 — "LISTENING" covers both "starting" (the
 // microphone has been asked for but capture has not begun yet) and
 // "listening" itself; only "cannot-hear" reads "NO MIC" (REQ-007). The
@@ -80,10 +125,22 @@ function TunerScreenComponent(props: {
   readonly onPin: (position: number) => void;
   readonly onStep: (delta: -1 | 1) => void;
   readonly onClear: () => void;
+  readonly onSpellingChange: (preference: SpellingPreference) => void;
 }): JSX.Element {
-  const { tuner, spelling, range, onLeave, onHold, onPin, onStep, onClear } =
-    props;
+  const {
+    tuner,
+    spelling,
+    range,
+    onLeave,
+    onHold,
+    onPin,
+    onStep,
+    onClear,
+    onSpellingChange,
+  } = props;
   const listening = isListening(tuner);
+  const cannotHear = tuner.listening.kind === "cannot-hear";
+  const sharpSelected = spelling === "sharp";
 
   // practice.tuner/REQ-004/S6 — the Target sheet's open/closed state is
   // local to this screen: opening or closing it never touches the session.
@@ -218,8 +275,107 @@ function TunerScreenComponent(props: {
         onStep={onStep}
         onClear={onClear}
       />
-      {/* T018 — the footer */}
-      <div />
+      {cannotHear && (
+        <div
+          data-testid="cannot-hear"
+          style={{
+            position: "absolute",
+            left: CARD_SIDE,
+            right: CARD_SIDE,
+            top: CARD_TOP,
+            padding: CARD_PADDING,
+            background: paper.card,
+            border: `1px solid ${paper.borderSoft}`,
+            borderRadius: CARD_RADIUS,
+            display: "flex",
+            flexDirection: "column",
+            gap: CARD_GAP,
+          }}
+        >
+          <div style={{ fontSize: CARD_TITLE_FONT_SIZE, fontWeight: 600 }}>
+            {CARD_TITLE_TEXT}
+          </div>
+          <div
+            style={{
+              fontSize: CARD_BODY_FONT_SIZE,
+              lineHeight: CARD_BODY_LINE_HEIGHT,
+              color: paper.muted,
+            }}
+          >
+            {CARD_BODY_TEXT}
+          </div>
+        </div>
+      )}
+      <div
+        style={{
+          marginTop: "auto",
+          padding: FOOTER_PADDING,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: FOOTER_GAP,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: fonts.mono,
+            fontSize: FOOTER_TEXT_FONT_SIZE,
+            letterSpacing: FOOTER_TEXT_LETTER_SPACING,
+            color: paper.muted,
+          }}
+        >
+          {FOOTER_TEXT}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            border: `1px solid ${SPELLING_PILL_BORDER}`,
+            borderRadius: 999,
+            overflow: "hidden",
+          }}
+        >
+          <button
+            type="button"
+            aria-label="sharp"
+            aria-pressed={sharpSelected}
+            onClick={() => onSpellingChange("sharp")}
+            style={{
+              padding: SPELLING_BUTTON_PADDING,
+              fontSize: SPELLING_BUTTON_FONT_SIZE,
+              fontWeight: 600,
+              lineHeight: SPELLING_BUTTON_LINE_HEIGHT,
+              color: sharpSelected
+                ? SPELLING_ACTIVE_INK
+                : SPELLING_INACTIVE_INK,
+              background: sharpSelected ? SPELLING_ACTIVE_BG : "transparent",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            {SHARP_GLYPH}
+          </button>
+          <button
+            type="button"
+            aria-label="flat"
+            aria-pressed={!sharpSelected}
+            onClick={() => onSpellingChange("flat")}
+            style={{
+              padding: SPELLING_BUTTON_PADDING,
+              fontSize: SPELLING_BUTTON_FONT_SIZE,
+              fontWeight: 600,
+              lineHeight: SPELLING_BUTTON_LINE_HEIGHT,
+              color: !sharpSelected
+                ? SPELLING_ACTIVE_INK
+                : SPELLING_INACTIVE_INK,
+              background: !sharpSelected ? SPELLING_ACTIVE_BG : "transparent",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            {FLAT_GLYPH}
+          </button>
+        </div>
+      </div>
       <TargetSheet
         open={targetSheetOpen}
         tuner={tuner}

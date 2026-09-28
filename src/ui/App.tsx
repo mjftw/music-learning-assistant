@@ -658,6 +658,7 @@ export function App(props: {
           onPin={handlePinTarget}
           onStep={handleStepTarget}
           onClear={handleClearTarget}
+          onSpellingChange={handleSelectSpelling}
         />
       ) : (
         <>

@@ -60,6 +60,12 @@ const OCTAVE_FONT_SIZE = 22;
 const OCTAVE_MARGIN_TOP = 30;
 const EMPTY_FONT_SIZE = 14;
 
+// practice.tuner/REQ-007 — "'–' in place of the big name" while cannot-hear:
+// unconditional, not a fallback for "nothing else to show" (Tuner.dc.html's
+// `cannotHear` sc-if sits beside, not inside, `showName`'s). The dash's own
+// colour, `paper.drawerBorder`, is the reference's `#d5cbb8`.
+const DASH_INK = paper.drawerBorder;
+
 // The line: lineTop = mid - map(cents) - 3.5, clamped to the rule's own
 // ±50 ¢ — a pinned target beyond it stays at the edge.
 const LINE_LEFT = 52;
@@ -165,6 +171,7 @@ export function TunerLevel(props: {
 }): JSX.Element {
   const { tuner: snapshot, spelling } = props;
   const reading = snapshot.reading;
+  const cannotHear = snapshot.listening.kind === "cannot-hear";
 
   // The note the big name shows: the current reading's target (the
   // pinned note, or the nearest note with hysteresis) when there is one,
@@ -352,46 +359,66 @@ export function TunerLevel(props: {
             gap: 8,
           }}
         >
-          {referenceNote !== null && (
+          {cannotHear ? (
             <div
               data-testid="tuner-name"
-              style={{ display: "flex", alignItems: "flex-start", gap: 4 }}
-            >
-              <div
-                style={{
-                  fontFamily: fonts.display,
-                  fontSize: NAME_FONT_SIZE,
-                  lineHeight: 1,
-                  color: nameInk,
-                }}
-              >
-                {pitchClassLabel(referenceNote)}
-              </div>
-              <div
-                style={{
-                  fontFamily: fonts.mono,
-                  fontSize: OCTAVE_FONT_SIZE,
-                  fontWeight: 600,
-                  color: paper.muted,
-                  marginTop: OCTAVE_MARGIN_TOP,
-                }}
-              >
-                {referenceNote.octave}
-              </div>
-            </div>
-          )}
-          {reading === null && (
-            <div
-              data-testid="tuner-empty"
               style={{
-                fontSize: EMPTY_FONT_SIZE,
-                color: paper.faint,
-                background: paper.frame,
-                padding: "4px 10px",
+                fontFamily: fonts.display,
+                fontSize: NAME_FONT_SIZE,
+                lineHeight: 1,
+                color: DASH_INK,
               }}
             >
-              Play a note
+              –
             </div>
+          ) : (
+            <>
+              {referenceNote !== null && (
+                <div
+                  data-testid="tuner-name"
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 4,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: fonts.display,
+                      fontSize: NAME_FONT_SIZE,
+                      lineHeight: 1,
+                      color: nameInk,
+                    }}
+                  >
+                    {pitchClassLabel(referenceNote)}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: fonts.mono,
+                      fontSize: OCTAVE_FONT_SIZE,
+                      fontWeight: 600,
+                      color: paper.muted,
+                      marginTop: OCTAVE_MARGIN_TOP,
+                    }}
+                  >
+                    {referenceNote.octave}
+                  </div>
+                </div>
+              )}
+              {reading === null && (
+                <div
+                  data-testid="tuner-empty"
+                  style={{
+                    fontSize: EMPTY_FONT_SIZE,
+                    color: paper.faint,
+                    background: paper.frame,
+                    padding: "4px 10px",
+                  }}
+                >
+                  Play a note
+                </div>
+              )}
+            </>
           )}
         </div>
         {reading !== null && geometry !== null && (

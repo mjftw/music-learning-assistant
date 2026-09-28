@@ -86,3 +86,81 @@ test("practice.tuner/REQ-003/S1 — silence on auto", async () => {
   expect(screen.queryByTestId("tuner-line")).toBeNull();
   expect(screen.queryByTestId("tuner-tag")).toBeNull();
 });
+
+// T018 — the "Can't hear" card and NO MIC state (practice.tuner/REQ-007),
+// the footer's ♯/♭ toggle bound to the circle's own preference
+// (practice.tuner/REQ-002/S5). The footer's segmented control carries the
+// circle's own accessible names ("sharp"/"flat", not "Sharp
+// spelling"/"Flat spelling" — CircleOfFifths.tsx lines 808-840): the two
+// controls share one preference, so they share one name.
+test("practice.tuner/REQ-007/S1 — refused", async () => {
+  const { sessionDeps, listening } = sessionDepsWithFakes();
+  listening.failWith = "refused";
+  localStorage.clear();
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={sessionDeps}
+    />,
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Tuner" }));
+  await waitFor(() =>
+    expect(screen.getByTestId("mic-indicator").textContent).toBe("NO MIC"),
+  );
+  expect(screen.getByTestId("cannot-hear").textContent).toContain(
+    "Can't hear — no microphone",
+  );
+  expect(screen.getByTestId("cannot-hear").textContent).toContain(
+    "It was refused or isn't there. Allow the microphone for this site, then go back and open the tuner again.",
+  );
+  expect(screen.getByTestId("tuner-name").textContent).toBe("–");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByText("A4 = 440 Hz · in tune ±5 ¢")).toBeTruthy();
+  const practiceButton: HTMLButtonElement = screen.getByRole("button", {
+    name: "Practice",
+  });
+  expect(practiceButton.disabled).toBe(false);
+});
+
+test("practice.tuner/REQ-007/S2 — the next entry tries again", async () => {
+  const { sessionDeps, listening } = sessionDepsWithFakes();
+  listening.failWith = "refused";
+  localStorage.clear();
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={sessionDeps}
+    />,
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Tuner" }));
+  await userEvent.click(screen.getByRole("button", { name: "Practice" }));
+  listening.failWith = null;
+  await userEvent.click(screen.getByRole("button", { name: "Tuner" }));
+  await waitFor(() =>
+    expect(screen.getByTestId("mic-indicator").textContent).toBe("LISTENING"),
+  );
+});
+
+test("practice.tuner/REQ-007/S3 — failed while listening", async () => {
+  const f = await enterAndHear(440.0);
+  act(() => {
+    f.listening.end();
+  });
+  expect(screen.getByTestId("mic-indicator").textContent).toBe("NO MIC");
+  expect(screen.getByTestId("cannot-hear")).toBeTruthy();
+  expect(screen.queryByTestId("tuner-line")).toBeNull();
+});
+
+test("practice.tuner/REQ-002/S5 — the spelling toggle is the circle's preference", async () => {
+  const f = await enterAndHear(466.16);
+  expect(screen.getByTestId("tuner-name").textContent).toBe("A♯4");
+  await userEvent.click(screen.getByRole("button", { name: "flat" }));
+  f.listening.feed(466.16);
+  f.clock.advanceMs(1);
+  await act(async () => {});
+  expect(screen.getByTestId("tuner-name").textContent).toBe("B♭4");
+  await userEvent.click(screen.getByRole("button", { name: "Practice" }));
+  expect(screen.getByRole("button", { name: "G♭ major" })).toBeTruthy(); // the circle now spells flat
+});
