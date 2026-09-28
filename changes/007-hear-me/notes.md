@@ -454,3 +454,20 @@ under budget).
 - Minor, recorded: the detect()-level 25/50/75 % partial-window test only
   asserts ±2 ¢ if a detection is returned; the pipeline test owns the
   guarantee.
+
+## T024 — test:tuner against dev:phone (2026-09-28)
+
+```
+feeding the microphone from the page's own AudioContext
+case                 tones  first readout max (ms)  arrival age max (ms)  paint age max (ms)  readings/s min  cents err max  status
+sine E2–C7           57     94.50                   61.31                 13.35               92.86           0.09           PASS  
+flute-like E2–C7     57     68.90                   61.31                 13.35               92.86           0.65           PASS  
+hand-over glissando  1      56.90                   55.98                 5.35                93.81           —              PASS  
+silence              —      —                       —                     —                   0.00            —              PASS  
+white noise          —      —                       —                     —                   0.00            —              PASS  
+  worst: first readout E2 94.50 ms · arrival age E2 61.31 ms · cents err A♯6 0.09 ¢
+  worst: first readout E6 68.90 ms · arrival age E2 61.31 ms · cents err B6 0.65 ¢
+test:tuner: PASS — first readout ≤100 ms, arrival age ≤100 ms, ≥20 readings/s, |cents error| ≤2, nothing for silence or noise
+```
+
+Worst first readout 94.5 ms (E2, the sine sweep) — 5.5 ms of headroom on the laptop against the 100 ms budget, the same shape 003/004 saw; every other row well inside.
