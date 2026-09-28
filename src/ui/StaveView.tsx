@@ -6,10 +6,9 @@ import {
   type Key,
   type KeyViewNote,
   type Note,
-  type NoteLetter,
   type Variant,
 } from "../theory/published";
-import { noteLabel, pitchClassLabel } from "./key-label";
+import { diatonicIndex, noteLabel, pitchClassLabel } from "./key-label";
 import { fonts, paper } from "./theme";
 
 // Geometry and colour below are copied verbatim from the vendored visual
@@ -26,8 +25,6 @@ const PANEL_F5 = 5 * 7 + 3; // diatonic index of F5, the reference stave's top l
 const PANEL_SIG_X0 = 42;
 const PANEL_SIG_DX = 8.5;
 const PANEL_NOTES_END = 318;
-
-const LETTERS: readonly NoteLetter[] = ["C", "D", "E", "F", "G", "A", "B"];
 
 const STAVE_LINE_X1 = 10;
 const STAVE_LINE_X2 = 332;
@@ -126,10 +123,6 @@ const FULL_OPACITY = 1;
 const HIT_RECT_MIN_WIDTH = 16;
 const HIT_RECT_Y_INSET = 14;
 const HIT_RECT_HEIGHT_PAD = 28;
-
-function diatonicIndex(note: Note): number {
-  return note.octave * 7 + LETTERS.indexOf(note.letter);
-}
 
 interface StaveHead {
   readonly x: number;

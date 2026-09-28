@@ -335,11 +335,17 @@ export function App(props: {
 
   const session = sessionRef.current;
 
-  // Key or variant change → setContext (practice.session/REQ-007). Depends
-  // on the primitive ids, not the `selectedKey`/`variant` objects — those
-  // are freshly derived every render, so depending on them directly would
-  // fire this on every unrelated re-render (e.g. every tick while playing)
-  // and restart the sequence each time.
+  // Key or variant change → setContext (practice.session/REQ-007), and a
+  // spelling-only change too (practice.tuner/REQ-002/S5: the session's own
+  // `currentContext.spelling` is what `judge()` spells a reading with —
+  // tuner-reading.test.ts/REQ-002/S5 drives `setContext` directly and
+  // passes; this effect is the UI's only route to it, and `selection.
+  // spelling` was missing from the list below — a spelling toggle on a
+  // spelling-invariant key, e.g. C major, changed nothing the session saw).
+  // Depends on the primitive ids/values, not the `selectedKey`/`variant`
+  // objects — those are freshly derived every render, so depending on them
+  // directly would fire this on every unrelated re-render (e.g. every tick
+  // while playing) and restart the sequence each time.
   useEffect(() => {
     if (variant === undefined || session === null) return;
     session.setContext({
@@ -347,7 +353,7 @@ export function App(props: {
       variant,
       spelling: selection.spelling,
     });
-  }, [session, keyIdOf(selectedKey), variant?.variantId]);
+  }, [session, keyIdOf(selectedKey), variant?.variantId, selection.spelling]);
 
   useEffect(() => {
     // Nothing to persist yet on the render before the session-creating

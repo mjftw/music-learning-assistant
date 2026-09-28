@@ -1,8 +1,13 @@
-import { memo, type JSX } from "react";
-import type { TunerSnapshot } from "../practice/published";
+import { memo, useRef, type JSX } from "react";
+import type { NoteJudged, TunerSnapshot } from "../practice/published";
 import type { SpellingPreference } from "../theory/published";
 import { fonts, paper } from "./theme";
 import { TunerLevel } from "./TunerLevel";
+import { TunerStave } from "./TunerStave";
+
+// practice.tuner/REQ-005 — the strip's 2.5 s trail is the last 50 readings,
+// oldest first (T016's brief).
+const TRAIL_CAPACITY = 50;
 
 // The header row — copied verbatim from the vendored visual reference
 // (changes/007-hear-me/design/Tuner.dc.html, frame #4a, markup lines
@@ -61,6 +66,30 @@ function TunerScreenComponent(props: {
 }): JSX.Element {
   const { tuner, spelling, onLeave } = props;
   const listening = isListening(tuner);
+
+  // The strip's trail (practice.tuner/REQ-005) — a ring of the last 50
+  // NoteJudged, oldest first, kept here (not in the session) so it is pure
+  // view state: appended whenever `tuner.reading` becomes a genuinely new
+  // reading (a fresh object each commit — domain/session.ts's
+  // `commitTunerReading`), reset on a gap ("Play a note" — REQ-003/S3) or on
+  // leaving the tuner (this component unmounts, discarding the ref, since
+  // App only renders it while `screen === "tuner"`). Mutated directly during
+  // render, not in an effect, because the trail this render hands to
+  // TunerStave must already include the reading this same render just
+  // received.
+  const trailRef = useRef<readonly NoteJudged[]>([]);
+  const lastReadingRef = useRef<NoteJudged | null>(null);
+  if (tuner.reading === null) {
+    trailRef.current = [];
+    lastReadingRef.current = null;
+  } else if (tuner.reading !== lastReadingRef.current) {
+    lastReadingRef.current = tuner.reading;
+    const appended = [...trailRef.current, tuner.reading];
+    trailRef.current =
+      appended.length > TRAIL_CAPACITY
+        ? appended.slice(appended.length - TRAIL_CAPACITY)
+        : appended;
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
@@ -134,8 +163,9 @@ function TunerScreenComponent(props: {
         </span>
       </div>
       <TunerLevel tuner={tuner} spelling={spelling} />
-      {/* T016 — the stave strip */}
-      <div />
+      <div style={{ padding: "10px 16px 0" }}>
+        <TunerStave tuner={tuner} trail={trailRef.current} />
+      </div>
       {/* T017 — the target row */}
       <div />
       {/* T018 — the footer */}

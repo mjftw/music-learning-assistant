@@ -1,15 +1,11 @@
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test } from "vitest";
-import type { Session } from "../../../src/practice/published";
 import { builtInCatalogue } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
-import {
-  FakeClock,
-  FakeListening,
-  sessionDepsWithFakes,
-} from "../../practice/fakes";
+import { sessionDepsWithFakes } from "../../practice/fakes";
+import { enterAndHear } from "./tuner-helpers";
 
 // No global `afterEach` in scope (vitest globals are off), so
 // @testing-library/react's automatic cleanup never registers itself; without
@@ -19,51 +15,8 @@ afterEach(() => {
   cleanup();
 });
 
-// T015's shared fixture (reused by T017/T018): renders `<App>`, opens the
-// tuner, and feeds one steady pitch through the fake listening port —
-// `listening.feed(hz)` publishes it, `clock.advanceMs(1)` runs the
-// session's commit-on-next-tick timer (domain/session.ts's
-// `tunerCommitCancel`), and the wrapping `act` flushes the resulting React
-// state update. `spelling` optionally taps the circle's ♭ control before
-// entering (theory.circle-of-fifths/REQ-002, exercised the same way
-// circle-spelling.test.tsx does) so a scenario can ask for flat spelling
-// without duplicating the render/open dance.
-async function enterAndHear(
-  hz: number,
-  spelling?: "sharp" | "flat",
-): Promise<{
-  readonly listening: FakeListening;
-  readonly clock: FakeClock;
-  readonly session: Session;
-}> {
-  localStorage.clear();
-  const { sessionDeps, listening, clock } = sessionDepsWithFakes();
-  let session: Session | null = null;
-  render(
-    <App
-      catalogue={builtInCatalogue()}
-      selectionStore={localStorageSelectionStore(localStorage)}
-      sessionDeps={sessionDeps}
-      onSessionReady={(readySession) => {
-        session = readySession;
-      }}
-    />,
-  );
-  if (spelling === "flat") {
-    await userEvent.click(screen.getByRole("button", { name: "flat" }));
-  }
-  await userEvent.click(screen.getByRole("button", { name: "Tuner" }));
-  await waitFor(() =>
-    expect(screen.getByTestId("mic-indicator").textContent).toBe("LISTENING"),
-  );
-  listening.feed(hz);
-  clock.advanceMs(1);
-  await act(async () => {});
-  if (session === null) {
-    throw new Error("unreachable: onSessionReady was not called by render()");
-  }
-  return { listening, clock, session };
-}
+// T015's shared fixture (reused by T016/T017/T018) — moved to
+// ./tuner-helpers.ts once tuner-stave.test.tsx needed it too.
 
 test("practice.tuner/REQ-001/S1 — in from idle: the Tuner pill opens the tuner, LISTENING shows", async () => {
   localStorage.clear();
