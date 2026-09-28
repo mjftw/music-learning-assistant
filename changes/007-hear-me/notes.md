@@ -542,3 +542,34 @@ fed tone) before converge.
   mislabel from T010, not T026's.
 - The fix round (haiku) pasted the documented `pnpm check` counts rather
   than its own; the controller's run: 75 files, 314 tests, exit 0.
+
+## T027 — test:tuner with the shown-offset gate (2026-09-28)
+
+Run against `dev:phone` (`APP_URL=https://localhost:5173 pnpm test:tuner`)
+with the new `shown err max` column (practice.tuner/REQ-002/S9): the worst
+error, per sweep, of `|(semitone position of NoteJudged.target − semitone
+position of the tone fed) × 100 + NoteJudged.cents|` among readings taken
+`SHOWN_SETTLE_MS` (500 ms) or later into each tone, gated at
+`SHOWN_CENTS_ERROR_MAX_CENTS` (±2 ¢).
+
+```
+case                 tones  first readout max (ms)  arrival age max (ms)  paint age max (ms)  readings/s min  cents err max  shown err max  status
+sine E2–C7           57     95.10                   63.98                 18.69               92.86           0.09           0              PASS
+flute-like E2–C7     57     77.40                   63.98                 13.35               92.86           0.65           1              PASS
+hand-over glissando  1      69.10                   63.98                 8.02                93.81           —              —              PASS
+silence              —      —                       —                     —                   0.00            —              —              PASS
+white noise          —      —                       —                     —                   0.00            —              —              PASS
+  worst: first readout E2 95.10 ms · arrival age E2 63.98 ms · cents err A♯6 0.09 ¢ · shown err E2 0 ¢
+  worst: first readout F♯6 77.40 ms · arrival age F♯6 63.98 ms · cents err B6 0.65 ¢ · shown err A♯6 1 ¢
+test:tuner: PASS — first readout ≤100 ms, arrival age ≤100 ms, ≥20 readings/s, |cents error| ≤2, shown offset within ±2 ¢, nothing for silence or noise
+```
+
+The shown offset settles well inside the budget — 0 ¢ worst on the sine
+sweep, 1 ¢ worst on the flute-like sweep (A♯6) — confirming REQ-002/S9's
+smoothing (T026) does not leave the *shown* reading off the truth even
+though the harness had, until now, only ever gated the raw `heard.hz`.
+
+For converge (T027's review): a tone whose readings stop between about
+350 ms and 500 ms passes the shown-offset gate with an error of 0 — the
+column is seeded at 0 and the readings-per-second gate needs only ~150 ms
+of readings; the raw cents column has the same shape.

@@ -95,8 +95,8 @@ Healthy output looks like (last ~8 lines of `pnpm check`: vitest summary,
 then cargo's `test result`):
 
 ```
- Test Files  74 passed (74)
-      Tests  309 passed (309)
+ Test Files  75 passed (75)
+      Tests  314 passed (314)
    Start at  17:40:59
    Duration  10.63s (tests 50%, environment 33%, import 10%, transform 7%)
 
@@ -128,19 +128,20 @@ sweeping E2–C7 as a sine and a flute-like tone; it takes approximately 4
 minutes. Healthy output shows five test rows — sine E2–C7, flute-like E2–C7,
 hand-over glissando, silence, and white noise — plus worst-case summaries,
 ending with a PASS line. The first readout budget (≤100 ms), arrival age
-(≤100 ms), readings per second (≥20), and cents error (≤2 ¢) are gated; paint
-age is printed for information and is not gated.
+(≤100 ms), readings per second (≥20), cents error (≤2 ¢), and the shown
+offset error (≤2 ¢, read 500 ms into each tone — practice.tuner/REQ-002/S9)
+are gated; paint age is printed for information and is not gated.
 
 ```
-case                 tones  first readout max (ms)  arrival age max (ms)  paint age max (ms)  readings/s min  cents err max  status
-sine E2–C7           57     84.30                   63.98                 18.69               92.86           0.09           PASS
-flute-like E2–C7     57     80.40                   66.65                 8.02                92.86           0.65           PASS
-hand-over glissando  1      59.30                   61.31                 10.69               93.57           —              PASS
-silence              —      —                       —                     —                   0.00            —              PASS
-white noise          —      —                       —                     —                   0.00            —              PASS
-  worst: first readout E2 84.30 ms · arrival age E2 63.98 ms · cents err A♯6 0.09 ¢
-  worst: first readout E5 80.40 ms · arrival age E5 66.65 ms · cents err B6 0.65 ¢
-test:tuner: PASS — first readout ≤100 ms, arrival age ≤100 ms, ≥20 readings/s, |cents error| ≤2, nothing for silence or noise
+case                 tones  first readout max (ms)  arrival age max (ms)  paint age max (ms)  readings/s min  cents err max  shown err max  status
+sine E2–C7           57     95.10                   63.98                 18.69               92.86           0.09           0              PASS
+flute-like E2–C7     57     77.40                   63.98                 13.35               92.86           0.65           1              PASS
+hand-over glissando  1      69.10                   63.98                 8.02                93.81           —              —              PASS
+silence              —      —                       —                     —                   0.00            —              —              PASS
+white noise          —      —                       —                     —                   0.00            —              —              PASS
+  worst: first readout E2 95.10 ms · arrival age E2 63.98 ms · cents err A♯6 0.09 ¢ · shown err E2 0 ¢
+  worst: first readout F♯6 77.40 ms · arrival age F♯6 63.98 ms · cents err B6 0.65 ¢ · shown err A♯6 1 ¢
+test:tuner: PASS — first readout ≤100 ms, arrival age ≤100 ms, ≥20 readings/s, |cents error| ≤2, shown offset within ±2 ¢, nothing for silence or noise
 ```
 
 Run `check` before calling any task done, and paste the output.

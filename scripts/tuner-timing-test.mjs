@@ -5,9 +5,10 @@
 // listening.pitch-detection/REQ-003/S2 (white noise publishes nothing),
 // listening.pitch-detection/REQ-004/S1 (≥20 readings/s while steady),
 // listening.pitch-detection/REQ-004/S2 (the first PitchDetected's atFrame
-// within 100 ms of onset), and practice.tuner/REQ-006/S1 (the shown
-// reading within the same 100 ms budget) — plus the 56 ¢ hand-over
-// glissando (practice.tuner/REQ-002/S4, live).
+// within 100 ms of onset), practice.tuner/REQ-006/S1 (the shown reading
+// within the same 100 ms budget), and practice.tuner/REQ-002/S9 (the
+// shown offset settles within ±2 ¢, half a second into each tone) — plus
+// the 56 ¢ hand-over glissando (practice.tuner/REQ-002/S4, live).
 //
 // Playwright, headless Chromium. The microphone is replaced by an
 // oscillator inside the page's own AudioContext (feeding the microphone
@@ -41,6 +42,12 @@ const FIRST_READOUT_MAX_MS = 100;
 const ARRIVAL_AGE_MAX_MS = 100;
 const READINGS_PER_SECOND_MIN = 20;
 const CENTS_ERROR_MAX_CENTS = 2;
+// practice.tuner/REQ-002/S9 — the shown offset (NoteJudged.target +
+// .cents, what the learner actually sees) is read from this point into
+// each steady tone onward, and must sit within this many cents of the
+// tone fed.
+const SHOWN_SETTLE_MS = 500;
+const SHOWN_CENTS_ERROR_MAX_CENTS = 2;
 // practice.tuner/REQ-002/S4 — the shown note holds until the detected
 // pitch is this far from it.
 const HANDOVER_CENTS = 56;
@@ -203,6 +210,7 @@ function measureInPage(params) {
     steadyStartFraction,
     steadyEndFraction,
     centsSkipMs,
+    shownSettleMs,
     handoverSeconds,
     handoverStartHz,
     handoverEndHz,
@@ -259,6 +267,28 @@ function measureInPage(params) {
     const pitchClass = ((position % 12) + 12) % 12;
     const octave = Math.floor(position / 12) - 1;
     return `${SHARP_PITCH_CLASS_LABELS[pitchClass]}${octave}`;
+  }
+
+  // theory/domain/notes.ts's pitchPosition, duplicated in-page for the
+  // same reason as noteLabelOfPosition above — practice.tuner/REQ-002/S9
+  // needs the semitone position of a NoteJudged event's `target` (a
+  // theory Note: letter, accidental, octave), and this script has no
+  // bundler step to import the published function through.
+  const LETTER_SEMITONE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  const ACCIDENTAL_OFFSET = {
+    doubleFlat: -2,
+    flat: -1,
+    natural: 0,
+    sharp: 1,
+    doubleSharp: 2,
+  };
+
+  function positionOfNote(note) {
+    return (
+      12 * (note.octave + 1) +
+      LETTER_SEMITONE[note.letter] +
+      ACCIDENTAL_OFFSET[note.accidental]
+    );
   }
 
   // First mutation of the reading's subtree, at or after `onsetPerfMs`, that
@@ -353,12 +383,22 @@ function measureInPage(params) {
 
     let steadyCount = 0;
     let maxCentsErr = 0;
+    let maxShownCentsErr = 0;
     const unsubscribeJudged = noteJudgedSubscribe((event) => {
       const now = performance.now();
       if (now >= steadyStartMs && now < steadyEndMs) steadyCount += 1;
       if (now - onsetPerfMs >= centsSkipMs) {
         const err = Math.abs(1200 * Math.log2(event.heard.hz / hz));
         if (err > maxCentsErr) maxCentsErr = err;
+      }
+      // practice.tuner/REQ-002/S9 — the shown offset (what the learner
+      // sees: NoteJudged.target + .cents), read from SHOWN_SETTLE_MS into
+      // the tone onward, against the tone actually fed.
+      if (now - onsetPerfMs >= shownSettleMs) {
+        const shownErr = Math.abs(
+          (positionOfNote(event.target) - position) * 100 + event.cents,
+        );
+        if (shownErr > maxShownCentsErr) maxShownCentsErr = shownErr;
       }
     });
 
@@ -382,6 +422,7 @@ function measureInPage(params) {
       readingsPerSecond:
         steadyCount / ((steadyEndFraction - steadyStartFraction) * toneSeconds),
       maxCentsErr,
+      maxShownCentsErr,
     };
   }
 
@@ -599,21 +640,25 @@ function sweepRow(label, perTone) {
     perTone.map((tone) => tone.readingsPerSecond),
   );
   const centsErrMax = maxOf(perTone.map((tone) => tone.maxCentsErr));
+  const shownCentsErrMax = maxOf(perTone.map((tone) => tone.maxShownCentsErr));
   const passed =
     firstReadoutMaxMs <= FIRST_READOUT_MAX_MS &&
     arrivalAgeMaxMs <= ARRIVAL_AGE_MAX_MS &&
     readingsPerSecondMin >= READINGS_PER_SECOND_MIN &&
-    centsErrMax <= CENTS_ERROR_MAX_CENTS;
+    centsErrMax <= CENTS_ERROR_MAX_CENTS &&
+    shownCentsErrMax <= SHOWN_CENTS_ERROR_MAX_CENTS;
 
   const worstFirstReadout = worstToneOf(perTone, (tone) => tone.firstReadoutMs);
   const worstArrival = worstToneOf(perTone, (tone) => tone.arrivalAgeMs);
   const worstCents = worstToneOf(perTone, (tone) => tone.maxCentsErr);
+  const worstShown = worstToneOf(perTone, (tone) => tone.maxShownCentsErr);
   const worstLine =
     `  worst: first readout ${noteLabelOfPosition(worstFirstReadout.position)} ` +
     `${worstFirstReadout.firstReadoutMs === null ? "n/a" : worstFirstReadout.firstReadoutMs.toFixed(2)} ms · ` +
     `arrival age ${noteLabelOfPosition(worstArrival.position)} ` +
     `${worstArrival.arrivalAgeMs === null ? "n/a" : worstArrival.arrivalAgeMs.toFixed(2)} ms · ` +
-    `cents err ${noteLabelOfPosition(worstCents.position)} ${worstCents.maxCentsErr.toFixed(2)} ¢`;
+    `cents err ${noteLabelOfPosition(worstCents.position)} ${worstCents.maxCentsErr.toFixed(2)} ¢ · ` +
+    `shown err ${noteLabelOfPosition(worstShown.position)} ${worstShown.maxShownCentsErr} ¢`;
 
   return {
     cells: [
@@ -624,6 +669,7 @@ function sweepRow(label, perTone) {
       paintAgeMaxMs === null ? "n/a" : paintAgeMaxMs.toFixed(2),
       readingsPerSecondMin.toFixed(2),
       centsErrMax.toFixed(2),
+      String(shownCentsErrMax),
       passed ? "PASS" : "FAIL",
     ],
     passed,
@@ -648,6 +694,7 @@ function handoverRow(result) {
       result.maxPaintAgeMs === null ? "n/a" : result.maxPaintAgeMs.toFixed(2),
       result.readingsPerSecond.toFixed(2),
       "—",
+      "—",
       passed ? "PASS" : "FAIL",
     ],
     passed,
@@ -665,6 +712,7 @@ function silentRow(label, result) {
       "—",
       result.count.toFixed(2),
       "—",
+      "—",
       passed ? "PASS" : "FAIL",
     ],
     passed,
@@ -680,6 +728,7 @@ function printTable(rows) {
     "paint age max (ms)",
     "readings/s min",
     "cents err max",
+    "shown err max",
     "status",
   ];
   const table = [header, ...rows.map((row) => row.cells)];
@@ -747,6 +796,7 @@ async function main() {
           steadyStartFraction: STEADY_START_FRACTION,
           steadyEndFraction: STEADY_END_FRACTION,
           centsSkipMs: CENTS_SKIP_MS,
+          shownSettleMs: SHOWN_SETTLE_MS,
           handoverSeconds: HANDOVER_SECONDS,
           handoverStartHz: HANDOVER_START_HZ,
           handoverEndHz: HANDOVER_END_HZ,
@@ -799,13 +849,13 @@ async function main() {
 
   if (!allPassed) {
     console.error(
-      `test:tuner: FAIL — first readout exceeded ${FIRST_READOUT_MAX_MS} ms, arrival age exceeded ${ARRIVAL_AGE_MAX_MS} ms, readings/s fell below ${READINGS_PER_SECOND_MIN}, |cents error| exceeded ${CENTS_ERROR_MAX_CENTS}, the hand-over crossing missed ${HANDOVER_CENTS} ¢ or changed more than once, or a reading appeared during silence or noise — see the table above`,
+      `test:tuner: FAIL — first readout exceeded ${FIRST_READOUT_MAX_MS} ms, arrival age exceeded ${ARRIVAL_AGE_MAX_MS} ms, readings/s fell below ${READINGS_PER_SECOND_MIN}, |cents error| exceeded ${CENTS_ERROR_MAX_CENTS}, the shown offset was not within ±${SHOWN_CENTS_ERROR_MAX_CENTS} ¢ ${SHOWN_SETTLE_MS} ms into a tone, the hand-over crossing missed ${HANDOVER_CENTS} ¢ or changed more than once, or a reading appeared during silence or noise — see the table above`,
     );
     process.exitCode = 1;
     return;
   }
   console.log(
-    `test:tuner: PASS — first readout ≤${FIRST_READOUT_MAX_MS} ms, arrival age ≤${ARRIVAL_AGE_MAX_MS} ms, ≥${READINGS_PER_SECOND_MIN} readings/s, |cents error| ≤${CENTS_ERROR_MAX_CENTS}, nothing for silence or noise`,
+    `test:tuner: PASS — first readout ≤${FIRST_READOUT_MAX_MS} ms, arrival age ≤${ARRIVAL_AGE_MAX_MS} ms, ≥${READINGS_PER_SECOND_MIN} readings/s, |cents error| ≤${CENTS_ERROR_MAX_CENTS}, shown offset within ±${SHOWN_CENTS_ERROR_MAX_CENTS} ¢, nothing for silence or noise`,
   );
 }
 

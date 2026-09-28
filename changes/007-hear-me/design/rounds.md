@@ -126,9 +126,11 @@ sdd_phase: open           # open | exited
   better than C" (the user, on the phone with the flute, 2026-09-28).
 - **Rejected because:** B "B is bad" · C a little behind A ("A … a bit
   better than C").
-- **Requirement changed?** yes: practice.tuner/REQ-002 — the shown offset
-  is the detected pitch smoothed, a jump is shown at once; put to the user
-  for the delta.
+- **Requirement changed?** yes: practice.tuner/REQ-002 — the smoothing
+  clause and S6–S9, written to the delta with the user's approval
+  (2026-09-28); built as T026 (the rule) and T027 (the harness gates the
+  shown offset: worst 0 ¢ sine, 1 ¢ flute-like). The user, on the phone
+  with the rule in place: "looks good on phone".
 
 ## Exit
 

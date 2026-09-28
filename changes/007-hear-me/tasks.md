@@ -1352,7 +1352,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 > Appended 2026-09-28 by design round 1.
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `scripts/tuner-timing-test.mjs` (a gated column: the shown offset — `NoteJudged.cents` — half a second into each steady tone, within ±2 ¢ of the tone fed)

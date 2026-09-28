@@ -1,4 +1,4 @@
-// listening.pitch-detection/REQ-002/S5, listening.pitch-detection/REQ-003/S1, listening.pitch-detection/REQ-003/S2, listening.pitch-detection/REQ-004/S1, listening.pitch-detection/REQ-004/S2, practice.tuner/REQ-006/S1 — measured by scripts/tuner-timing-test.mjs (pnpm test:tuner), not re-measured here
+// listening.pitch-detection/REQ-002/S5, listening.pitch-detection/REQ-003/S1, listening.pitch-detection/REQ-003/S2, listening.pitch-detection/REQ-004/S1, listening.pitch-detection/REQ-004/S2, practice.tuner/REQ-006/S1, practice.tuner/REQ-002/S9 — measured by scripts/tuner-timing-test.mjs (pnpm test:tuner), not re-measured here
 // practice.tuner/REQ-006/S3 — "on the phone (acceptance)": the phone walk, measured at acceptance, T024 — not a test here either
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -16,6 +16,7 @@ test("scripts/tuner-timing-test.mjs exists and its header cites the measured sce
     "REQ-004/S1",
     "REQ-004/S2",
     "practice.tuner/REQ-006/S1",
+    "practice.tuner/REQ-002/S9",
   ])
     expect(header).toContain(id);
 });
