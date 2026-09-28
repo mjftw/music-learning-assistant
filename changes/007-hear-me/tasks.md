@@ -1228,7 +1228,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 ### T020 [P] · — · The design-review loop points at this change's design
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `scripts/design-shots.mjs` (`PROTOTYPE_PATH` → `changes/007-hear-me/design/Tuner.dc.html`; a second prototype path for `Practice.dc.html`; `STATES`: `practice-way-in` (Practice.dc.html, no interaction), `tuner-listening` (Tuner.dc.html `#4a`, Tweaks State = sweep — set via the dc-runtime's props if the page exposes them, else the default live script), `tuner-silent` (State = silent), `tuner-cannot-hear`, `tuner-target-pinned` (click the Hold card), `tuner-target-sheet` (click TARGET); the live app driven to the same states: click "Tuner"; for silent nothing more; for cannot-hear deny the permission; for pinned/sheet click "Target"/"Hold")

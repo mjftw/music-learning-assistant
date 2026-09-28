@@ -182,3 +182,9 @@ index 47c2548..057c161 100644
 ```
 
 <!-- recorded 2026-09-28T09:06:59Z by scripts/record.sh -->
+
+## Verdict (from the task-reviewer's returned report)
+
+- SPEC: PASS
+- QUALITY: FAIL
+- Findings: [important] tunerTargetNote kept as denormalised state re-synced in three places (the round-1 bug's cause) — derive it in buildSnapshot. [minor] pinTargetAt's comment stale.

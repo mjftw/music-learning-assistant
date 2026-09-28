@@ -119,3 +119,9 @@ index bb64f2c..9bf53d3 100644
 ```
 
 <!-- recorded 2026-09-27T22:59:13Z by scripts/record.sh -->
+
+## Verdict (from the task-reviewer's returned report)
+
+- SPEC: PASS
+- QUALITY: FAIL
+- Findings: [important] MAX_MAXIMA = NSDF_CAPACITY/2 justified wrongly (a one-sample region is possible; the true bound is floor(N/2) ≤ 383) and no assert before the write. [minor] a second filtered array instead of passing lag_min into the walk.

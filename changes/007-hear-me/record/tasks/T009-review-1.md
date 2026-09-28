@@ -160,3 +160,9 @@ index 47c2548..057c161 100644
 ```
 
 <!-- recorded 2026-09-28T08:57:27Z by scripts/record.sh -->
+
+## Verdict (from the task-reviewer's returned report)
+
+- SPEC: FAIL
+- QUALITY: SKIPPED
+- Findings: [critical] setContext with a new spelling did not re-spell a pinned targetNote (REQ-002/S5, REQ-009/S1). [minor] clearTarget does not reset hysteresis — judged equivalent since judge keeps shown warm.

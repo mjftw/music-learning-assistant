@@ -400,3 +400,9 @@ index 30cfd72..72b32e3 100644
 ```
 
 <!-- recorded 2026-09-28T07:42:46Z by scripts/record.sh -->
+
+## Verdict (from the task-reviewer's returned report)
+
+- SPEC: PASS
+- QUALITY: PASS
+- Findings: [minor] listener.start() called on every port.start() (REQ-006/S3 'tries again'); only createListener memoised. Ripples (main.tsx, two hand-built SessionDeps tests) confirmed the only sites.

@@ -177,3 +177,16 @@ test("practice.tuner/REQ-002/S5 — the spelling toggle is the circle's preferen
   await userEvent.click(screen.getByRole("button", { name: "Practice" }));
   expect(screen.getByRole("button", { name: "G♭ major" })).toBeTruthy(); // the circle now spells flat
 });
+
+test("practice.tuner/REQ-004 — the target pill sits between the level and the stave strip (design 4a)", async () => {
+  await enterAndHear(440.0);
+  const level = screen.getByTestId("tuner-reading");
+  const pill = screen.getByRole("button", { name: "Target" });
+  const strip = screen.getByTestId("heard-head").closest("svg")!;
+  expect(
+    level.compareDocumentPosition(pill) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(
+    pill.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+});

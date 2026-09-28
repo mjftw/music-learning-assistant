@@ -310,3 +310,9 @@ index fe0b6b1..7e463d0 100644
 ```
 
 <!-- recorded 2026-09-28T10:08:36Z by scripts/record.sh -->
+
+## Verdict (from the task-reviewer's returned report)
+
+- SPEC: FAIL
+- QUALITY: SKIPPED
+- Findings: [critical] the enumeration omitted tapNote, hiding two REQ-001 violations: a sounding tap not ended by enterTuner; a first-ever tap's pending start posting after entry (reproduced). [minor] stopAll-before-onset treated as a full cancel.

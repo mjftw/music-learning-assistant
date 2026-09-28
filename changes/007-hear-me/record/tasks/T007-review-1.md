@@ -663,3 +663,9 @@ index d340e4e..6bba739 100644
 ```
 
 <!-- recorded 2026-09-28T08:13:20Z by scripts/record.sh -->
+
+## Verdict (from the task-reviewer's returned report)
+
+- SPEC: FAIL
+- QUALITY: SKIPPED
+- Findings: [critical] leaveTuner() before listening.start() resolved left the microphone open — the generation check ran after the mic-opening call; no test exercised the race.

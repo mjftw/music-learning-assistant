@@ -268,3 +268,9 @@ index 47c2548..057c161 100644
 ```
 
 <!-- recorded 2026-09-28T09:16:59Z by scripts/record.sh -->
+
+## Verdict (from the task-reviewer's returned report)
+
+- SPEC: PASS
+- QUALITY: PASS
+- Findings: [minor] sameNote reimplements note equality where the file compares the drone's note via noteLabel. Derived targetNote; value comparison in snapshotsMateriallyEqual; all rounds closed.

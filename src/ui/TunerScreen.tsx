@@ -286,15 +286,15 @@ function TunerScreenComponent(props: {
         </span>
       </div>
       <TunerLevel tuner={tuner} spelling={spelling} />
-      <div style={{ padding: "10px 16px 0" }}>
-        <TunerStave tuner={tuner} trail={trailRef.current} />
-      </div>
       <TargetPill
         tuner={tuner}
         onOpen={handleOpenTarget}
         onStep={onStep}
         onClear={onClear}
       />
+      <div style={{ padding: "10px 16px 0" }}>
+        <TunerStave tuner={tuner} trail={trailRef.current} />
+      </div>
       {cannotHear && (
         <div
           data-testid="cannot-hear"

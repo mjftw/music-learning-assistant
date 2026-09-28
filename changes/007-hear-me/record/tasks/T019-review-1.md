@@ -185,3 +185,9 @@ index 73cf45b..8f61938 100644
 ```
 
 <!-- recorded 2026-09-28T13:11:46Z by scripts/record.sh -->
+
+## Verdict (from the task-reviewer's returned report)
+
+- SPEC: PASS
+- QUALITY: PASS
+- Findings: [minor] why two readings never share an atFrame (monotonic now_frame+127) is true but unstated at the effect.

@@ -376,7 +376,7 @@ export function TunerStave(props: {
   const referenceNote = referenceNoteOf(reading, targetNote);
   const referenceHz = referenceNote === null ? null : pitchHzOf(referenceNote);
   const referenceLabel =
-    referenceNote === null ? "—" : `${noteLabel(referenceNote)} IS`;
+    referenceNote === null ? "— IS" : `${noteLabel(referenceNote)} IS`;
   const heardHz = reading === null ? null : reading.heard.hz;
 
   return (

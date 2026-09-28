@@ -226,3 +226,9 @@ index 2240007..e88f571 100644
 ```
 
 <!-- recorded 2026-09-28T09:43:20Z by scripts/record.sh -->
+
+## Verdict (from the task-reviewer's returned report)
+
+- SPEC: PASS
+- QUALITY: PASS
+- Findings: [minor] the wake lock is held across hide/show while active (defensible, commented). The controller-directed narrowing (cannot-hear survives a hide, no re-ask — REQ-007) verified; startListening shared; clearTunerReading extracted.

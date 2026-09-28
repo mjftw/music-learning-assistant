@@ -96,3 +96,9 @@ index c505405..89c6da2 100644
 ```
 
 <!-- recorded 2026-09-28T09:23:47Z by scripts/record.sh -->
+
+## Verdict (from the task-reviewer's returned report)
+
+- SPEC: PASS
+- QUALITY: PASS
+- Findings: [minor] the report's justification for dropping an unused helper cited a note not in the brief. A dropped detection re-arms neither timer — Article V, not a finding.

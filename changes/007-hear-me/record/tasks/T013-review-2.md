@@ -452,3 +452,9 @@ index fe0b6b1..a3ecd62 100644
 ```
 
 <!-- recorded 2026-09-28T10:41:24Z by scripts/record.sh -->
+
+## Verdict (from the task-reviewer's returned report)
+
+- SPEC: PASS
+- QUALITY: PASS
+- Findings: [minor] a pending first-ever tap racing ▶/❚❚ is not superseded (start/stop do not bump tapGeneration) — outside REQ-001, for converge. [minor] TAP_TAG_BASE duplicated in the test. Comment gloss '(500 ms)' wrong (80 ms).

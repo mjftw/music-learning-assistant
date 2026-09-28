@@ -79,3 +79,11 @@ test("practice.tuner/REQ-005 — the trail keeps the last 50 readings, oldest fi
     screen.getByTestId("trail").getAttribute("d")!.split(" L "),
   ).toHaveLength(50);
 });
+
+test('practice.tuner/REQ-005 — nothing referenced reads "— IS" over "—"', async () => {
+  const f = await enterAndHear(440.0);
+  f.clock.advanceMs(300);
+  await act(async () => {});
+  expect(screen.getByText("— IS")).toBeTruthy();
+  expect(screen.getByTestId("reference-hz").textContent).toBe("—");
+});

@@ -319,14 +319,11 @@ respectively; this is a limitation of the harness, not a finding.
 **Structural differences, by pair** (colour/spacing/size/type differences
 are taste and are left to the refinement loop):
 
-- **practice-way-in** — the design's bottom summary row reads
-  "↑↓ · 1 oct · scale · ♩ · loop" (a fifth segment, a quarter-note glyph,
-  between "scale" and "loop"); the app's reads "↑↓ · 1 oct · scale · loop"
-  — that segment is missing. `grep`-confirmed absent from `src/ui/`
-  entirely (not state-gated). This row is not part of 007-hear-me's own
-  Files (it is the practice screen's run/traversal summary chip, built in
-  an earlier change) — flagging it here since this comparison surfaced it,
-  for whichever task owns it.
+- **practice-way-in** — the design's bottom summary row shows a fifth
+  segment ("♩", note length) the app does not have. **Not a bug:** note
+  length was removed (decision 2026-09-22, 003) and 005 ruled the design's
+  ♩/♪ toggle "stale carryover … not a reintroduction" (decision
+  2026-09-23); `Practice.dc.html` inherits that stale row. Nothing to do.
 - **tuner-listening** — structural: the "TARGET auto · nearest" pill and
   the stave card are swapped. The design (4a) places the pill *between*
   the level and the stave card; `TunerScreen.tsx` renders `TunerLevel`,
@@ -356,3 +353,16 @@ are taste and are left to the refinement loop):
 
 The pill/stave-card order swap is the same root cause in all four 4a-based
 pairs (one line in `TunerScreen.tsx`), not four separate findings.
+
+## T020 — review notes (2026-09-28)
+
+- The loop found a structural bug: the TARGET pill rendered below the stave
+  card (design: between the level and the card) — fixed with an order test;
+  and "— IS" over "—" when nothing is referenced — fixed with a test.
+- Minor, recorded: the prototype's sweep state has a 600 ms startup silence
+  longer than the script's 400 ms settle — the `tuner-listening` prototype
+  shot is sometimes "Play a note".
+- Record pipeline: the task-reviewer returns its verdict as a message; the
+  recorded review files held only the diff package. Verdicts for T001–T020
+  were appended from the transcript (append-only); from here each package
+  carries a `## Verdict` section before `record.sh`.
