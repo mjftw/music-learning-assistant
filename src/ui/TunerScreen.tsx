@@ -1,7 +1,9 @@
 import {
   memo,
   useCallback,
+  useEffect,
   useLayoutEffect,
+  useReducer,
   useRef,
   useState,
   type JSX,
@@ -12,20 +14,41 @@ import { TargetPill } from "./TargetPill";
 import { TargetSheet } from "./TargetSheet";
 import { fonts, paper } from "./theme";
 import { TunerLevel } from "./TunerLevel";
-import { TunerStave } from "./TunerStave";
+import { TRAIL_MS, TunerStave, type TrailPoint } from "./TunerStave";
 
-// practice.tuner/REQ-005 — the strip's 2.5 s trail is the last 50 readings,
-// oldest first (T016's brief).
-const TRAIL_CAPACITY = 50;
+// Real defaults for the trail's injectable clock and frame scheduler
+// (practice.tuner/REQ-005/S5, S6) — wrapped rather than passed by reference
+// so neither depends on being called with `this === performance`/`window`.
+function defaultNow(): number {
+  return performance.now();
+}
+function defaultRequestFrame(callback: FrameRequestCallback): number {
+  return requestAnimationFrame(callback);
+}
+function defaultCancelFrame(handle: number): void {
+  cancelAnimationFrame(handle);
+}
 
-function appendToTrail(
-  trail: readonly NoteJudged[],
+function appendTrailPoint(
+  trail: readonly TrailPoint[],
   reading: NoteJudged,
-): readonly NoteJudged[] {
-  const appended = [...trail, reading];
-  return appended.length > TRAIL_CAPACITY
-    ? appended.slice(appended.length - TRAIL_CAPACITY)
-    : appended;
+  atMs: number,
+  runId: number,
+  trailMs: number,
+): readonly TrailPoint[] {
+  return prunedByAge([...trail, { reading, atMs, runId }], atMs, trailMs);
+}
+
+// Drops points older than `trailMs` relative to `nowMs` — called both when
+// a fresh reading is appended (bounding the trail's memory while sounding)
+// and on every silent render (this is what lets the animation stop: once
+// this returns `[]` there is nothing left to re-draw).
+function prunedByAge(
+  trail: readonly TrailPoint[],
+  nowMs: number,
+  trailMs: number,
+): readonly TrailPoint[] {
+  return trail.filter((point) => nowMs - point.atMs <= trailMs);
 }
 
 // The header row — copied verbatim from the vendored visual reference
@@ -109,6 +132,9 @@ const SPELLING_INACTIVE_INK = "#756c60";
 const SHARP_GLYPH = "♯";
 const FLAT_GLYPH = "♭";
 
+// the spiral's needle trail: the newest 50 readings of the current run
+const SPIRAL_TRAIL_READINGS = 50;
+
 // practice.tuner/REQ-001 — "LISTENING" covers both "starting" (the
 // microphone has been asked for but capture has not begun yet) and
 // "listening" itself; only "cannot-hear" reads "NO MIC" (REQ-007). The
@@ -134,6 +160,14 @@ function TunerScreenComponent(props: {
   readonly onClear: () => void;
   readonly onSpellingChange: (preference: SpellingPreference) => void;
   readonly onReadingShown: (atFrame: number) => void;
+  // practice.tuner/REQ-005/S5, S6 — the trail's length and its injectable
+  // clock/frame scheduler; all optional with real defaults (T029's brief)
+  // so a test can drive the trail's ageing without depending on wall-clock
+  // time, and production code never has to pass any of them.
+  readonly trailMs?: number;
+  readonly now?: () => number;
+  readonly requestFrame?: (callback: FrameRequestCallback) => number;
+  readonly cancelFrame?: (handle: number) => void;
 }): JSX.Element {
   const {
     tuner,
@@ -146,6 +180,10 @@ function TunerScreenComponent(props: {
     onClear,
     onSpellingChange,
     onReadingShown,
+    trailMs = TRAIL_MS,
+    now = defaultNow,
+    requestFrame = defaultRequestFrame,
+    cancelFrame = defaultCancelFrame,
   } = props;
   const listening = isListening(tuner);
   const cannotHear = tuner.listening.kind === "cannot-hear";
@@ -176,25 +214,89 @@ function TunerScreenComponent(props: {
     [onPin],
   );
 
-  // The strip's trail (practice.tuner/REQ-005) — a ring of the last 50
-  // NoteJudged, oldest first, kept here (not in the session) so it is pure
-  // view state: appended whenever `tuner.reading` becomes a genuinely new
-  // reading (a fresh object each commit — domain/session.ts's
-  // `commitTunerReading`), reset on a gap ("Play a note" — REQ-003/S3) or on
-  // leaving the tuner (this component unmounts, discarding the ref, since
-  // App only renders it while `screen === "tuner"`). Mutated directly during
-  // render, not in an effect, because the trail this render hands to
-  // TunerStave must already include the reading this same render just
-  // received.
-  const trailRef = useRef<readonly NoteJudged[]>([]);
+  // The strip's trail (practice.tuner/REQ-005/S5, S6) — points of the last
+  // `trailMs`, kept here (not in the session) so it is pure view state:
+  // appended whenever `tuner.reading` becomes a genuinely new reading (a
+  // fresh object each commit — domain/session.ts's `commitTunerReading`),
+  // kept (not reset) on a gap ("Play a note" — REQ-003/S3) so it can carry
+  // on ageing off the left edge, reset only by leaving the tuner (this
+  // component unmounts, discarding the ref, since App only renders it while
+  // `screen === "tuner"`). Mutated directly during render, not in an
+  // effect, because the trail this render hands to TunerStave must already
+  // include the reading this same render just received (while sounding) or
+  // the age-pruning this same render must reflect (while silent).
+  const trailRef = useRef<readonly TrailPoint[]>([]);
   const lastReadingRef = useRef<NoteJudged | null>(null);
+  // Whether the *previous* render was silent — this is the run boundary:
+  // a reading that arrives right after this was true starts a new run
+  // (REQ-005/S6), never joined to whatever the trail already carried.
+  // Starts `true` so the very first reading ever heard begins run 1.
+  const wasSilentRef = useRef(true);
+  const runIdRef = useRef(0);
+  // The pending frame silence redraws with (below) — a ref, not state,
+  // since scheduling it is a side effect, not something this render reads.
+  const frameHandleRef = useRef<number | null>(null);
+  const [, forceTrailRedraw] = useReducer((tick: number) => tick + 1, 0);
+
+  let nowMs: number;
   if (tuner.reading === null) {
-    trailRef.current = [];
+    wasSilentRef.current = true;
     lastReadingRef.current = null;
+    nowMs = now();
+    trailRef.current = prunedByAge(trailRef.current, nowMs, trailMs);
   } else if (tuner.reading !== lastReadingRef.current) {
+    const atMs = now();
+    if (wasSilentRef.current) runIdRef.current += 1;
+    wasSilentRef.current = false;
     lastReadingRef.current = tuner.reading;
-    trailRef.current = appendToTrail(trailRef.current, tuner.reading);
+    trailRef.current = appendTrailPoint(
+      trailRef.current,
+      tuner.reading,
+      atMs,
+      runIdRef.current,
+      trailMs,
+    );
+    nowMs = atMs;
+  } else {
+    // A re-render with nothing new while sounding — "now" stays the
+    // newest point's own time (no animation while a note sounds).
+    const newest = trailRef.current.at(-1);
+    nowMs = newest === undefined ? now() : newest.atMs;
   }
+
+  // practice.tuner/REQ-005/S5 — redraw the trail while it is still ageing
+  // in silence, and only then: scheduled/cancelled after every render since
+  // the condition depends on `trailRef.current`, a ref this render's own
+  // pruning above just mutated, not on anything already tracked as a
+  // dependency. Runs on the phone, on battery — never while a note sounds,
+  // and stops for good once the trail has emptied.
+  useEffect(() => {
+    const shouldAnimate = tuner.reading === null && trailRef.current.length > 0;
+    if (shouldAnimate) {
+      if (frameHandleRef.current === null) {
+        frameHandleRef.current = requestFrame(() => {
+          frameHandleRef.current = null;
+          forceTrailRedraw();
+        });
+      }
+    } else if (frameHandleRef.current !== null) {
+      cancelFrame(frameHandleRef.current);
+      frameHandleRef.current = null;
+    }
+    return () => {
+      if (frameHandleRef.current !== null) {
+        cancelFrame(frameHandleRef.current);
+        frameHandleRef.current = null;
+      }
+    };
+  });
+
+  // Current run only, newest 50 readings; the spiral draws it only while
+  // a note sounds (REQ-005/S6).
+  const spiralTrail = trailRef.current
+    .filter((point) => point.runId === runIdRef.current)
+    .slice(-SPIRAL_TRAIL_READINGS)
+    .map((point) => point.reading);
 
   // practice.tuner/REQ-006 — the paint is reported once per distinct
   // reading, right after React has committed it (useLayoutEffect, not
@@ -293,7 +395,12 @@ function TunerScreenComponent(props: {
         onClear={onClear}
       />
       <div style={{ padding: "10px 16px 0" }}>
-        <TunerStave tuner={tuner} trail={trailRef.current} />
+        <TunerStave
+          tuner={tuner}
+          trail={trailRef.current}
+          nowMs={nowMs}
+          trailMs={trailMs}
+        />
       </div>
       {cannotHear && (
         <div
@@ -401,7 +508,7 @@ function TunerScreenComponent(props: {
         tuner={tuner}
         spelling={spelling}
         range={range}
-        trail={trailRef.current}
+        trail={spiralTrail}
         onClose={handleCloseTarget}
         onAuto={handleAuto}
         onHold={handleHold}

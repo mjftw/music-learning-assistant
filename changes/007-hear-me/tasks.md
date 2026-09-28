@@ -1390,7 +1390,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 > user's approval. The length is tried live behind a temporary
 > `?variant=a|b|c` switch (2.5 s, 1.2 s, 0.5 s) and fixed by T030.
 
-**Status:** in-progress
+**Status:** done
 
 **Files**
 - Modify: `src/ui/TunerScreen.tsx` (the trail keeps each point's time and its run; kept through silence; dropped by age), `src/ui/TunerStave.tsx` (x by age; one path per run; drawn in silence), `src/ui/App.tsx`, `src/ui/main.tsx` (the temporary switch)
@@ -1407,7 +1407,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 > Appended 2026-09-28 by design round 3.
 
-**Status:** todo
+**Status:** in-progress
 
 **Files**
 - Modify: `src/ui/TunerScreen.tsx`, `src/ui/App.tsx`, `src/ui/main.tsx` (one named length; the switch and its plumbing gone)

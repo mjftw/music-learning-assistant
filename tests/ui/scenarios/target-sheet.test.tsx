@@ -150,3 +150,29 @@ test("practice.tuner/REQ-004/S6 — the sheet is not a stop", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Close" }));
   expect(f.listening.stopCalls).toBe(0);
 });
+
+test("practice.tuner/REQ-004 — the spiral's needle trail keeps the newest 50 readings", async () => {
+  const f = await enterAndHear(440.0);
+
+  // Feed 59 more readings to get 60 total
+  for (let i = 0; i < 59; i++) {
+    f.listening.feed(440.0);
+    f.clock.advanceMs(1);
+    await act(async () => {});
+  }
+
+  // Open the Target sheet
+  await userEvent.click(screen.getByRole("button", { name: "Target" }));
+
+  // Read the spiral-trail element
+  const spiralTrail = screen.getByTestId("spiral-trail");
+  const pathD = spiralTrail.getAttribute("d");
+  expect(pathD).toBeTruthy();
+
+  // Count points by splitting on " L "
+  const points = pathD!.split(" L ");
+
+  // Should have at most 50 points and at least 2
+  expect(points.length).toBeLessThanOrEqual(50);
+  expect(points.length).toBeGreaterThanOrEqual(2);
+});

@@ -584,3 +584,16 @@ of readings; the raw cents column has the same shape.
   covered between the session-side S7 test and REQ-003/S2's.
 - For the plan at finish: `TunerSnapshot.lastHeard`; `NoteJudged.heard`'s
   comment (T026).
+
+## T029 — the trail moves with time and outlives the note (2026-09-28)
+
+- `TrailPoint { reading, atMs, runId }`, `TRAIL_MS = 2500`
+  (`src/ui/TunerStave.tsx`); the screen keeps the points through silence,
+  drops them by age, and redraws on `requestAnimationFrame` only while the
+  reading is null and a trail is left.
+- The spiral's needle trail stays the newest 50 readings of the current
+  run (`SPIRAL_TRAIL_READINGS`).
+- For converge (T029's review): the test "the trail keeps the last 2.5 s,
+  oldest first, placed by age" feeds a reading every 50 ms, so its count
+  bound does not tell age from a 50-point cap; S5 and S6 do.
+- Open with the user: the trail turns grey the instant the note stops.

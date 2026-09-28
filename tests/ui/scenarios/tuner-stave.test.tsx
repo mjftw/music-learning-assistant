@@ -1,6 +1,25 @@
 import { act, cleanup, screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
-import { enterAndHear } from "./tuner-helpers";
+import {
+  enterAndHear,
+  enterTuner,
+  letGapPass,
+  manualAnimationClock,
+} from "./tuner-helpers";
+
+// TunerStave.tsx's own TRAIL_X_START/TRAIL_X_END (practice.tuner/REQ-005) —
+// replicated here as the tests elsewhere in this file already replicate the
+// strip's other geometry (`translateY(109.6px)` etc.) rather than importing
+// a view's internals.
+const TRAIL_X_START = 52;
+const TRAIL_X_END = 140;
+
+function xsOf(pathD: string): readonly number[] {
+  return pathD
+    .split(/M |L /)
+    .filter((chunk) => chunk.trim() !== "")
+    .map((chunk) => Number(chunk.trim().split(" ")[0]));
+}
 
 // No global `afterEach` in scope (vitest globals are off), so
 // @testing-library/react's automatic cleanup never registers itself; without
@@ -68,16 +87,148 @@ test("practice.tuner/REQ-005/S4 — the target beside the heard note", async () 
   expect(screen.getByText("A4 IS")).toBeTruthy();
 });
 
-test("practice.tuner/REQ-005 — the trail keeps the last 50 readings, oldest first", async () => {
-  const f = await enterAndHear(440.0);
-  for (let k = 0; k < 60; k += 1) {
-    f.listening.feed(440.0 + k * 0.1);
+// practice.tuner/REQ-005's amendment (design round 3): the trail is no
+// longer a fixed count of readings but the last 2.5 s by TIME, x placed by
+// age — replaces the old "the last 50 readings" rule this test used to
+// state (a change of rule the requirement itself approved, not a loosened
+// assertion).
+test("practice.tuner/REQ-005 — the trail keeps the last 2.5 s, oldest first, placed by age", async () => {
+  const animClock = manualAnimationClock();
+  const f = await enterTuner(undefined, {
+    now: animClock.now,
+    requestFrame: animClock.requestFrame,
+    cancelFrame: animClock.cancelFrame,
+  });
+  const READING_INTERVAL_MS = 50; // ~20/s — well below the tuner's own ~93/s, but all that matters here is spanning well past the 2.5 s trail
+  const READINGS = 80; // 4 s of simulated clock time
+  for (let k = 0; k < READINGS; k += 1) {
+    f.listening.feed(440.0 + k * 0.01);
     f.clock.advanceMs(1);
     await act(async () => {});
+    animClock.advanceMs(READING_INTERVAL_MS);
   }
-  expect(
-    screen.getByTestId("trail").getAttribute("d")!.split(" L "),
-  ).toHaveLength(50);
+  const xs = xsOf(screen.getByTestId("trail").getAttribute("d")!);
+  // Fewer points than readings sent: the oldest aged out past the 2.5 s
+  // trail rather than accumulating forever.
+  expect(xs.length).toBeGreaterThan(0);
+  expect(xs.length).toBeLessThan(READINGS);
+  // Oldest first, newest at the head (age 0 sits at TRAIL_X_END), each
+  // successive point further right (younger) than the one before — x is
+  // placed by age, not by a fixed per-point spacing — and never further
+  // left than TRAIL_X_START (an older point is dropped, not drawn off the
+  // strip's own start).
+  expect(xs.at(-1)).toBeCloseTo(TRAIL_X_END, 1);
+  expect(xs[0]).toBeGreaterThanOrEqual(TRAIL_X_START);
+  for (let i = 1; i < xs.length; i += 1) {
+    expect(xs[i]).toBeGreaterThan(xs[i - 1]!);
+  }
+});
+
+test("practice.tuner/REQ-005/S5 — the trail outlives the note", async () => {
+  const animClock = manualAnimationClock();
+  const f = await enterTuner(undefined, {
+    now: animClock.now,
+    requestFrame: animClock.requestFrame,
+    cancelFrame: animClock.cancelFrame,
+  });
+  // "Hear A4 for about a second of clock time" — three readings spanning
+  // 0..1000 ms of the trail's own clock.
+  for (let reading = 0; reading < 3; reading += 1) {
+    f.listening.feed(440.0);
+    f.clock.advanceMs(1);
+    await act(async () => {});
+    animClock.advanceMs(500);
+  }
+  await letGapPass(f); // the session's own 300 ms gap — the reading clears
+  expect(screen.queryByTestId("heard-head")).toBeNull();
+  expect(screen.queryByTestId("strip-cents")).toBeNull();
+  expect(screen.getByTestId("heard-hz").textContent).toBe("—");
+  const xsAtStop = xsOf(screen.getByTestId("trail").getAttribute("d")!);
+  expect(xsAtStop.length).toBe(3);
+
+  // "Advance one second and let a frame run."
+  expect(animClock.pending).toBe(true); // the silence loop is already running
+  animClock.advanceMs(1000);
+  act(() => {
+    animClock.runFrame();
+  });
+  expect(screen.queryByTestId("heard-head")).toBeNull();
+  expect(screen.queryByTestId("strip-cents")).toBeNull();
+  expect(screen.getByTestId("heard-hz").textContent).toBe("—");
+  const xsAfterOneMore = xsOf(screen.getByTestId("trail").getAttribute("d")!);
+  expect(screen.getByTestId("trail")).toBeTruthy();
+  expect(xsAfterOneMore.length).toBe(xsAtStop.length); // nothing added
+  expect(Math.max(...xsAfterOneMore)).toBeLessThan(Math.max(...xsAtStop)); // further left
+
+  // Past the trail's length in time (2.5 s default) since the note stopped.
+  expect(animClock.pending).toBe(true); // still ageing, still redrawing
+  animClock.advanceMs(3000);
+  act(() => {
+    animClock.runFrame();
+  });
+  expect(screen.queryByTestId("trail")).toBeNull();
+  expect(animClock.pending).toBe(false); // no further frame requested
+});
+
+test("practice.tuner/REQ-005/S6 — a new note does not join the old trail", async () => {
+  const animClock = manualAnimationClock();
+  const f = await enterTuner(undefined, {
+    now: animClock.now,
+    requestFrame: animClock.requestFrame,
+    cancelFrame: animClock.cancelFrame,
+  });
+  f.listening.feed(440.0);
+  f.clock.advanceMs(1);
+  await act(async () => {});
+  animClock.advanceMs(300);
+  f.listening.feed(440.0);
+  f.clock.advanceMs(1);
+  await act(async () => {});
+  await letGapPass(f); // A4's trail is now moving left in silence
+
+  animClock.advanceMs(400);
+  act(() => {
+    animClock.runFrame();
+  }); // let the old trail actually move before C5 arrives
+  const oldXsBefore = xsOf(screen.getByTestId("trail").getAttribute("d")!);
+
+  animClock.advanceMs(200);
+  f.listening.feed(523.25); // C5
+  f.clock.advanceMs(1);
+  await act(async () => {});
+  animClock.advanceMs(50);
+  f.listening.feed(523.25);
+  f.clock.advanceMs(1);
+  await act(async () => {});
+
+  const d = screen.getByTestId("trail").getAttribute("d")!;
+  expect(d.match(/M /g)?.length).toBe(2); // two sub-paths — two runs
+  const runs = d.split(/(?=M )/).map((run) => xsOf(run));
+  expect(runs).toHaveLength(2);
+  const [oldRun, newRun] = runs;
+  expect(oldRun!.length).toBe(oldXsBefore.length);
+  for (let i = 0; i < oldRun!.length; i += 1) {
+    expect(oldRun![i]).toBeLessThan(oldXsBefore[i]!); // the old run carried on leftward
+  }
+  expect(newRun!.at(-1)).toBeCloseTo(TRAIL_X_END, 1); // the newest point is at the head
+});
+
+test("practice.tuner/REQ-005 — the frame loop never runs while a note sounds, and stops once the trail is empty", async () => {
+  const animClock = manualAnimationClock();
+  const f = await enterAndHear(440.0, undefined, {
+    now: animClock.now,
+    requestFrame: animClock.requestFrame,
+    cancelFrame: animClock.cancelFrame,
+  });
+  expect(animClock.pending).toBe(false); // sounding — no frame requested
+  await letGapPass(f); // silence begins
+  expect(animClock.pending).toBe(true); // now the trail is ageing on its own
+  animClock.advanceMs(3000); // past the 2.5 s default trail
+  act(() => {
+    animClock.runFrame();
+  });
+  expect(screen.queryByTestId("trail")).toBeNull();
+  expect(animClock.pending).toBe(false); // stopped once the trail emptied
 });
 
 test('practice.tuner/REQ-005 — nothing referenced reads "— IS" over "—"', async () => {

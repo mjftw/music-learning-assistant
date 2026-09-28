@@ -208,6 +208,32 @@ const TRAIL_X_END = 140;
 const TRAIL_STROKE_WIDTH = 2.2;
 const TRAIL_GRADIENT_ID = "tuner-stave-trail-fade";
 
+// practice.tuner/REQ-005 — the trail's default length in time: age 0 sits
+// at TRAIL_X_END (the head), age TRAIL_MS sits at TRAIL_X_START, linear in
+// between (trailXOf below). The design-loop switch (main.tsx, T029/T030)
+// overrides this by passing a `trailMs` prop through App and TunerScreen;
+// this is only the default when none is passed.
+export const TRAIL_MS = 2500;
+
+// A trail point remembers the reading it came from, when it was taken (an
+// injectable clock — TunerScreen owns it, never a raw `Date.now()`/
+// `performance.now()` call here), and which unbroken run of readings it
+// belongs to — a new run starts whenever a reading arrives after the
+// reading had been cleared (silence), so two runs are never drawn joined by
+// a line (REQ-005/S6).
+export interface TrailPoint {
+  readonly reading: NoteJudged;
+  readonly atMs: number;
+  readonly runId: number;
+}
+
+// x by age: age 0 (the newest point) sits at TRAIL_X_END, age trailMs sits
+// at TRAIL_X_START; a point older than trailMs (a negative or >TRAIL_X_END-
+// clamped x) is filtered out where `trailRenderPoints` is built, below.
+function trailXOf(age: number, trailMs: number): number {
+  return TRAIL_X_END - (age / trailMs) * (TRAIL_X_END - TRAIL_X_START);
+}
+
 const COLUMN_LEFT = 214;
 const COLUMN_RIGHT = 12;
 const COLUMN_TOP = 30;
@@ -285,14 +311,23 @@ function referenceNoteOf(
 
 // The treble stave strip (practice.tuner/REQ-005): the heard note as a
 // drifting whole-note head along a dotted guide, its cents, a trail of the
-// last 2.5 s (the last 50 readings TunerScreen keeps), the pinned target as
-// a grey head to the right, 8va/8vb/15ma/15mb past the ledger range, and
-// the HEARD / "<note> IS" Hz column.
+// last `trailMs` by TIME (x by age, oldest first, dropped past `trailMs`),
+// the pinned target as a grey head to the right, 8va/8vb/15ma/15mb past the
+// ledger range, and the HEARD / "<note> IS" Hz column. WHILE nothing is
+// heard the head/cents/Hz clear as before but the trail carries on moving
+// left, each run its own sub-path so a new run is never joined to the one
+// silence left behind (S5, S6).
 export function TunerStave(props: {
   readonly tuner: TunerSnapshot;
-  readonly trail: readonly NoteJudged[];
+  readonly trail: readonly TrailPoint[];
+  // The instant age is measured from: the newest reading's own time while
+  // one is sounding (so a live render needs no clock read of its own), or
+  // TunerScreen's injectable "now" while silent and the trail is still
+  // aging (TunerScreen's own rAF-driven re-renders keep advancing it).
+  readonly nowMs: number;
+  readonly trailMs: number;
 }): JSX.Element {
-  const { tuner: snapshot, trail } = props;
+  const { tuner: snapshot, trail, nowMs, trailMs } = props;
   const reading = snapshot.reading;
   const targetNote = snapshot.targetNote;
 
@@ -301,6 +336,22 @@ export function TunerStave(props: {
   // `referenceRawIndexOf`), and its `adj` governs both placements below.
   const referenceRawIndex = referenceRawIndexOf(targetNote, reading);
   const adj = referenceRawIndex === null ? 0 : registerAdjOf(referenceRawIndex);
+
+  // The trail's own register decision: `adj` above whenever something
+  // governs it (a target, or the live reading — the same value while
+  // sounding, matching today); in silence with no target, there is no
+  // current reading to fall back on, so the newest trail point's own heard
+  // note stands in instead (practice.tuner/REQ-005's amendment) rather than
+  // the trail snapping to the un-shifted register.
+  const newestTrailPoint = trail.length > 0 ? trail[trail.length - 1]! : null;
+  const trailReferenceRawIndex =
+    referenceRawIndex !== null
+      ? referenceRawIndex
+      : newestTrailPoint === null
+        ? null
+        : diatonicIndex(newestTrailPoint.reading.heard.nearest);
+  const trailAdj =
+    trailReferenceRawIndex === null ? 0 : registerAdjOf(trailReferenceRawIndex);
 
   const heard =
     reading === null
@@ -320,19 +371,51 @@ export function TunerStave(props: {
       ? targetMarkY(target.position.mark, target.position.y)
       : null;
 
+  // practice.tuner/REQ-005/S5 — the strip's vertical centring (`shift`,
+  // below) must not jump the instant a note stops: while a reading shows,
+  // this is simply `heard`; once it clears, as long as the trail is still
+  // drawn the newest trail point's own placement (at the same `trailAdj`
+  // the trail itself is drawn with) stands in, so `tops`/`bots` keep seeing
+  // the same shape of contribution across the note stopping. Once the
+  // trail has emptied too, this is `null` and the layout falls back to the
+  // stave-lines-only baseline, exactly as an empty reading always did.
+  const layoutHeard =
+    heard !== null
+      ? heard
+      : newestTrailPoint === null
+        ? null
+        : placeHeard(
+            newestTrailPoint.reading.heard.nearest,
+            newestTrailPoint.reading.heard.cents,
+            trailAdj,
+          );
+  const layoutHeardMarkY =
+    layoutHeard !== null && layoutHeard.position.mark !== ""
+      ? octaveMarkY(
+          layoutHeard.position.mark,
+          layoutHeard.position.y,
+          layoutHeard.hy,
+        )
+      : null;
+
   // Centre whatever is drawn (clef, lines, heads, ledgers, labels) in the
   // 144-tall card; top-align if it can't fit — the design's own pass
   // (lines 1271-1279), reproduced with our simplified single-clef model.
   const tops: number[] = [82];
   const bots: number[] = [136];
-  let centsTop: number | null = null;
-  if (heard !== null) {
-    centsTop = Math.min(heard.position.y, heard.hy) - CENTS_TOP_OFFSET;
-    tops.push(centsTop, heard.hy - 8);
-    bots.push(heard.hy + 8, heard.position.y + 8);
-    if (heardMarkY !== null) {
-      tops.push(heardMarkY);
-      bots.push(heardMarkY + OCTAVE_MARK_HEIGHT);
+  const centsTop =
+    heard !== null
+      ? Math.min(heard.position.y, heard.hy) - CENTS_TOP_OFFSET
+      : null;
+  if (layoutHeard !== null) {
+    tops.push(
+      Math.min(layoutHeard.position.y, layoutHeard.hy) - CENTS_TOP_OFFSET,
+      layoutHeard.hy - 8,
+    );
+    bots.push(layoutHeard.hy + 8, layoutHeard.position.y + 8);
+    if (layoutHeardMarkY !== null) {
+      tops.push(layoutHeardMarkY);
+      bots.push(layoutHeardMarkY + OCTAVE_MARK_HEIGHT);
     }
   }
   if (target !== null) {
@@ -348,30 +431,46 @@ export function TunerStave(props: {
   const shift =
     bot - top > CARD_HEIGHT - 16 ? 8 - top : CARD_HEIGHT / 2 - (top + bot) / 2;
 
-  // x runs from TRAIL_X_START (oldest, index 0) to TRAIL_X_END (newest, the
-  // last entry) — only meaningful with at least two points, so the branch
-  // above already guarantees `trail.length - 1` is never zero here.
-  const trailPoints =
-    heard === null || trail.length < 2
-      ? []
-      : trail.map((entry, index) => {
-          // The whole trail is drawn with the current reading's own `adj`
-          // (not a fresh register decision per point) so it never jumps
-          // mid-trail as a historical point crosses a register threshold on
-          // its own — matching the design's own `p.tot` applied uniformly
-          // across `hist` (lines 1257-1264).
-          const placement = placeHeard(
-            entry.heard.nearest,
-            entry.heard.cents,
-            adj,
-          );
-          const x =
-            TRAIL_X_START +
-            index * ((TRAIL_X_END - TRAIL_X_START) / (trail.length - 1));
-          return `${x} ${placement.hy}`;
-        });
-  const trailPath =
-    trailPoints.length > 1 ? `M ${trailPoints.join(" L ")}` : null;
+  // x by age (practice.tuner/REQ-005/S5, S6) — each point placed by how old
+  // it is relative to `nowMs` (age 0 at TRAIL_X_END, `trailMs` at
+  // TRAIL_X_START), points older than `trailMs` dropped; the whole trail is
+  // drawn with `trailAdj` (not a fresh register decision per point) so it
+  // never jumps mid-trail as a historical point crosses a register
+  // threshold on its own — matching the design's own `p.tot` applied
+  // uniformly across `hist` (lines 1257-1264).
+  const trailRenderPoints = trail
+    .map((point) => ({
+      x: trailXOf(nowMs - point.atMs, trailMs),
+      y: placeHeard(
+        point.reading.heard.nearest,
+        point.reading.heard.cents,
+        trailAdj,
+      ).hy,
+      runId: point.runId,
+    }))
+    .filter((point) => point.x >= TRAIL_X_START && point.x <= TRAIL_X_END);
+
+  // One sub-path per run (S6) — a run with a single point draws nothing for
+  // that run; runs are concatenated with a space so `path`'s single `d`
+  // never joins two runs with a line.
+  const runSubpaths: string[] = [];
+  let currentRunId: number | null = null;
+  let currentRunCoords: string[] = [];
+  const flushCurrentRun = (): void => {
+    if (currentRunCoords.length > 1) {
+      runSubpaths.push(`M ${currentRunCoords.join(" L ")}`);
+    }
+  };
+  for (const point of trailRenderPoints) {
+    if (point.runId !== currentRunId) {
+      flushCurrentRun();
+      currentRunId = point.runId;
+      currentRunCoords = [];
+    }
+    currentRunCoords.push(`${point.x} ${point.y}`);
+  }
+  flushCurrentRun();
+  const trailPath = runSubpaths.length > 0 ? runSubpaths.join(" ") : null;
 
   const referenceNote = referenceNoteOf(reading, targetNote);
   const referenceHz = referenceNote === null ? null : pitchHzOf(referenceNote);
@@ -503,38 +602,44 @@ export function TunerStave(props: {
                 strokeWidth={GUIDE_STROKE_WIDTH}
                 strokeDasharray={GUIDE_DASH}
               />
-              {trailPath !== null && (
-                <path
-                  data-testid="trail"
-                  d={trailPath}
-                  fill="none"
-                  stroke={`url(#${TRAIL_GRADIENT_ID})`}
-                  strokeWidth={TRAIL_STROKE_WIDTH}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              )}
-              <g
-                data-testid="heard-head"
-                style={{ transform: `translateY(${pxValue(heard.hy)})` }}
-              >
-                <ellipse
-                  cx={HEARD_X}
-                  cy={0}
-                  rx={HEAD_RX}
-                  ry={HEAD_RY}
-                  fill={tone}
-                />
-                <ellipse
-                  cx={HEARD_X}
-                  cy={0}
-                  rx={HEAD_INNER_RX}
-                  ry={HEAD_INNER_RY}
-                  transform={`rotate(${HEAD_INNER_ROTATE_DEGREES} ${HEARD_X} 0)`}
-                  fill={paper.card}
-                />
-              </g>
             </>
+          )}
+          {/* practice.tuner/REQ-005/S5 — drawn on its own condition, not
+              nested under `heard !== null`: the trail keeps moving while
+              nothing is heard, well after the head/ledgers/guide above have
+              gone. */}
+          {trailPath !== null && (
+            <path
+              data-testid="trail"
+              d={trailPath}
+              fill="none"
+              stroke={`url(#${TRAIL_GRADIENT_ID})`}
+              strokeWidth={TRAIL_STROKE_WIDTH}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+          {heard !== null && (
+            <g
+              data-testid="heard-head"
+              style={{ transform: `translateY(${pxValue(heard.hy)})` }}
+            >
+              <ellipse
+                cx={HEARD_X}
+                cy={0}
+                rx={HEAD_RX}
+                ry={HEAD_RY}
+                fill={tone}
+              />
+              <ellipse
+                cx={HEARD_X}
+                cy={0}
+                rx={HEAD_INNER_RX}
+                ry={HEAD_INNER_RY}
+                transform={`rotate(${HEAD_INNER_ROTATE_DEGREES} ${HEARD_X} 0)`}
+                fill={paper.card}
+              />
+            </g>
           )}
         </svg>
         <div

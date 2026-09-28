@@ -101,3 +101,56 @@ export async function letGapPass(f: {
   f.clock.advanceMs(300);
   await act(async () => {});
 }
+
+// practice.tuner/REQ-005/S5, S6 — the trail's own clock is TunerScreen's
+// injectable `now`/`requestFrame`/`cancelFrame` (not the session's own
+// `FakeClock` above, which drives the *session's* gap timer only, and never
+// wall-clock time). A manual, single-slot scheduler: at most one callback is
+// ever pending (matching `requestAnimationFrame`'s own one-shot contract),
+// `runFrame()` invokes it synchronously (wrap in `act()` — it triggers a
+// `setState`) and reports whether one was actually pending, and `pending`
+// lets a scenario assert the loop is/isn't running without inspecting
+// TunerScreen's own internals.
+export function manualAnimationClock(startMs = 0): {
+  readonly now: () => number;
+  readonly requestFrame: (callback: FrameRequestCallback) => number;
+  readonly cancelFrame: (handle: number) => void;
+  readonly advanceMs: (deltaMs: number) => void;
+  readonly runFrame: () => boolean;
+  readonly pending: boolean;
+} {
+  let ms = startMs;
+  let nextId = 1;
+  let pendingId: number | null = null;
+  let pendingCallback: FrameRequestCallback | null = null;
+  return {
+    now: () => ms,
+    requestFrame: (callback) => {
+      const id = nextId;
+      nextId += 1;
+      pendingId = id;
+      pendingCallback = callback;
+      return id;
+    },
+    cancelFrame: (handle) => {
+      if (handle === pendingId) {
+        pendingId = null;
+        pendingCallback = null;
+      }
+    },
+    advanceMs: (deltaMs) => {
+      ms += deltaMs;
+    },
+    runFrame: () => {
+      const callback = pendingCallback;
+      pendingId = null;
+      pendingCallback = null;
+      if (callback === null) return false;
+      callback(ms);
+      return true;
+    },
+    get pending() {
+      return pendingCallback !== null;
+    },
+  };
+}

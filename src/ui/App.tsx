@@ -238,9 +238,26 @@ export function App(props: {
   // dev-only `window.__paintAgesMs` the measured harness reads; App stays
   // fully testable without it, as `onSessionReady` does above.
   readonly onPaintAge?: (ageMs: number) => void;
+  // Optional, additive, forwarded straight to TunerScreen (practice.tuner/
+  // REQ-005/S5, S6) — TunerScreen already carries its own real defaults, so
+  // App need only pass these through for a test (or main.tsx's design-loop
+  // switch, T029/T030) to reach them; nothing here reads or resolves them.
+  readonly trailMs?: number;
+  readonly now?: () => number;
+  readonly requestFrame?: (callback: FrameRequestCallback) => number;
+  readonly cancelFrame?: (handle: number) => void;
 }): JSX.Element {
-  const { catalogue, selectionStore, sessionDeps, onSessionReady, onPaintAge } =
-    props;
+  const {
+    catalogue,
+    selectionStore,
+    sessionDeps,
+    onSessionReady,
+    onPaintAge,
+    trailMs,
+    now,
+    requestFrame,
+    cancelFrame,
+  } = props;
   const [selection, setSelection] = useState<Selection>(() =>
     initialSelection(catalogue, selectionStore),
   );
@@ -679,6 +696,10 @@ export function App(props: {
           onClear={handleClearTarget}
           onSpellingChange={handleSelectSpelling}
           onReadingShown={handleReadingShown}
+          {...(trailMs !== undefined ? { trailMs } : {})}
+          {...(now !== undefined ? { now } : {})}
+          {...(requestFrame !== undefined ? { requestFrame } : {})}
+          {...(cancelFrame !== undefined ? { cancelFrame } : {})}
         />
       ) : (
         <>
