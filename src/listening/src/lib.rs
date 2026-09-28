@@ -154,6 +154,97 @@ mod tests {
         }
     }
 
+    // Continues a sine of `hz` starting at phase index `start_index` for `count` more
+    // samples — lets a test build one continuous tone across several `Vec`s that are
+    // concatenated (an onset quantum's tail, then the rest of the tone).
+    fn sine_from(hz: f32, start_index: usize, count: usize) -> Vec<f32> {
+        (0..count)
+            .map(|i| {
+                (2.0 * std::f32::consts::PI * hz * (start_index + i) as f32 / 48000.0).sin() * 0.5
+            })
+            .collect()
+    }
+
+    fn cents(hz: f64, of: f32) -> f64 {
+        1200.0 * (hz / f64::from(of)).log2()
+    }
+
+    // Feeds 20 silent quanta, then one onset quantum whose first 100 samples are silence
+    // and whose last 28 start `hz`'s sine, then the sine continuing across quanta for
+    // 1.5 s. Every published detection must be within ±2 ¢ of `hz`, and at least one
+    // must be published — the guarantee that a note's onset, landing mid-quantum as Web
+    // Audio's sample-accurate `start()` does, is never analysed against a window still
+    // partly the silence that preceded it.
+    fn assert_mid_quantum_onset_never_misreads(hz: f32) {
+        let _g = lock_engine();
+        init(48000.0);
+
+        let mut signal = vec![0.0f32; 128 * 20];
+        let mut onset_quantum = vec![0.0f32; 100];
+        onset_quantum.extend(sine_from(hz, 0, 28));
+        assert_eq!(onset_quantum.len(), 128);
+        signal.extend(onset_quantum);
+        signal.extend(sine_from(hz, 28, 72_000)); // 1.5 s continuing
+
+        let results = feed(&signal, 0.0);
+        assert!(
+            !results.is_empty(),
+            "{hz} Hz: expected at least one published detection"
+        );
+        for (now, r) in &results {
+            assert!(
+                cents(r[0], hz).abs() <= 2.0,
+                "{hz} Hz: at frame {now}, published {} ({} ¢ off)",
+                r[0],
+                cents(r[0], hz)
+            );
+        }
+    }
+
+    // listening.pitch-detection/REQ-002 — a note's onset, landing mid-quantum, never
+    // publishes a wrong pitch: covers a mid-quantum onset at the low end (E2) and the
+    // high end (C7), and a tone change with no silence between (D♯2→E2, the change
+    // itself mid-quantum) — `detect()`'s own contract is a window of a steady tone; this
+    // partial-window guarantee is the pipeline's (ring onset gate), so it lives here,
+    // not in `detector.rs`.
+    #[test]
+    fn req_002_a_note_onset_mid_quantum_never_publishes_a_wrong_pitch() {
+        assert_mid_quantum_onset_never_misreads(82.41); // E2
+        assert_mid_quantum_onset_never_misreads(2093.0); // C7
+
+        // A D♯2→E2 change with no silence between them — the onset gate only resets on
+        // a silence→signal transition, so it does nothing here; a window still
+        // straddling the change may read anything, and that is the hand-over's business,
+        // not this guarantee's. Only readings from ≥100 ms after the change are
+        // asserted; the change itself lands mid-quantum (2600 is not a multiple of 128).
+        let _g = lock_engine();
+        init(48000.0);
+        let d_sharp_2 = 77.78f32;
+        let e2 = 82.41f32;
+        let change_frame = 128 * 20 + 40; // 2600: mid-quantum, not a quantum boundary
+        let mut signal = sine_from(d_sharp_2, 0, change_frame);
+        signal.extend(sine_from(e2, 0, 72_000));
+
+        let results = feed(&signal, 0.0);
+        let settle_frames = 4_800.0; // 100 ms @ 48 kHz
+        let late: Vec<_> = results
+            .iter()
+            .filter(|(now, _)| *now >= change_frame as f64 + settle_frames)
+            .collect();
+        assert!(
+            !late.is_empty(),
+            "expected published detections well after the change"
+        );
+        for (now, r) in &late {
+            assert!(
+                cents(r[0], e2).abs() <= 2.0,
+                "at frame {now}, published {} ({} ¢ off E2)",
+                r[0],
+                cents(r[0], e2)
+            );
+        }
+    }
+
     // listening.pitch-detection/REQ-003/S3 — a breath between notes publishes nothing
     #[test]
     fn req_003_s3_a_breath_between_notes() {

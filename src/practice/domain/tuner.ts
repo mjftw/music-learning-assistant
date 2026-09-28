@@ -53,18 +53,27 @@ export function nearestWithHandover(shown: number | null, hz: number): number {
     return pitchPosition(nearestNoteOf(hz, "sharp").note);
   }
   const shownNote = noteAtPosition(shown, "sharp");
-  if (Math.abs(centsFrom(shownNote, hz)) >= HANDOVER_CENTS) {
+  // Compares the raw (unrounded) offset, not centsFrom's whole-cent display
+  // value: rounding first would let a raw offset as low as 55.5 ¢ (which
+  // rounds to 56) trigger the hand-over early (practice.tuner/REQ-002 — the
+  // shown note holds until the detected pitch is 56 ¢ from it).
+  if (Math.abs(rawCentsFrom(shownNote, hz)) >= HANDOVER_CENTS) {
     return pitchPosition(nearestNoteOf(hz, "sharp").note);
   }
   return shown;
 }
 
-/** cents from `note` to `hz`, whole, unclamped */
+/** cents from `note` to `hz`, whole, unclamped — for display */
 export function centsFrom(note: Note, hz: number): number {
   // "+ 0" folds a -0 result (hz an insignificant sliver below note's exact
   // pitch) back to 0, matching theory's nearestNoteOf (-0 !== 0 under
   // deep equality).
-  return Math.round(1200 * Math.log2(hz / pitchHzOf(note))) + 0;
+  return Math.round(rawCentsFrom(note, hz)) + 0;
+}
+
+/** cents from `note` to `hz`, unrounded — for the hand-over comparison only */
+function rawCentsFrom(note: Note, hz: number): number {
+  return 1200 * Math.log2(hz / pitchHzOf(note));
 }
 
 // |cents| ≤ IN_TUNE_BAND_CENTS → "in-tune"; > 0 sharp; < 0 flat

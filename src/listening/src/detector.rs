@@ -297,6 +297,66 @@ mod tests {
         }
     }
 
+    // listening.pitch-detection/REQ-002 — a window that is only partly filled with the current
+    // tone (the onset case: the ring hands a hop over as soon as WINDOW frames have been
+    // pushed, even when the tone now sounding has only just started, so the window is part
+    // silence — or part a *different*, preceding tone) must not report a wrong pitch with high
+    // confidence. Prints each fill level's `detect()` result with --nocapture before asserting.
+    //
+    // Only the 25/50/75% fill levels are covered here (all correctly return `None`): at 90%
+    // fill `detect()` finds a genuine integer-lag NSDF bias (a key maximum at the wrong
+    // integer lag from the asymmetric truncation) and reports a wrong pitch with high
+    // confidence — but `detect()`'s own contract is a window of a steady tone, not a
+    // partly-filled one; guaranteeing the pipeline never *hands it* such a window is the
+    // ring's job, not this function's, and is covered by
+    // `req_002_a_note_onset_mid_quantum_never_publishes_a_wrong_pitch` in `lib.rs`.
+    #[test]
+    fn req_002_a_partly_filled_window_must_not_read_a_wrong_pitch() {
+        let e2 = 82.41f32;
+        let mut cases: Vec<(String, Option<Detection>)> = Vec::new();
+
+        for filled_pct in [25, 50, 75] {
+            let filled = WINDOW * filled_pct / 100;
+            let silent = WINDOW - filled;
+            let mut window = vec![0.0f32; WINDOW];
+            for i in 0..filled {
+                window[silent + i] = (2.0 * std::f32::consts::PI * e2 * i as f32 / SR).sin() * 0.5;
+            }
+            cases.push((
+                format!("silence-then-E2, {filled_pct}% filled"),
+                detect(&window, SR),
+            ));
+        }
+
+        // The sweep's real situation: no silence between tones, a preceding *different* tone
+        // (D♯2, 77.78 Hz — the semitone below E2) fills the first half, E2 the second.
+        let d_sharp_2 = 77.78f32;
+        let half = WINDOW / 2;
+        let mut window = vec![0.0f32; WINDOW];
+        for (i, slot) in window.iter_mut().enumerate().take(half) {
+            *slot = (2.0 * std::f32::consts::PI * d_sharp_2 * i as f32 / SR).sin() * 0.5;
+        }
+        for (i, slot) in window.iter_mut().enumerate().skip(half) {
+            *slot = (2.0 * std::f32::consts::PI * e2 * (i - half) as f32 / SR).sin() * 0.5;
+        }
+        cases.push(("D#2-then-E2, 50/50".to_string(), detect(&window, SR)));
+
+        for (label, d) in &cases {
+            println!("{label}: {d:?}");
+        }
+
+        for (label, d) in &cases {
+            if let Some(d) = d {
+                assert!(
+                    cents(d.hz, e2).abs() <= 2.0,
+                    "{label}: {} vs {e2} (clarity {})",
+                    d.hz,
+                    d.clarity
+                );
+            }
+        }
+    }
+
     // Not a correctness assertion — the plan's spike, run once with
     // `--release --ignored --nocapture` and its printed number copied into
     // `changes/007-hear-me/notes.md`. The budget for one hop is 10 ms

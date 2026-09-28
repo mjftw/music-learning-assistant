@@ -26,6 +26,12 @@ test("practice.tuner/REQ-002 — hand-over at 56 cents", () => {
   expect(nearestWithHandover(69, 455.0)).toBe(70);
   expect(nearestWithHandover(null, 445)).toBe(69);
 });
+test("practice.tuner/REQ-002 — hand-over compares the raw offset, not the rounded cent", () => {
+  // 454.36 Hz is ≈ +55.6 ¢ raw from A4, which rounds to 56 — must NOT hand over.
+  expect(nearestWithHandover(69, 454.36)).toBe(69);
+  // 454.5 Hz is ≈ +56.1 ¢ raw from A4 — must hand over.
+  expect(nearestWithHandover(69, 454.5)).toBe(70);
+});
 test("practice.tuner/REQ-004 — judge against a pinned target: unclamped cents, semitone count, bounds", () => {
   const { judged } = judge(
     at(523.25),

@@ -1248,7 +1248,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 ### T021 · practice.tuner/REQ-006, listening.pitch-detection/REQ-002, listening.pitch-detection/REQ-003, listening.pitch-detection/REQ-004 · `pnpm test:tuner` — the budget, the accuracy, the refresh, silence and noise, measured
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `scripts/tuner-timing-test.mjs`, `tests/listening/scenarios/tuner-harness.test.ts` (the citation file, the pattern of `tests/practice/scenarios/timing.test.ts`)

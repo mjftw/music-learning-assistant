@@ -53,7 +53,12 @@ const TUNER_HIGHEST_POSITION = 96;
 const REFERENCE_A4_HZ = 440;
 const REFERENCE_A4_POSITION = 69;
 const TONE_SECONDS = 1.0;
-const PREROLL_SECONDS = 0.3;
+// Wide enough that the previous tone's own trailing "Play a note" clear
+// cannot straddle this tone's onset: TUNER_GAP_MS (session.ts, 300 ms,
+// re-armed on every PitchDetected) plus the detector's 2048-frame window
+// (~43 ms @ 48 kHz — a tone's trailing analysis can keep re-arming the gap
+// timer for that long after `osc.stop()`) plus margin.
+const PREROLL_SECONDS = 0.6;
 // The "steady middle" a readings/s count is taken over, and the point
 // after which a reading's cents error is gated (the plan's mechanics).
 const STEADY_START_FRACTION = 0.2;
@@ -77,6 +82,35 @@ function positionsE2ToC7() {
     positions.push(position);
   }
   return positions;
+}
+
+// theory/domain/notes.ts's noteAtPosition + labels.ts's noteLabel, sharp
+// spelling only, duplicated here — this script is plain Node ESM with no
+// TS/bundler step (as trueHzOfPosition, below, already duplicates
+// temperament's formula) — and used both in-page, to identify a mutation as
+// this tone's own reading (armReadoutTracking), and here, to attribute a
+// sweep's worst tone in the printed table. The fresh browser context this
+// harness launches has no stored selection, so the app's default spelling
+// (firstRunDefaults, selection-store.ts) applies throughout.
+const SHARP_PITCH_CLASS_LABELS = [
+  "C",
+  "C♯",
+  "D",
+  "D♯",
+  "E",
+  "F",
+  "F♯",
+  "G",
+  "G♯",
+  "A",
+  "A♯",
+  "B",
+];
+
+function noteLabelOfPosition(position) {
+  const pitchClass = ((position % 12) + 12) % 12;
+  const octave = Math.floor(position / 12) - 1;
+  return `${SHARP_PITCH_CLASS_LABELS[pitchClass]}${octave}`;
 }
 
 // A TCP probe, not a fetch: Node's fetch rejects the dev server's
@@ -200,14 +234,55 @@ function measureInPage(params) {
     return referenceA4Hz * 2 ** ((position - referenceA4Position) / 12);
   }
 
-  // First mutation of the reading's subtree at or after `onsetPerfMs` —
-  // the plan's own definition of "first readout".
-  function armReadoutTracking(onsetPerfMs) {
+  // theory/domain/notes.ts's noteAtPosition + labels.ts's noteLabel, sharp
+  // spelling only — duplicated in-page (the browser realm can't reach the
+  // Node-scope copy of the same function above; page.evaluate serialises
+  // only this function's own body). The fresh browser context this harness
+  // launches has no stored selection, so the app's default spelling
+  // (firstRunDefaults, selection-store.ts) applies.
+  const SHARP_PITCH_CLASS_LABELS = [
+    "C",
+    "C♯",
+    "D",
+    "D♯",
+    "E",
+    "F",
+    "F♯",
+    "G",
+    "G♯",
+    "A",
+    "A♯",
+    "B",
+  ];
+
+  function noteLabelOfPosition(position) {
+    const pitchClass = ((position % 12) + 12) % 12;
+    const octave = Math.floor(position / 12) - 1;
+    return `${SHARP_PITCH_CLASS_LABELS[pitchClass]}${octave}`;
+  }
+
+  // First mutation of the reading's subtree, at or after `onsetPerfMs`, that
+  // shows *this tone's own* reading — a name is present
+  // ([data-testid="tuner-name"], not [data-testid="tuner-empty"]) and its
+  // text (stripped of whitespace) equals `expectedLabel`. Without the label
+  // check, the *previous* tone's own trailing "Play a note" clear — also a
+  // mutation of this subtree — can land after this tone's onset (its
+  // trailing analysis can keep the previous tone's gap timer re-armed for
+  // up to ~43 ms past `osc.stop()`, and PREROLL_SECONDS gives only the
+  // 300 ms TUNER_GAP_MS plus that margin before the next onset) and get
+  // mistaken for this tone's first readout.
+  function armReadoutTracking(onsetPerfMs, expectedLabel) {
     let firstReadoutMs = null;
     const observer = new MutationObserver(() => {
       if (firstReadoutMs !== null) return;
       const now = performance.now();
-      if (now >= onsetPerfMs) firstReadoutMs = now - onsetPerfMs;
+      if (now < onsetPerfMs) return;
+      const nameEl = readingEl.querySelector('[data-testid="tuner-name"]');
+      const emptyEl = readingEl.querySelector('[data-testid="tuner-empty"]');
+      if (nameEl === null || emptyEl !== null) return;
+      const label = nameEl.textContent.replace(/\s+/g, "");
+      if (label !== expectedLabel) return;
+      firstReadoutMs = now - onsetPerfMs;
     });
     observer.observe(readingEl, {
       childList: true,
@@ -259,7 +334,7 @@ function measureInPage(params) {
   }
 
   // One 1 s tone (sine or flute-like) at `hz`, `prerollSeconds` from now.
-  async function measureTone({ context, destination, waveform, hz }) {
+  async function measureTone({ context, destination, waveform, hz, position }) {
     const sampleRate = listening.sampleRate();
     const { osc, gain } = connectOscillator(context, destination, waveform, hz);
 
@@ -270,7 +345,10 @@ function measureInPage(params) {
       onsetPerfMs + steadyStartFraction * toneSeconds * 1000;
     const steadyEndMs = onsetPerfMs + steadyEndFraction * toneSeconds * 1000;
 
-    const readout = armReadoutTracking(onsetPerfMs);
+    const readout = armReadoutTracking(
+      onsetPerfMs,
+      noteLabelOfPosition(position),
+    );
     const arrival = armArrivalTracking(onsetFrame, sampleRate);
 
     let steadyCount = 0;
@@ -297,6 +375,7 @@ function measureInPage(params) {
     gain.disconnect();
 
     return {
+      position,
       firstReadoutMs: readout.value(),
       arrivalAgeMs: arrival.value(),
       maxPaintAgeMs: paintAgeSince(paintAgesBefore),
@@ -318,7 +397,9 @@ function measureInPage(params) {
     const perTone = [];
     for (const position of positions) {
       const hz = trueHzOfPosition(position);
-      perTone.push(await measureTone({ context, destination, waveform, hz }));
+      perTone.push(
+        await measureTone({ context, destination, waveform, hz, position }),
+      );
     }
     return perTone;
   }
@@ -344,7 +425,12 @@ function measureInPage(params) {
     const steadyEndMs =
       onsetPerfMs + steadyEndFraction * handoverSeconds * 1000;
 
-    const readout = armReadoutTracking(onsetPerfMs);
+    // The glissando starts at handoverStartHz (440 Hz, A4 — referenceA4Position):
+    // its first readout is the same identity check as a sweep tone's.
+    const readout = armReadoutTracking(
+      onsetPerfMs,
+      noteLabelOfPosition(referenceA4Position),
+    );
     const arrival = armArrivalTracking(onsetFrame, sampleRate);
 
     let steadyCount = 0;
@@ -484,6 +570,25 @@ function paintAgeMaxOf(values) {
   return present.length > 0 ? Math.max(...present) : null;
 }
 
+// The tone whose `selector(tone)` is largest — null sorts as worse than any
+// number (it means no matching reading ever arrived for that tone at all).
+// Attributes a sweep row's worst figure to a specific note so a stray
+// excursion isn't lost in the row's aggregate max.
+function worstToneOf(perTone, selector) {
+  let worst = perTone[0];
+  let worstSortable =
+    selector(worst) === null ? Number.POSITIVE_INFINITY : selector(worst);
+  for (const tone of perTone.slice(1)) {
+    const value = selector(tone);
+    const sortable = value === null ? Number.POSITIVE_INFINITY : value;
+    if (sortable > worstSortable) {
+      worst = tone;
+      worstSortable = sortable;
+    }
+  }
+  return worst;
+}
+
 function sweepRow(label, perTone) {
   const firstReadoutMaxMs = maxOf(perTone.map((tone) => tone.firstReadoutMs));
   const arrivalAgeMaxMs = maxOf(perTone.map((tone) => tone.arrivalAgeMs));
@@ -499,6 +604,17 @@ function sweepRow(label, perTone) {
     arrivalAgeMaxMs <= ARRIVAL_AGE_MAX_MS &&
     readingsPerSecondMin >= READINGS_PER_SECOND_MIN &&
     centsErrMax <= CENTS_ERROR_MAX_CENTS;
+
+  const worstFirstReadout = worstToneOf(perTone, (tone) => tone.firstReadoutMs);
+  const worstArrival = worstToneOf(perTone, (tone) => tone.arrivalAgeMs);
+  const worstCents = worstToneOf(perTone, (tone) => tone.maxCentsErr);
+  const worstLine =
+    `  worst: first readout ${noteLabelOfPosition(worstFirstReadout.position)} ` +
+    `${worstFirstReadout.firstReadoutMs === null ? "n/a" : worstFirstReadout.firstReadoutMs.toFixed(2)} ms · ` +
+    `arrival age ${noteLabelOfPosition(worstArrival.position)} ` +
+    `${worstArrival.arrivalAgeMs === null ? "n/a" : worstArrival.arrivalAgeMs.toFixed(2)} ms · ` +
+    `cents err ${noteLabelOfPosition(worstCents.position)} ${worstCents.maxCentsErr.toFixed(2)} ¢`;
+
   return {
     cells: [
       label,
@@ -511,6 +627,7 @@ function sweepRow(label, perTone) {
       passed ? "PASS" : "FAIL",
     ],
     passed,
+    worstLine,
   };
 }
 
@@ -659,6 +776,12 @@ async function main() {
       silentRow("white noise", results.noise),
     ];
     printTable(rows);
+    // One extra line per sweep row, under the table — the note each of its
+    // worst figures belongs to, so a stray excursion can be attributed
+    // rather than lost in the row's aggregate max.
+    for (const row of rows) {
+      if (row.worstLine !== undefined) console.log(row.worstLine);
+    }
     allPassed = rows.every((row) => row.passed);
   } catch (error) {
     fatalError = error;

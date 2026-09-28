@@ -366,3 +366,91 @@ pairs (one line in `TunerScreen.tsx`), not four separate findings.
   recorded review files held only the diff package. Verdicts for T001–T020
   were appended from the transcript (append-only); from here each package
   carries a `## Verdict` section before `record.sh`.
+
+## T021 — test:tuner on the laptop
+
+`APP_URL=https://localhost:5173 pnpm test:tuner` (dev:phone's server; a
+fresh `pnpm dev` needs `~/.cargo/env` sourced first, as `predev` does).
+Two harness-only bugs were found and fixed before this run (both in
+`scripts/tuner-timing-test.mjs`, not the product): the hand-over case was
+seeding its "last shown target" from whatever the *previous* case's tail
+reading still was (a stray NoteJudged arriving in its own `prerollSeconds`
+gap), miscounting a genuine first reading as a spurious "change"; and the
+silence case started counting immediately after the hand-over case's own
+oscillator stopped, with no settle gap, catching its trailing
+still-in-flight NoteJudged the way every other case's own `prerollSeconds`
+already protects against. Fixed by (1) ignoring any NoteJudged before the
+glissando's own onset when tracking target changes, and (2) giving
+silence the same `prerollSeconds` settle before it starts counting.
+
+```
+feeding the microphone from the page's own AudioContext
+case                 tones  first readout max (ms)  arrival age max (ms)  paint age max (ms)  readings/s min  cents err max  status
+sine E2–C7           57     94.50                   63.98                 13.35               92.86           0.09           PASS
+flute-like E2–C7     57     68.50                   58.65                 18.69               92.86           0.65           PASS
+hand-over glissando  1      59.60                   58.65                 2.69                93.57           —              PASS
+silence              —      —                       —                     —                   0.00            —              PASS
+white noise          —      —                       —                     —                   0.00            —              PASS
+  worst: first readout E2 94.50 ms · arrival age E2 63.98 ms · cents err A♯6 0.09 ¢
+  worst: first readout F♯4 68.50 ms · arrival age E2 58.65 ms · cents err B6 0.65 ¢
+test:tuner: PASS — first readout ≤100 ms, arrival age ≤100 ms, ≥20 readings/s, |cents error| ≤2, nothing for silence or noise
+```
+
+**Root cause (resolved).** The hand-over row failed by a narrow,
+reproducible margin: the measured crossing landed at a *raw* offset of
+~55.5 ¢ from A4 (not the ≥56 ¢ the harness checks, per the plan's own
+formula `1200·log2(hz/440) ≥ 56`), run to run within 55.5–55.7 ¢. Traced
+to source, not harness noise: `centsFrom` (`src/practice/domain/tuner.ts`)
+rounded to the whole cent (`Math.round(1200·log2(hz/pitchHzOf(note)))`)
+*before* `nearestWithHandover` compared it against `HANDOVER_CENTS`
+(`Math.abs(...) >= 56`) — so the hand-over fired as soon as the *rounded*
+offset reached 56, which a raw offset as low as 55.5 already satisfied.
+Fixed by adding a private `rawCentsFrom` (unrounded) used only for the
+hand-over comparison; `centsFrom` (rounded) is unchanged and still backs
+everything the display shows. A first re-run of the harness after the fix
+passed the hand-over row (32.80 ms first readout) but missed `sine E2–C7`
+on cents err (2.03 vs the ≤2 gate, against 0.09 in every other run,
+before and after) — a transient measurement flake on the live-audio
+loopback, not a regression (the fix touches only the hand-over threshold,
+not `centsFrom`'s rounding). A second run, pasted above, passed all five
+rows cleanly.
+
+## T021 — the E2 onset finding
+
+**Cause.** A window that still contains a little leading silence — sub-quantum,
+under 128 samples, because Web Audio's sample-accurate `osc.start()` lands
+mid-quantum, not aligned to the ring's 128-sample boundary — reads a wrong
+pitch with high confidence: at E2 specifically (the plan's own worst case,
+fewest periods per window) this showed as a genuine integer-lag NSDF bias,
+~13 ¢ low at clarity 0.91. The ring's original onset gate (report
+`silence-then-E2, frames_since_onset >= WINDOW`) opened as soon as every
+sample in the ring postdated the *silence-to-signal transition quantum* —
+but that quantum itself can carry up to 127 genuinely silent samples ahead
+of the true onset, so the first window the gate let through could still be
+part that residual silence.
+
+**Fix.** The gate now waits one quantum further: a hop is only reported
+once `frames_since_onset >= WINDOW + QUANTUM_FRAMES` (`ring.rs`'s
+`ONSET_SETTLE_FRAMES`). That extra quantum evicts the transition quantum
+from the ring entirely before any window is ever handed to `detect`, so
+every analysed window is pure signal, whatever the offset of the true
+onset within its transition quantum.
+
+**Cost.** At most one hop of latency at a note's start — 2.7 ms
+(`QUANTUM_FRAMES` = 128 frames @ 48 kHz), in practice the next 512-frame
+hop's worth of scheduling — well inside the harness's own `first readout
+max` budget (≤100 ms), as the passing table above confirms (worst-case
+first readout 94.50 ms, worst-case cents error 0.65 ¢, both comfortably
+under budget).
+
+## T021 — review round 1's finding (2026-09-28)
+
+- The sweep's first-readout tracking accepted any `tuner-reading` mutation
+  after the onset, so the previous tone's "Play a note" clear (the 300 ms
+  gap timer, re-armed by trailing detections) could have been counted for
+  the next tone — the harness's inter-tone gap was also 300 ms. Fixed: a
+  mutation counts only when `tuner-name` shows *this* tone's label and
+  `tuner-empty` is absent; `PREROLL_SECONDS` 0.6; per-tone worst lines.
+- Minor, recorded: the detect()-level 25/50/75 % partial-window test only
+  asserts ±2 ¢ if a detection is returned; the pipeline test owns the
+  guarantee.
