@@ -5,7 +5,7 @@ import { builtInCatalogue } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
 import { sessionDepsWithFakes } from "../../practice/fakes";
-import { enterAndHear } from "./tuner-helpers";
+import { enterAndHear, letLingerPass } from "./tuner-helpers";
 
 // No global `afterEach` in scope (vitest globals are off), so
 // @testing-library/react's automatic cleanup never registers itself; without
@@ -82,6 +82,7 @@ test("practice.tuner/REQ-003/S1 — silence on auto", async () => {
   const f = await enterAndHear(445.0);
   f.clock.advanceMs(300);
   await act(async () => {});
+  letLingerPass(f); // the last reading lingers, then goes (S4)
   expect(screen.getByTestId("tuner-empty").textContent).toBe("Play a note");
   expect(screen.queryByTestId("tuner-line")).toBeNull();
   expect(screen.queryByTestId("tuner-tag")).toBeNull();

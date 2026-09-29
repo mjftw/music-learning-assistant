@@ -1,40 +1,31 @@
-// design-loop variant (007 round 4) — exploration for the tuner's silence
-// treatment: today the reading is cleared 300 ms after the last pitch and
-// the view removes everything at once. Three treatments (fade/linger/ghost)
-// live behind `?variant=a|b|c`; `"cut"` (no param) is today's behaviour,
-// untouched. TEMPORARY: one treatment becomes the rule in a later task and
-// this whole file — along with every other block carrying this comment —
-// is deleted then.
-//
-// A shared, dependency-free module (no import of TunerLevel/TunerStave,
-// which both import TunerScreen — importing either from here would be
-// circular) so the type and the one small helper below are defined once,
-// not duplicated between TunerLevel.tsx and TunerStave.tsx.
+// practice.tuner/REQ-003 — the last reading's own view state once nothing
+// more is detected: it lingers where it was, greyed, for motion.lingerHoldMs,
+// then fades out over motion.lingerFadeMs. A shared, dependency-free module
+// (no import of TunerLevel/TunerStave, which both import TunerScreen —
+// importing either from here would be circular) so the type and the one
+// small helper below are defined once, not duplicated between
+// TunerLevel.tsx and TunerStave.tsx.
 import type { NoteJudged } from "../practice/published";
 
-export type SilenceMode = "cut" | "fade" | "linger" | "ghost";
-
 // The last reading TunerScreen showed, still being displayed after it
-// cleared: fading opacity 1 → 0 (a), held grey then fading (b), or grey and
-// held indefinitely (c, "ghost" — until the next reading or unmount).
+// cleared: held grey then fading opacity 1 → 0 (reduced motion: held at
+// opacity 1 throughout, then removed with no transition at all).
 export interface StaleReading {
   readonly reading: NoteJudged;
-  readonly dataState: "fading" | "ghost";
   readonly opacity: number;
-  readonly grey: boolean;
   // The CSS transition duration for `opacity`, or `null` for no animated
-  // transition (prefers-reduced-motion, or a steady state with nothing
-  // currently changing — c's ghost, or b's hold before its own fade).
+  // transition (prefers-reduced-motion, or the held phase before the fade
+  // has started).
   readonly transitionMs: number | null;
 }
 
-// The data-state/aria-hidden/opacity/transition a stale element carries,
+// The data-state/aria-hidden/opacity/transition a lingering element carries,
 // spread onto whichever element already carries its own data-testid.
-// `undefined` when there is nothing stale to show (live, or the "cut"
-// default, which renders exactly as it always has).
+// `undefined` when there is nothing stale to show (live, or truly nothing to
+// show).
 export function staleAttrs(stale: StaleReading | undefined):
   | {
-      readonly "data-state": "fading" | "ghost";
+      readonly "data-state": "fading";
       readonly "aria-hidden": "true";
       readonly style: {
         readonly opacity: number;
@@ -44,7 +35,7 @@ export function staleAttrs(stale: StaleReading | undefined):
   | undefined {
   if (stale === undefined) return undefined;
   return {
-    "data-state": stale.dataState,
+    "data-state": "fading",
     "aria-hidden": "true",
     style: {
       opacity: stale.opacity,

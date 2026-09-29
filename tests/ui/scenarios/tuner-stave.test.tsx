@@ -4,6 +4,7 @@ import {
   enterAndHear,
   enterTuner,
   letGapPass,
+  letLingerPass,
   manualAnimationClock,
 } from "./tuner-helpers";
 
@@ -140,6 +141,7 @@ test("practice.tuner/REQ-005/S5 — the trail outlives the note", async () => {
     animClock.advanceMs(500);
   }
   await letGapPass(f); // the session's own 300 ms gap — the reading clears
+  letLingerPass(f); // the last reading lingers, then goes (REQ-003/S4)
   expect(screen.queryByTestId("heard-head")).toBeNull();
   expect(screen.queryByTestId("strip-cents")).toBeNull();
   expect(screen.getByTestId("heard-hz").textContent).toBe("—");

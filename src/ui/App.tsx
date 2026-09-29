@@ -58,7 +58,6 @@ import { TransportCard } from "./TransportCard";
 import { TraversalRow } from "./TraversalRow";
 import { TraversalSheet } from "./TraversalSheet";
 import { TunerScreen } from "./TunerScreen";
-import type { SilenceMode } from "./tuner-silence";
 
 const DEFAULT_VARIANT_ID = "flute-concert";
 const DEFAULT_KEY_ID = "C-major";
@@ -246,16 +245,11 @@ export function App(props: {
   readonly now?: () => number;
   readonly requestFrame?: (callback: FrameRequestCallback) => number;
   readonly cancelFrame?: (handle: number) => void;
-  // design-loop variant (007 round 4) — optional, additive, forwarded
-  // straight to TunerScreen: the silence treatment and its own injectable
-  // timer. TEMPORARY — deleted along with the rest of this exploration.
-  readonly silence?: SilenceMode;
+  // practice.tuner/REQ-003 — optional, additive, forwarded straight to
+  // TunerScreen: the linger's own injectable timer, real setTimeout/
+  // clearTimeout by default — a test's own route to it.
   readonly setTimer?: (callback: () => void, delayMs: number) => number;
   readonly clearTimer?: (handle: number) => void;
-  // design-loop variant (007 round 4, follow-up 2) — the linger treatment's
-  // own hold/fade timing, forwarded the same way.
-  readonly lingerMs?: number;
-  readonly lingerFadeMs?: number;
   // design-loop variant (007 round 5) — optional, additive, forwarded
   // straight to TunerScreen: the two layout treatments' own switch.
   // TEMPORARY — deleted along with the rest of this exploration.
@@ -270,11 +264,8 @@ export function App(props: {
     now,
     requestFrame,
     cancelFrame,
-    silence,
     setTimer,
     clearTimer,
-    lingerMs,
-    lingerFadeMs,
     fit,
   } = props;
   const [selection, setSelection] = useState<Selection>(() =>
@@ -723,11 +714,8 @@ export function App(props: {
           {...(now !== undefined ? { now } : {})}
           {...(requestFrame !== undefined ? { requestFrame } : {})}
           {...(cancelFrame !== undefined ? { cancelFrame } : {})}
-          {...(silence !== undefined ? { silence } : {})}
           {...(setTimer !== undefined ? { setTimer } : {})}
           {...(clearTimer !== undefined ? { clearTimer } : {})}
-          {...(lingerMs !== undefined ? { lingerMs } : {})}
-          {...(lingerFadeMs !== undefined ? { lingerFadeMs } : {})}
           {...(fit !== undefined ? { fit } : {})}
         />
       ) : (

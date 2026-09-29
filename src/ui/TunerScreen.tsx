@@ -12,12 +12,8 @@ import type { NoteJudged, TunerSnapshot } from "../practice/published";
 import type { NoteRange, SpellingPreference } from "../theory/published";
 import { TargetPill } from "./TargetPill";
 import { TargetSheet } from "./TargetSheet";
-import { fonts, paper } from "./theme";
-import {
-  prefersReducedMotion,
-  type SilenceMode,
-  type StaleReading,
-} from "./tuner-silence";
+import { fonts, motion, paper } from "./theme";
+import { prefersReducedMotion, type StaleReading } from "./tuner-silence";
 import { TunerLevel } from "./TunerLevel";
 import { TRAIL_MS, TunerStave, type TrailPoint } from "./TunerStave";
 
@@ -34,12 +30,11 @@ function defaultCancelFrame(handle: number): void {
   cancelAnimationFrame(handle);
 }
 
-// design-loop variant (007 round 4) — the silence treatments' own
-// injectable timer (the moments that need JavaScript: removing a fade's
-// elements once it has ended, starting linger's fade after its hold), in
-// the same spirit as now/requestFrame/cancelFrame above: real setTimeout/
-// clearTimeout by default, a fake, advanceable one in tests
-// (manualAnimationClock's own setTimer/clearTimer).
+// practice.tuner/REQ-003 — the linger's own injectable timer (the moments
+// that need JavaScript: starting the fade after the hold, removing the
+// elements once it has ended), in the same spirit as now/requestFrame/
+// cancelFrame above: real setTimeout/clearTimeout by default, a fake,
+// advanceable one in tests (manualAnimationClock's own setTimer/clearTimer).
 function defaultSetTimer(callback: () => void, delayMs: number): number {
   return window.setTimeout(callback, delayMs);
 }
@@ -47,30 +42,18 @@ function defaultClearTimer(handle: number): void {
   window.clearTimeout(handle);
 }
 
-// design-loop variant (007 round 4) — the durations named, not inlined
-// (docs/design.md-style constants). FADE_MS is a's own fade; LINGER_MS and
-// LINGER_FADE_MS are b's hold and its own fade. "Play a note"'s own entrance
-// (EMPTY_FADE_IN_MS) is named in TunerLevel.tsx, the only place that reads
-// it in a style — this file only decides *when* that entrance starts
-// (`emptyOpacity`, below), via the same setTimer it schedules the fades with.
-const FADE_MS = 600;
-const LINGER_MS = 1000;
-const LINGER_FADE_MS = 400;
-
-// design-loop variant (007 round 4) — the silence view's own phase: "live"
-// while a reading sounds (or nothing has ever been heard), "stale" while
-// the last reading lingers (fading or ghosted — the values here are exactly
+// practice.tuner/REQ-003 — the last reading's own phase once nothing more is
+// heard: "live" while a reading sounds (or nothing has ever been heard),
+// "stale" while it lingers (held, then fading — the values here are exactly
 // StaleReading minus its `reading`, which comes from staleReadingRef,
-// below), "empty" once nothing more is shown ("Play a note"; `enteredViaTimer`
-// marks the transition a's/b's own fade-completion timer drove, the one
-// that gets its own 200 ms entrance).
+// below), "empty" once nothing more is shown ("Play a note";
+// `enteredViaTimer` marks the transition the linger's own fade-completion
+// timer drove, the one that gets its own entrance fade below).
 type SilencePhase =
   | { readonly kind: "live" }
   | {
       readonly kind: "stale";
-      readonly dataState: "fading" | "ghost";
       readonly opacity: number;
-      readonly grey: boolean;
       readonly transitionMs: number | null;
     }
   | { readonly kind: "empty"; readonly enteredViaTimer: boolean };
@@ -269,17 +252,10 @@ function TunerScreenComponent(props: {
   readonly now?: () => number;
   readonly requestFrame?: (callback: FrameRequestCallback) => number;
   readonly cancelFrame?: (handle: number) => void;
-  // design-loop variant (007 round 4) — the silence treatment; "cut" (today's
-  // behaviour) by default. setTimer/clearTimer are the treatments' own
-  // injectable timer, real setTimeout/clearTimeout by default.
-  readonly silence?: SilenceMode;
+  // practice.tuner/REQ-003 — the linger's own injectable timer, real
+  // setTimeout/clearTimeout by default.
   readonly setTimer?: (callback: () => void, delayMs: number) => number;
   readonly clearTimer?: (handle: number) => void;
-  // design-loop variant (007 round 4, follow-up 2) — the linger treatment's
-  // own hold/fade durations, in place of LINGER_MS/LINGER_FADE_MS, so the
-  // switch can offer several timings of the same treatment side by side.
-  readonly lingerMs?: number;
-  readonly lingerFadeMs?: number;
   // design-loop variant (007 round 5) — "fixed" (today, the default): no
   // change. "flex": the screen is exactly the viewport's visible height,
   // the level takes whatever's left. "flex-compact": as "flex", and the
@@ -301,11 +277,8 @@ function TunerScreenComponent(props: {
     now = defaultNow,
     requestFrame = defaultRequestFrame,
     cancelFrame = defaultCancelFrame,
-    silence = "cut",
     setTimer = defaultSetTimer,
     clearTimer = defaultClearTimer,
-    lingerMs = LINGER_MS,
-    lingerFadeMs = LINGER_FADE_MS,
     fit = "fixed",
   } = props;
   // design-loop variant (007 round 5) — "flex-compact" only: the footer
@@ -416,12 +389,10 @@ function TunerScreenComponent(props: {
     };
   });
 
-  // design-loop variant (007 round 4) — the silence treatment's own view
-  // state: the last reading shown (never updated while it is fading or
-  // ghosted — this only ever advances while `tuner.reading` is non-null,
-  // mirroring `lastReadingRef` above but never reset to null by a gap, since
-  // its whole point is to survive one), and the phase that drives what
-  // TunerLevel/TunerStave render while `silence !== "cut"`.
+  // practice.tuner/REQ-003 — the last reading shown, never updated once it
+  // starts lingering: this only ever advances while `tuner.reading` is
+  // non-null, mirroring `lastReadingRef` above but never reset to null by a
+  // gap, since its whole point is to survive one.
   const staleReadingRef = useRef<NoteJudged | null>(null);
   if (tuner.reading !== null) {
     staleReadingRef.current = tuner.reading;
@@ -431,8 +402,6 @@ function TunerScreenComponent(props: {
   const reducedMotion = prefersReducedMotion();
 
   useEffect(() => {
-    if (silence === "cut") return;
-
     const clearPendingTimer = (): void => {
       if (silenceTimerRef.current !== null) {
         clearTimer(silenceTimerRef.current);
@@ -442,81 +411,51 @@ function TunerScreenComponent(props: {
 
     if (tuner.reading !== null) {
       // A live reading is shown at once — no fade in, nothing stale left
-      // pending (practice.tuner "a, interrupted").
+      // pending (practice.tuner/REQ-003/S5).
       clearPendingTimer();
       setPhase({ kind: "live" });
       return;
     }
 
-    if (staleReadingRef.current === null) {
-      // Silence before anything was ever heard — nothing to linger.
+    // practice.tuner/REQ-007/S3 — a microphone failure clears the reading at
+    // once: the "Can't hear" card takes over, not a lingering reading. Only
+    // an ordinary silence (REQ-003) lingers; and there is nothing to linger
+    // before anything has ever been heard.
+    if (
+      staleReadingRef.current === null ||
+      tuner.listening.kind === "cannot-hear"
+    ) {
       setPhase({ kind: "empty", enteredViaTimer: false });
       return;
     }
 
-    if (silence === "ghost") {
-      // c — no timer at all: grey, held until the next reading or unmount.
-      setPhase({
-        kind: "stale",
-        dataState: "ghost",
-        opacity: 1,
-        grey: true,
-        transitionMs: null,
-      });
-      return;
-    }
-
-    if (silence === "fade") {
-      // a — opacity 1 → 0 over FADE_MS, in its original colour.
-      setPhase({
-        kind: "stale",
-        dataState: "fading",
-        opacity: reducedMotion ? 1 : 0,
-        grey: false,
-        transitionMs: reducedMotion ? null : FADE_MS,
-      });
-      silenceTimerRef.current = setTimer(() => {
-        silenceTimerRef.current = null;
-        setPhase({ kind: "empty", enteredViaTimer: true });
-      }, FADE_MS);
-      return clearPendingTimer;
-    }
-
-    // b — grey at once, held lingerMs, then fades over lingerFadeMs
-    // (design-loop variant, 007 round 4, follow-up 2 — the switch's own
-    // timing per `?variant`, in place of the LINGER_MS/LINGER_FADE_MS
-    // constants).
-    setPhase({
-      kind: "stale",
-      dataState: "fading",
-      opacity: 1,
-      grey: true,
-      transitionMs: null,
-    });
+    // practice.tuner/REQ-003/S4 — grey at once, held for motion.lingerHoldMs,
+    // then faded out over motion.lingerFadeMs; reduced motion holds at
+    // opacity 1 throughout and is removed with no transition at the same
+    // 0.8 s mark instead.
+    setPhase({ kind: "stale", opacity: 1, transitionMs: null });
     silenceTimerRef.current = setTimer(() => {
       setPhase({
         kind: "stale",
-        dataState: "fading",
         opacity: reducedMotion ? 1 : 0,
-        grey: true,
-        transitionMs: reducedMotion ? null : lingerFadeMs,
+        transitionMs: reducedMotion ? null : motion.lingerFadeMs,
       });
       silenceTimerRef.current = setTimer(() => {
         silenceTimerRef.current = null;
         setPhase({ kind: "empty", enteredViaTimer: true });
-      }, lingerFadeMs);
-    }, lingerMs);
+      }, motion.lingerFadeMs);
+    }, motion.lingerHoldMs);
     return clearPendingTimer;
     // `reducedMotion` is deliberately not a dependency: it's read fresh each
-    // time this effect runs (whenever the reading or the mode itself
-    // changes), and re-running the whole timer chain on every render were it
-    // tracked (it isn't memoised) would restart an already-scheduled fade.
-  }, [tuner.reading, silence, setTimer, clearTimer, lingerMs, lingerFadeMs]);
+    // time this effect runs (whenever the reading changes), and re-running
+    // the whole timer chain on every render were it tracked (it isn't
+    // memoised) would restart an already-scheduled fade.
+  }, [tuner.reading, tuner.listening.kind, setTimer, clearTimer]);
 
-  // design-loop variant (007 round 4) — "Play a note"'s own entrance once a
-  // fade (a or b) has finished (`enteredViaTimer`): starts at opacity 0,
-  // flips to 1 one (fake-timer-injectable) tick later so the CSS transition
-  // in TunerLevel has something to animate from. Reduced motion: appears at
+  // practice.tuner/REQ-003 — "Play a note"'s own entrance once the linger's
+  // fade has finished (`enteredViaTimer`): starts at opacity 0, flips to 1
+  // one (fake-timer-injectable) tick later so the CSS transition in
+  // TunerLevel has something to animate from. Reduced motion: appears at
   // once, no transition.
   const [emptyFadingIn, setEmptyFadingIn] = useState(false);
   const emptyTimerRef = useRef<number | null>(null);
@@ -525,12 +464,7 @@ function TunerScreenComponent(props: {
       clearTimer(emptyTimerRef.current);
       emptyTimerRef.current = null;
     }
-    if (
-      silence !== "cut" &&
-      phase.kind === "empty" &&
-      phase.enteredViaTimer &&
-      !reducedMotion
-    ) {
+    if (phase.kind === "empty" && phase.enteredViaTimer && !reducedMotion) {
       setEmptyFadingIn(true);
       emptyTimerRef.current = setTimer(() => {
         emptyTimerRef.current = null;
@@ -545,24 +479,19 @@ function TunerScreenComponent(props: {
         emptyTimerRef.current = null;
       }
     };
-  }, [phase, silence, reducedMotion, setTimer, clearTimer]);
+  }, [phase, reducedMotion, setTimer, clearTimer]);
 
   const stale: StaleReading | undefined =
     phase.kind === "stale" && staleReadingRef.current !== null
       ? {
           reading: staleReadingRef.current,
-          dataState: phase.dataState,
           opacity: phase.opacity,
-          grey: phase.grey,
           transitionMs: phase.transitionMs,
         }
       : undefined;
 
   const emptyOpacity: number | undefined =
-    silence !== "cut" &&
-    phase.kind === "empty" &&
-    phase.enteredViaTimer &&
-    !reducedMotion
+    phase.kind === "empty" && phase.enteredViaTimer && !reducedMotion
       ? emptyFadingIn
         ? 0
         : 1

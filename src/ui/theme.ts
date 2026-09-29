@@ -36,3 +36,10 @@ export const tuner = {
   targetHead: "#a39a8c",
   ghostInk: "#8a8175",
 } as const;
+
+// practice.tuner/REQ-003 — the last reading's own timing once it clears:
+// held grey for lingerHoldMs, then faded out over lingerFadeMs.
+export const motion = {
+  lingerHoldMs: 600,
+  lingerFadeMs: 200,
+} as const;

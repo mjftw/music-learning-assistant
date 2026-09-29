@@ -6,6 +6,7 @@ import type { Session } from "../../../src/practice/published";
 import { builtInCatalogue } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
+import { motion } from "../../../src/ui/theme";
 import {
   FakeClock,
   FakeListening,
@@ -39,10 +40,18 @@ export async function enterTuner(
   readonly listening: FakeListening;
   readonly clock: FakeClock;
   readonly session: Session;
+  readonly timer: ReturnType<typeof manualAnimationClock>;
 }> {
   cleanup();
   localStorage.clear();
   const { sessionDeps, listening, clock } = sessionDepsWithFakes();
+  // practice.tuner/REQ-003 — a deterministic default for the screen's own
+  // linger timer (TunerScreen's injectable setTimer/clearTimer), so an
+  // existing scenario can let it pass with letLingerPass below without
+  // depending on the real wall clock; overridden by a scenario that drives
+  // its own (finer-grained timing needs its own manualAnimationClock, e.g.
+  // tuner-linger.test.tsx's own S4-S6).
+  const timer = manualAnimationClock();
   let session: Session | null = null;
   render(
     createElement(App, {
@@ -52,6 +61,8 @@ export async function enterTuner(
       onSessionReady: (readySession: Session) => {
         session = readySession;
       },
+      setTimer: timer.setTimer,
+      clearTimer: timer.clearTimer,
       ...extraProps,
     }),
   );
@@ -65,7 +76,7 @@ export async function enterTuner(
   if (session === null) {
     throw new Error("unreachable: onSessionReady was not called by render()");
   }
-  return { listening, clock, session };
+  return { listening, clock, session, timer };
 }
 
 // A scenario may call this more than once (tuner-stave.test.tsx's
@@ -81,12 +92,16 @@ export async function enterAndHear(
   readonly listening: FakeListening;
   readonly clock: FakeClock;
   readonly session: Session;
+  readonly timer: ReturnType<typeof manualAnimationClock>;
 }> {
-  const { listening, clock, session } = await enterTuner(spelling, extraProps);
+  const { listening, clock, session, timer } = await enterTuner(
+    spelling,
+    extraProps,
+  );
   listening.feed(hz);
   clock.advanceMs(1);
   await act(async () => {});
-  return { listening, clock, session };
+  return { listening, clock, session, timer };
 }
 
 // practice.tuner/REQ-004/S7, REQ-009/S3 — advances the fake clock past the
@@ -102,6 +117,23 @@ export async function letGapPass(f: {
   await act(async () => {});
 }
 
+// practice.tuner/REQ-003 — advances the screen's own linger clock (`timer`,
+// from enterTuner/enterAndHear, or a scenario's own manualAnimationClock)
+// past the 0.6 s hold and the 0.2 s fade, in two calls (see the note on
+// `manualAnimationClock` below — a chain of two real delays needs one
+// `advanceMs` per boundary), so a scenario that reads the fully-silent state
+// after a gap doesn't have to know the two durations itself.
+export function letLingerPass(f: {
+  readonly timer: { readonly advanceMs: (deltaMs: number) => void };
+}): void {
+  act(() => {
+    f.timer.advanceMs(motion.lingerHoldMs);
+  });
+  act(() => {
+    f.timer.advanceMs(motion.lingerFadeMs);
+  });
+}
+
 // practice.tuner/REQ-005/S5, S6 — the trail's own clock is TunerScreen's
 // injectable `now`/`requestFrame`/`cancelFrame` (not the session's own
 // `FakeClock` above, which drives the *session's* gap timer only, and never
@@ -112,16 +144,15 @@ export async function letGapPass(f: {
 // lets a scenario assert the loop is/isn't running without inspecting
 // TunerScreen's own internals.
 //
-// design-loop variant (007 round 4) — extended with a fake setTimeout/
-// clearTimeout pair (`setTimer`/`clearTimer`, `timerPending`) sharing this
-// same `ms`, for TunerScreen's injectable silence-treatment timers (the
-// fade/linger/ghost hold and fade-out). Unlike the frame slot above, more
-// than one timer can be pending at once (mirroring real setTimeout), and
-// `advanceMs` itself fires whatever is due — including one a just-fired
-// timer schedules, if its own delay lands within the same advance (b's
-// hold → fade chain) — so a scenario drives everything through the one
-// `now`/`advanceMs` pair already in hand, exactly as the acceptance text
-// describes ("advance 600 ms → they are gone").
+// Also carries a fake setTimeout/clearTimeout pair (`setTimer`/`clearTimer`,
+// `timerPending`) sharing this same `ms`, for TunerScreen's own injectable
+// linger timer (practice.tuner/REQ-003). Unlike the frame slot above, more
+// than one timer can be pending at once (mirroring real setTimeout).
+// `advanceMs` sets `ms` to its target before firing anything due, so a timer
+// a callback schedules mid-fire is due against that already-advanced `ms` —
+// it fires within the *same* `advanceMs` call only for a zero delay (the
+// "Play a note" entrance tick); the linger's own hold → fade chain (two real
+// delays) needs one `advanceMs` per boundary.
 export function manualAnimationClock(startMs = 0): {
   readonly now: () => number;
   readonly requestFrame: (callback: FrameRequestCallback) => number;
