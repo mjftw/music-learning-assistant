@@ -614,3 +614,18 @@ For converge:
   the scrim and the head's `.18s` do not.
 - The in-tune band on the stave strip is drawn only while a note sounds
   and does not linger with the head.
+
+## T031 — the last reading lingers and fades (2026-09-29)
+
+- `motion.lingerHoldMs` 600, `motion.lingerFadeMs` 200 in
+  `src/ui/theme.ts`; promoted to docs/design.md §8 at the loop's exit.
+- A failed or refused microphone does not linger (REQ-007 clears the
+  reading; the "Can't hear" card shows at once). A hidden page lingers
+  unseen. With a target pinned "Play a note" shows at once under the
+  greyed name while the rest lingers (REQ-003/S6).
+- For converge (T031's review): the S4 test does not assert the grey
+  state on the big name; a real browser throttling timers in a
+  backgrounded tab during a linger is unverified.
+- `.claude/worktrees/deploy/` (another session's worktree, branch
+  `chore/deploy-cloudflare`) was being linted by `eslint .`; eslint now
+  ignores `.claude/`, as prettier does (7106bf1).

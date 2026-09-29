@@ -1423,7 +1423,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 > amended with the user's approval (the linger clause, S4–S6, S1 and S3
 > reworded).
 
-**Status:** in-progress
+**Status:** done
 
 **Files**
 - Modify: `src/ui/TunerScreen.tsx`, `src/ui/TunerLevel.tsx`, `src/ui/TunerStave.tsx` (linger 600 ms grey, fade 200 ms, as the one rule; the "fade" and "ghost" treatments, the `silence` / `lingerMs` / `lingerFadeMs` props and every `design-loop variant (007 round 4)` marker removed), `src/ui/tuner-silence.ts` (kept only if still needed, renamed if not the right home), `src/ui/App.tsx`, `src/ui/main.tsx` (the `?variant` switch removed)
@@ -1443,7 +1443,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 > requirement names a size; the level's rule (REQ-002: a linear ±50 ¢
 > rule, the ±5 ¢ band) keeps its proportions at any height.
 
-**Status:** todo
+**Status:** in-progress
 
 **Files**
 - Modify: `src/ui/TunerScreen.tsx`, `src/ui/TunerLevel.tsx` (the level takes the height left over, its geometry from its measured height, 536 px when unmeasured, 300 px at least; the "fixed" and "flex-compact" treatments, the `fit` prop and every `design-loop variant (007 round 5)` marker removed), `src/ui/App.tsx` (the column takes the visible height while the tuner shows), `src/ui/main.tsx` (the `?fit` switch removed), `src/ui/global.css` (`.visible-height`), `src/ui/use-measured-size.ts`, `src/ui/TunerStave.tsx` (the card fits the column)
