@@ -1508,7 +1508,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 > Appended 2026-09-29 by converge round 1 (converge.md W4), fixed with the user's approval.
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `scripts/tuner-timing-test.mjs` (`measureTone`, lines ~383–425; `sweepRow`, lines ~632–652)
