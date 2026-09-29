@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
-// design-loop variant (007 round 5) — measures an element's own rendered
-// content box via ResizeObserver: `null` before the first measurement, and
-// always in this repo's test environment (jsdom implements no layout and no
-// ResizeObserver), so a caller's own fallback to today's fixed geometry is
-// exercised untouched by every existing test. Shared by TunerStave's
-// width-fit (Part 1, unconditional — the card must never run off the side)
-// and TunerLevel's height-following geometry ("flex"/"flex-compact", Part 2).
+// Measures an element's own rendered content box via ResizeObserver: `null`
+// before the first measurement, and always in this repo's test environment
+// (jsdom implements no layout and no ResizeObserver), so a caller's own
+// fallback to a fixed geometry is exercised untouched by every existing
+// test. Shared by TunerStave's width-fit (the card must never run off the
+// side) and TunerLevel's height-following geometry.
 export function useMeasuredSize<T extends Element>(): {
   readonly ref: React.RefObject<T | null>;
   readonly size: { readonly width: number; readonly height: number } | null;

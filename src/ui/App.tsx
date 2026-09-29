@@ -250,10 +250,6 @@ export function App(props: {
   // clearTimeout by default — a test's own route to it.
   readonly setTimer?: (callback: () => void, delayMs: number) => number;
   readonly clearTimer?: (handle: number) => void;
-  // design-loop variant (007 round 5) — optional, additive, forwarded
-  // straight to TunerScreen: the two layout treatments' own switch.
-  // TEMPORARY — deleted along with the rest of this exploration.
-  readonly fit?: "fixed" | "flex" | "flex-compact";
 }): JSX.Element {
   const {
     catalogue,
@@ -266,7 +262,6 @@ export function App(props: {
     cancelFrame,
     setTimer,
     clearTimer,
-    fit,
   } = props;
   const [selection, setSelection] = useState<Selection>(() =>
     initialSelection(catalogue, selectionStore),
@@ -679,19 +674,22 @@ export function App(props: {
     [session, selection.mode],
   );
 
-  // design-loop variant (007 round 5)
-  const fitsVisibleHeight =
-    screen === "tuner" && fit !== undefined && fit !== "fixed";
+  // The tuner screen is always exactly the viewport's visible height
+  // (practice.tuner/REQ-002, design round 5): the column carries
+  // `.visible-height` (global.css) instead of its usual inline
+  // `minHeight`, and lets TunerScreen's own flex children — the level's
+  // height among them — size to what's left.
+  const tunerShowing = screen === "tuner";
 
   return (
     <div
-      className={fitsVisibleHeight ? "visible-height" : undefined}
+      className={tunerShowing ? "visible-height" : undefined}
       style={{
         position: "relative",
         display: "flex",
         flexDirection: "column",
         maxWidth: COLUMN_MAX_WIDTH,
-        ...(fitsVisibleHeight ? {} : { minHeight: COLUMN_MIN_HEIGHT }),
+        ...(tunerShowing ? {} : { minHeight: COLUMN_MIN_HEIGHT }),
         margin: COLUMN_CENTERING_MARGIN,
         overflow: "hidden",
         background: COLUMN_BACKGROUND,
@@ -699,7 +697,7 @@ export function App(props: {
         fontFamily: fonts.body,
       }}
     >
-      {screen === "tuner" && snapshot !== null && variant !== undefined ? (
+      {tunerShowing && snapshot !== null && variant !== undefined ? (
         <TunerScreen
           tuner={snapshot.tuner}
           spelling={selection.spelling}
@@ -716,7 +714,6 @@ export function App(props: {
           {...(cancelFrame !== undefined ? { cancelFrame } : {})}
           {...(setTimer !== undefined ? { setTimer } : {})}
           {...(clearTimer !== undefined ? { clearTimer } : {})}
-          {...(fit !== undefined ? { fit } : {})}
         />
       ) : (
         <>

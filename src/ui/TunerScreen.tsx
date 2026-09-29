@@ -114,13 +114,15 @@ const NO_MIC_INK = paper.faint;
 const NO_MIC_DOT = "transparent";
 const NO_MIC_RING = paper.faint;
 
-// The "Can't hear" card (practice.tuner/REQ-007) — geometry and text copied
-// verbatim from the vendored visual reference (Tuner.dc.html, the
-// `cannotHear` sc-if at markup lines 169-172): absolutely positioned over
-// the level/strip/target row rather than replacing them (REQ-007's own
-// text: "visible, non-interrupting, no modal" — the level, strip and
-// footer stay drawn underneath, S1).
-const CARD_TOP = 440;
+// The "Can't hear" card (practice.tuner/REQ-007) — text copied verbatim
+// from the vendored visual reference (Tuner.dc.html, the `cannotHear`
+// sc-if at markup lines 169-172): absolutely positioned over the level
+// rather than replacing it (REQ-007's own text: "visible, non-interrupting,
+// no modal" — the level, strip and footer stay drawn underneath, S1).
+// Centred over the level's own rendered box (`top: "50%"`,
+// `transform: translateY(-50%)`, on the level's own positioned wrapper,
+// below) rather than a fixed pixel offset, so it stays inside the screen
+// as the level's height flexes to fit (design round 5, T032).
 const CARD_SIDE = 16;
 const CARD_PADDING = "13px 16px 14px";
 const CARD_RADIUS = 14;
@@ -162,10 +164,9 @@ const FLAT_GLYPH = "♭";
 // the spiral's needle trail: the newest 50 readings of the current run
 const SPIRAL_TRAIL_READINGS = 50;
 
-// design-loop variant (007 round 5) — the ♯/♭ segmented control's own
-// markup, extracted so "flex-compact" (the header) and "fixed"/"flex" (the
-// footer, below) render the identical control rather than two copies of it
-// (AGENTS.md "Things agents get wrong here" — extract, don't duplicate).
+// The footer's ♯/♭ segmented control — its own function so it isn't
+// duplicated if another part of the screen ever needs it too (AGENTS.md
+// "Things agents get wrong here" — extract, don't duplicate).
 function SpellingToggle(props: {
   readonly sharpSelected: boolean;
   readonly onSpellingChange: (preference: SpellingPreference) => void;
@@ -256,12 +257,6 @@ function TunerScreenComponent(props: {
   // setTimeout/clearTimeout by default.
   readonly setTimer?: (callback: () => void, delayMs: number) => number;
   readonly clearTimer?: (handle: number) => void;
-  // design-loop variant (007 round 5) — "fixed" (today, the default): no
-  // change. "flex": the screen is exactly the viewport's visible height,
-  // the level takes whatever's left. "flex-compact": as "flex", and the
-  // footer's two parts move into the header row (below). Forwarded to
-  // TunerLevel unchanged.
-  readonly fit?: "fixed" | "flex" | "flex-compact";
 }): JSX.Element {
   const {
     tuner,
@@ -279,11 +274,7 @@ function TunerScreenComponent(props: {
     cancelFrame = defaultCancelFrame,
     setTimer = defaultSetTimer,
     clearTimer = defaultClearTimer,
-    fit = "fixed",
   } = props;
-  // design-loop variant (007 round 5) — "flex-compact" only: the footer
-  // row is removed, its two parts moved into the header (below).
-  const compactFooter = fit === "flex-compact";
   const listening = isListening(tuner);
   const cannotHear = tuner.listening.kind === "cannot-hear";
   const sharpSelected = spelling === "sharp";
@@ -547,8 +538,10 @@ function TunerScreenComponent(props: {
 
   return (
     <div
-      // design-loop variant (007 round 5)
-      className={fit === "fixed" ? undefined : "visible-height"}
+      // The screen is always exactly the viewport's visible height
+      // (practice.tuner/REQ-002, design round 5); `.visible-height` follows
+      // the browser's bars showing/hiding (global.css).
+      className="visible-height"
       style={{
         position: "relative",
         display: "flex",
@@ -597,31 +590,55 @@ function TunerScreenComponent(props: {
             Practice
           </span>
         </button>
-        {compactFooter ? (
+        {micIndicator}
+      </div>
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+        }}
+      >
+        <TunerLevel
+          tuner={tuner}
+          spelling={spelling}
+          {...(stale !== undefined ? { stale } : {})}
+          {...(emptyOpacity !== undefined ? { emptyOpacity } : {})}
+        />
+        {cannotHear && (
           <div
+            data-testid="cannot-hear"
             style={{
+              position: "absolute",
+              left: CARD_SIDE,
+              right: CARD_SIDE,
+              top: "50%",
+              transform: "translateY(-50%)",
+              padding: CARD_PADDING,
+              background: paper.card,
+              border: `1px solid ${paper.borderSoft}`,
+              borderRadius: CARD_RADIUS,
               display: "flex",
-              alignItems: "center",
-              gap: HEADER_ROW_GAP,
+              flexDirection: "column",
+              gap: CARD_GAP,
             }}
           >
-            {micIndicator}
-            <SpellingToggle
-              sharpSelected={sharpSelected}
-              onSpellingChange={onSpellingChange}
-            />
+            <div style={{ fontSize: CARD_TITLE_FONT_SIZE, fontWeight: 600 }}>
+              {CARD_TITLE_TEXT}
+            </div>
+            <div
+              style={{
+                fontSize: CARD_BODY_FONT_SIZE,
+                lineHeight: CARD_BODY_LINE_HEIGHT,
+                color: paper.muted,
+              }}
+            >
+              {CARD_BODY_TEXT}
+            </div>
           </div>
-        ) : (
-          micIndicator
         )}
       </div>
-      <TunerLevel
-        tuner={tuner}
-        spelling={spelling}
-        fit={fit}
-        {...(stale !== undefined ? { stale } : {})}
-        {...(emptyOpacity !== undefined ? { emptyOpacity } : {})}
-      />
       <TargetPill
         tuner={tuner}
         onOpen={handleOpenTarget}
@@ -636,64 +653,31 @@ function TunerScreenComponent(props: {
           {...(stale !== undefined ? { stale } : {})}
         />
       </div>
-      {cannotHear && (
-        <div
-          data-testid="cannot-hear"
-          style={{
-            position: "absolute",
-            left: CARD_SIDE,
-            right: CARD_SIDE,
-            top: CARD_TOP,
-            padding: CARD_PADDING,
-            background: paper.card,
-            border: `1px solid ${paper.borderSoft}`,
-            borderRadius: CARD_RADIUS,
-            display: "flex",
-            flexDirection: "column",
-            gap: CARD_GAP,
-          }}
-        >
-          <div style={{ fontSize: CARD_TITLE_FONT_SIZE, fontWeight: 600 }}>
-            {CARD_TITLE_TEXT}
-          </div>
-          <div
-            style={{
-              fontSize: CARD_BODY_FONT_SIZE,
-              lineHeight: CARD_BODY_LINE_HEIGHT,
-              color: paper.muted,
-            }}
-          >
-            {CARD_BODY_TEXT}
-          </div>
-        </div>
-      )}
-      {!compactFooter && (
+      <div
+        style={{
+          marginTop: "auto",
+          padding: FOOTER_PADDING,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: FOOTER_GAP,
+        }}
+      >
         <div
           style={{
-            marginTop: "auto",
-            padding: FOOTER_PADDING,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: FOOTER_GAP,
+            fontFamily: fonts.mono,
+            fontSize: FOOTER_TEXT_FONT_SIZE,
+            letterSpacing: FOOTER_TEXT_LETTER_SPACING,
+            color: paper.muted,
           }}
         >
-          <div
-            style={{
-              fontFamily: fonts.mono,
-              fontSize: FOOTER_TEXT_FONT_SIZE,
-              letterSpacing: FOOTER_TEXT_LETTER_SPACING,
-              color: paper.muted,
-            }}
-          >
-            {FOOTER_TEXT}
-          </div>
-          <SpellingToggle
-            sharpSelected={sharpSelected}
-            onSpellingChange={onSpellingChange}
-          />
+          {FOOTER_TEXT}
         </div>
-      )}
+        <SpellingToggle
+          sharpSelected={sharpSelected}
+          onSpellingChange={onSpellingChange}
+        />
+      </div>
       <TargetSheet
         open={targetSheetOpen}
         tuner={tuner}

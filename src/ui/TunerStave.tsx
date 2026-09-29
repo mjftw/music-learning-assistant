@@ -332,18 +332,14 @@ export function TunerStave(props: {
   const { tuner: snapshot, trail, nowMs, stale } = props;
   const reading = snapshot.reading;
   const targetNote = snapshot.targetNote;
-  // design-loop variant (007 round 5) — the structural fix (not behind the
-  // switch): at any column width down to 360px the card must fit inside it
-  // (the design's own CARD_WIDTH, 358, was sized for the 390px column) —
-  // rather than changing TRAIL_X_START/TRAIL_X_END or any other of this
-  // file's own fixed coordinates, the drawing (the `<svg>` and the HTML
-  // glyphs beside it that share its coordinate space — the clef, the
-  // octave marks, the accidentals, the cents figure) is measured and
-  // scaled down as one unit, preserving its aspect ratio, leaving the
-  // HEARD/IS column (a separate element, positioned by left/right, not by
-  // this scale) at its own font sizes. `null` before the first measurement
-  // and always in jsdom (this repo's test environment implements no
-  // ResizeObserver) — the fallback (1, unscaled) is exactly today's card.
+  // The card fits the column at any width down to 360px (CARD_WIDTH, 358,
+  // was sized for the 390px column): the drawing (the `<svg>` and the HTML
+  // glyphs beside it that share its coordinate space — the clef, octave
+  // marks, accidentals, cents figure) is measured and scaled down as one
+  // unit, preserving aspect ratio; the HEARD/IS column (positioned by
+  // left/right, not by this scale) keeps its own font sizes. `null` before
+  // the first measurement and always in jsdom (no ResizeObserver there) —
+  // the fallback (1, unscaled) is exactly today's card.
   const { ref: sizeRef, size: cardSize } = useMeasuredSize<HTMLDivElement>();
   const cardScale =
     cardSize === null ? 1 : Math.min(1, cardSize.width / CARD_WIDTH);

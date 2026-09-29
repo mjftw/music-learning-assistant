@@ -29,9 +29,9 @@ const PX_PER_CENT = 5.1; // level()'s `lin(5.1)` map
 
 const CENTRE_LINE_HEIGHT = 2;
 
-// design-loop variant (007 round 5) — the level's own minimum height while
-// flexible ("flex"/"flex-compact"): below it the page scrolls vertically,
-// exactly as it does today whenever the fixed layout doesn't fit.
+// The level's own minimum height (practice.tuner/REQ-002, design round 5):
+// below it the page scrolls vertically rather than the level shrinking
+// further.
 const LEVEL_MIN_HEIGHT = 300;
 
 // Ticks every 5 ¢; the three labelled radii (10, 25, 50) draw wider and
@@ -111,11 +111,9 @@ interface Tick {
   readonly labelTop: number;
 }
 
-// design-loop variant (007 round 5) — `areaMid`/`pxPerCent` are parameters,
-// not the old module-level `AREA_MID`/`PX_PER_CENT` constants, so the same
-// arithmetic serves "fixed" (called with today's exact numbers, below) and
-// "flex"/"flex-compact" (called with the scaled-to-height pair `levelGeometryFor`
-// derives).
+// `areaMid`/`pxPerCent` are parameters (derived by `levelGeometryFor` below
+// from the level's own rendered height), not fixed constants, so the rule's
+// ticks keep their proportions at any height.
 function buildTicks(areaMid: number, pxPerCent: number): readonly Tick[] {
   const ticks: Tick[] = [];
   for (let cents = -50; cents <= 50; cents += TICK_STEP_CENTS) {
@@ -147,7 +145,7 @@ function roundPx(value: number): number {
 // The reading's line + tag, clamped to the rule's ±50 ¢ edge when a pinned
 // target's offset runs past it (practice.tuner/REQ-004) — the line stays
 // at the edge and the tag switches to "▲ N st" / "▼ N st". `areaMid`/
-// `pxPerCent` parameterised the same way `buildTicks` is (007 round 5).
+// `pxPerCent` parameterised the same way `buildTicks` is.
 function readingGeometry(
   reading: NoteJudged,
   areaMid: number,
@@ -188,18 +186,14 @@ export interface LevelGeometry {
   readonly nameAreaHeight: number;
 }
 
-// design-loop variant (007 round 5) — the level's whole geometry as a
-// function of its own rendered height: "fixed" always calls this with
-// AREA_HEIGHT (536) — the ratio below is then exactly 1, reproducing every
-// one of today's numbers bit-for-bit; "flex"/"flex-compact" call it with the
-// container's own measured height, keeping the same ratio of span (cents) to
-// height throughout (today's 5.1 px/¢ at 536 px — "keep the same ratio of
-// span to height" per the round's own brief). `NAME_AREA_TOP`/
-// `NAME_AREA_HEIGHT` (183/170) sit exactly centred on `AREA_HEIGHT`'s own mid
-// (183 + 170/2 = 268), so the name area scales the same way, centred on
-// `areaMid` at any height. Exported so the shape can be tested directly —
-// jsdom does no layout, so a rendered TunerLevel never actually measures
-// anything but this same 536 px fallback.
+// The level's whole geometry as a function of its own rendered height
+// (practice.tuner/REQ-002: "a linear ±50 ¢ rule ... keeps its proportions
+// at any height"): `ratio` keeps today's 5.1 px/¢ at 536 px throughout.
+// `NAME_AREA_TOP`/`NAME_AREA_HEIGHT` (183/170) sit exactly centred on
+// `AREA_HEIGHT`'s own mid (183 + 170/2 = 268), so the name area scales the
+// same way, centred on `areaMid` at any height. Exported so the shape can
+// be tested directly — jsdom does no layout, so a rendered TunerLevel never
+// actually measures anything but the 536 px fallback.
 export function levelGeometryFor(areaHeight: number): LevelGeometry {
   const ratio = areaHeight / AREA_HEIGHT;
   const areaMid = areaHeight / 2;
@@ -227,20 +221,8 @@ export function TunerLevel(props: {
   // fade has ended (`undefined` outside that moment — no style change).
   readonly stale?: StaleReading;
   readonly emptyOpacity?: number;
-  // design-loop variant (007 round 5) — "fixed" (today, the default): the
-  // level is exactly AREA_HEIGHT (536px) tall, unmeasured. "flex"/
-  // "flex-compact": the level takes all the height its container leaves it
-  // (`flex: 1, minHeight: LEVEL_MIN_HEIGHT`), measured via ResizeObserver so
-  // `levelGeometryFor` can scale the rule to fit.
-  readonly fit?: "fixed" | "flex" | "flex-compact";
 }): JSX.Element {
-  const {
-    tuner: snapshot,
-    spelling,
-    stale,
-    emptyOpacity,
-    fit = "fixed",
-  } = props;
+  const { tuner: snapshot, spelling, stale, emptyOpacity } = props;
   const reading = snapshot.reading;
   const cannotHear = snapshot.listening.kind === "cannot-hear";
   const targetPinnedSilent = snapshot.targetNote !== null && reading === null;
@@ -294,16 +276,12 @@ export function TunerLevel(props: {
       ? `playing ${noteLabel(effectiveReading.heard.nearest)}`
       : "";
 
-  // design-loop variant (007 round 5) — "fixed" never measures (`sizeRef`
-  // stays unattached — see the container `ref` below) and always uses
-  // AREA_HEIGHT, so its geometry is bit-for-bit today's; "flex"/
-  // "flex-compact" fall back to the same AREA_HEIGHT until the container has
-  // actually been measured (mount, and jsdom — this repo's test environment
-  // implements no ResizeObserver, so every existing test keeps exercising
-  // exactly today's numbers).
+  // The level's own measured height, falling back to AREA_HEIGHT until the
+  // container has actually been measured (mount, and jsdom — this repo's
+  // test environment implements no ResizeObserver, so every existing test
+  // keeps exercising exactly today's numbers).
   const { ref: sizeRef, size } = useMeasuredSize<HTMLDivElement>();
-  const areaHeight =
-    fit === "fixed" ? AREA_HEIGHT : (size?.height ?? AREA_HEIGHT);
+  const areaHeight = size?.height ?? AREA_HEIGHT;
   const levelGeometry = useMemo(
     () => levelGeometryFor(areaHeight),
     [areaHeight],
@@ -326,12 +304,11 @@ export function TunerLevel(props: {
 
   return (
     <div
-      ref={fit === "fixed" ? undefined : sizeRef}
+      ref={sizeRef}
       style={{
         position: "relative",
-        ...(fit === "fixed"
-          ? { height: AREA_HEIGHT, flex: "none" }
-          : { flex: 1, minHeight: LEVEL_MIN_HEIGHT }),
+        flex: 1,
+        minHeight: LEVEL_MIN_HEIGHT,
       }}
     >
       <div
