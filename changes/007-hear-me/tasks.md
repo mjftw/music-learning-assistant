@@ -1456,6 +1456,116 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 **Verify** — `pnpm check` → green; the measurement table in the report; `grep -rn "design-loop variant" src tests` → nothing.
 
+### T033 · practice.tuner/REQ-002, practice.tuner/REQ-005 · The stave head agrees with the level in the hand-over band (converge W1)
+
+> Appended 2026-09-29 by converge round 1 (`.sdd/reports/007-hear-me/converge.md` W1), fixed with the user's approval.
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/TunerStave.tsx` (the head, its cents, its accidental, ledger lines and octave mark, and the trail's own points: on auto, place them from `reading.target`/`reading.cents` — the same hysteresis-held note and offset the level shows — not `reading.heard.nearest`/`reading.heard.cents`; with a target pinned, keep `heard.nearest`/`heard.cents` exactly as now, per REQ-005's "with a target, the note nearest the detected pitch")
+- Test: `tests/ui/scenarios/tuner-stave.test.tsx`
+
+**Steps**
+- [ ] 1. Read `src/ui/TunerStave.tsx:127,371,378,384-391,444-445,503-504,803-828,856` (every place `.heard.nearest`/`.heard.cents` places the head, the trail or the accidental) and `src/ui/TunerLevel.tsx:242-250` (how the level already reads `reading.target`/`snapshot.targetNote`). Introduce one small helper — a local function is enough, this is presentation logic, not a domain rule — that picks, for a given `NoteJudged` and the current `targetNote` (`snapshot.targetNote`, non-null only when pinned): pinned → `{ note: judged.heard.nearest, cents: judged.heard.cents }`; auto → `{ note: judged.target, cents: judged.cents }`. Use it everywhere the file currently reads `X.heard.nearest`/`X.heard.cents` for placement — the live head, the lingering head (`heardStale`), the accidental block, the octave mark, the cents text, and every trail point (`newestTrailPoint.reading`, each `point.reading` in the trail's map) — so the head and its trail never show a note the level disagrees with.
+- [ ] 2. Red, then green: settle on A4 (440 Hz, `hearSteady`), feed 454 Hz once (a jump past `SNAP_CENTS`, so the smoothed pitch snaps straight to 454 — no need to feed it more than once). At 454 Hz the raw nearest note is A♯4 at about −46 ¢, but the shown/hysteresis note is still A4 at +50 ¢ (56 ¢ hasn't been crossed) — assert the stave's head sits at A4's position (not A♯4's), draws no accidental, and its cents text and colour match the level's ("+50", the sharp/warm colour) — not the level's own test, the stave's.
+- [ ] 3. Existing REQ-005 scenarios (S1–S6) all feed steady tones where the raw and hysteresis notes already agree, so none should need a changed expectation — confirm each still passes; if one's expected value needs to change, stop and report it rather than editing it to fit.
+
+**Verify** — `pnpm check` → green; the new test passes and would fail against the old code (trace it, don't just assert).
+
+### T034 · practice.tuner/REQ-002, practice.tuner/REQ-004 · The reading's tag never covers LISTENING / NO MIC past ±50 ¢ (converge W2)
+
+> Appended 2026-09-29 by converge round 1 (converge.md W2), fixed with the user's approval.
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/TunerLevel.tsx` (`readingGeometry`, `TAG_ABOVE_OFFSET`/`TAG_BELOW_OFFSET`/`LINE_CENTS_LIMIT`, lines 149–174)
+- Test: wherever the level's existing pixel-placement tests live (`grep -rn "tagTop\|TAG_ABOVE_OFFSET" tests/ui` to find them; likely `tests/ui/scenarios/tuner-screen.test.tsx`)
+
+**Steps**
+- [ ] 1. The 4a design (`changes/007-hear-me/design/Tuner.dc.html:1292`) places the tag past ±50 ¢ (`over`, where the line is pinned to the edge) on the OPPOSITE side of the line from the normal rule — sharp-over: below the line (`lineTop + 36`, the same magnitude as today's `TAG_ABOVE_OFFSET`); flat-over: above the line (`lineTop − 58`, a new offset — name it `TAG_OVER_ABOVE_OFFSET = 58`) — so the tag never runs off the level's top or bottom edge. In the NOT-over case it additionally clamps the tag within the level's own height: `Math.max(30, Math.min(areaHeight − 62, tagTop))`. Since T032 made the level's height flexible (`levelGeometryFor`), scale these two clamp margins (30 and 62) by the same `ratio = areaHeight / AREA_HEIGHT` the rest of the geometry already uses, not as fixed pixels — read `levelGeometryFor` (around line 197) to match its pattern, and pass `areaHeight` into `readingGeometry` (it currently only takes `areaMid`/`pxPerCent`; `areaHeight` is `2 * areaMid`, or thread it through explicitly — your choice, say which).
+- [ ] 2. Red, then green: at a reading of +54 ¢ sharp (over the ±50 line), the tag's top sits BELOW the line, not above it, and stays within the header's own bottom edge (below wherever LISTENING/NO MIC is drawn) at 360×660, 360×780 and 390×844; at −54 ¢ flat, the tag sits ABOVE the line. A non-over reading (e.g. +20 ¢) is unchanged from today.
+- [ ] 3. Existing level tests at non-over readings must pass untouched.
+
+**Verify** — `pnpm check` → green; measured in a browser at the three viewports (a throwaway Playwright script is fine, as earlier tasks used) that the tag never overlaps the header row.
+
+### T035 · listening.pitch-detection/REQ-004 · The coalescing test cites the right scenario (converge W3)
+
+> Appended 2026-09-29 by converge round 1 (converge.md W3), fixed with the user's approval.
+
+**Status:** todo
+
+**Files**
+- Modify: `tests/practice/scenarios/tuner-budget.test.ts` (the test at line 21, titled "listening.pitch-detection/REQ-004/S3 — a burst before the commit is coalesced to the newest": re-title it to cite `listening.pitch-detection/REQ-004/S1` — coalescing to the newest reading — instead of S3, which is "late is dropped". S3's own Then is already exercised by the test at line 6, titled for `practice.tuner/REQ-006/S2`; add the `listening.pitch-detection/REQ-004/S3` citation to THAT test's title alongside its existing one, since it is the test that actually proves a late detection is dropped.)
+
+**Steps**
+- [ ] 1. Rename both titles exactly as above; change no assertion, no stimulus, no expected value.
+
+**Verify** — `pnpm check` → green; `./scripts/check-scenarios.sh --change changes/007-hear-me | grep "REQ-004"` shows S3 attributed to the line-6 test, S1 to the renamed line-21 test.
+
+### T036 · practice.tuner/REQ-002 · The harness's shown-offset and cents-error gates cannot pass on zero readings (converge W4)
+
+> Appended 2026-09-29 by converge round 1 (converge.md W4), fixed with the user's approval.
+
+**Status:** todo
+
+**Files**
+- Modify: `scripts/tuner-timing-test.mjs` (`measureTone`, lines ~383–425; `sweepRow`, lines ~632–652)
+
+**Steps**
+- [ ] 1. In `measureTone`, add two counters (`centsErrReadings`, `shownErrReadings`) incremented alongside each existing `if` that updates `maxCentsErr`/`maxShownCentsErr`; return them in the tone's result object.
+- [ ] 2. In `sweepRow`, add to `passed`: every tone in `perTone` has `centsErrReadings > 0` and `shownErrReadings > 0`. On a failure from this, the printed reason should say which tone took no qualifying reading, not just restate the numeric gate.
+- [ ] 3. Run `APP_URL=https://localhost:5173 pnpm test:tuner` against the running `pnpm dev:phone` server (do not stop or restart it) and confirm it still PASSES with the new counters non-zero throughout — paste the table.
+
+**Verify** — the harness still PASSES on the real build; `pnpm check` → green (the harness itself is not part of `pnpm check`, but nothing else may break).
+
+### T037 · practice.tuner/REQ-002 · `NoteJudged` gets a Zod schema, schema-first as `docs/domain.md` requires (converge W5)
+
+> Appended 2026-09-29 by converge round 1 (converge.md W5), fixed with the user's approval.
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/published/note-judged.schema.ts` (add `noteJudgedSchema`, following `src/practice/published/target-advanced.schema.ts`'s pattern exactly — a `noteSchema` for the nested `Note`, reused or duplicated the same way; `satisfies z.ZodType<NoteJudged>` so the schema and the interface cannot drift; rewrite the file's own comment, which currently argues NoteJudged should NOT be a Zod object — that reasoning is superseded by `docs/domain.md`'s "Events" table, which already names this file as `NoteJudged`'s schema)
+- Modify: `src/practice/published/index.ts` only if the schema needs exporting (check whether the sibling `targetAdvancedSchema` is exported there — mirror whatever it does)
+
+**Steps**
+- [ ] 1. Add the schema; do not add a `.parse()` call anywhere in production code — like `targetAdvancedSchema`, it exists as the documented contract, not as active parsing of an in-process value (unchanged: `NoteJudged` still never crosses a boundary that needs parsing).
+- [ ] 2. A schema test the same shape existing schema tests take (find one for `targetAdvancedSchema` or `pitchDetectedSchema` and follow it) — a valid `NoteJudged` parses; an invalid one (e.g. a non-integer octave) fails.
+
+**Verify** — `pnpm check` → green.
+
+### T038 · practice.tuner/REQ-003 · The "<note> IS" caption lingers and fades with "HEARD" (delta amendment at converge, S4/S6)
+
+> Appended 2026-09-29 by converge round 1 (converge.md I6); `practice.tuner/REQ-003` S4 and S6 reworded with the user's approval.
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/TunerStave.tsx` (`referenceNoteOf`, line ~305: take `effectiveReading` — the live-or-lingering reading already computed at line 349 — in place of `reading`, so the caption lingers whenever the head does; the "<note> IS" block, lines ~930–953: give it the same stale `data-state`/`aria-hidden` attributes the "HEARD" block already carries, and grey its colour — `paper.faint` while stale, `paper.inkMid` live — instead of the fixed `paper.inkMid` it uses now)
+- Test: `tests/ui/scenarios/tuner-linger.test.tsx` (or wherever REQ-003/S4, S6 already live — extend those, do not duplicate)
+
+**Steps**
+- [ ] 1. Red, then green: settle on A4, hear it, stop; 500 ms into the linger `reference-hz` still reads "440.0" with `data-state="fading"`; once the linger has fully gone, it reads "—" and the caption reads "— IS".
+- [ ] 2. REQ-003/S2 (silence with a target pinned, nothing ever heard) is unaffected — the caption still shows the target's name and Hz at once, since `effectiveReading` is null there too and the fallback to `targetNote` is unchanged.
+
+**Verify** — `pnpm check` → green; `check-scenarios.sh` shows REQ-003/S4, S6 tested with the reworded Then.
+
+### T039 · — · One hard-coded colour in 007's own files matches an existing token (converge W7, narrowed)
+
+> Appended 2026-09-29 by converge round 1 (converge.md W7). The other colours converge flagged (`#e0d7c5`, `#756c60`, `#5e564c`, `#b0a797`, the `rgba(138,75,42,…)` pair) predate 007 and are already used the same way across many other screens (`CircleOfFifths.tsx`, `DronePill.tsx`, `DroneSheet.tsx`, `KeyPanel.tsx`, `overlay.tsx`, `ScaleRow.tsx`, `TransportCard.tsx`, `TraversalSheet.tsx`, and more) — a repo-wide token-promotion exercise outside this change's scope, deferred (see `## Deferred`), not fixed here.
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/TargetSheet.tsx` (`HOLD_CARD_BORDER_OFF = "#ece4d5"` → `paper.hairlineSoft`, byte-identical already)
+
+**Steps**
+- [ ] 1. Replace the literal with the token; import `paper` if not already imported in this file (it is, for `paper.ink`).
+
+**Verify** — `pnpm check` → green; `grep -n "ece4d5" src/ui/TargetSheet.tsx` → nothing.
+
 ### T025 · — · Converge
 
 **Status:** todo
@@ -1479,10 +1589,10 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 | listening.pitch-detection/REQ-005 | T012 | ✅ |
 | listening.pitch-detection/REQ-006 | T003 | ✅ |
 | practice.tuner/REQ-001 | T007, T013, T014 | ✅ |
-| practice.tuner/REQ-002 | T006, T008, T015, T018, T026, T027, T032 | ✅ |
-| practice.tuner/REQ-003 | T008, T015, T031 | ✅ |
-| practice.tuner/REQ-004 | T006, T009, T017, T028 | ✅ |
-| practice.tuner/REQ-005 | T016, T029, T030 | ✅ |
+| practice.tuner/REQ-002 | T006, T008, T015, T018, T026, T027, T032, T033, T034, T036, T037 | ✅ |
+| practice.tuner/REQ-003 | T008, T015, T031, T038 | ✅ |
+| practice.tuner/REQ-004 | T006, T009, T017, T028, T034 | ✅ |
+| practice.tuner/REQ-005 | T016, T029, T030, T033 | ✅ |
 | practice.tuner/REQ-006 | T010, T019, T021, T024 | ✅ |
 | practice.tuner/REQ-007 | T011, T018 | ✅ |
 | practice.tuner/REQ-008 | T012 | ✅ |
@@ -1516,3 +1626,5 @@ Scenario → task: listening REQ-001/S1–S3 T003; REQ-002/S1–S5 T001 (S5 also
 - The spiral's hover state ("TAP FOR" + the note) — rendered as the design draws it but not asserted: the phone never hovers.
 - Chromium's file-based fake microphone — the fallback route for T021 if the in-page override cannot be attached; not built unless needed.
 - Tablet / laptop layouts of the tuner — design §2 "later".
+- **Converge W6** (`.sdd/reports/007-hear-me/converge.md`): the consumed `PitchDetected` shape appears directly in practice's domain code (`domain/tuner.ts`, `domain/session.ts`) rather than translated at the `ListeningPort` adapter. Accepted by the user as this repo's established reading — `sound`'s events have crossed the same way since 003, and `check-contexts.sh` is clean. To be raised as a `docs/engineering.md` §6 question (whether a port signature may carry the upstream context's own published event type) via `sdd-engineering` › Refine, in a later session — not built here.
+- **Converge W7, the rest** (`.sdd/reports/007-hear-me/converge.md`): `#e0d7c5`, `#756c60`, `#5e564c`, `#b0a797` and the `rgba(138,75,42,…)` pair are pre-existing, repo-wide unpromoted literals (present since 001–006, in `CircleOfFifths.tsx`, `DronePill.tsx`, `DroneSheet.tsx`, `KeyPanel.tsx`, `overlay.tsx`, `ScaleRow.tsx`, `TransportCard.tsx`, `TraversalSheet.tsx` and others), not introduced by 007 — `check-design.sh` only scans `.css`, so it never caught any of them, in this change or any earlier one. Promoting them is a repo-wide token exercise, not proportionate to this slice; T039 fixes the one exact-token match in 007's own file. The tooling gap (`check-design.sh` should scan `.tsx` literals too) is proposed via `sdd-engineering` › Refine alongside W6, not built here.
