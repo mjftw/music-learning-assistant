@@ -629,3 +629,29 @@ For converge:
 - `.claude/worktrees/deploy/` (another session's worktree, branch
   `chore/deploy-cloudflare`) was being linted by `eslint .`; eslint now
   ignores `.claude/`, as prettier does (7106bf1).
+
+## T032 — the tuner fits the phone: the level flexes (2026-09-29)
+
+- The level's geometry is `levelGeometryFor(measured height)`
+  (`src/ui/TunerLevel.tsx`), 536 px when unmeasured, 300 px at least; the
+  screen and the column take `.visible-height` (`100vh` then `100dvh`,
+  `src/ui/global.css`) while the tuner shows. The column's `100vh` was why
+  round 5's first build still scrolled on the phone: `vh` is the height
+  with the browser's bars hidden.
+- The stave strip's card scales to the column's width.
+- **The "Can't hear" card** (212eaa1): anchored 38 px above the level's
+  bottom edge, as it sat in the fixed layout; centred, it covered the "–".
+  Measured by the controller in headless Chromium, the microphone refused:
+
+  | viewport | the dash's box (y) | the card (y) | scroll |
+  |---|---|---|---|
+  | 360 × 660 | 141–305 (the glyph about 223) | 257–361 | none |
+  | 360 × 780 | 201–365 | 377–481 | none |
+  | 390 × 844 | 233–397 | 459–545 | none |
+
+- For converge (T032's review): at the level's 300 px minimum (a viewport
+  about 400 px tall) the card clears the dash by about 8 px and the tick
+  labels close in on the fixed-size name; the first commit draws the level
+  at the 536 px fallback for one frame before it is measured.
+- `src/ui/global.css` carries three hard-coded values `check-design.sh`
+  warns about (the body's background and the like), from before 007.

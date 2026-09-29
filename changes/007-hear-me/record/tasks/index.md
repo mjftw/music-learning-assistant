@@ -1,0 +1,82 @@
+# Task attempts: 007-hear-me
+
+- [T001 — implementation report](T001-report-1.md) — Implementation Report
+- [T001 — Fixer Round Implementation Report](T001-report-2.md) — Implementation Report
+- [T001 — Fixer Round 2](T001-report-3.md) — Implementation Report
+- [Review package — T001 · 007-hear-me](T001-review-1.md) — Task Review — The diff produced for T001, for the task reviewer.
+- [Review package — T001 · 007-hear-me](T001-review-2.md) — Task Review — The diff produced for T001, for the task reviewer.
+- [Review package — T001 · 007-hear-me](T001-review-3.md) — Task Review — The diff produced for T001, for the task reviewer.
+- [T002 — implementation report](T002-report-1.md) — Implementation Report
+- [Review package — T002 · 007-hear-me](T002-review-1.md) — Task Review — The diff produced for T002, for the task reviewer.
+- [T003 — implementation report](T003-report-1.md) — Implementation Report
+- [Review package — T003 · 007-hear-me](T003-review-1.md) — Task Review — The diff produced for T003, for the task reviewer.
+- [T004 — implementation report](T004-report-1.md) — Implementation Report
+- [Review package — T004 · 007-hear-me](T004-review-1.md) — Task Review — The diff produced for T004, for the task reviewer.
+- [T005 — implementation report](T005-report-1.md) — Implementation Report
+- [Review package — T005 · 007-hear-me](T005-review-1.md) — Task Review — The diff produced for T005, for the task reviewer.
+- [T006 — implementation report](T006-report-1.md) — Implementation Report
+- [Review package — T006 · 007-hear-me](T006-review-1.md) — Task Review — The diff produced for T006, for the task reviewer.
+- [T007 — implementation report](T007-report-1.md) — Implementation Report
+- [T007 — implementation report](T007-report-2.md) — Implementation Report
+- [Review package — T007 · 007-hear-me](T007-review-1.md) — Task Review — The diff produced for T007, for the task reviewer.
+- [Review package — T007 · 007-hear-me](T007-review-2.md) — Task Review — The diff produced for T007, for the task reviewer.
+- [T008 — implementation report](T008-report-1.md) — Implementation Report
+- [Review package — T008 · 007-hear-me](T008-review-1.md) — Task Review — The diff produced for T008, for the task reviewer.
+- [T009 — implementation report](T009-report-1.md) — Implementation Report
+- [T009 — implementation report](T009-report-2.md) — Implementation Report
+- [T009 — implementation report](T009-report-3.md) — Implementation Report
+- [Review package — T009 · 007-hear-me](T009-review-1.md) — Task Review — The diff produced for T009, for the task reviewer.
+- [Review package — T009 · 007-hear-me](T009-review-2.md) — Task Review — The diff produced for T009, for the task reviewer.
+- [Review package — T009 · 007-hear-me](T009-review-3.md) — Task Review — The diff produced for T009, for the task reviewer.
+- [T010 — implementation report](T010-report-1.md) — Implementation Report
+- [Review package — T010 · 007-hear-me](T010-review-1.md) — Task Review — The diff produced for T010, for the task reviewer.
+- [T011 — implementation report](T011-report-1.md) — Implementation Report
+- [Review package — T011 · 007-hear-me](T011-review-1.md) — Task Review — The diff produced for T011, for the task reviewer.
+- [T012 — implementation report](T012-report-1.md) — Implementation Report
+- [Review package — T012 · 007-hear-me](T012-review-1.md) — Task Review — The diff produced for T012, for the task reviewer.
+- [T013 — implementation report](T013-report-1.md) — Implementation Report
+- [T013 — implementation report](T013-report-2.md) — Implementation Report
+- [Review package — T013 · 007-hear-me](T013-review-1.md) — Task Review — The diff produced for T013, for the task reviewer.
+- [Review package — T013 · 007-hear-me](T013-review-2.md) — Task Review — The diff produced for T013, for the task reviewer.
+- [T014 — implementation report](T014-report-1.md) — Implementation Report
+- [Review package — T014 · 007-hear-me](T014-review-1.md) — Task Review — The diff produced for T014, for the task reviewer.
+- [T015 — implementation report](T015-report-1.md) — Implementation Report
+- [Review package — T015 · 007-hear-me](T015-review-1.md) — Task Review — The diff produced for T015, for the task reviewer.
+- [T016 — implementation report](T016-report-1.md) — Implementation Report
+- [T016 — implementation report](T016-report-2.md) — Implementation Report
+- [Review package — T016 · 007-hear-me](T016-review-1.md) — Task Review — The diff produced for T016, for the task reviewer.
+- [Review package — T016 · 007-hear-me](T016-review-2.md) — Task Review — The diff produced for T016, for the task reviewer.
+- [T017 — implementation report](T017-report-1.md) — Implementation Report
+- [T017 — fixer round report](T017-report-2.md) — Implementation Report
+- [Review package — T017 · 007-hear-me](T017-review-1.md) — Task Review — The diff produced for T017, for the task reviewer.
+- [Review package — T017 · 007-hear-me](T017-review-2.md) — Task Review — The diff produced for T017, for the task reviewer.
+- [T018 — implementation report](T018-report-1.md) — Implementation Report
+- [Review package — T018 · 007-hear-me](T018-review-1.md) — Task Review — The diff produced for T018, for the task reviewer.
+- [T019 — implementation report](T019-report-1.md) — Implementation Report
+- [Review package — T019 · 007-hear-me](T019-review-1.md) — Task Review — The diff produced for T019, for the task reviewer.
+- [T020 — implementation report](T020-report-1.md) — Implementation Report
+- [T020 — implementation report](T020-report-2.md) — Implementation Report
+- [Review package — T020 · 007-hear-me](T020-review-1.md) — Task Review — The diff produced for T020, for the task reviewer.
+- [Review package — T020 · 007-hear-me](T020-review-2.md) — Task Review — The diff produced for T020, for the task reviewer.
+- [T021 — implementation report](T021-report-1.md) — Implementation Report
+- [T021 — implementation report](T021-report-2.md) — Implementation Report
+- [Review package — T021 · 007-hear-me](T021-review-1.md) — Task Review — The diff produced for T021, for the task reviewer.
+- [Review package — T021 · 007-hear-me](T021-review-2.md) — Task Review — The diff produced for T021, for the task reviewer.
+- [T022 — implementation report](T022-report-1.md) — Implementation Report
+- [Review package — T022 · 007-hear-me](T022-review-1.md) — Task Review — The diff produced for T022, for the task reviewer.
+- [T023 — implementation report](T023-report-1.md) — Implementation Report
+- [Review package — T023 · 007-hear-me](T023-review-1.md) — Task Review — The diff produced for T023, for the task reviewer.
+- [T026 — implementation report](T026-report-1.md) — Implementation Report
+- [T026 — fix round report](T026-report-2.md) — Fix Round Report
+- [Review package — T026 · 007-hear-me](T026-review-1.md) — Task Review — The diff produced for T026, for the task reviewer.
+- [Review package — T026 · 007-hear-me](T026-review-2.md) — Task Review — The diff produced for T026, for the task reviewer.
+- [T027 — implementation report](T027-report-1.md) — Implementation Report
+- [Review package — T027 · 007-hear-me](T027-review-1.md) — Task Review — The diff produced for T027, for the task reviewer.
+- [T028 — implementation report](T028-report-1.md) — Implementation Report
+- [Review package — T028 · 007-hear-me](T028-review-1.md) — Task Review — The diff produced for T028, for the task reviewer.
+- [T029 — implementation report](T029-report-1.md) — Implementation Report
+- [Review package — T029 · 007-hear-me](T029-review-1.md) — Task Review — The diff produced for T029, for the task reviewer.
+- [T030 — implementation report](T030-report-1.md) — Implementation Report
+- [Review package — T030 · 007-hear-me](T030-review-1.md) — Task Review — The diff produced for T030, for the task reviewer.
+- [T031 — implementation report](T031-report-1.md) — Implementation Report
+- [Review package — T031 · 007-hear-me](T031-review-1.md) — Task Review — The diff produced for T031, for the task reviewer.
