@@ -18,6 +18,8 @@ verified:
     at: 2026-09-27T22:18:38Z
   - by: human:merlin-webster
     at: 2026-09-29T19:10:23Z
+  - by: human:merlin-webster
+    at: 2026-09-29T22:21:12Z
 sdd_phase: approved
 sdd_version: 1.1.0
 sdd_interface: yes
@@ -219,7 +221,12 @@ is authoritative for the values; this table names the roles).
 
 | Screen | State | Route | Reference | Since |
 |---|---|---|---|---|
-| | | | | |
+| `practice` | `way-in` — the Tuner pill in the header | `/` | `docs/design/screens/practice--way-in.png` | 007-hear-me |
+| `tuner` | `listening` | `/` then the Tuner pill | `docs/design/screens/tuner--listening.png` (at 360 × 660: `tuner--listening--360x660.png`) | 007-hear-me |
+| `tuner` | `silent` | `/` then the Tuner pill, no signal | `docs/design/screens/tuner--silent.png` | 007-hear-me |
+| `tuner` | `cannot-hear` | `/` then the Tuner pill, microphone refused | `docs/design/screens/tuner--cannot-hear.png` (at 360 × 660: `tuner--cannot-hear--360x660.png`) | 007-hear-me |
+| `tuner` | `target-pinned` | `/` then the Tuner pill, then Hold or a wedge | `docs/design/screens/tuner--target-pinned.png` | 007-hear-me |
+| `tuner` | `target-sheet` | `/` then the Tuner pill, then TARGET | `docs/design/screens/tuner--target-sheet.png` | 007-hear-me |
 
 ## Refinement log
 

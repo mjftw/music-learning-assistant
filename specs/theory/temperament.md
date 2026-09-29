@@ -7,15 +7,18 @@ status: stable
 tags: [sdd, capability, "context:theory"]
 sources:
   - resource: /changes/003-hear-the-scale/proposal.md
+  - resource: /changes/007-hear-me/proposal.md
 generated:
   by: process:merge_delta.py
   at: 2026-09-23T13:43:58Z
 verified:
   - by: human:merlin-webster
     at: 2026-09-23T13:43:59Z
+  - by: human:merlin-webster
+    at: 2026-09-29T22:17:21Z
 sdd_context: theory
 sdd_capability: temperament
-sdd_version: 0.1.0
+sdd_version: 0.2.0
 sdd_phase: current
 ---
 
@@ -57,6 +60,41 @@ SHALL give enharmonic spellings of the same note the same pitch
 
 _Since 003-hear-the-scale_
 
+### REQ-002: Every frequency has a nearest note
+
+THE SYSTEM SHALL give, for any frequency greater than zero, the nearest
+note under equal temperament with A4 = 440 Hz and the offset from that
+note in cents (−50 to +50, a frequency exactly halfway belonging to the
+upper note at −50), and SHALL spell an enharmonic note per the ♯/♭
+spelling preference
+
+**Scenarios**
+- **REQ-002/S1 — a little sharp of A**
+  Given equal temperament
+  When the nearest note to 445.0 Hz is read
+  Then it is A4, +20 cents (to the whole cent); for 436.0 Hz it is A4,
+  −16 cents; for 440.0 Hz it is A4, 0
+- **REQ-002/S2 — the ends of the tuner's range**
+  Given equal temperament
+  When the nearest notes to 82.41 Hz and 2093.00 Hz are read
+  Then they are E2, 0 cents and C7, 0 cents
+- **REQ-002/S3 — spelled per the preference**
+  Given equal temperament
+  When the nearest note to 466.16 Hz is read with sharp spelling preferred,
+  then with flat
+  Then it is A♯4 then B♭4, 0 cents either way
+- **REQ-002/S4 — halfway belongs to the note above**
+  Given equal temperament
+  When the nearest note to 452.90 Hz (just above the point 50 cents above A4, 452.893 Hz) is read
+  Then it is A♯4 (or B♭4), −50 cents; for 452.8 Hz it is A4, +50
+- **REQ-002/S5 — the inverse of REQ-001 (invariant)**
+  Given every note from A0 to C8
+  When its pitch under REQ-001 is read and the nearest note to that pitch
+  is read back
+  Then it is the same note at 0 cents
+
+_Since 007-hear-me_
+
 ## Invariants
 
 | Invariant (from docs/domain.md) | Guarded by requirements |
@@ -67,3 +105,4 @@ _Since 003-hear-the-scale_
 | Version | Date | Change | Added | Modified | Removed |
 |---|---|---|---|---|---|
 | 0.1.0 | 2026-09-23 | 003-hear-the-scale | 1 | 0 | 0 |
+| 0.2.0 | 2026-09-29 | 007-hear-me | 1 | 0 | 0 |

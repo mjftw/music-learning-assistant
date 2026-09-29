@@ -16,7 +16,7 @@ verified:
     at: 2026-09-27T22:29:42Z
 sdd_id: 007-hear-me
 sdd_context: listening
-sdd_phase: in-progress
+sdd_phase: complete
 ---
 
 # Tasks: Hear me
@@ -1571,6 +1571,8 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 > Appended 2026-09-29 by converge round 2 (`.sdd/reports/007-hear-me/converge.md` C1). Not built — the user chose to ship with this open and track it here. A background investigation (clock-sync instrumentation of `scripts/tuner-timing-test.mjs`'s onset math on a cold AudioContext) was in flight when the change shipped; read its findings before starting, don't re-derive them.
 
 **Status:** todo
+
+> Diagnosed 2026-09-29 (investigation, no code changed): a harness artefact, not late feedback. `onsetPerfMs` reduces to `performance.now() + prerollSeconds × 1000` — it assumes 600 ms of audio-clock time passes in 600 ms of wall time, which a freshly created AudioContext does not always honour (a measured ~52 ms audio-clock lag at cold start; the pitch's own age on the audio clock stayed ~8 ms; `arrival age`, audio-clock only, never moved). Intermittent: 3 of 3 failures in one session, 0 of 45 in another. Fix to build: anchor each tone's onset on the audio clock after the fact (sample `performance.now()` against `context.currentTime` through the preroll and interpolate when `currentTime` crosses `t0`), or warm the context with a discarded tone first. It changes an Article V measured test, so it wants the user's approval.
 
 **Steps**
 - [ ] 1. On a freshly-launched browser, the sine sweep's first tone (E2) reads first-readout 133–205 ms against the 100 ms budget, 3 of 3 runs, at low system load. Confirm whether this is the harness's `onsetPerfMs` wall-clock/audio-clock synchronization sample being wrong right after a cold AudioContext (the audio-clock-only `arrival age` stayed low, ~8 ms, in one probe while the wall-clock figure read 133 ms — pointing at the harness, not the app), or a genuine cold-start cost in the app (WASM/worklet warm-up not finished by `prerollSeconds`).

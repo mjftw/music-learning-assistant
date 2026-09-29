@@ -6,3 +6,4 @@
 - [004-the-drone/](004-the-drone/index.md)
 - [005-scale-selection/](005-scale-selection/index.md)
 - [006-scale-selection-acceptance-fixes/](006-scale-selection-acceptance-fixes/index.md)
+- [007-hear-me/](007-hear-me/index.md)

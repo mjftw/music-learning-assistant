@@ -4,6 +4,13 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-09-29
 
+- Roadmap `docs/roadmap.md` → approved (human:merlin-webster)
+- Design Principles `docs/design.md` → approved (human:merlin-webster)
+- Glossary `docs/glossary.md` → approved (human:merlin-webster)
+- Capability Spec `specs/theory/temperament.md` → current (human:merlin-webster)
+- Capability Spec `specs/practice/tuner.md` → current (human:merlin-webster)
+- Capability Spec `specs/listening/pitch-detection.md` → current (human:merlin-webster)
+- Architecture Decision Record `docs/adr/0006-pitch-detection-by-normalised-autocorrelation.md` → accepted (human:merlin-webster)
 - Design Principles `docs/design.md` → approved (human:merlin-webster)
 
 ## 2026-09-27

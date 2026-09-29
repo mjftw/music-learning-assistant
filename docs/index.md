@@ -1,8 +1,8 @@
 # Project documents
 
 - [Decisions](decisions.md) — Decision Log — Append-only log of every decision the user has made, read by every phase before asking anything.
-- [Design](design.md) — Design Principles · approved — How this product looks and behaves — where it is used, its tone, its interaction rules; and, once the first plan has chosen the UI stack, the tokens and patterns every screen is built from.
 - [Deploying](deploy.md) — Guide — How the static build is checked in CI and published to Cloudflare Pages at fifths.mjftw.net, and the one-off Cloudflare, GitHub and DNS setup it needs.
+- [Design](design.md) — Design Principles · approved — How this product looks and behaves — where it is used, its tone, its interaction rules; and, once the first plan has chosen the UI stack, the tokens and patterns every screen is built from.
 - [Domain map](domain.md) — Domain Map · approved — The bounded contexts of this product, what each owns, the events between them, and the invariants each protects.
 - [Engineering preferences](engineering.md) — Engineering Preferences · approved — How code is written in every one of my projects — paradigm, typing, errors, testing, architecture, tooling.
 - [Glossary](glossary.md) — Glossary · approved — The domain vocabulary, in the user's definitions. Specs, plans, code and tests use these words exactly.
