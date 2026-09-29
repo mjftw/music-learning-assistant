@@ -1,7 +1,50 @@
-import type { Key, Scale } from "../theory/published";
+import type {
+  Accidental,
+  Key,
+  Note,
+  NoteLetter,
+  Scale,
+} from "../theory/published";
 import { pitchClassLabel } from "../theory/published";
 
 export { pitchClassLabel, noteLabel } from "../theory/published";
+
+// The accidental glyph shared by every hand-drawn stave in this app
+// (StaveView's inline accidentals, TunerStave's heard/target accidentals) —
+// extracted here once TunerStave needed the same map StaveView already had,
+// rather than duplicating it (docs/engineering.md, AGENTS.md "things agents
+// get wrong here"). `natural` is `"♮"` for StaveView's inline accidentals;
+// TunerStave never indexes it (it only ever renders a heard/target
+// accidental when `accidental !== "natural"`).
+export const ACCIDENTAL_GLYPH: Record<Accidental, string> = {
+  doubleFlat: "𝄫",
+  flat: "♭",
+  natural: "♮",
+  sharp: "♯",
+  doubleSharp: "𝄪",
+};
+
+const DIATONIC_LETTERS: readonly NoteLetter[] = [
+  "C",
+  "D",
+  "E",
+  "F",
+  "G",
+  "A",
+  "B",
+];
+
+// The diatonic staff-position index shared by every hand-drawn stave in
+// this app (StaveView's run, TunerStave's strip, T016): natural staff steps
+// from C0, so consecutive natural letters are always 1 apart regardless of
+// accidental. Extracted from StaveView.tsx's own private `diatonicIndex()`
+// (itself copied verbatim from the vendored visual reference — see that
+// file's module comment) once TunerStave needed the same arithmetic, rather
+// than duplicating it (docs/engineering.md, AGENTS.md "things agents get
+// wrong here").
+export function diatonicIndex(note: Note): number {
+  return note.octave * 7 + DIATONIC_LETTERS.indexOf(note.letter);
+}
 
 // practice.session/REQ-012 — the heading names the tonic and the chosen
 // scale's own title, not a fixed "major"/"minor" suffix: the two home

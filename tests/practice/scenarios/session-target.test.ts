@@ -192,6 +192,7 @@ test("practice.session/REQ-007/S1 — a stale report from the superseded run doe
   session.setContext({
     key: keyOf("D"),
     variant: variantOf("flute-concert"),
+    spelling: "sharp",
   });
   expect(session.snapshot().transport).toEqual({
     kind: "playing",

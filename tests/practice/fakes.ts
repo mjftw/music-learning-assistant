@@ -6,9 +6,11 @@
 import type {
   ClockPort,
   DroneSettings,
+  ListeningPort,
   Result,
   ScaleChoice,
   Session,
+  SessionContext,
   SessionDeps,
   SessionSettings,
   SoundPort,
@@ -19,7 +21,13 @@ import {
   createSession,
   defaultDroneSettings,
   defaultScaleChoice,
+  defaultSessionSettings,
 } from "../../src/practice/published";
+import type {
+  ListeningEnded,
+  ListeningUnavailable,
+  PitchDetected,
+} from "../../src/listening/published/pitch-detected.schema";
 import type {
   OnsetReport,
   SoundCommand,
@@ -132,6 +140,13 @@ export class FakeSound implements SoundPort {
     return this.latencyMs;
   }
 
+  // How many `{ kind: "stopAll" }` commands have been posted —
+  // practice.tuner/REQ-001/S2 asserts enterTuner() silenced a running
+  // sequence this way, the same command stop() itself posts.
+  get stopAllCalls(): number {
+    return this.posted.filter((command) => command.kind === "stopAll").length;
+  }
+
   post(command: SoundCommand): void {
     this.posted.push(command);
     this.posts.push({ command, atFrame: this.frame });
@@ -211,6 +226,12 @@ export class FakeClock implements ClockPort {
     this.setNow(target);
   }
 
+  // An alias for `advance` some scenarios reach for by a name that says
+  // what the unit is (practice.tuner/REQ-001/S2) — identical behaviour.
+  advanceMs(ms: number): void {
+    this.advance(ms);
+  }
+
   private setNow(ms: number): void {
     this.now = ms;
     this.linkedSound.frame = Math.round(
@@ -234,6 +255,7 @@ export class FakeWakeLock implements WakeLockPort {
 
 export class FakeVisibility implements VisibilityPort {
   private readonly listeners = new Set<() => void>();
+  private readonly shownListeners = new Set<() => void>();
 
   // Observable subscription count — the regression coverage for T016's
   // fixer round asserts this returns to 0 after `<App>` unmounts, proving
@@ -247,8 +269,86 @@ export class FakeVisibility implements VisibilityPort {
     return () => this.listeners.delete(listener);
   }
 
+  onShown(listener: () => void): () => void {
+    this.shownListeners.add(listener);
+    return () => this.shownListeners.delete(listener);
+  }
+
   hide(): void {
     for (const listener of this.listeners) listener();
+  }
+
+  // practice.tuner/REQ-008 — the page becoming visible again.
+  show(): void {
+    for (const listener of this.shownListeners) listener();
+  }
+}
+
+// A fake ListeningPort — practice.tuner/REQ-002, REQ-006, REQ-007. `feed`
+// publishes a PitchDetected to every onPitch subscriber (a no-op unless
+// `listening`, mirroring the real Listener's silence once stopped/torn
+// down); `end` mimics the track ending mid-session (REQ-006/S3): fires
+// onEnded and stops listening, so the next start() must ask again.
+export class FakeListening implements ListeningPort {
+  startCalls = 0;
+  stopCalls = 0;
+  listening = false;
+  frame = 0;
+  // While set, start() resolves { ok: false, error: { reason, detail:
+  // "fake" } } instead of succeeding — REQ-006/REQ-007's refused/none/failed
+  // scenarios.
+  failWith: ListeningUnavailable["reason"] | null = null;
+  private readonly pitchListeners = new Set<(pitch: PitchDetected) => void>();
+  private readonly endedListeners = new Set<(ended: ListeningEnded) => void>();
+
+  start(): Promise<Result<void, ListeningUnavailable>> {
+    this.startCalls += 1;
+    if (this.failWith !== null) {
+      return Promise.resolve({
+        ok: false,
+        error: { reason: this.failWith, detail: "fake" },
+      });
+    }
+    this.listening = true;
+    return Promise.resolve({ ok: true, value: undefined });
+  }
+
+  stop(): void {
+    this.stopCalls += 1;
+    this.listening = false;
+  }
+
+  currentFrame(): number {
+    return this.frame;
+  }
+
+  sampleRate(): number {
+    return 48000;
+  }
+
+  onPitch(listener: (pitch: PitchDetected) => void): () => void {
+    this.pitchListeners.add(listener);
+    return () => this.pitchListeners.delete(listener);
+  }
+
+  onEnded(listener: (ended: ListeningEnded) => void): () => void {
+    this.endedListeners.add(listener);
+    return () => this.endedListeners.delete(listener);
+  }
+
+  feed(hz: number, atFrame: number = this.frame, confidence = 0.95): void {
+    if (!this.listening) return;
+    const pitch: PitchDetected = { hz, confidence, atFrame };
+    for (const listener of this.pitchListeners) listener(pitch);
+  }
+
+  end(): void {
+    this.listening = false;
+    const ended: ListeningEnded = {
+      reason: "failed",
+      detail: "fake track ended",
+    };
+    for (const listener of this.endedListeners) listener(ended);
   }
 }
 
@@ -258,11 +358,15 @@ export class FakeVisibility implements VisibilityPort {
 // scenario that drives sound/clock directly or inspects the visibility
 // subscription (`tests/ui/scenarios/app-session.test.tsx`,
 // `app-drone.test.tsx`).
-export function sessionDepsWithFakes(sound = new FakeSound()): {
+export function sessionDepsWithFakes(
+  sound = new FakeSound(),
+  listening = new FakeListening(),
+): {
   readonly sessionDeps: SessionDeps;
   readonly sound: FakeSound;
   readonly clock: FakeClock;
   readonly visibility: FakeVisibility;
+  readonly listening: FakeListening;
 } {
   const clock = new FakeClock(sound);
   const visibility = new FakeVisibility();
@@ -272,10 +376,12 @@ export function sessionDepsWithFakes(sound = new FakeSound()): {
       clock,
       wakeLock: new FakeWakeLock(),
       visibility,
+      listening,
     },
     sound,
     clock,
     visibility,
+    listening,
   };
 }
 
@@ -319,13 +425,26 @@ export interface SessionFixture {
   readonly clock: FakeClock;
   readonly wake: FakeWakeLock;
   readonly visibility: FakeVisibility;
+  readonly listening: FakeListening;
+  readonly context: SessionContext;
 }
+
+// practice.tuner/REQ-001 — the traversal a fixture gets when a scenario
+// doesn't care what the run is, only that entering/leaving the tuner
+// behaves: two octaves of G major updown on flute Concert, the same run
+// `GMajorTwoOctaves` names in the session-transport/session-traversal
+// scenarios, producing "29 notes · G4–G6".
+const twoOctaveUpdownScale: Traversal = {
+  direction: "updown",
+  octaves: { kind: "count", count: 2 },
+  shape: "scale",
+};
 
 export function sessionOn(
   keyLetter: string,
   variantId: string,
-  traversal: Traversal,
-  settings: SessionSettings,
+  traversal: Traversal = twoOctaveUpdownScale,
+  settings: SessionSettings = defaultSessionSettings,
   scaleChoice: ScaleChoice = defaultScaleChoice,
   droneSettings: DroneSettings = defaultDroneSettings,
 ): SessionFixture {
@@ -333,16 +452,28 @@ export function sessionOn(
   const clock = new FakeClock(sound);
   const wake = new FakeWakeLock();
   const visibility = new FakeVisibility();
-  const deps: SessionDeps = { sound, clock, wakeLock: wake, visibility };
+  const listening = new FakeListening();
+  const context: SessionContext = {
+    key: keyOf(keyLetter),
+    variant: variantOf(variantId),
+    spelling: "sharp",
+  };
+  const deps: SessionDeps = {
+    sound,
+    clock,
+    wakeLock: wake,
+    visibility,
+    listening,
+  };
   const session = createSession(
-    { key: keyOf(keyLetter), variant: variantOf(variantId) },
+    context,
     traversal,
     scaleChoice,
     settings,
     droneSettings,
     deps,
   );
-  return { session, sound, clock, wake, visibility };
+  return { session, sound, clock, wake, visibility, listening, context };
 }
 
 // Drives startDrone() through its two internal awaits (sound.start(), then

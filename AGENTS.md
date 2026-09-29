@@ -80,20 +80,29 @@ pnpm check
 pnpm vitest run <path/to/file.test.ts>
 # measured timing budget (Playwright/Chromium, ~3 min, sequential tempos) — required at converge and finish, not per task:
 pnpm test:timing
+# measured tuner budget (Playwright/Chromium; feeds the microphone from the page's own AudioContext,
+# sweeps E2–C7 as a sine and a flute-like tone) — required at converge and finish from 007, not per task:
+pnpm test:tuner
+# design fidelity screenshots against the vendored prototype (dev-only, human-reviewed):
+pnpm design:shots
 ```
+
+`pnpm build:sound` (run by `predev`/`pretest`/`prebuild`) builds **both**
+Rust crates — `src/sound/pkg/sound.wasm` and, from 007,
+`src/listening/pkg/listening.wasm`; the script keeps its name.
 
 Healthy output looks like (last ~8 lines of `pnpm check`: vitest summary,
 then cargo's `test result`):
 
 ```
- Test Files  43 passed (43)
-      Tests  172 passed (172)
-   Start at  04:05:21
-   Duration  5.31s (environment 41%, tests 39%, import 11%, transform 9%)
+ Test Files  75 passed (75)
+      Tests  314 passed (314)
+   Start at  17:40:59
+   Duration  10.63s (tests 50%, environment 33%, import 10%, transform 7%)
 
-running 13 tests
+running 24 tests
 ...
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 24 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.07s
 ```
 
 `pnpm test:timing` prints `measuring 3 tempos sequentially, N s each` first
@@ -114,15 +123,39 @@ side of the audible onset counts); `vs scheduled (ms)` is printed for
 information only, never gated, and normally sits near the port's reported
 output latency.
 
+`pnpm test:tuner` feeds the microphone from the page's own AudioContext,
+sweeping E2–C7 as a sine and a flute-like tone; it takes approximately 4
+minutes. Healthy output shows five test rows — sine E2–C7, flute-like E2–C7,
+hand-over glissando, silence, and white noise — plus worst-case summaries,
+ending with a PASS line. The first readout budget (≤100 ms), arrival age
+(≤100 ms), readings per second (≥20), cents error (≤2 ¢), and the shown
+offset error (≤2 ¢, read 500 ms into each tone — practice.tuner/REQ-002/S9)
+are gated; paint age is printed for information and is not gated.
+
+```
+case                 tones  first readout max (ms)  arrival age max (ms)  paint age max (ms)  readings/s min  cents err max  shown err max  status
+sine E2–C7           57     95.10                   63.98                 18.69               92.86           0.09           0              PASS
+flute-like E2–C7     57     77.40                   63.98                 13.35               92.86           0.65           1              PASS
+hand-over glissando  1      69.10                   63.98                 8.02                93.81           —              —              PASS
+silence              —      —                       —                     —                   0.00            —              —              PASS
+white noise          —      —                       —                     —                   0.00            —              —              PASS
+  worst: first readout E2 95.10 ms · arrival age E2 63.98 ms · cents err A♯6 0.09 ¢ · shown err E2 0 ¢
+  worst: first readout F♯6 77.40 ms · arrival age F♯6 63.98 ms · cents err B6 0.65 ¢ · shown err A♯6 1 ¢
+test:tuner: PASS — first readout ≤100 ms, arrival age ≤100 ms, ≥20 readings/s, |cents error| ≤2, shown offset within ±2 ¢, nothing for silence or noise
+```
+
 Run `check` before calling any task done, and paste the output.
 
 ## Conventions
 
 - Runtime / language: TypeScript (strict), browser SPA built with Vite.
   Rust (stable, `wasm32-unknown-unknown`, zero crates) owns the audio
-  boundary — `src/sound/` from change 003 and `src/listening/` from 006 (hear-me)
-  (ADR 0001, ADR 0003); the workspace `Cargo.toml` at the root is the
+  boundary — `src/sound/` from change 003 and `src/listening/` from 007 (hear-me)
+  (ADR 0001, ADR 0003, ADR 0006); the workspace `Cargo.toml` at the root is the
   accepted root-config exception. Rust tests are `cargo test`.
+- Design tokens: `src/ui/theme.ts` (`docs/design.md` §8). Styles are inline
+  style objects from named constants; `scripts/check-design.sh` warns on a
+  colour, size or font hard-coded elsewhere.
 - Package manager (only this one): pnpm.
 - Test framework and where tests live: Vitest (+ Testing Library);
   `tests/<context>/scenarios/` one test per spec scenario named by
@@ -136,14 +169,17 @@ Run `check` before calling any task done, and paste the output.
 A static single-page web app; no server, no runtime services (Article VII).
 Four bounded contexts (docs/domain.md): `src/theory/` (pure functions —
 notes, keys, circle, traversal, pitch, catalogue, scales (the catalogue),
-notation), `src/practice/` (the
-session: a pure transport state machine, the drone, a lookahead scheduler
-adapter on the audio clock, ports for sound / clock / wake lock /
-visibility),
+notation), `src/practice/` (the session: a pure transport state machine, the
+drone, the tuner (target, reading, the never-both invariant extended to
+listening), a lookahead scheduler adapter on the audio clock, ports for sound
+/ clock / wake lock / visibility / listening),
 `src/sound/` (Rust→WASM synthesiser in an AudioWorklet plus a ~60-line TS
 host shim in its `published/`; ADR 0003) — voices are addressable by tag
 and a drone voice has no end (ADR 0005), `src/listening/` (pitch
-detection; Rust→WASM from change 006 (hear-me), ADR 0001).
+detection by the McLeod Pitch Method: NSDF, 2048-frame window, 512-frame hop,
+an onset gate so every analysed window is pure signal, in a second AudioWorklet
+sharing the sound context's AudioContext; the host shim in its `published/`;
+ADR 0006).
 `src/ui/` is the view layer over the contexts, not a context itself. Each
 context exposes `published/` and nothing else crosses its boundary
 (scripts/check-contexts.sh). Data files (instrument variants) and stored

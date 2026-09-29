@@ -59,7 +59,11 @@ test("practice.drone/REQ-003/S1 — a new key while sounding glides, never stopp
   );
   await startDroneAndFlush(session);
   const tag = sound.posted.filter(isDrone)[0]!.tag;
-  session.setContext({ key: keyOf("D"), variant: variantOf("flute-concert") });
+  session.setContext({
+    key: keyOf("D"),
+    variant: variantOf("flute-concert"),
+    spelling: "sharp",
+  });
   expect(sound.posted.filter(isRetune)).toEqual([
     // vitest types expect.closeTo's return as `any`; cast to the field's
     // real type (number) so the object literal stays type-safe.
@@ -69,6 +73,7 @@ test("practice.drone/REQ-003/S1 — a new key while sounding glides, never stopp
   session.setContext({
     key: keyOf("Bm"),
     variant: variantOf("flute-concert"),
+    spelling: "sharp",
   });
   expect(sound.posted.filter(isRetune)[1]).toEqual({
     kind: "retune",
@@ -91,6 +96,7 @@ test("practice.drone/REQ-003/S2 — respelling keeps the pitch", async () => {
   session.setContext({
     key: keyOf("Gb"),
     variant: variantOf("flute-concert"),
+    spelling: "sharp",
   });
   expect(noteLabel(session.snapshot().drone.note)).toBe("G♭5");
   expect(sound.posted.filter(isRetune)).toHaveLength(0);
@@ -108,6 +114,7 @@ test("practice.drone/REQ-003/S3 — a new instrument while sounding, unpinned, r
   session.setContext({
     key: keyOf("G"),
     variant: variantOf("ocarina-bass-c"),
+    spelling: "sharp",
   });
   expect(sound.posted.filter(isRetune)).toEqual([
     {

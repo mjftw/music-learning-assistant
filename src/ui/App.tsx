@@ -57,6 +57,7 @@ import { fonts, paper } from "./theme";
 import { TransportCard } from "./TransportCard";
 import { TraversalRow } from "./TraversalRow";
 import { TraversalSheet } from "./TraversalSheet";
+import { TunerScreen } from "./TunerScreen";
 
 const DEFAULT_VARIANT_ID = "flute-concert";
 const DEFAULT_KEY_ID = "C-major";
@@ -231,8 +232,37 @@ export function App(props: {
   // hook. Keeping it optional and additive leaves App fully testable
   // without it.
   readonly onSessionReady?: (session: Session) => void;
+  // Optional: practice.tuner/REQ-006 — the age (ms) of each reading at the
+  // instant it was painted, one call per `TunerScreen.onReadingShown`
+  // (T019's own `useLayoutEffect`). main.tsx collects these into the
+  // dev-only `window.__paintAgesMs` the measured harness reads; App stays
+  // fully testable without it, as `onSessionReady` does above.
+  readonly onPaintAge?: (ageMs: number) => void;
+  // Optional, additive, forwarded straight to TunerScreen (practice.tuner/
+  // REQ-005/S5, S6) — TunerScreen already carries its own real defaults, so
+  // App need only pass these through for a test to reach them; nothing here
+  // reads or resolves them.
+  readonly now?: () => number;
+  readonly requestFrame?: (callback: FrameRequestCallback) => number;
+  readonly cancelFrame?: (handle: number) => void;
+  // practice.tuner/REQ-003 — optional, additive, forwarded straight to
+  // TunerScreen: the linger's own injectable timer, real setTimeout/
+  // clearTimeout by default — a test's own route to it.
+  readonly setTimer?: (callback: () => void, delayMs: number) => number;
+  readonly clearTimer?: (handle: number) => void;
 }): JSX.Element {
-  const { catalogue, selectionStore, sessionDeps, onSessionReady } = props;
+  const {
+    catalogue,
+    selectionStore,
+    sessionDeps,
+    onSessionReady,
+    onPaintAge,
+    now,
+    requestFrame,
+    cancelFrame,
+    setTimer,
+    clearTimer,
+  } = props;
   const [selection, setSelection] = useState<Selection>(() =>
     initialSelection(catalogue, selectionStore),
   );
@@ -242,6 +272,12 @@ export function App(props: {
   const [tempoSheetOpen, setTempoSheetOpen] = useState(false);
   const [scaleSheetOpen, setScaleSheetOpen] = useState(false);
   const [droneSheetOpen, setDroneSheetOpen] = useState(false);
+  // practice.tuner/REQ-001 — which screen is showing. Not part of the
+  // session's own snapshot (that carries `tuner.active`, which this tracks
+  // in lockstep): a plain UI state so TunerScreen can be swapped in for the
+  // practice column without threading the session's async enterTuner()/
+  // leaveTuner() through a render decision.
+  const [screen, setScreen] = useState<"practice" | "tuner">("practice");
 
   const position = circleOfFifths()[selection.positionIndex];
   if (position === undefined) {
@@ -277,7 +313,7 @@ export function App(props: {
     }
     const stored = selectionStore.load();
     const session = createSession(
-      { key: selectedKey, variant },
+      { key: selectedKey, variant, spelling: selection.spelling },
       initialTraversalOf(stored),
       stored?.scale ?? defaultScaleChoice,
       initialSettingsOf(stored),
@@ -328,15 +364,25 @@ export function App(props: {
 
   const session = sessionRef.current;
 
-  // Key or variant change → setContext (practice.session/REQ-007). Depends
-  // on the primitive ids, not the `selectedKey`/`variant` objects — those
-  // are freshly derived every render, so depending on them directly would
-  // fire this on every unrelated re-render (e.g. every tick while playing)
-  // and restart the sequence each time.
+  // Key or variant change → setContext (practice.session/REQ-007), and a
+  // spelling-only change too (practice.tuner/REQ-002/S5: the session's own
+  // `currentContext.spelling` is what `judge()` spells a reading with —
+  // tuner-reading.test.ts/REQ-002/S5 drives `setContext` directly and
+  // passes; this effect is the UI's only route to it, and `selection.
+  // spelling` was missing from the list below — a spelling toggle on a
+  // spelling-invariant key, e.g. C major, changed nothing the session saw).
+  // Depends on the primitive ids/values, not the `selectedKey`/`variant`
+  // objects — those are freshly derived every render, so depending on them
+  // directly would fire this on every unrelated re-render (e.g. every tick
+  // while playing) and restart the sequence each time.
   useEffect(() => {
     if (variant === undefined || session === null) return;
-    session.setContext({ key: selectedKey, variant });
-  }, [session, keyIdOf(selectedKey), variant?.variantId]);
+    session.setContext({
+      key: selectedKey,
+      variant,
+      spelling: selection.spelling,
+    });
+  }, [session, keyIdOf(selectedKey), variant?.variantId, selection.spelling]);
 
   useEffect(() => {
     // Nothing to persist yet on the render before the session-creating
@@ -480,6 +526,49 @@ export function App(props: {
     (runIndex: number) => session?.tapNote(runIndex),
     [session],
   );
+  // practice.tuner/REQ-001 — the way in and out: enterTuner()/leaveTuner()
+  // stop playback/the drone and start/stop listening (session.ts owns all
+  // of that); this only additionally swaps which screen is showing. Guarded
+  // on `session` (only ever null for the render before the session-creating
+  // effect completes, before the Tuner pill can be reached) so `screen`
+  // never flips to "tuner" without a session behind it.
+  const handleOpenTuner = useCallback(() => {
+    if (session === null) return;
+    session.enterTuner();
+    setScreen("tuner");
+  }, [session]);
+  const handleLeaveTuner = useCallback(() => {
+    session?.leaveTuner();
+    setScreen("practice");
+  }, [session]);
+  // practice.tuner/REQ-004 — the four target verbs, wired straight to the
+  // session (TunerScreen composes its own sheet-closing on top of these —
+  // opening/closing the Target sheet never reaches here, REQ-004/S6).
+  const handleHoldTarget = useCallback(() => session?.holdTarget(), [session]);
+  const handlePinTarget = useCallback(
+    (position: number) => session?.pinTarget(position),
+    [session],
+  );
+  const handleStepTarget = useCallback(
+    (delta: -1 | 1) => session?.stepTarget(delta),
+    [session],
+  );
+  const handleClearTarget = useCallback(
+    () => session?.clearTarget(),
+    [session],
+  );
+  // practice.tuner/REQ-006 — TunerScreen reports each painted reading back
+  // here; the session turns the frame it was painted at into the reading's
+  // age at that instant, and this forwards it to `onPaintAge` for the
+  // harness (main.tsx) to collect. A no-op before the session-creating
+  // effect has run, mirroring every other session-reaching handler above.
+  const handleReadingShown = useCallback(
+    (atFrame: number) => {
+      if (session === null) return;
+      onPaintAge?.(session.readingShown(atFrame));
+    },
+    [session, onPaintAge],
+  );
 
   const handleSelectKey = useCallback((selectedWedgeKey: Key) => {
     setSelection((current) => {
@@ -585,14 +674,22 @@ export function App(props: {
     [session, selection.mode],
   );
 
+  // The tuner screen is always exactly the viewport's visible height
+  // (practice.tuner/REQ-002, design round 5): the column carries
+  // `.visible-height` (global.css) instead of its usual inline
+  // `minHeight`, and lets TunerScreen's own flex children — the level's
+  // height among them — size to what's left.
+  const tunerShowing = screen === "tuner";
+
   return (
     <div
+      className={tunerShowing ? "visible-height" : undefined}
       style={{
         position: "relative",
         display: "flex",
         flexDirection: "column",
         maxWidth: COLUMN_MAX_WIDTH,
-        minHeight: COLUMN_MIN_HEIGHT,
+        ...(tunerShowing ? {} : { minHeight: COLUMN_MIN_HEIGHT }),
         margin: COLUMN_CENTERING_MARGIN,
         overflow: "hidden",
         background: COLUMN_BACKGROUND,
@@ -600,160 +697,183 @@ export function App(props: {
         fontFamily: fonts.body,
       }}
     >
-      <Header
-        variantLabel={
-          variant === undefined ? "" : headerInstrumentLabel(variant)
-        }
-        rangeLabel={variant === undefined ? "" : headerRangeLabel(variant)}
-        onOpenPicker={handleOpenInstrumentSheet}
-        onOpenSettings={handleOpenSettings}
-      />
-      <Notices
-        notices={catalogue.notices}
-        soundUnavailable={
-          snapshot !== null && snapshot.notice === "sound-unavailable"
-        }
-      />
-      <div
-        style={{
-          position: "relative",
-          width: 378,
-          margin: CIRCLE_WRAPPER_MARGIN,
-          flex: "none",
-        }}
-      >
-        <CircleOfFifths
-          selectedKeyId={keyIdOf(selectedKey)}
+      {tunerShowing && snapshot !== null && variant !== undefined ? (
+        <TunerScreen
+          tuner={snapshot.tuner}
           spelling={selection.spelling}
-          degreesEnabled={selection.degreesEnabled}
-          distanceRingEnabled={selection.distanceRingEnabled}
-          onSelectKey={handleSelectKey}
-          onSelectSpelling={handleSelectSpelling}
+          range={variant.range}
+          onLeave={handleLeaveTuner}
+          onHold={handleHoldTarget}
+          onPin={handlePinTarget}
+          onStep={handleStepTarget}
+          onClear={handleClearTarget}
+          onSpellingChange={handleSelectSpelling}
+          onReadingShown={handleReadingShown}
+          {...(now !== undefined ? { now } : {})}
+          {...(requestFrame !== undefined ? { requestFrame } : {})}
+          {...(cancelFrame !== undefined ? { cancelFrame } : {})}
+          {...(setTimer !== undefined ? { setTimer } : {})}
+          {...(clearTimer !== undefined ? { clearTimer } : {})}
         />
-        {snapshot !== null && (
-          <DronePill
-            noteLabel={noteLabel(snapshot.drone.note)}
-            on={snapshot.drone.on}
-            canStepDown={snapshot.drone.canStepDown}
-            canStepUp={snapshot.drone.canStepUp}
-            onToggle={handleToggleDrone}
-            onStepOctave={handleStepDroneOctave}
-            onOpenSheet={handleOpenDroneSheet}
+      ) : (
+        <>
+          <Header
+            variantLabel={
+              variant === undefined ? "" : headerInstrumentLabel(variant)
+            }
+            rangeLabel={variant === undefined ? "" : headerRangeLabel(variant)}
+            onOpenPicker={handleOpenInstrumentSheet}
+            onOpenSettings={handleOpenSettings}
+            onOpenTuner={handleOpenTuner}
           />
-        )}
-      </div>
-      {snapshot !== null && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: KEY_NAME_ROW_GAP,
-            padding: KEY_NAME_ROW_PADDING,
-          }}
-        >
-          <button
-            type="button"
-            data-testid="current-key"
-            // A distinct action label, not the displayed text (which
-            // duplicates a circle wedge's own aria-label whenever the
-            // chosen scale is the ring's home one — "G major", "E minor" —
-            // ambiguous for anything querying by role+name; every other
-            // sheet-opening button in this app names the action, not its
-            // current value: "Edit traversal", "Instrument", "Settings").
-            aria-label="Edit scale"
-            onClick={handleOpenScaleSheet}
+          <Notices
+            notices={catalogue.notices}
+            soundUnavailable={
+              snapshot !== null && snapshot.notice === "sound-unavailable"
+            }
+          />
+          <div
             style={{
-              fontFamily: fonts.display,
-              fontSize: keyNameFontSizeOf(
-                keyLabel(selectedKey, snapshot.scale),
-              ),
-              lineHeight: 1,
-              color: paper.ink,
-              border: "none",
-              background: "none",
-              padding: 0,
-              cursor: "pointer",
+              position: "relative",
+              width: 378,
+              margin: CIRCLE_WRAPPER_MARGIN,
+              flex: "none",
             }}
           >
-            {keyLabel(selectedKey, snapshot.scale)}
-          </button>
-          <ScaleRow
-            formulaLine={snapshot.spelledScale.formulaLine}
-            onOpen={handleOpenScaleSheet}
-          />
-        </div>
-      )}
-      <KeyPanel
-        view={selection.view}
-        onSelectView={(selectedView) =>
-          setSelection((current) => ({ ...current, view: selectedView }))
-        }
-        rangeSummary={view === undefined ? "" : rangeSummaryText(view)}
-      >
-        {selection.view === "names" ? (
-          <NamesView
-            key_={selectedKey}
-            scale={
-              // No session, no chosen scale yet — the mode's own default
-              // stands in for the single render before the session-creating
-              // effect completes, mirroring `notes`' `[]` fallback on the
-              // StaveView branch below.
-              snapshot === null
-                ? scaleById(
-                    chosenScaleIdFor(defaultScaleChoice, selection.mode),
-                  )
-                : snapshot.scale
-            }
-            direction={
-              snapshot === null ? "updown" : snapshot.traversal.direction
-            }
-            degreesEnabled={selection.degreesEnabled}
-            soundingPitchClass={soundingPitchClass}
-            onTapColumn={handleTapColumn}
-            tapsEnabled={tapsEnabled}
-          />
-        ) : (
-          variant !== undefined && (
-            <StaveView
-              key_={selectedKey}
-              variant={variant}
-              notes={snapshot === null ? [] : snapshot.run}
-              staveNamesEnabled={selection.staveNamesEnabled}
-              soundingRunIndex={soundingRunIndex}
-              playing={playing}
-              onTapNote={handleTapNote}
-              tapsEnabled={tapsEnabled}
+            <CircleOfFifths
+              selectedKeyId={keyIdOf(selectedKey)}
+              spelling={selection.spelling}
+              degreesEnabled={selection.degreesEnabled}
+              distanceRingEnabled={selection.distanceRingEnabled}
+              onSelectKey={handleSelectKey}
+              onSelectSpelling={handleSelectSpelling}
             />
-          )
-        )}
-      </KeyPanel>
-      {snapshot !== null && session !== null && (
-        <div
-          style={{
-            marginTop: SESSION_AREA_MARGIN_TOP,
-            padding: SESSION_AREA_PADDING,
-            display: "flex",
-            flexDirection: "column",
-            gap: SESSION_AREA_GAP,
-          }}
-        >
-          <TransportCard
-            snapshot={snapshot}
-            onTogglePlay={handleTogglePlay}
-            onStepTempo={(delta) =>
-              session.setSettings({
-                ...snapshot.settings,
-                tempoBpm: steppedTempo(snapshot.settings.tempoBpm, delta),
-              })
+            {snapshot !== null && (
+              <DronePill
+                noteLabel={noteLabel(snapshot.drone.note)}
+                on={snapshot.drone.on}
+                canStepDown={snapshot.drone.canStepDown}
+                canStepUp={snapshot.drone.canStepUp}
+                onToggle={handleToggleDrone}
+                onStepOctave={handleStepDroneOctave}
+                onOpenSheet={handleOpenDroneSheet}
+              />
+            )}
+          </div>
+          {snapshot !== null && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: KEY_NAME_ROW_GAP,
+                padding: KEY_NAME_ROW_PADDING,
+              }}
+            >
+              <button
+                type="button"
+                data-testid="current-key"
+                // A distinct action label, not the displayed text (which
+                // duplicates a circle wedge's own aria-label whenever the
+                // chosen scale is the ring's home one — "G major", "E minor" —
+                // ambiguous for anything querying by role+name; every other
+                // sheet-opening button in this app names the action, not its
+                // current value: "Edit traversal", "Instrument", "Settings").
+                aria-label="Edit scale"
+                onClick={handleOpenScaleSheet}
+                style={{
+                  fontFamily: fonts.display,
+                  fontSize: keyNameFontSizeOf(
+                    keyLabel(selectedKey, snapshot.scale),
+                  ),
+                  lineHeight: 1,
+                  color: paper.ink,
+                  border: "none",
+                  background: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                }}
+              >
+                {keyLabel(selectedKey, snapshot.scale)}
+              </button>
+              <ScaleRow
+                formulaLine={snapshot.spelledScale.formulaLine}
+                onOpen={handleOpenScaleSheet}
+              />
+            </div>
+          )}
+          <KeyPanel
+            view={selection.view}
+            onSelectView={(selectedView) =>
+              setSelection((current) => ({ ...current, view: selectedView }))
             }
-            onOpenTempo={handleOpenTempoSheet}
-          />
-          <TraversalRow
-            summaryLine={snapshot.summaryLine}
-            onOpen={handleOpenTraversalSheet}
-          />
-        </div>
+            rangeSummary={view === undefined ? "" : rangeSummaryText(view)}
+          >
+            {selection.view === "names" ? (
+              <NamesView
+                key_={selectedKey}
+                scale={
+                  // No session, no chosen scale yet — the mode's own default
+                  // stands in for the single render before the session-creating
+                  // effect completes, mirroring `notes`' `[]` fallback on the
+                  // StaveView branch below.
+                  snapshot === null
+                    ? scaleById(
+                        chosenScaleIdFor(defaultScaleChoice, selection.mode),
+                      )
+                    : snapshot.scale
+                }
+                direction={
+                  snapshot === null ? "updown" : snapshot.traversal.direction
+                }
+                degreesEnabled={selection.degreesEnabled}
+                soundingPitchClass={soundingPitchClass}
+                onTapColumn={handleTapColumn}
+                tapsEnabled={tapsEnabled}
+              />
+            ) : (
+              variant !== undefined && (
+                <StaveView
+                  key_={selectedKey}
+                  variant={variant}
+                  notes={snapshot === null ? [] : snapshot.run}
+                  staveNamesEnabled={selection.staveNamesEnabled}
+                  soundingRunIndex={soundingRunIndex}
+                  playing={playing}
+                  onTapNote={handleTapNote}
+                  tapsEnabled={tapsEnabled}
+                />
+              )
+            )}
+          </KeyPanel>
+          {snapshot !== null && session !== null && (
+            <div
+              style={{
+                marginTop: SESSION_AREA_MARGIN_TOP,
+                padding: SESSION_AREA_PADDING,
+                display: "flex",
+                flexDirection: "column",
+                gap: SESSION_AREA_GAP,
+              }}
+            >
+              <TransportCard
+                snapshot={snapshot}
+                onTogglePlay={handleTogglePlay}
+                onStepTempo={(delta) =>
+                  session.setSettings({
+                    ...snapshot.settings,
+                    tempoBpm: steppedTempo(snapshot.settings.tempoBpm, delta),
+                  })
+                }
+                onOpenTempo={handleOpenTempoSheet}
+              />
+              <TraversalRow
+                summaryLine={snapshot.summaryLine}
+                onOpen={handleOpenTraversalSheet}
+              />
+            </div>
+          )}
+        </>
       )}
       <SettingsDrawer
         open={settingsOpen}

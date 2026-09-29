@@ -18,12 +18,14 @@ import type {
   SequenceNote,
   Shape,
   SpelledScale,
+  SpellingPreference,
   Traversal,
   Variant,
 } from "../../theory/published";
 import {
   effectiveOctavesOf,
   fittingOctaveCounts,
+  noteAtPosition,
   noteLabel,
   pitchHzOf,
   pitchPosition,
@@ -34,6 +36,7 @@ import {
 import type { TickPlan } from "../adapters/lookahead-scheduler";
 import { createLookaheadScheduler } from "../adapters/lookahead-scheduler";
 import type { ClockPort } from "../ports/clock";
+import type { ListeningPort } from "../ports/listening";
 import type { Result } from "../ports/result";
 import type { SoundPort } from "../ports/sound";
 import type { VisibilityPort } from "../ports/visibility";
@@ -48,10 +51,36 @@ import type { TempoTerm } from "./tempo";
 import { tempoTermFor } from "./tempo";
 import type { TransportState } from "./transport";
 import { advance, startTransport, tickOf } from "./transport";
+import type {
+  ListeningState,
+  SmoothingState,
+  TunerSnapshot,
+  TunerTarget,
+} from "./tuner";
+import {
+  canStepTarget,
+  initialSmoothingState,
+  judge,
+  READING_MAX_AGE_MS,
+  smoothedPitchHzOf,
+  TUNER_HIGHEST_POSITION,
+  TUNER_LOWEST_POSITION,
+} from "./tuner";
+import type { NoteJudged } from "../published/note-judged.schema";
+import type { PitchDetected } from "../../listening/published/pitch-detected.schema";
+
+// practice.tuner/REQ-003 — the gap rule: the length of silence, measured
+// from the last detection, after which the reading clears back to
+// "Play a note".
+const TUNER_GAP_MS = 300;
 
 export interface SessionContext {
   readonly key: Key;
   readonly variant: Variant;
+  // practice.tuner/REQ-002/S5 — the ♯/♭ preference the tuner spells the
+  // nearest note with; App passes selection.spelling, and setContext
+  // re-spells targetNote and the next reading (wired from T008).
+  readonly spelling: SpellingPreference;
 }
 
 export interface SessionDeps {
@@ -59,6 +88,8 @@ export interface SessionDeps {
   readonly clock: ClockPort;
   readonly wakeLock: WakeLockPort;
   readonly visibility: VisibilityPort;
+  // practice.tuner/REQ-001 — the tuner's microphone seam (enterTuner/leaveTuner).
+  readonly listening: ListeningPort;
 }
 
 export interface TargetAdvanced {
@@ -101,6 +132,7 @@ export interface SessionSnapshot {
   readonly effectiveShape: Shape;
   readonly drone: DroneSnapshot;
   readonly tappedRunIndex: number | null;
+  readonly tuner: TunerSnapshot;
 }
 
 export interface Session {
@@ -116,6 +148,25 @@ export interface Session {
   stepDroneOctave(delta: -1 | 1): void;
   setDroneSound(sound: DroneSound): void;
   tapNote(runIndex: number): void;
+  // practice.tuner/REQ-001 — the way in and out: enterTuner stops playback
+  // and the drone (never both sounding) and requests listening; leaveTuner
+  // ends it and forgets the target.
+  enterTuner(): void;
+  leaveTuner(): void;
+  // practice.tuner/REQ-004 — the four target verbs: Hold pins the note
+  // playing now (a no-op without a reading), pinTarget pins a spiral wedge
+  // (clamped to E2–C7), stepTarget moves the pinned note a semitone (a
+  // no-op on auto or at the bounds), and clearTarget returns to auto.
+  holdTarget(): void;
+  pinTarget(position: number): void;
+  stepTarget(delta: -1 | 1): void;
+  clearTarget(): void;
+  // practice.tuner/REQ-006 (Article V) — the UI reports that the reading
+  // with this atFrame has just been painted; returns that reading's age in
+  // ms at this instant (listening.currentFrame() − atFrame, at the port's
+  // sample rate). Used by the harness; never changes state.
+  readingShown(atFrame: number): number;
+  onNoteJudged(listener: (event: NoteJudged) => void): () => void;
   onTargetAdvanced(listener: (event: TargetAdvanced) => void): () => void;
   onChange(listener: () => void): () => void;
   dispose(): void;
@@ -222,6 +273,39 @@ function transportEqual(a: TransportState, b: TransportState): boolean {
   }
 }
 
+// Structural equality for the tuner's target (T032; round-2 fixer for
+// T009's review) — mirrors transportEqual above; kept by-value (rather than
+// relying on `tunerTarget`'s reference staying stable between snapshots) so
+// the pairing with targetNoteEqual below reads the same way at every call
+// site.
+function targetEqual(a: TunerTarget, b: TunerTarget): boolean {
+  switch (a.kind) {
+    case "auto":
+      return b.kind === "auto";
+    case "pinned":
+      return b.kind === "pinned" && a.position === b.position;
+  }
+}
+
+// Field-by-field equality for a Note (round-2 fixer for T009's review) —
+// theory publishes no note-equality helper, so a small private one here.
+function sameNote(a: Note, b: Note): boolean {
+  return (
+    a.letter === b.letter &&
+    a.accidental === b.accidental &&
+    a.octave === b.octave
+  );
+}
+
+// snapshotsMateriallyEqual's comparison for `tuner.targetNote` — buildSnapshot()
+// now derives it with noteAtPosition() on every call, which returns a fresh
+// object each time, so two structurally equal notes are never the same
+// reference; compares by value instead (round-2 fixer for T009's review).
+function targetNoteEqual(a: Note | null, b: Note | null): boolean {
+  if (a === null || b === null) return a === b;
+  return sameNote(a, b);
+}
+
 // The fields a listener can actually observe (T032) — everything else on
 // `SessionSnapshot` (effectiveOctaves, fittingCounts, sequence, summaryLine,
 // tempoTerm, scale, spelledScale, effectiveShape) is derived from
@@ -248,7 +332,22 @@ function snapshotsMateriallyEqual(
     a.drone.on === b.drone.on &&
     noteLabel(a.drone.note) === noteLabel(b.drone.note) &&
     a.drone.settings === b.drone.settings &&
-    a.tappedRunIndex === b.tappedRunIndex
+    a.tappedRunIndex === b.tappedRunIndex &&
+    // practice.tuner/REQ-001 — `active`, `listening` and `reading` are only
+    // ever reassigned by enterTuner()/leaveTuner()/commitTunerReading()
+    // (never mutated in place), so reference equality is enough, the same
+    // reasoning as settings/traversal/run above; `target`, `targetNote` and
+    // `lastHeard` compare by value (targetEqual/targetNoteEqual, above) —
+    // targetNote and lastHeard are now derived fresh on every
+    // buildSnapshot() call and would otherwise never compare equal, and
+    // comparing target by value too keeps a scheduler poll while pinned
+    // from ever firing a spurious notify.
+    a.tuner.active === b.tuner.active &&
+    a.tuner.listening === b.tuner.listening &&
+    targetEqual(a.tuner.target, b.tuner.target) &&
+    targetNoteEqual(a.tuner.targetNote, b.tuner.targetNote) &&
+    a.tuner.reading === b.tuner.reading &&
+    targetNoteEqual(a.tuner.lastHeard, b.tuner.lastHeard)
   );
 }
 
@@ -260,7 +359,7 @@ export function createSession(
   droneSettings: DroneSettings,
   deps: SessionDeps,
 ): Session {
-  const { sound, clock, wakeLock, visibility } = deps;
+  const { sound, clock, wakeLock, visibility, listening } = deps;
   const scheduler = createLookaheadScheduler(sound, clock);
 
   let currentContext = context;
@@ -296,6 +395,17 @@ export function createSession(
   // drone voice.
   let tappedTag: number | null = null;
   let tapCounter = 0;
+  // Bumped by tapNote() itself (every call, sync or async) and by
+  // enterTuner() — mirrors droneGeneration: a first-ever tapNote() still
+  // awaiting sound.start() compares this after its await and posts nothing
+  // if it no longer matches, so a second tapNote() landing before the
+  // first resolves (found by T013's fixer-round enumeration:
+  // tapNotePending → tapNote → enterTuner — the first tap's continuation
+  // would otherwise post after being superseded, orphaning its voice with
+  // no tag endTapIfSounding() still knows to stop) or an enterTuner()
+  // landing meanwhile (practice.tuner/REQ-001/S3's own race, brief T013's
+  // fixer round) is never overridden by a stale post arriving after it.
+  let tapGeneration = 0;
   // Cancel functions for the sounding tap's two timers (set tappedRunIndex
   // at the audible onset, clear it a beat later) — both cleared together
   // whenever the tap ends (a retap, start(), restartIfPlaying()), so a
@@ -341,6 +451,50 @@ export function createSession(
   // two are separate fields rather than one shared "sounding" index.
   let tappedRunIndex: number | null = null;
 
+  // practice.tuner/REQ-001 — the tuner's own state, off until enterTuner()
+  // is called and forgotten again on leaveTuner() (REQ-009: nothing about
+  // the tuner survives leaving it).
+  let tunerActive = false;
+  let tunerListeningState: ListeningState = { kind: "off" };
+  let tunerTarget: TunerTarget = { kind: "auto" };
+  let tunerReading: NoteJudged | null = null;
+  // practice.tuner/REQ-004/S7, REQ-009/S3 — the pitch position of
+  // `heard.nearest` of the last committed reading, kept through a gap (a
+  // page hidden, or the microphone failing) and forgotten only on
+  // leaveTuner(): NOT reset by clearTunerReading() below, which runs on
+  // every gap. Hold pins this once `tunerReading` has cleared, and
+  // buildSnapshot() derives `lastHeard` from it, spelled per the
+  // preference like `targetNote`.
+  let tunerLastHeardPosition: number | null = null;
+  // practice.tuner/REQ-002 — the shown-note hysteresis position
+  // (nearestWithHandover's `shown`), reset alongside `tunerReading` on a gap
+  // or on leaveTuner(): a fresh reading after silence starts from the
+  // nearest note again, not wherever the ear was before the gap.
+  let tunerShownPosition: number | null = null;
+  // practice.tuner/REQ-002 — the smoothing filter's own state, reset
+  // alongside `tunerReading`/`tunerShownPosition` (see `clearTunerReading`
+  // below) and on enterTuner().
+  let tunerSmoothingState: SmoothingState = initialSmoothingState;
+  // The most recently judged detection, awaiting its commit-on-next-tick
+  // timer — a newer detection arriving before commit replaces this rather
+  // than queuing, so at most one reading is ever in flight (plan.md's
+  // coalescing note).
+  let tunerPendingReading: {
+    readonly judged: NoteJudged;
+    readonly shown: number;
+  } | null = null;
+  // Cancels for the tuner's two timers — the 0 ms commit-on-next-tick timer
+  // (armed once per burst of detections, not re-armed while already
+  // pending) and the 300 ms gap timer (re-armed on every detection).
+  let tunerCommitCancel: (() => void) | null = null;
+  let tunerGapCancel: (() => void) | null = null;
+  // Bumped by both enterTuner() and leaveTuner() — mirrors droneGeneration:
+  // a leaveTuner() that lands while enterTuner()'s wakeLock.acquire()/
+  // listening.start() awaits are still resolving must supersede that
+  // continuation, so it never overwrites the "off" state leaveTuner() just
+  // set with a stale "listening"/"cannot-hear".
+  let tunerGeneration = 0;
+
   let run: readonly KeyViewNote[] = [];
   let sequence: readonly SequenceNote[] = [];
   let effectiveOctaves: Octaves = { kind: "full" };
@@ -365,6 +519,7 @@ export function createSession(
 
   const changeListeners = new Set<() => void>();
   const targetAdvancedListeners = new Set<(event: TargetAdvanced) => void>();
+  const noteJudgedListeners = new Set<(event: NoteJudged) => void>();
 
   function recompute(): void {
     scale = scaleById(
@@ -593,20 +748,182 @@ export function createSession(
     cancelIdle = null;
   }
 
-  // practice.drone/REQ-004 — the wake lock is shared between playback and
-  // the drone: it is released only when neither remains, so stop(), the
-  // idle transition and stopDrone() all funnel through this one check
-  // rather than each deciding on its own.
+  // practice.drone/REQ-004, practice.tuner/REQ-001 — the wake lock is
+  // shared between playback, the drone and the tuner: it is released only
+  // when none remains, so stop(), the idle transition, stopDrone() and
+  // leaveTuner() all funnel through this one check rather than each
+  // deciding on its own.
   function releaseWakeLockIfSilent(): void {
-    if (transport.kind === "idle" && !droneOn) wakeLock.release();
+    if (transport.kind === "idle" && !droneOn && !tunerActive) {
+      wakeLock.release();
+    }
   }
 
   // practice.drone/REQ-007/S1 — hidden means silent: both playback and the
   // drone stop when the page is hidden, exactly as ■ or ❚❚ would stop them
   // while visible.
+  //
+  // practice.tuner/REQ-008, listening.pitch-detection/REQ-005 — hidden
+  // means deaf too, but only while there is a microphone actually open (or
+  // being opened) to stop: "listening" or "starting". A "cannot-hear" state
+  // (or an already-"off" one) is left untouched — REQ-007 asks for the
+  // microphone nowhere but on entering the tuner and promises to try again
+  // only "at the next entry", so a hide/show pair while refused/absent/failed
+  // must not ask the platform again; onShown (below) only ever resumes from
+  // "off", so leaving "cannot-hear" as it is keeps that path closed. Bumping
+  // tunerGeneration supersedes an enterTuner() or startListening() still
+  // awaiting the microphone — an in-flight start must not resurrect the
+  // state this hide just cleared once it resolves — the same reasoning as
+  // leaveTuner()'s own bump, below.
   const unsubscribeVisibility = visibility.onHidden(() => {
     stop();
     stopDrone();
+    if (
+      tunerActive &&
+      (tunerListeningState.kind === "listening" ||
+        tunerListeningState.kind === "starting")
+    ) {
+      invalidateSnapshot();
+      tunerGeneration += 1;
+      listening.stop();
+      cancelTunerTimers();
+      clearTunerReading();
+      tunerListeningState = { kind: "off" };
+      notifyChange();
+    }
+  });
+
+  // practice.tuner/REQ-002 — turns a detection into a judgement, held as
+  // `tunerPendingReading` until the next clock tick commits it (a burst of
+  // detections within one tick coalesces onto the newest). Ignored unless
+  // the tuner is active and actually listening — a detection that arrives
+  // after leaveTuner() (or before listening.start() resolves) is dropped.
+  function onPitchDetected(pitch: PitchDetected): void {
+    if (!tunerActive || tunerListeningState.kind !== "listening") return;
+    // practice.tuner/REQ-006 (Article V) — a detection older than the
+    // budget by the time it reaches here is dropped outright: no
+    // judgement, no NoteJudged, the pending reading (if any) untouched —
+    // silence beats a late reading.
+    const ageMs =
+      ((listening.currentFrame() - pitch.atFrame) / listening.sampleRate()) *
+      1000;
+    if (ageMs > READING_MAX_AGE_MS) return;
+    // practice.tuner/REQ-002 — judge a smoothed pitch (never holding the
+    // reading back), but keep `heard.hz` the raw detected value: the
+    // measured harness reads it, and the spec says the Hz stays detected.
+    const { hz: smoothedHz, state } = smoothedPitchHzOf(
+      tunerSmoothingState,
+      tunerTarget,
+      tunerShownPosition,
+      pitch.hz,
+    );
+    tunerSmoothingState = state;
+    const result = judge(
+      { ...pitch, hz: smoothedHz },
+      tunerTarget,
+      tunerShownPosition,
+      currentContext.spelling,
+    );
+    tunerPendingReading = {
+      judged: {
+        ...result.judged,
+        heard: { ...result.judged.heard, hz: pitch.hz },
+      },
+      shown: result.shown,
+    };
+    if (tunerCommitCancel === null) {
+      tunerCommitCancel = clock.setTimeout(commitTunerReading, 0);
+    }
+    armTunerGapTimer();
+  }
+
+  // practice.tuner/REQ-002 — one commit per tick, the newest pending
+  // reading wins: moves `tunerPendingReading` into `tunerReading`, updates
+  // the hand-over hysteresis from `judge`'s returned `shown`, and emits
+  // NoteJudged.
+  function commitTunerReading(): void {
+    tunerCommitCancel = null;
+    if (tunerPendingReading === null) return;
+    invalidateSnapshot();
+    tunerReading = tunerPendingReading.judged;
+    tunerShownPosition = tunerPendingReading.shown;
+    // practice.tuner/REQ-004/S7 — every committed reading, not only a
+    // pinned one, updates what was last heard.
+    tunerLastHeardPosition = pitchPosition(tunerReading.heard.nearest);
+    tunerPendingReading = null;
+    for (const listener of noteJudgedListeners) listener(tunerReading);
+    notifyChange();
+  }
+
+  // Clears the shown reading and its hand-over hysteresis together — the
+  // gap timer below, leaveTuner() (REQ-009), the onEnded handler
+  // (REQ-007/S3) and the hidden branch (REQ-008, above) all set both fields
+  // to null in lockstep, so a shared setter keeps it that way rather than
+  // writing the pair out at each site (round-2 fixer for T011's review).
+  function clearTunerReading(): void {
+    tunerReading = null;
+    tunerShownPosition = null;
+    // practice.tuner/REQ-002 — the smoothing filter resets in lockstep.
+    tunerSmoothingState = initialSmoothingState;
+  }
+
+  // practice.tuner/REQ-003 — the gap rule: re-armed on every detection; when
+  // it fires with no newer detection since it was armed, the reading clears
+  // to "Play a note".
+  function armTunerGapTimer(): void {
+    tunerGapCancel?.();
+    tunerGapCancel = clock.setTimeout(() => {
+      tunerGapCancel = null;
+      invalidateSnapshot();
+      clearTunerReading();
+      notifyChange();
+    }, TUNER_GAP_MS);
+  }
+
+  // Cancels both of the tuner's timers and forgets any reading awaiting
+  // commit — leaveTuner() calls this so a stale commit or gap timer from
+  // before ‹ Practice never fires afterwards.
+  function cancelTunerTimers(): void {
+    tunerCommitCancel?.();
+    tunerCommitCancel = null;
+    tunerGapCancel?.();
+    tunerGapCancel = null;
+    tunerPendingReading = null;
+  }
+
+  // practice.tuner/REQ-002 — subscribed once, for the session's whole
+  // lifetime (not per enterTuner()/leaveTuner()): onPitchDetected itself
+  // checks tunerActive and the listening state, the same shape as
+  // unsubscribeVisibility above.
+  const unsubscribeListeningPitch = listening.onPitch(onPitchDetected);
+
+  // practice.tuner/REQ-007/S3 — the microphone unplugged or its permission
+  // revoked mid-session: subscribed once, for the session's whole lifetime,
+  // the same shape as onPitchDetected above. Ignored unless the tuner is
+  // active — an onEnded firing after leaveTuner() (FakeListening.stop()
+  // does not itself fire onEnded, but a real track ending after release
+  // well might) must not resurrect a state leaveTuner() already cleared.
+  const unsubscribeListeningEnded = listening.onEnded(() => {
+    if (!tunerActive) return;
+    invalidateSnapshot();
+    tunerListeningState = { kind: "cannot-hear", reason: "failed" };
+    clearTunerReading();
+    cancelTunerTimers();
+    notifyChange();
+  });
+
+  // practice.tuner/REQ-008, listening.pitch-detection/REQ-005/S2 — shown
+  // again while the tuner is still active resumes listening without a tap,
+  // but only from the "off" state the hidden branch (above) leaves it in: a
+  // no-op while not active at all, or while the state is anything but
+  // "off" — "starting" (a request from this same show is already in
+  // flight) or "listening"/"cannot-hear" (a spurious shown with no
+  // preceding hidden). Subscribed once, for the session's whole lifetime,
+  // the same shape as onPitchDetected above.
+  const unsubscribeListeningShown = visibility.onShown(() => {
+    if (!tunerActive || tunerListeningState.kind !== "off") return;
+    tunerGeneration += 1;
+    startListening(tunerGeneration);
   });
 
   function next(onsetFrame: number): TickPlan | null {
@@ -732,6 +1049,29 @@ export function createSession(
         canStepUp: canStepDroneOctave(droneNote, 1),
       },
       tappedRunIndex,
+      tuner: {
+        active: tunerActive,
+        listening: tunerListeningState,
+        target: tunerTarget,
+        // practice.tuner/REQ-004 — derived, not stored: `tunerTarget` is the
+        // only source of truth for the pinned position, so a spelling
+        // change (setContext) re-spells this for free rather than needing
+        // its own sync site (the round-1 bug: setContext forgot to).
+        targetNote:
+          tunerTarget.kind === "pinned"
+            ? noteAtPosition(tunerTarget.position, currentContext.spelling)
+            : null,
+        reading: tunerReading,
+        // practice.tuner/REQ-004/S7, REQ-009/S3 — derived, not stored, the
+        // same reasoning as targetNote above: a spelling change re-spells
+        // this for free.
+        lastHeard:
+          tunerLastHeardPosition === null
+            ? null
+            : noteAtPosition(tunerLastHeardPosition, currentContext.spelling),
+        canStepDown: canStepTarget(tunerTarget, -1),
+        canStepUp: canStepTarget(tunerTarget, 1),
+      },
     };
   }
 
@@ -770,6 +1110,9 @@ export function createSession(
   }
 
   function start(): void {
+    // practice.tuner/REQ-001/S3 — nothing sounds while the tuner listens:
+    // ▶ is refused outright rather than queued for when the tuner is left.
+    if (tunerActive) return;
     // practice.session/REQ-013 — ▶ ends any sounding tap the same way a
     // retap does, before anything else: a tap only ever sounds while idle,
     // and start() is about to leave idle.
@@ -868,6 +1211,8 @@ export function createSession(
   // sounds forever (practice.drone/REQ-004/S3's invariant, sequence
   // droneOn → droneOn → play, caught this).
   function startDrone(): void {
+    // practice.tuner/REQ-001/S3 — nothing sounds while the tuner listens.
+    if (tunerActive) return;
     if (droneOn) return;
     if (transport.kind !== "idle") stop();
     invalidateSnapshot();
@@ -1013,9 +1358,18 @@ export function createSession(
   // that stays written inline here rather than through a shared async
   // helper).
   function tapNote(runIndex: number): void {
+    // practice.tuner/REQ-001/S3 — nothing sounds while the tuner listens.
+    if (tunerActive) return;
     if (transport.kind !== "idle") return;
     const target = run[runIndex];
     if (target === undefined) return;
+
+    // Bumped unconditionally, before endTapIfSounding() — see tapGeneration
+    // above: this supersedes a still-pending earlier tapNote() (or an
+    // enterTuner() that bumps it too) the instant this call starts, exactly
+    // where start()'s own droneGeneration bump sits relative to stopDrone().
+    tapGeneration += 1;
+    const startedAtGeneration = tapGeneration;
 
     endTapIfSounding();
 
@@ -1076,6 +1430,19 @@ export function createSession(
         notifyChange();
         return;
       }
+      // practice.tuner/REQ-001/S3, practice.session/REQ-013 — the guards at
+      // the top of tapNote() only run once, synchronously, before this
+      // await: an enterTuner() (found by T013's fixer-round enumeration:
+      // tapNotePending → enterTuner) or a second tapNote() (tapNotePending
+      // → tapNote → enterTuner — the first tap's continuation would
+      // otherwise post an orphaned voice no later endTapIfSounding() still
+      // knows the tag of) that lands while this first-ever tap is still
+      // awaiting sound.start() would otherwise pass unnoticed. A plain
+      // `if (tunerActive) return` here would catch the first case but not
+      // the second (tunerActive is still false while only a later tap has
+      // superseded this one) — tapGeneration catches both, since
+      // enterTuner() bumps it too.
+      if (tapGeneration !== startedAtGeneration) return;
       post(target.note);
     })();
   }
@@ -1111,6 +1478,10 @@ export function createSession(
   function setContext(newContext: SessionContext): void {
     invalidateSnapshot();
     currentContext = newContext;
+    // practice.tuner/REQ-002/S5, REQ-009/S1 — a spelling change while a
+    // target is pinned re-spells it for free: `tuner.targetNote` is derived
+    // in buildSnapshot() from `tunerTarget` and `currentContext.spelling`,
+    // so there is nothing to re-sync here.
     recomputeAndRetune();
     restartIfPlaying();
     notifyChange();
@@ -1138,6 +1509,196 @@ export function createSession(
     notifyChange();
   }
 
+  // listening.pitch-detection's worklet/wasm setup failures (the port
+  // never being reached at all) fold into the tuner's own "failed" reason —
+  // practice.tuner/REQ-007 shows the same "Can't hear" card either way.
+  function cannotHearReasonOf(
+    reason: "refused" | "none" | "failed" | "worklet-failed" | "wasm-failed",
+  ): "refused" | "none" | "failed" {
+    return reason === "worklet-failed" || reason === "wasm-failed"
+      ? "failed"
+      : reason;
+  }
+
+  // practice.tuner/REQ-001, REQ-008 — the shared second half of "starting
+  // to listen": state → "starting", notify, then request the microphone;
+  // settles on "listening" or "cannot-hear" once it resolves, unless
+  // `tunerGeneration` has moved past `generation` in the meantime (a
+  // leaveTuner() or a hidden event landing mid-await), in which case
+  // whatever was just opened is released again instead — safe either way, a
+  // no-op if start() failed. Shared by enterTuner() (called once its own
+  // wakeLock.acquire() await has settled) and the onShown handler above
+  // (REQ-008/S1: resumes listening without a tap; the wake lock is
+  // untouched here — it was never released while hidden).
+  function startListening(generation: number): void {
+    invalidateSnapshot();
+    tunerListeningState = { kind: "starting" };
+    notifyChange();
+
+    void (async () => {
+      const result = await listening.start();
+      if (tunerGeneration !== generation) {
+        listening.stop();
+        return;
+      }
+      invalidateSnapshot();
+      tunerListeningState = result.ok
+        ? { kind: "listening" }
+        : {
+            kind: "cannot-hear",
+            reason: cannotHearReasonOf(result.error.reason),
+          };
+      notifyChange();
+    })();
+  }
+
+  // practice.tuner/REQ-001 — the way in: stop playback and the drone (never
+  // both sounding) before requesting listening, exactly as startDrone()
+  // stops playback before requesting sound — same shape, same generation
+  // guard (tunerGeneration) against a leaveTuner() landing mid-await. Unlike
+  // startDrone(), the resource-committing call is itself awaited inside
+  // startListening() above, so a single check after wakeLock.acquire()
+  // cannot by itself protect it — a leaveTuner() (or a hidden event) that
+  // lands while wakeLock.acquire() is still resolving must stop this
+  // continuation from ever calling startListening() at all (checked here,
+  // before it); one that lands while listening.start() itself is resolving
+  // is caught by startListening()'s own check.
+  function enterTuner(): void {
+    // practice.tuner/REQ-001/S3 — a tapped note is a named way in (its Given
+    // lists "a tapped note sounding") and nothing sounds once the tuner
+    // screen shows: end an already-*posted* tap the same way start() does,
+    // before anything else — stop() below only reaches a sounding tap when
+    // transport.kind is not "idle", but a tap only ever sounds while idle,
+    // so without this an already-posted tap left sounding on entry never
+    // gets silenced at all (found by T013's fixer-round enumeration:
+    // tapNote → enterTuner). Bumping tapGeneration too supersedes a tap
+    // that is only still *pending* (tappedTag still null, awaiting
+    // sound.start()) — endTapIfSounding() alone cannot reach that one,
+    // since it has no tag yet to stop (tapNotePending → enterTuner; see
+    // tapGeneration above).
+    endTapIfSounding();
+    tapGeneration += 1;
+    if (transport.kind !== "idle") stop();
+    // Bumped unconditionally — mirrors start()'s own T022 fix: a
+    // startDrone() that is only still pending (droneOn still false,
+    // awaiting sound.start()/wakeLock.acquire()) is not caught by the
+    // `if (droneOn) stopDrone()` below, since droneOn only flips true once
+    // that call's own post lands; without this, its continuation would
+    // pass its own generation check and post a drone after tunerActive is
+    // already true (found by T013's widened never-both enumeration:
+    // droneOnPending → enterTuner). stopDrone() below bumps it again when
+    // the drone was actually on; a second bump there is harmless.
+    droneGeneration += 1;
+    if (droneOn) stopDrone();
+    invalidateSnapshot();
+    tunerActive = true;
+    tunerGeneration += 1;
+    const startedAtGeneration = tunerGeneration;
+    notifyChange();
+
+    void (async () => {
+      await wakeLock.acquire();
+      if (tunerGeneration !== startedAtGeneration) return;
+      startListening(startedAtGeneration);
+    })();
+  }
+
+  // practice.tuner/REQ-001/S4 — the way out: release the microphone, forget
+  // the target and the reading (REQ-009), and return to the practice screen
+  // exactly as it was left. Bumping tunerGeneration here supersedes any
+  // enterTuner() still awaiting wakeLock.acquire()/listening.start(), so its
+  // continuation cannot overwrite the "off" state this sets with a stale
+  // "listening"/"cannot-hear" once it resolves.
+  function leaveTuner(): void {
+    invalidateSnapshot();
+    tunerGeneration += 1;
+    listening.stop();
+    cancelTunerTimers();
+    tunerActive = false;
+    tunerListeningState = { kind: "off" };
+    tunerTarget = { kind: "auto" };
+    clearTunerReading();
+    // practice.tuner/REQ-009/S3 — the last note heard is forgotten only
+    // here, not by clearTunerReading()'s gap (that runs on every silence).
+    tunerLastHeardPosition = null;
+    releaseWakeLockIfSilent();
+    notifyChange();
+  }
+
+  // Shared by every target verb below: pins `tunerTarget` at `position`,
+  // bracketed by invalidateSnapshot()/notifyChange() — `targetNote` needs no
+  // sync here any more, since buildSnapshot() derives it from `tunerTarget`
+  // itself (practice.tuner/REQ-004).
+  function pinTargetAt(position: number): void {
+    invalidateSnapshot();
+    tunerTarget = { kind: "pinned", position };
+    // practice.tuner/REQ-002 — the first reading after the target changes is as detected
+    tunerSmoothingState = initialSmoothingState;
+    notifyChange();
+  }
+
+  // practice.tuner/REQ-004/S1, S7, S8 — Hold: pins the note playing now if
+  // a reading is showing; otherwise, while nothing is heard, pins the last
+  // note heard since the tuner was entered; a no-op while neither exists.
+  function holdTarget(): void {
+    if (tunerReading !== null) {
+      pinTargetAt(pitchPosition(tunerReading.heard.nearest));
+      return;
+    }
+    if (tunerLastHeardPosition !== null) {
+      pinTargetAt(tunerLastHeardPosition);
+    }
+  }
+
+  // practice.tuner/REQ-004/S2 — a wedge of the spiral: clamped to E2–C7 so a
+  // tap outside the instrument's drawn range still lands somewhere real.
+  function pinTarget(position: number): void {
+    pinTargetAt(
+      Math.max(
+        TUNER_LOWEST_POSITION,
+        Math.min(TUNER_HIGHEST_POSITION, position),
+      ),
+    );
+  }
+
+  // practice.tuner/REQ-004/S4 — − / + move the pinned note a semitone; a
+  // no-op on auto (canStepTarget already says no) or at either bound. The
+  // `tunerTarget.kind !== "pinned"` check (redundant with canStepTarget's
+  // own guard) is what lets TypeScript narrow `tunerTarget.position` below.
+  function stepTarget(delta: -1 | 1): void {
+    if (tunerTarget.kind !== "pinned" || !canStepTarget(tunerTarget, delta)) {
+      return;
+    }
+    pinTargetAt(tunerTarget.position + delta);
+  }
+
+  // practice.tuner/REQ-004/S5 — ✕ / Auto: back to the nearest note. The
+  // shown-note hysteresis (tunerShownPosition) needs no reset here: while
+  // pinned, judge() already keeps it at the nearest note of every detection
+  // (see tuner.ts), so it is never stale by the time auto reads it.
+  function clearTarget(): void {
+    invalidateSnapshot();
+    tunerTarget = { kind: "auto" };
+    // practice.tuner/REQ-002 — the first reading after the target changes is as detected
+    tunerSmoothingState = initialSmoothingState;
+    notifyChange();
+  }
+
+  // practice.tuner/REQ-006 (Article V) — a pure read of the age of the
+  // reading painted at `atFrame`, against the listening port's own clock;
+  // never changes state. The UI calls this from a useLayoutEffect right
+  // after painting a reading, for the measured harness to read back.
+  function readingShown(atFrame: number): number {
+    return (
+      ((listening.currentFrame() - atFrame) / listening.sampleRate()) * 1000
+    );
+  }
+
+  function onNoteJudged(listener: (event: NoteJudged) => void): () => void {
+    noteJudgedListeners.add(listener);
+    return () => noteJudgedListeners.delete(listener);
+  }
+
   function onTargetAdvanced(
     listener: (event: TargetAdvanced) => void,
   ): () => void {
@@ -1155,13 +1716,20 @@ export function createSession(
     cancelPendingHighlights();
     cancelIdleTimer();
     unsubscribeVisibility();
+    unsubscribeListeningPitch();
+    unsubscribeListeningEnded();
+    unsubscribeListeningShown();
+    cancelTunerTimers();
     // practice.drone/REQ-007 — release the drone's own voice and wake lock
     // before the port itself goes away, rather than leaving it to whatever
     // sound.dispose() happens to do with a live voice.
     stopDrone();
+    // practice.tuner/REQ-001 — release the microphone too, the same reason.
+    if (tunerActive) listening.stop();
     sound.dispose();
     changeListeners.clear();
     targetAdvancedListeners.clear();
+    noteJudgedListeners.clear();
   }
 
   return {
@@ -1177,6 +1745,14 @@ export function createSession(
     stepDroneOctave,
     setDroneSound,
     tapNote,
+    enterTuner,
+    leaveTuner,
+    holdTarget,
+    pinTarget,
+    stepTarget,
+    clearTarget,
+    readingShown,
+    onNoteJudged,
     onTargetAdvanced,
     onChange,
     dispose,

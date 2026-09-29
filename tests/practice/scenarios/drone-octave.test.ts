@@ -85,11 +85,16 @@ test("practice.drone/REQ-002/S3 — the stepped octave follows the key and the i
     defaultSessionSettings,
   );
   session.stepDroneOctave(-1);
-  session.setContext({ key: keyOf("D"), variant: variantOf("flute-concert") });
+  session.setContext({
+    key: keyOf("D"),
+    variant: variantOf("flute-concert"),
+    spelling: "sharp",
+  });
   expect(noteLabel(session.snapshot().drone.note)).toBe("D4");
   session.setContext({
     key: keyOf("D"),
     variant: variantOf("ocarina-alto-c"),
+    spelling: "sharp",
   });
   expect(noteLabel(session.snapshot().drone.note)).toBe("D4");
 });
@@ -111,11 +116,19 @@ test("practice.drone/REQ-002/S4 — the piano's ends", () => {
   for (let i = 0; i < 6; i += 1) session.stepDroneOctave(1);
   expect(noteLabel(session.snapshot().drone.note)).toBe("G7");
   expect(session.snapshot().drone.canStepUp).toBe(false);
-  session.setContext({ key: keyOf("C"), variant: variantOf("flute-concert") });
+  session.setContext({
+    key: keyOf("C"),
+    variant: variantOf("flute-concert"),
+    spelling: "sharp",
+  });
   session.stepDroneOctave(1);
   expect(noteLabel(session.snapshot().drone.note)).toBe("C8");
   expect(session.snapshot().drone.canStepUp).toBe(false);
-  session.setContext({ key: keyOf("A"), variant: variantOf("flute-concert") });
+  session.setContext({
+    key: keyOf("A"),
+    variant: variantOf("flute-concert"),
+    spelling: "sharp",
+  });
   for (let i = 0; i < 8; i += 1) session.stepDroneOctave(-1);
   expect(noteLabel(session.snapshot().drone.note)).toBe("A0");
   expect(session.snapshot().drone.canStepDown).toBe(false);
@@ -132,6 +145,7 @@ test("practice.drone/REQ-002/S6 — unpinned, the octave follows the instrument"
   session.setContext({
     key: keyOf("G"),
     variant: variantOf("ocarina-bass-c"),
+    spelling: "sharp",
   });
   expect(noteLabel(session.snapshot().drone.note)).toBe("G4");
 });

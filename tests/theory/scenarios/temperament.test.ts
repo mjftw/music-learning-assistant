@@ -1,6 +1,8 @@
 import { expect, test } from "vitest";
 import {
   builtInCatalogue,
+  nearestNoteOf,
+  noteLabel,
   pitchHzOf,
   pitchPosition,
 } from "../../../src/theory/published";
@@ -69,4 +71,30 @@ test("theory.temperament/REQ-001/S3 — the whole catalogue is sounded", () => {
       previousHz = hz;
     }
   }
+});
+
+const near = (hz: number, spelling: "sharp" | "flat" = "sharp") => {
+  const r = nearestNoteOf(hz, spelling);
+  return [noteLabel(r.note), r.cents] as const;
+};
+
+test("theory.temperament/REQ-002/S1 — a little sharp of A", () => {
+  expect(near(445.0)).toEqual(["A4", 20]);
+  expect(near(436.0)).toEqual(["A4", -16]);
+  expect(near(440.0)).toEqual(["A4", 0]);
+});
+
+test("theory.temperament/REQ-002/S2 — the ends of the tuner's range", () => {
+  expect(near(82.41)).toEqual(["E2", 0]);
+  expect(near(2093.0)).toEqual(["C7", 0]);
+});
+
+test("theory.temperament/REQ-002/S3 — spelled per the preference", () => {
+  expect(near(466.16, "sharp")).toEqual(["A♯4", 0]);
+  expect(near(466.16, "flat")).toEqual(["B♭4", 0]);
+});
+
+test("theory.temperament/REQ-002/S4 — halfway belongs to the note above", () => {
+  expect(near(452.9)).toEqual(["A♯4", -50]);
+  expect(near(452.8)).toEqual(["A4", 50]);
 });

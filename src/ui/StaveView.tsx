@@ -6,10 +6,14 @@ import {
   type Key,
   type KeyViewNote,
   type Note,
-  type NoteLetter,
   type Variant,
 } from "../theory/published";
-import { noteLabel, pitchClassLabel } from "./key-label";
+import {
+  ACCIDENTAL_GLYPH,
+  diatonicIndex,
+  noteLabel,
+  pitchClassLabel,
+} from "./key-label";
 import { fonts, paper } from "./theme";
 
 // Geometry and colour below are copied verbatim from the vendored visual
@@ -26,8 +30,6 @@ const PANEL_F5 = 5 * 7 + 3; // diatonic index of F5, the reference stave's top l
 const PANEL_SIG_X0 = 42;
 const PANEL_SIG_DX = 8.5;
 const PANEL_NOTES_END = 318;
-
-const LETTERS: readonly NoteLetter[] = ["C", "D", "E", "F", "G", "A", "B"];
 
 const STAVE_LINE_X1 = 10;
 const STAVE_LINE_X2 = 332;
@@ -85,13 +87,6 @@ const FLAT_GLYPH_CHAR = "♭";
 const INLINE_ACCIDENTAL_X_OFFSET = 6.5;
 const INLINE_ACCIDENTAL_LOWERED_Y_ADJUST = -3;
 const INLINE_ACCIDENTAL_SIZE_RATIO = 2.7;
-const ACCIDENTAL_GLYPH: Record<Accidental, string> = {
-  doubleFlat: "𝄫",
-  flat: "♭",
-  natural: "♮",
-  sharp: "♯",
-  doubleSharp: "𝄪",
-};
 function isLowered(accidental: Accidental): boolean {
   return accidental === "flat" || accidental === "doubleFlat";
 }
@@ -101,9 +96,7 @@ function isLowered(accidental: Accidental): boolean {
 const TONIC_INK = paper.accent;
 const NOTE_INK = paper.ink;
 const TONIC_NAME_INK = paper.accent;
-// Module-local one-off colour, matching the reference's name-row ink — not
-// lifted into theme.ts (see e.g. SettingsDrawer.tsx's CLOSE_ICON_COLOR).
-const NAME_INK = "#4a4136";
+const NAME_INK = paper.inkMid;
 const SIG_GLYPH_ACCENT = paper.accent;
 const SIG_GLYPH_INK = paper.inkSoft;
 
@@ -126,10 +119,6 @@ const FULL_OPACITY = 1;
 const HIT_RECT_MIN_WIDTH = 16;
 const HIT_RECT_Y_INSET = 14;
 const HIT_RECT_HEIGHT_PAD = 28;
-
-function diatonicIndex(note: Note): number {
-  return note.octave * 7 + LETTERS.indexOf(note.letter);
-}
 
 interface StaveHead {
   readonly x: number;

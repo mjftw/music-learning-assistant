@@ -141,6 +141,52 @@ test("theory.circle-of-fifths/REQ-008/S3 — corrupt stored state", async () => 
   expect(screen.getByTestId("current-key").textContent).toBe("G major");
 });
 
+// T018 — practice.tuner/REQ-009/S1: nothing tuner-specific is ever stored
+// (no `active`, no target, no listening state); the ♯/♭ preference the
+// tuner's footer changed persists as the circle's own does, and the tuner
+// always reopens on Auto. Seeded as a v5 payload — the shape
+// `localStorageSelectionStore` reads today (`StoredSelection`,
+// `src/ui/selection-store.ts`) — the same way REQ-008/S1 above seeds it,
+// rather than through a `memoryStore` helper this codebase has none of.
+test("practice.tuner/REQ-009/S1 — reopened: the practice screen, the flat spelling, the tuner on Auto", async () => {
+  localStorage.clear();
+  localStorage.setItem(
+    storageKey,
+    JSON.stringify({
+      schemaVersion: 5,
+      variantId: "flute-concert",
+      keyId: "C-major",
+      spelling: "flat",
+      view: "names",
+      degreesEnabled: true,
+      distanceRingEnabled: true,
+      staveNamesEnabled: false,
+      traversal: { direction: "updown", octaves: 1, shape: "scale" },
+      session: {
+        soundMode: "both",
+        loop: true,
+        countIn: true,
+        restBar: false,
+        tempoBpm: 96,
+      },
+      scale: { major: "major", minor: "natural-minor" },
+      drone: { octave: null, sound: "warm" },
+    }),
+  );
+  renderApp();
+
+  expect(screen.getByRole("button", { name: "Play" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Practice" })).toBeNull();
+
+  await userEvent.click(screen.getByRole("button", { name: "Tuner" }));
+  expect(screen.getByRole("button", { name: "Target" }).textContent).toContain(
+    "auto · nearest",
+  );
+  expect(
+    screen.getByRole("button", { name: "flat" }).getAttribute("aria-pressed"),
+  ).toBe("true");
+});
+
 test("theory.circle-of-fifths/REQ-008/S4 — stored state from the previous shape", async () => {
   localStorage.clear();
   localStorage.setItem(

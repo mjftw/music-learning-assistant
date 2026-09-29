@@ -39,3 +39,12 @@ body {
 button {
   font: inherit;
 }
+
+/* The visible height of the window: `100vh` first for browsers without
+   `dvh`, then `100dvh`, which follows the browser's bars showing and
+   hiding. An inline style object cannot express this fallback, hence a
+   class. */
+.visible-height {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
