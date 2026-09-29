@@ -1494,7 +1494,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 > Appended 2026-09-29 by converge round 1 (converge.md W3), fixed with the user's approval.
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `tests/practice/scenarios/tuner-budget.test.ts` (the test at line 21, titled "listening.pitch-detection/REQ-004/S3 — a burst before the commit is coalesced to the newest": re-title it to cite `listening.pitch-detection/REQ-004/S1` — coalescing to the newest reading — instead of S3, which is "late is dropped". S3's own Then is already exercised by the test at line 6, titled for `practice.tuner/REQ-006/S2`; add the `listening.pitch-detection/REQ-004/S3` citation to THAT test's title alongside its existing one, since it is the test that actually proves a late detection is dropped.)
@@ -1556,7 +1556,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 > Appended 2026-09-29 by converge round 1 (converge.md W7). The other colours converge flagged (`#e0d7c5`, `#756c60`, `#5e564c`, `#b0a797`, the `rgba(138,75,42,…)` pair) predate 007 and are already used the same way across many other screens (`CircleOfFifths.tsx`, `DronePill.tsx`, `DroneSheet.tsx`, `KeyPanel.tsx`, `overlay.tsx`, `ScaleRow.tsx`, `TransportCard.tsx`, `TraversalSheet.tsx`, and more) — a repo-wide token-promotion exercise outside this change's scope, deferred (see `## Deferred`), not fixed here.
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/TargetSheet.tsx` (`HOLD_CARD_BORDER_OFF = "#ece4d5"` → `paper.hairlineSoft`, byte-identical already)
