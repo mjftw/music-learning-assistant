@@ -18,7 +18,7 @@ verified:
     at: 2026-09-27T22:05:29Z
 sdd_id: 007-hear-me
 sdd_context: listening
-sdd_phase: approved
+sdd_phase: merged
 sdd_constitution: 1.0.0
 ---
 

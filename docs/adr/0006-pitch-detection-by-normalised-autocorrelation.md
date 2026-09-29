@@ -3,7 +3,7 @@ type: Architecture Decision Record
 title: ADR 0006 — Pitch detection by normalised autocorrelation, on the shared audio thread
 description: The listening context detects pitch with the McLeod Pitch Method (NSDF) in a zero-crate Rust worklet that shares synthesis's AudioContext — not an FFT, not a second context, not the main thread — because the budget is 100 ms down to E2 within ±2 ¢ and the flute is harmonic-rich.
 resource: /docs/adr/0006-pitch-detection-by-normalised-autocorrelation.md
-status: draft
+status: stable
 tags: [sdd, adr, listening, "change:007-hear-me"]
 sources:
   - resource: /changes/007-hear-me/plan.md
@@ -12,7 +12,9 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-09-28T00:30:00Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-09-29T22:15:13Z
 sdd_phase: accepted
 ---
 
