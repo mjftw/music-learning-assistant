@@ -1,0 +1,55 @@
+# Build, check and publish the static site to Cloudflare Pages on every push
+# to main. Setup and the secrets it needs: docs/deploy.md.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # redeploy main by hand from the Actions tab
+
+# One deploy at a time; a newer push supersedes one still queued.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy # pnpm check runs cargo fmt and clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .tool-versions
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The WASM under src/*/pkg/ is gitignored and the tests load it, so it
+      # is built before `check` (which has no pre-hook of its own).
+      - run: pnpm build:sound
+
+      # Gate: nothing is published unless the whole check passes.
+      - run: pnpm check
+
+      - run: pnpm build
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=fifths --branch=main --commit-hash=${{ github.sha }}
