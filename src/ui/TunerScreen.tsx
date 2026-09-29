@@ -119,11 +119,10 @@ const NO_MIC_RING = paper.faint;
 // sc-if at markup lines 169-172): absolutely positioned over the level
 // rather than replacing it (REQ-007's own text: "visible, non-interrupting,
 // no modal" — the level, strip and footer stay drawn underneath, S1).
-// Centred over the level's own rendered box (`top: "50%"`,
-// `transform: translateY(-50%)`, on the level's own positioned wrapper,
-// below) rather than a fixed pixel offset, so it stays inside the screen
-// as the level's height flexes to fit (design round 5, T032).
+// Sits in the lower part of the level, above the "↓ flat" label and below
+// the "–", so both remain visible (practice.tuner/REQ-007).
 const CARD_SIDE = 16;
+const CARD_BOTTOM = 38;
 const CARD_PADDING = "13px 16px 14px";
 const CARD_RADIUS = 14;
 const CARD_GAP = 5;
@@ -613,8 +612,7 @@ function TunerScreenComponent(props: {
               position: "absolute",
               left: CARD_SIDE,
               right: CARD_SIDE,
-              top: "50%",
-              transform: "translateY(-50%)",
+              bottom: CARD_BOTTOM,
               padding: CARD_PADDING,
               background: paper.card,
               border: `1px solid ${paper.borderSoft}`,

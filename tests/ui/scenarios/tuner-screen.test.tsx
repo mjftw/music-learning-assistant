@@ -124,6 +124,27 @@ test("practice.tuner/REQ-007/S1 — refused", async () => {
   expect(practiceButton.disabled).toBe(false);
 });
 
+test("practice.tuner/REQ-007 — the card sits in the lower part of the level, leaving the dash visible", async () => {
+  const { sessionDeps, listening } = sessionDepsWithFakes();
+  listening.failWith = "refused";
+  localStorage.clear();
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={sessionDeps}
+    />,
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Tuner" }));
+  await waitFor(() =>
+    expect(screen.getByTestId("mic-indicator").textContent).toBe("NO MIC"),
+  );
+  const card = screen.getByTestId("cannot-hear");
+  expect(card.style.bottom).toBe("38px");
+  expect(card.style.top).toBe("");
+  expect(card.style.transform).toBe("");
+});
+
 test("practice.tuner/REQ-007/S2 — the next entry tries again", async () => {
   const { sessionDeps, listening } = sessionDepsWithFakes();
   listening.failWith = "refused";
