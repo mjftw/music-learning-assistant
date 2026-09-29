@@ -1460,7 +1460,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 > Appended 2026-09-29 by converge round 1 (`.sdd/reports/007-hear-me/converge.md` W1), fixed with the user's approval.
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/TunerStave.tsx` (the head, its cents, its accidental, ledger lines and octave mark, and the trail's own points: on auto, place them from `reading.target`/`reading.cents` — the same hysteresis-held note and offset the level shows — not `reading.heard.nearest`/`reading.heard.cents`; with a target pinned, keep `heard.nearest`/`heard.cents` exactly as now, per REQ-005's "with a target, the note nearest the detected pitch")
@@ -1540,7 +1540,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 > Appended 2026-09-29 by converge round 1 (converge.md I6); `practice.tuner/REQ-003` S4 and S6 reworded with the user's approval.
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/TunerStave.tsx` (`referenceNoteOf`, line ~305: take `effectiveReading` — the live-or-lingering reading already computed at line 349 — in place of `reading`, so the caption lingers whenever the head does; the "<note> IS" block, lines ~930–953: give it the same stale `data-state`/`aria-hidden` attributes the "HEARD" block already carries, and grey its colour — `paper.faint` while stale, `paper.inkMid` live — instead of the fixed `paper.inkMid` it uses now)

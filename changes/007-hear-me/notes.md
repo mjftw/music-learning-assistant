@@ -682,3 +682,18 @@ by name in 003 (2026-09-23), 005 (2026-09-24) and 004 (2026-09-26, same
 0.57 ms overage on the first run); 007 does not touch the scheduler. Not
 re-walked on the phone for 007 — that harness measures general playback
 timing, not this change's own budget (which was walked at T024).
+
+## Converge round 1 — all seven fixes reviewed clean (2026-09-29)
+
+T033, T034, T035, T036, T037, T038, T039 — all SPEC PASS, QUALITY PASS.
+Minor, may-defer items carried to converge round 2:
+- T036's report narrated a second failing harness run whose table wasn't
+  pasted (a documentation gap, not a code defect — the code path itself
+  was independently verified).
+- T037's NoteJudged schema reproduces its sibling's narrower accidental
+  enum (natural/sharp/flat vs the real natural/sharp/flat/doubleSharp/
+  doubleFlat) — the brief required mirroring the sibling exactly; nothing
+  that populates NoteJudged ever spells a double accidental.
+- T038's REQ-003/S2 (nothing ever heard, target pinned) is proven for the
+  stave's caption by code equivalence to an already-tested terminal
+  state, not a direct assertion from that literal entry point.
