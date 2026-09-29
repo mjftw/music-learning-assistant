@@ -16,3 +16,11 @@ pnpm install         # install dependencies
 pnpm dev             # run the app — open the printed URL (add --host to reach it from your phone)
 pnpm check           # everything: format check, lint, typecheck, tests
 ```
+
+## Deploying
+
+Every pull request is built, linted and tested by `.github/workflows/ci.yml`;
+every push to `main` is also published to Cloudflare Pages at
+<https://fifths.mjftw.net>. For the one-off
+setup (Pages project, API token, GitHub secrets, the Fasthosts CNAME), see
+[`docs/deploy.md`](docs/deploy.md).
