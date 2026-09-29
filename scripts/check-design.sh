@@ -91,7 +91,9 @@ declare -A USED=()
 for row in "${ROWS[@]}"; do
   IFS='|' read -r _ screen state route design reqs _ <<<"$row"
   strip() { printf '%s' "$1" | sed -e 's/^ *//' -e 's/ *$//' -e 's/^`//' -e 's/`$//'; }
-  screen=$(strip "$screen"); state=$(strip "$state"); design=$(strip "$design"); reqs=$(strip "$reqs")
+  # A cell may carry a description after its name: "`listening` — the reading…".
+  name() { local c; c=$(printf '%s' "$1" | sed -e 's/^ *//' -e 's/ *$//'); [[ "$c" =~ ^\`([^\`]+)\` ]] && printf '%s' "${BASH_REMATCH[1]}" || strip "$1"; }
+  screen=$(name "$screen"); state=$(name "$state"); design=$(name "$design"); reqs=$(strip "$reqs")
   label="$screen · $state"
   # design file
   file="${design%%\?*}"; qs="${design#*\?}"; [[ "$qs" == "$design" ]] && qs=""
