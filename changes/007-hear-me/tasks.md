@@ -1566,6 +1566,91 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 **Verify** — `pnpm check` → green; `grep -n "ece4d5" src/ui/TargetSheet.tsx` → nothing.
 
+### T040 · practice.tuner/REQ-006 · Diagnose `test:tuner`'s fresh-launch first-readout failure (converge round 2, C1)
+
+> Appended 2026-09-29 by converge round 2 (`.sdd/reports/007-hear-me/converge.md` C1). Not built — the user chose to ship with this open and track it here. A background investigation (clock-sync instrumentation of `scripts/tuner-timing-test.mjs`'s onset math on a cold AudioContext) was in flight when the change shipped; read its findings before starting, don't re-derive them.
+
+**Status:** todo
+
+**Steps**
+- [ ] 1. On a freshly-launched browser, the sine sweep's first tone (E2) reads first-readout 133–205 ms against the 100 ms budget, 3 of 3 runs, at low system load. Confirm whether this is the harness's `onsetPerfMs` wall-clock/audio-clock synchronization sample being wrong right after a cold AudioContext (the audio-clock-only `arrival age` stayed low, ~8 ms, in one probe while the wall-clock figure read 133 ms — pointing at the harness, not the app), or a genuine cold-start cost in the app (WASM/worklet warm-up not finished by `prerollSeconds`).
+- [ ] 2. Fix whichever it is: the harness's synchronization approach, or the app's cold-start path. Re-run `test:tuner` from a fresh launch at least 5 times.
+
+**Verify** — `APP_URL=https://localhost:5173 pnpm test:tuner` PASSES from a freshly-launched browser, repeatedly.
+
+### T041 · practice.tuner/REQ-005 · The trail and head redraw against the current target, not the target each reading was judged under (converge round 2, W1)
+
+> Appended 2026-09-29 by converge round 2 (converge.md W1) — a regression from T033. `src/ui/TunerStave.tsx:128-135`'s `headReadingOf(judged, targetNote)` reads the CURRENT `targetNote`, not whatever target was pinned when each `judged` reading was made, so clearing or changing a pinned target repaints history that never happened (live: pin A4, play C5, stop, clear the target quickly — the head jumps from C5 to A4 and the strip cents read "+301"; a trail point moves after the target that judged it is gone).
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/TunerStave.tsx`
+
+**Steps**
+- [ ] 1. `headReadingOf` needs to know, per reading, whether IT was judged against a pinned target — not the screen's current pin state. `NoteJudged` doesn't carry that distinction explicitly; find or add a way to tell (comparing `judged.cents` to whether it was clamped, or a field, or deriving it some other way that doesn't change `NoteJudged`'s shape without a spec reason) so a historical trail point and the lingering head keep the placement they were drawn with when they were live, and only the CURRENT reading (still being judged) reflects a change of target.
+- [ ] 2. Red, then green: pin A4, hear C5 (head/trail at C5's raw nearest-note placement, correct per REQ-005's pinned rule), stop, clear the target — the lingering head and every existing trail point stay exactly where they were; only a NEW reading after the clear uses the new auto rule.
+
+**Verify** — `pnpm check` → green; the scenario above, live or in a test.
+
+### T042 · practice.tuner/REQ-002, practice.tuner/REQ-004 · The tag still covers the "halfway to" labels at 360×660 (converge round 2, W2)
+
+> Appended 2026-09-29 by converge round 2 (converge.md W2). T034 stopped the tag covering the header; at 360×660, flat readings past about −38 ¢ still cover the "↓ flat · halfway to <note>" label lower on the level.
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/TunerLevel.tsx`
+
+**Steps**
+- [ ] 1. Extend T034's clamp so the tag also can't land on the "halfway to" rows at the level's own top/bottom — not just the header above the level.
+- [ ] 2. Measured at 360×660, 360×780 and 390×844: the tag never overlaps the header OR the halfway labels, sharp or flat, over the full ±range including beyond ±50¢.
+
+**Verify** — `pnpm check` → green; a browser measurement at the three viewports, both directions.
+
+### T043 · practice.tuner/REQ-003 · The "<note> IS" label itself lingers, fades and hides from assistive technology (converge round 2, W3)
+
+> Appended 2026-09-29 by converge round 2 (converge.md W3). T038 made the Hz VALUE linger and fade; the caption's LABEL text (e.g. "A4 IS") is a static `paper.faint` caption that never changes appearance, so it neither fades over the 0.2s nor carries `aria-hidden` while stale — it just snaps to "— IS" the instant the value finishes. The user, looking at it live, found the overall effect convincing (the value's fade dominates what's visible) but agreed the label itself should carry the same treatment as everything else that lingers.
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/TunerStave.tsx` (the `referenceLabel` div, alongside `reference-hz`)
+
+**Steps**
+- [ ] 1. Give the label div the same `data-state`/`aria-hidden`/opacity treatment `reference-hz` already has, driven by the same `headStaleAttrs`.
+
+**Verify** — `pnpm check` → green; a test asserting the label carries `data-state="fading"`/`aria-hidden="true"` during the linger, same as the value.
+
+### T044 · practice.tuner/REQ-004 · Hold in the hand-over band still pins the raw nearest note, not the shown one (converge round 2, W4)
+
+> Appended 2026-09-29 by converge round 2 (converge.md W4) — round 1's W1 covered this too; T033 fixed the STAVE's disagreement with the level but not Hold itself. `src/ui/TargetSheet.tsx:233`, `src/practice/domain/session.ts:1645`: in the 50–56¢ hand-over band, Hold still offers and pins `heard.nearest` (e.g. A♯4) while the big name shows the hysteresis-held note (A4).
+
+**Status:** todo
+
+**Files**
+- Modify: `src/practice/domain/session.ts` (`holdTarget`, around line 1645)
+
+**Steps**
+- [ ] 1. Hold should pin whatever the big name is currently showing (the hysteresis-held shown note, `tunerShownPosition`/the reading's `target`), not the raw nearest note, in the hand-over band — matching REQ-004/S1's "the note playing now" as the level itself shows it.
+- [ ] 2. With a target already pinned, Hold's own behaviour (pinning the raw heard note) is unaffected — this only concerns Hold while on auto.
+
+**Verify** — `pnpm check` → green; settle on A4, move to +53¢ (still A4, hysteresis-held), tap Hold — the target pins A4, not A♯4.
+
+### T045 · — · `#b0a797` is 007's own colour, not pre-existing debt (converge round 2, W5 — corrects the controller's round-1 error)
+
+> Appended 2026-09-29 by converge round 2 (converge.md W5). Round 1's controller wrongly listed `#b0a797` among colours that "predate 007" when narrowing W7's deferral; checked again: `#b0a797` was introduced by 007 itself, in T017 (`c0c7762`), unlike `#e0d7c5`/`#756c60`/`#5e564c`, which genuinely do predate 007 (verified by `git log -S`, each traces to 002/003/004). The `## Deferred` entry below is corrected to reflect this.
+
+**Status:** todo
+
+**Files**
+- Modify: `src/ui/TargetSheet.tsx` (`HOLD_TITLE_COLOR_OFF = "#b0a797"` — promote to a token in `src/ui/theme.ts` or justify in `notes.md` why not)
+
+**Steps**
+- [ ] 1. Check whether `#b0a797` matches or is close to an existing token; if not, promote it (name it in `docs/design.md` §8) or justify leaving it as a literal.
+
+**Verify** — `pnpm check` → green; `grep -n "b0a797" src/ui/TargetSheet.tsx` → either gone or justified in `notes.md`.
+
 ### T025 · — · Converge
 
 **Status:** todo
@@ -1627,4 +1712,5 @@ Scenario → task: listening REQ-001/S1–S3 T003; REQ-002/S1–S5 T001 (S5 also
 - Chromium's file-based fake microphone — the fallback route for T021 if the in-page override cannot be attached; not built unless needed.
 - Tablet / laptop layouts of the tuner — design §2 "later".
 - **Converge W6** (`.sdd/reports/007-hear-me/converge.md`): the consumed `PitchDetected` shape appears directly in practice's domain code (`domain/tuner.ts`, `domain/session.ts`) rather than translated at the `ListeningPort` adapter. Accepted by the user as this repo's established reading — `sound`'s events have crossed the same way since 003, and `check-contexts.sh` is clean. To be raised as a `docs/engineering.md` §6 question (whether a port signature may carry the upstream context's own published event type) via `sdd-engineering` › Refine, in a later session — not built here.
-- **Converge W7, the rest** (`.sdd/reports/007-hear-me/converge.md`): `#e0d7c5`, `#756c60`, `#5e564c`, `#b0a797` and the `rgba(138,75,42,…)` pair are pre-existing, repo-wide unpromoted literals (present since 001–006, in `CircleOfFifths.tsx`, `DronePill.tsx`, `DroneSheet.tsx`, `KeyPanel.tsx`, `overlay.tsx`, `ScaleRow.tsx`, `TransportCard.tsx`, `TraversalSheet.tsx` and others), not introduced by 007 — `check-design.sh` only scans `.css`, so it never caught any of them, in this change or any earlier one. Promoting them is a repo-wide token exercise, not proportionate to this slice; T039 fixes the one exact-token match in 007's own file. The tooling gap (`check-design.sh` should scan `.tsx` literals too) is proposed via `sdd-engineering` › Refine alongside W6, not built here.
+- **Converge W7, the rest** (`.sdd/reports/007-hear-me/converge.md`; corrected 2026-09-29 by round 2's W5 — `#b0a797` was wrongly included here, see T045): `#e0d7c5`, `#756c60`, `#5e564c` are pre-existing, repo-wide unpromoted literals (verified by `git log -S`: each traces to 002/003/004, present in `CircleOfFifths.tsx`, `DronePill.tsx`, `DroneSheet.tsx`, `KeyPanel.tsx`, `overlay.tsx`, `ScaleRow.tsx`, `TransportCard.tsx`, `TraversalSheet.tsx` and others), not introduced by 007 — `check-design.sh` only scans `.css`, so it never caught any of them, in this change or any earlier one. Promoting them is a repo-wide token exercise, not proportionate to this slice; T039 and T045 fix the two exact/promotable matches in 007's own files. The tooling gap (`check-design.sh` should scan `.tsx` literals too) is proposed via `sdd-engineering` › Refine alongside W6, not built here.
+- **Converge round 2, shipped with these open** (`.sdd/reports/007-hear-me/converge.md`): the user chose to stop the convergence loop and ship — C1 (T040), W1 (T041), W2 (T042), W3 (T043), W4 (T044) and W5's correction (T045) are tracked as follow-up tasks above, not built before this PR. The change was NOT marked `implemented`/`converged`; that gate is still open.
