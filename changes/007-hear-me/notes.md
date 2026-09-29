@@ -669,3 +669,16 @@ For converge:
   at 1× where the others are at 2×. `src/ui/global.css`' three warned
   values are the body's `#ddd6c7` and two mentions of colours in its
   comment, all from 002.
+
+## Pre-converge harness run (2026-09-29)
+
+`APP_URL=https://localhost:5173 pnpm test:tuner` — PASS (worst first
+readout 77.00 ms at B3; shown err max 1 ¢ at A♯6).
+
+`APP_URL=https://localhost:5173 pnpm test:timing` — first run FAIL at 200
+bpm (`vs audible` 30.57 ms, 0.57 ms over ±30); second run PASS throughout
+(200 bpm 24.00 ms). Matches the laptop-headroom pattern already accepted
+by name in 003 (2026-09-23), 005 (2026-09-24) and 004 (2026-09-26, same
+0.57 ms overage on the first run); 007 does not touch the scheduler. Not
+re-walked on the phone for 007 — that harness measures general playback
+timing, not this change's own budget (which was walked at T024).
