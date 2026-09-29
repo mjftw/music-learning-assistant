@@ -2,6 +2,10 @@
 
 Chronological history of this bundle. Newest date first.
 
+## 2026-09-29
+
+- Design Principles `docs/design.md` → approved (human:merlin-webster)
+
 ## 2026-09-27
 
 - Task List `changes/007-hear-me/tasks.md` → approved (human:merlin-webster)

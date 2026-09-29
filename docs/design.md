@@ -16,8 +16,10 @@ verified:
     at: 2026-09-27T11:13:59Z
   - by: human:merlin-webster
     at: 2026-09-27T22:18:38Z
+  - by: human:merlin-webster
+    at: 2026-09-29T19:10:23Z
 sdd_phase: approved
-sdd_version: 1.0.0
+sdd_version: 1.1.0
 sdd_interface: yes
 master: ~/.config/sdd/design-taste.md
 ---
@@ -193,7 +195,9 @@ is authoritative for the values; this table names the roles).
 | type scale | 164 · 40 · 22 · 20 · 17 · 15 · 14.5 · 14 · 13 · 12.5 · 12 · 11.5 · 11 · 10.5 · 10 · 9.5 px | the sizes the designs use; a new size is a departure noted in `notes.md` |
 | spacing | 2 · 4 · 6 · 8 · 9 · 10 · 12 · 14 · 16 · 18 · 20 · 24 px | gaps and padding |
 | radii | 999 (pill) · 18 (the column) · 16 (transport card) · 14 (cards, sheets' rows) · 12 (tiles) · 10 (segmented pills) · 6 (tags) · 4 (the level's line) | corners |
-| motion | sheet slide `.34s cubic-bezier(.32,.72,0,1)` · scrim `.26s ease` · the tuner head and cents `.18s cubic-bezier(.3,.7,.3,1)` · the strip's vertical centring `.35s cubic-bezier(.3,.7,.3,1)` · drone pill `.2s ease` | the only animations; every one shows a state change or time passing (§3 Unhurried) |
+| motion | sheet slide `.34s cubic-bezier(.32,.72,0,1)` · scrim `.26s ease` · the tuner head and cents `.18s cubic-bezier(.3,.7,.3,1)` · drone pill `.2s ease` | the only animations; every one shows a state change or time passing (§3 Unhurried) |
+| `motion.lingerHoldMs` | 600 ms | how long a reading that has stopped stays, grey, before it fades |
+| `motion.lingerFadeMs` | 200 ms | the fade of a lingering reading; "Play a note" coming in |
 
 ## 9. Patterns
 
@@ -202,7 +206,10 @@ is authoritative for the values; this table names the roles).
 
 | Pattern | Settled by | Reference | Rule |
 |---|---|---|---|
-| | | | |
+| A screen fits the visible height | 007 round 5 | `changes/007-hear-me/design/reference/tuner--listening--360x660.png` | The screen is exactly the visible height, following the browser's bars (`.visible-height`: `100vh`, then `100dvh`). Blocks of fixed height keep their size and one region flexes, its scale shrinking with it. Text never shrinks. Below the flexing region's minimum the page scrolls. |
+| What was heard goes grey | 007 rounds 2–4 | `changes/007-hear-me/design/reference/tuner--target-pinned.png` | Anything that shows a past sound rather than a live one is grey (`paper.faint`, `tuner.ghostInk`) and is not updated: the lingering reading, the trail in silence, the spiral's needle on the last note heard. It is hidden from assistive technology. |
+| A live reading is never delayed by motion | 007 round 4 | `changes/007-hear-me/design/reference/tuner--listening.png` | Holds and fades apply only to what is going away. A new reading appears at once, at full strength. Reduced motion removes what is going away at the end of the same time, without fading. |
+| Readings are smoothed, jumps are not | 007 round 1 | `changes/007-hear-me/design/reference/tuner--listening.png` | A live value that jitters is low-pass filtered (a tenth of the way per reading); a change larger than the jitter (25 ¢) is shown at once, as is the first reading after silence. |
 
 ## Screens
 
@@ -218,3 +225,9 @@ is authoritative for the values; this table names the roles).
 
 | Date | Change | Section | What changed | Why |
 |---|---|---|---|---|
+| 2026-09-28 | 007-hear-me | §9 | Round 1: the shown offset is low-pass filtered; a jump of more than 25 ¢ is shown at once | "it jumps around 'in tune' a lot and it's quite jarring" |
+| 2026-09-28 | 007-hear-me | §9 | Round 2: Hold and the spiral's needle remember the last note heard, greyed | "press hold … without needing to press while you're playing which is often not possible" |
+| 2026-09-28 | 007-hear-me | §9 | Round 3: the stave's trail is 2.5 s, placed by age, and drifts off in silence | the trail "gets wiped as soon as no note which feels jarring" |
+| 2026-09-28 | 007-hear-me | §8, §9 | Round 4: the last reading lingers grey 0.6 s and fades over 0.2 s — `motion.lingerHoldMs`, `motion.lingerFadeMs` | "very abrupt how quickly everything disappears … could it do more of a soft fade out?" |
+| 2026-09-29 | 007-hear-me | §9 | Round 5: the tuner fits the visible height; the level flexes | "too tall and doesn't fit on my phone without scrolling" (Galaxy S24, 360 px wide) |
+| 2026-09-29 | 007-hear-me | §8 | The motion row no longer lists the strip's `.35s` vertical centring | the code never had it; nobody missed it |

@@ -13,7 +13,7 @@ generated:
   at: 2026-09-27T09:55:30Z
 verified: []
 sdd_id: 007-hear-me
-sdd_phase: open           # open | exited
+sdd_phase: exited
 ---
 
 # Design rounds — 007-hear-me
@@ -247,9 +247,32 @@ sdd_phase: open           # open | exited
 
 ## Exit
 
-- **Exited:** <date>
-- **Reference screenshots:** `reference/<screen>--<state>.png` for every row
-  in the proposal's Interface table
-- **Promoted to `docs/design.md`:** <tokens and patterns, by name; or none>
-- **Requirement changes written to the delta:** <list, or none>
-- **Left for a later change:** <anything the user chose to stop short of>
+- **Exited:** 2026-09-29 — "Fits! I think we're good"; "Promote all" (the
+  user).
+- **Reference screenshots:** `reference/practice--way-in.png`,
+  `reference/tuner--listening.png`, `reference/tuner--silent.png`,
+  `reference/tuner--cannot-hear.png`, `reference/tuner--target-pinned.png`,
+  `reference/tuner--target-sheet.png` — one for every row of the
+  proposal's Interface table, at 390 × 844; and at the user's phone's size,
+  `reference/tuner--listening--360x660.png`,
+  `reference/tuner--cannot-hear--360x660.png`. `tuner--listening` is taken
+  with a 440 Hz tone fed as the microphone (`scripts/design-shots.mjs`'
+  listening state captures no reading — for converge).
+- **Promoted to `docs/design.md`** (v1.1.0): tokens `motion.lingerHoldMs`
+  600 ms, `motion.lingerFadeMs` 200 ms; patterns "A screen fits the
+  visible height", "What was heard goes grey", "A live reading is never
+  delayed by motion", "Readings are smoothed, jumps are not"; the motion
+  row corrected (no `.35s` vertical centring); six rows in the Refinement
+  log.
+- **Requirement changes written to the delta:** practice.tuner/REQ-002
+  (the smoothing clause, S6–S9); REQ-003 (the trail and the needle stay;
+  the last reading lingers and fades; S4–S6; S1, S3 reworded); REQ-004
+  (Hold and the needle remember the last note heard; S7, S8); REQ-005 (the
+  trail moves with time and outlives the note; S5, S6); REQ-009/S3
+  (leaving forgets the last note heard). Round 5 changed no requirement.
+- **Left for a later change:** the spiral's innermost wedges are about
+  25 px, under §5's tap-target size — notes below the flute's range, drawn
+  dimmed; accepted as they are (the user, 2026-09-29). The trail turns
+  grey the instant the note stops — left as built, in keeping with "What
+  was heard goes grey". The in-tune band on the stave strip does not
+  linger with the head. Tablet and laptop layouts (§2 "later").

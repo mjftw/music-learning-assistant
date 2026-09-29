@@ -207,6 +207,20 @@ Offered alongside: the in-tune band on the strip lingering too; revise.
 **Became:** `changes/007-hear-me/delta/practice/tuner.md` REQ-003 (the
 linger clause, S4–S6, S1 and S3 reworded)
 
+### Q12: 007 refinement loop, exit (sdd-design D) — what is promoted to docs/design.md
+**Recommended:** Promote all: tokens `motion.lingerHoldMs` 600 ms and
+`motion.lingerFadeMs` 200 ms; the motion row corrected (the strip's
+`.35s` vertical centring removed — the code never had it); patterns "A
+screen fits the visible height", "What was heard goes grey", "A live
+reading is never delayed by motion", "Readings are smoothed, jumps are
+not"; a Refinement log row per round; the spiral's 25 px inner wedges
+recorded as an accepted exception. Offered alongside: choose; build the
+`.35s` centring instead of removing it; not done yet.
+**Answer:** Promote all (Recommended).
+**Status:** decided
+**Became:** `docs/design.md` §8, §9, Refinement log (v1.1.0);
+`changes/007-hear-me/design/rounds.md` › Exit
+
 ## Not asked
 
 > Questions the interview deliberately skipped, and why (already decided in

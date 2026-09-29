@@ -655,3 +655,17 @@ For converge:
   at the 536 px fallback for one frame before it is measured.
 - `src/ui/global.css` carries three hard-coded values `check-design.sh`
   warns about (the body's background and the like), from before 007.
+
+## The refinement loop's exit (2026-09-29)
+
+- `scripts/check-design.sh` read the whole State cell of the proposal's
+  Interface table ("`listening` — 4a, State live/sweep: …") as the state's
+  name, so no reference file could match once the loop had exited; it now
+  takes the name between the cell's first backticks. 007 is the first
+  change to exit a loop with an Interface table.
+- For converge: `scripts/design-shots.mjs`' `tuner-listening` state
+  captures no reading (its image is the silent state's, byte for byte);
+  the reference `tuner--listening.png` was taken with a 440 Hz tone and is
+  at 1× where the others are at 2×. `src/ui/global.css`' three warned
+  values are the body's `#ddd6c7` and two mentions of colours in its
+  comment, all from 002.

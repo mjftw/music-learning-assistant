@@ -80,3 +80,5 @@
 - [Review package — T030 · 007-hear-me](T030-review-1.md) — Task Review — The diff produced for T030, for the task reviewer.
 - [T031 — implementation report](T031-report-1.md) — Implementation Report
 - [Review package — T031 · 007-hear-me](T031-review-1.md) — Task Review — The diff produced for T031, for the task reviewer.
+- [T032 — implementation report](T032-report-1.md) — Implementation Report
+- [Review package — T032 · 007-hear-me](T032-review-1.md) — Task Review — The diff produced for T032, for the task reviewer.
