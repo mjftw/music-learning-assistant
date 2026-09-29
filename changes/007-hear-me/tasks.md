@@ -1524,7 +1524,7 @@ _Ends with the tuner reachable from the header, grey and correct against 4a / 5c
 
 > Appended 2026-09-29 by converge round 1 (converge.md W5), fixed with the user's approval.
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/published/note-judged.schema.ts` (add `noteJudgedSchema`, following `src/practice/published/target-advanced.schema.ts`'s pattern exactly — a `noteSchema` for the nested `Note`, reused or duplicated the same way; `satisfies z.ZodType<NoteJudged>` so the schema and the interface cannot drift; rewrite the file's own comment, which currently argues NoteJudged should NOT be a Zod object — that reasoning is superseded by `docs/domain.md`'s "Events" table, which already names this file as `NoteJudged`'s schema)
