@@ -202,8 +202,9 @@ sdd_phase: open           # open | exited
   the best btw" (the user, on the phone, 2026-09-28).
 - **Rejected because (the timing):** A and B, the 1 s hold — not chosen;
   no words given.
-- **Requirement changed?** <pending — practice.tuner/REQ-003 (what
-  silence shows, and when)>
+- **Requirement changed?** yes: practice.tuner/REQ-003 — the linger
+  clause, S4–S6, S1 and S3 reworded — written to the delta with the
+  user's approval (2026-09-28). Built as T031.
 
 ### Round 5 — tuner · every state (the screen on the user's phone)
 
@@ -238,8 +239,11 @@ sdd_phase: open           # open | exited
   inside stretches to fill it. Headless Chromium has no bars, so the
   measurement did not see it. The column takes the visible height
   (`100dvh`) while the tuner shows.
-- **Requirement changed?** <pending — none expected: no requirement
-  names a size; a pattern for docs/design.md §9 at exit>
+- **On the phone with the column fixed:** "Fits! I think we're good" (the
+  user, 2026-09-29).
+- **Requirement changed?** no: no requirement names a size. A pattern for
+  docs/design.md §9 at exit — a screen takes the visible height and one
+  region flexes. Built as T032.
 
 ## Exit
 
