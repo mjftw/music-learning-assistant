@@ -12,16 +12,28 @@ The app is a static site (Article VII: no server, no runtime services).
 `pnpm build` writes plain files to `dist/`, and those files are served from
 **Cloudflare Pages** at <https://fifths.mjftw.net>.
 
-The GitHub Actions workflow `.github/workflows/deploy.yml` runs on every push
-to `main`:
+The GitHub Actions workflow `.github/workflows/ci.yml` has two jobs.
+
+**`check`** runs on every pull request and every push to `main`:
 
 1. installs Rust stable with the `wasm32-unknown-unknown` target, and Node from
    `.tool-versions` with pnpm;
 2. `pnpm install --frozen-lockfile`;
 3. `pnpm build:sound`, which builds the WASM that the tests and the build load;
-4. `pnpm check`, which is the gate: if it fails, nothing is published;
-5. `pnpm build`;
-6. `wrangler pages deploy dist --project-name=fifths --branch=main`.
+4. the repository guards: `scripts/check-contexts.sh`, `check-scenarios.sh`,
+   `check-specs.sh` and `check-design.sh`;
+5. `pnpm check`: prettier, eslint, tsc, vitest, cargo fmt, clippy and cargo
+   test;
+6. `pnpm build`, uploading `dist/` as the run's `dist` artifact (kept 7 days).
+
+**`deploy`** runs only on pushes to `main`, and only after `check` has passed.
+It downloads that same `dist/` and runs
+`wrangler pages deploy dist --project-name=fifths --branch=main`. A pull
+request never deploys, and a failing check means nothing is published.
+
+To make passing CI a requirement before merging, go to GitHub → Settings →
+Branches → add a rule for `main` → Require status checks to pass → select
+`check`.
 
 The build runs in GitHub Actions and not in Cloudflare's own Git builds because
 of the Rust toolchain. Cloudflare only hosts the finished `dist/`.
@@ -83,7 +95,7 @@ gh secret set CLOUDFLARE_ACCOUNT_ID --repo mjftw/music-learning-assistant
 
 ### 4. First deploy
 
-Push to `main`, or run the workflow by hand from Actions → deploy → Run
+Push to `main`, or run the workflow by hand from Actions → ci → Run
 workflow. When it finishes, the site is live at `https://fifths.pages.dev`.
 
 ### 5. Custom domain
@@ -148,7 +160,7 @@ the site ever moves to another host.
 ## Day to day
 
 - **Deploy:** merge to `main`.
-- **Redeploy without a commit:** Actions → deploy → Run workflow.
+- **Redeploy without a commit:** Actions → ci → Run workflow.
 - **Roll back:** Cloudflare → `fifths` → Deployments → pick an earlier
   production deployment → ⋯ → Rollback. This is instant, and nothing is
   rebuilt.

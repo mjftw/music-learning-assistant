@@ -1,0 +1,91 @@
+# Every pull request and every push to main: build, lint, typecheck and test.
+# Pushes to main then publish the checked build to Cloudflare Pages.
+# Setup and the secrets the deploy needs: docs/deploy.md.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch: # re-run on main by hand from the Actions tab
+
+# A new push to a PR cancels that PR's older run. Runs on main are never
+# cancelled, so a deploy is not cut off halfway.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy # pnpm check runs cargo fmt and clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .tool-versions
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The WASM under src/*/pkg/ is gitignored and the tests load it, so it
+      # is built before `check` (which has no pre-hook of its own).
+      - name: Build WASM
+        run: pnpm build:sound
+
+      # The repository's own guards: context boundaries, scenario coverage,
+      # artefact hygiene, design hygiene.
+      - name: Repository guards
+        run: |
+          ./scripts/check-contexts.sh
+          ./scripts/check-scenarios.sh
+          ./scripts/check-specs.sh
+          ./scripts/check-design.sh
+
+      # prettier, eslint, tsc, vitest, cargo fmt, clippy, cargo test.
+      - name: Lint, typecheck and test
+        run: pnpm check
+
+      - name: Build
+        run: pnpm build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  deploy:
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4 # wrangler reads the commit message from git
+
+      # Publish exactly what `check` built and tested; nothing is rebuilt.
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=fifths --branch=main --commit-hash=${{ github.sha }}
