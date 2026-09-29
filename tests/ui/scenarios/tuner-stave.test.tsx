@@ -11,9 +11,15 @@ import {
 // TunerStave.tsx's own TRAIL_X_START/TRAIL_X_END (practice.tuner/REQ-005) —
 // replicated here as the tests elsewhere in this file already replicate the
 // strip's other geometry (`translateY(109.6px)` etc.) rather than importing
-// a view's internals.
+// a view's internals. TRAIL_X_END shifted +34 px (174) along with the rest
+// of the stave's horizontal geometry right of the clef, at the user's
+// request after shipping, to use the card's width (TunerStave.tsx's own
+// header comment: a 46 px shift, tried first, wrapped the widest column
+// value onto two lines at the 360px floor viewport even once the column's
+// own left edge was made to scale with the drawing, so 34 px — the largest
+// verified not to — was used instead).
 const TRAIL_X_START = 52;
-const TRAIL_X_END = 140;
+const TRAIL_X_END = 174;
 
 function xsOf(pathD: string): readonly number[] {
   return pathD
@@ -270,4 +276,26 @@ test('practice.tuner/REQ-005 — nothing referenced reads "— IS" over "—"', 
   letLingerPass(f);
   expect(screen.getByText("— IS")).toBeTruthy();
   expect(screen.getByTestId("reference-hz").textContent).toBe("—");
+});
+
+// The card's spare width, reclaimed from the caption column at the user's
+// request after shipping (see TunerStave.tsx's header comment): the column
+// narrows to just fit its content and hugs the card's right edge, and the
+// stave (drawn geometry to its left) takes the rest. The column's own left
+// edge is `COLUMN_LEFT * cardScale` (below), a coordinate in the drawing's
+// own space like the rest of this geometry — jsdom never runs a
+// ResizeObserver, so `cardScale` is always the unscaled fallback (1) here,
+// and `left` is `COLUMN_LEFT` itself, unscaled.
+test("tuner stave — the caption column hugs the right edge and the stave takes the rest", async () => {
+  await enterTuner();
+  const topStaveLine = Array.from(document.querySelectorAll("svg line")).find(
+    (line) =>
+      line.getAttribute("y1") === "86" && line.getAttribute("y2") === "86",
+  );
+  expect(topStaveLine).toBeTruthy();
+  expect(topStaveLine!.getAttribute("x2")).toBe("230"); // STAVE_LINE_X2
+  const column =
+    screen.getByTestId("reference-hz").parentElement!.parentElement!;
+  expect(column.style.left).toBe("248px"); // COLUMN_LEFT × cardScale (1 in jsdom)
+  expect(column.style.right).toBe("12px"); // COLUMN_RIGHT, unchanged
 });

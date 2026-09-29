@@ -13,12 +13,32 @@ import { useMeasuredSize } from "./use-measured-size";
 // here rather than re-derived by eye or copied as markup. `diatonicIndex`
 // itself is shared with StaveView.tsx (./key-label.ts) rather than
 // duplicated.
+// The horizontal positions right of the clef were shifted by RIGHT_SHIFT and
+// the caption column narrowed (COLUMN_LEFT), at the user's request after
+// shipping, to give the stave some of the column's unused width. The
+// column's left edge scales with the drawing (`COLUMN_LEFT * cardScale`,
+// below) — like the rest of this geometry, COLUMN_LEFT is a coordinate in
+// the drawing's own CARD_WIDTH-wide space, not a real pixel offset — so it
+// always starts the same distance after the stave's end at any card width;
+// `right: COLUMN_RIGHT` stays a real-pixel margin from the card's own right
+// edge. The ceiling on the shift is still set by the narrowest supported
+// card (360px viewport → a ~328px card, smaller than CARD_WIDTH's own 358,
+// scaling the column down with it), where "2093.0 Hz" (the widest value
+// column text gets, at COLUMN_VALUE_FONT_SIZE) itself needs ~81px real
+// pixels: verified in a real browser down to a 34px shift (RIGHT_SHIFT,
+// below) with ~7px of margin to spare (a 46px shift, tried first, wrapped
+// "2093.0 Hz" onto two lines at 360px; a 42px shift, tried once the column
+// was made to scale with the drawing, still wrapped it).
 const CARD_WIDTH = 358;
 const CARD_HEIGHT = 144;
 const SVG_HEIGHT = 176;
 
+// Reclaimed from the caption column's spare width (COLUMN_LEFT, below) —
+// applied once here rather than as arithmetic scattered through the file.
+const RIGHT_SHIFT = 34;
+
 const STAVE_LINE_X1 = 12;
-const STAVE_LINE_X2 = 196;
+const STAVE_LINE_X2 = 196 + RIGHT_SHIFT; // 230
 const STAVE_TOP_LINE_Y = 86;
 const STAVE_BOTTOM_LINE_Y = 126;
 const STAVE_LINE_YS: readonly number[] = [86, 96, 106, 116, 126];
@@ -179,8 +199,8 @@ function ledgersFor(writtenIndex: number, x: number): readonly Ledger[] {
   return ledgers;
 }
 
-const HEARD_X = 150;
-const TARGET_X = 182;
+const HEARD_X = 150 + RIGHT_SHIFT; // 184
+const TARGET_X = 182 + RIGHT_SHIFT; // 216
 
 const HEAD_RX = 8.2;
 const HEAD_RY = 5.4;
@@ -194,13 +214,13 @@ const HEAD_INNER_ROTATE_DEGREES = -35;
 const CENTS_TO_PX_DRIFT = 0.07;
 const MAX_DRIFT_CENTS = 50;
 
-const ACCIDENTAL_X_HEARD = 133;
-const ACCIDENTAL_X_TARGET = 167;
+const ACCIDENTAL_X_HEARD = 133 + RIGHT_SHIFT; // 167
+const ACCIDENTAL_X_TARGET = 167 + RIGHT_SHIFT; // 201
 const ACCIDENTAL_FONT_SIZE = 20;
 const ACCIDENTAL_LOWERED_Y_ADJUST = -3; // a flat's descender needs a nudge up
 
 const GUIDE_X1 = 52;
-const GUIDE_X2 = 166;
+const GUIDE_X2 = 166 + RIGHT_SHIFT; // 200
 const GUIDE_DASH = "2 4";
 const GUIDE_STROKE_WIDTH = 1;
 
@@ -209,7 +229,7 @@ const GUIDE_STROKE_WIDTH = 1;
 // practice/published constant), matching the design's own literal band
 // arithmetic (`band` = 5, `PXC` = 0.07).
 const BAND_HALF_WIDTH_CENTS = 5;
-const BAND_X = 126;
+const BAND_X = 126 + RIGHT_SHIFT; // 160
 const BAND_WIDTH = 48;
 const BAND_RADIUS = 6;
 const BAND_TOP_OFFSET = BAND_HALF_WIDTH_CENTS * CENTS_TO_PX_DRIFT + 6;
@@ -227,7 +247,7 @@ const TARGET_MARK_ABOVE_OFFSET = 30;
 const OCTAVE_MARK_HEIGHT = 14; // for the centring pass below
 
 const TRAIL_X_START = 52;
-const TRAIL_X_END = 140;
+const TRAIL_X_END = 140 + RIGHT_SHIFT; // 174
 const TRAIL_STROKE_WIDTH = 2.2;
 const TRAIL_GRADIENT_ID = "tuner-stave-trail-fade";
 
@@ -255,7 +275,7 @@ function trailXOf(age: number): number {
   return TRAIL_X_END - (age / TRAIL_MS) * (TRAIL_X_END - TRAIL_X_START);
 }
 
-const COLUMN_LEFT = 214;
+const COLUMN_LEFT = 214 + RIGHT_SHIFT; // 248 — the drawing-space x that, scaled, just fits "2093.0 Hz"
 const COLUMN_RIGHT = 12;
 const COLUMN_TOP = 30;
 const COLUMN_BOTTOM = 30;
@@ -361,10 +381,12 @@ export function TunerStave(props: {
   // was sized for the 390px column): the drawing (the `<svg>` and the HTML
   // glyphs beside it that share its coordinate space — the clef, octave
   // marks, accidentals, cents figure) is measured and scaled down as one
-  // unit, preserving aspect ratio; the HEARD/IS column (positioned by
-  // left/right, not by this scale) keeps its own font sizes. `null` before
-  // the first measurement and always in jsdom (no ResizeObserver there) —
-  // the fallback (1, unscaled) is exactly today's card.
+  // unit, preserving aspect ratio; the HEARD/IS column's own left edge
+  // scales the same way (`COLUMN_LEFT * cardScale`, below) so it always
+  // starts the same distance after the stave's end, but its `right` and its
+  // own font sizes stay real pixels, unscaled. `null` before the first
+  // measurement and always in jsdom (no ResizeObserver there) — the
+  // fallback (1, unscaled) is exactly today's card.
   const { ref: sizeRef, size: cardSize } = useMeasuredSize<HTMLDivElement>();
   const cardScale =
     cardSize === null ? 1 : Math.min(1, cardSize.width / CARD_WIDTH);
@@ -936,7 +958,7 @@ export function TunerStave(props: {
       <div
         style={{
           position: "absolute",
-          left: COLUMN_LEFT,
+          left: COLUMN_LEFT * cardScale,
           right: COLUMN_RIGHT,
           top: COLUMN_TOP,
           bottom: COLUMN_BOTTOM,
