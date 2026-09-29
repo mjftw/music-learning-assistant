@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import type { NoteJudged } from "../../../src/practice/published";
+import { noteJudgedSchema } from "../../../src/practice/published/note-judged.schema";
 import { noteLabel } from "../../../src/theory/published";
 import { sessionOn } from "../fakes";
 import { enter, hear, hearSteady } from "../tuner-helpers";
@@ -109,4 +110,25 @@ test("practice.tuner/REQ-003/S3 — a breath between notes", async () => {
   expect(f.session.snapshot().tuner.reading).toBeNull();
   hear(f, 445.0);
   expect(f.session.snapshot().tuner.reading).toMatchObject({ cents: 20 });
+});
+
+test("note judged schema — a valid NoteJudged parses; a non-integer octave is refused", () => {
+  const validNoteJudged: NoteJudged = {
+    target: { letter: "A", accidental: "natural", octave: 4 },
+    cents: 20,
+    verdict: "sharp",
+    heard: {
+      hz: 445.0,
+      nearest: { letter: "A", accidental: "natural", octave: 4 },
+      cents: 20,
+    },
+    atFrame: 0,
+  };
+  expect(noteJudgedSchema.safeParse(validNoteJudged).success).toBe(true);
+  expect(
+    noteJudgedSchema.safeParse({
+      ...validNoteJudged,
+      target: { ...validNoteJudged.target, octave: 4.5 },
+    }).success,
+  ).toBe(false);
 });

@@ -5,16 +5,30 @@
 // whatever's left, its geometry (`levelGeometryFor`) scaling to fit.
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
-import { levelGeometryFor } from "../../../src/ui/TunerLevel";
+import { levelGeometryFor, readingGeometry } from "../../../src/ui/TunerLevel";
 import { builtInCatalogue } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
 import { localStorageSelectionStore } from "../../../src/ui/selection-store";
+import type { NoteJudged } from "../../../src/practice/published";
 import { sessionDepsWithFakes } from "../../practice/fakes";
 import { enterAndHear } from "./tuner-helpers";
 
 afterEach(() => {
   cleanup();
 });
+
+// A minimal NoteJudged — `readingGeometry` reads only `cents` and
+// `verdict`; target/heard/atFrame are filler to satisfy the type.
+function fakeReading(cents: number): NoteJudged {
+  const note = { letter: "A", accidental: "natural", octave: 4 } as const;
+  return {
+    target: note,
+    cents,
+    verdict: cents >= 0 ? "sharp" : "flat",
+    heard: { hz: 440, nearest: note, cents: 0 },
+    atFrame: 0,
+  };
+}
 
 test("practice.tuner/REQ-002 — the level's geometry follows its own height, keeping today's ratio of span to height", () => {
   // At height 352 the centre (`areaMid`) is at 176, and a reading of +20
@@ -66,6 +80,59 @@ test("practice.tuner/REQ-002 — on the practice screen the column has its inlin
   const column = container.firstElementChild as HTMLElement;
   expect(column.className).toBe("");
   expect(column.style.minHeight).toBe("100vh");
+});
+
+test("practice.tuner/REQ-004 — past +50 ¢ pinned, the tag sits below the line, not covering the header (converge round 1 W2)", () => {
+  const geometry = levelGeometryFor(536);
+  const g = readingGeometry(
+    fakeReading(81),
+    geometry.areaMid,
+    geometry.areaHeight,
+    geometry.pxPerCent,
+  );
+  expect(g.lineTop).toBeCloseTo(9.5, 2); // pinned at +50: 268 − 255 − 3.5
+  expect(g.tagTop).toBeCloseTo(45.5, 2); // sharp-over: lineTop + 36
+  expect(g.tagTop).toBeGreaterThan(g.lineTop);
+});
+
+test("practice.tuner/REQ-004 — past −50 ¢ pinned, the tag sits above the line (converge round 1 W2)", () => {
+  const geometry = levelGeometryFor(536);
+  const g = readingGeometry(
+    fakeReading(-81),
+    geometry.areaMid,
+    geometry.areaHeight,
+    geometry.pxPerCent,
+  );
+  expect(g.lineTop).toBeCloseTo(519.5, 2); // pinned at −50: 268 + 255 − 3.5
+  expect(g.tagTop).toBeCloseTo(461.5, 2); // flat-over: lineTop − 58
+  expect(g.tagTop).toBeLessThan(g.lineTop);
+});
+
+test("practice.tuner/REQ-002 — a non-over reading's tag keeps today's placement (converge round 1 W2)", () => {
+  const geometry = levelGeometryFor(536);
+  const g = readingGeometry(
+    fakeReading(20),
+    geometry.areaMid,
+    geometry.areaHeight,
+    geometry.pxPerCent,
+  );
+  expect(g.tagTop).toBeCloseTo(126.5, 2); // unchanged from today: lineTop − 36
+});
+
+test("practice.tuner/REQ-002 — the non-over tag's clamp margins scale with the level's own height, not fixed pixels (converge round 1 W2)", () => {
+  const geometry = levelGeometryFor(300);
+  const g = readingGeometry(
+    fakeReading(-50),
+    geometry.areaMid,
+    geometry.areaHeight,
+    geometry.pxPerCent,
+  );
+  // Unscaled (today's fixed 30/62 at 536 px), the raw tagTop (297.22) would
+  // clamp only against 536 − 62 = 474 and pass through untouched; scaled by
+  // this height's own ratio (300 / 536), the bottom margin shrinks to
+  // 300 − 0.56·62 ≈ 265.3, so the tag is pulled up to stay inside the level.
+  expect(g.tagTop).toBeCloseTo(265.3, 1);
+  expect(g.tagTop).toBeLessThan(474);
 });
 
 test("practice.tuner/REQ-002 — the level's minimum height is 300", async () => {

@@ -45,6 +45,33 @@ test("practice.tuner/REQ-005/S1 — A4 a little sharp", async () => {
   expect(screen.queryByText("8va")).toBeNull();
 });
 
+// practice.tuner/REQ-002, practice.tuner/REQ-005 — converge round 1 (W1):
+// on auto the stave's head must agree with the level, not the raw heard
+// note. A4 settles at 440 Hz (the first reading is shown as detected,
+// REQ-002/S8, so a single feed already settles the smoothing filter); one
+// feed at 454 Hz then jumps the smoothed pitch straight to 454 (+54 ¢ raw,
+// past SNAP_CENTS's 25 ¢, so it snaps rather than creeps — no need to feed
+// it twice), 56 ¢ (HANDOVER_CENTS) short of crossing, so A4 is still shown,
+// clamped to +50 (tests/practice/scenarios/tuner-reading.test.ts's own
+// REQ-002/S4 confirms `reading.target`/`.cents` land on A4/+50 here). The
+// raw nearest note to 454 Hz is A♯4 at about −46 ¢ (`reading.heard.nearest`/
+// `.cents`) — the bug drew the head there instead of at the level's own A4
+// +50.
+test("practice.tuner/REQ-002, practice.tuner/REQ-005 — the stave head agrees with the level in the hand-over band (converge round 1, W1)", async () => {
+  const f = await enterAndHear(440.0);
+  f.listening.feed(454.0);
+  f.clock.advanceMs(1);
+  await act(async () => {});
+  expect(screen.getByTestId("heard-head").style.transform).toBe(
+    "translateY(107.5px)",
+  ); // A4: i = 33, guide y = 111, −50·0.07 — not A♯4's −(−46)·0.07
+  expect(screen.queryByTestId("heard-accidental")).toBeNull(); // A4 is natural, not A♯4's ♯
+  expect(screen.getByTestId("strip-cents").textContent).toBe("+50");
+  expect(screen.getByTestId("strip-cents").style.color).toBe(
+    "oklch(0.55 0.11 28)",
+  ); // the level's own warm/sharp colour (docs/design.md §8)
+});
+
 test("practice.tuner/REQ-005/S2 — a flat accidental", async () => {
   await enterAndHear(461.0, "flat");
   expect(screen.getByTestId("heard-accidental").textContent).toBe("♭");
@@ -234,9 +261,13 @@ test("practice.tuner/REQ-005 — the frame loop never runs while a note sounds, 
 });
 
 test('practice.tuner/REQ-005 — nothing referenced reads "— IS" over "—"', async () => {
+  // practice.tuner/REQ-003/S4 (converge round 1, I6) — the "<note> IS"
+  // caption now lingers with the head (T038): nothing is truly referenced
+  // only once the screen's own linger has fully passed, not merely once the
+  // session's reading has cleared.
   const f = await enterAndHear(440.0);
-  f.clock.advanceMs(300);
-  await act(async () => {});
+  await letGapPass(f);
+  letLingerPass(f);
   expect(screen.getByText("— IS")).toBeTruthy();
   expect(screen.getByTestId("reference-hz").textContent).toBe("—");
 });

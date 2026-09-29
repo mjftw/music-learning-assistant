@@ -117,14 +117,35 @@ function heardWrittenPositionOf(
   return { index, y: writtenY(index), mark: octaveMarkOf(adj + ownShift) };
 }
 
+// practice.tuner/REQ-002, REQ-005 (converge round 1, W1) — the note and
+// cents the stave's head, its trail and its accidental show: pinned, "the
+// note nearest the detected pitch" (REQ-005) — the raw heard note, exactly
+// as before; on auto, the same hysteresis-held note and offset the level
+// itself shows (`judged.target`/`.cents`), not the raw nearest note
+// (`judged.heard.nearest`/`.cents`), so the stave never disagrees with the
+// level in the 50-56 ¢ hand-over band (`snapshot.targetNote`, non-null only
+// when pinned).
+function headReadingOf(
+  judged: NoteJudged,
+  targetNote: Note | null,
+): { readonly note: Note; readonly cents: number } {
+  return targetNote !== null
+    ? { note: judged.heard.nearest, cents: judged.heard.cents }
+    : { note: judged.target, cents: judged.cents };
+}
+
 // The raw index that governs the register decision: the pinned target when
-// there is one, else the heard note (the design's `ref`).
+// there is one, else the heard note (the design's `ref`) — the same note
+// `headReadingOf` would show, so the register never shifts under a note the
+// head itself no longer draws.
 function referenceRawIndexOf(
   targetNote: Note | null,
   reading: NoteJudged | null,
 ): number | null {
   if (targetNote !== null) return diatonicIndex(targetNote);
-  if (reading !== null) return diatonicIndex(reading.heard.nearest);
+  if (reading !== null) {
+    return diatonicIndex(headReadingOf(reading, targetNote).note);
+  }
   return null;
 }
 
@@ -302,6 +323,10 @@ function targetMarkY(mark: OctaveMark, y: number): number {
 // (practice.tuner/REQ-003/S2), else the reading's own nearest note
 // (`reading.target` already carries whichever governs measurement — the
 // pinned target, or the hysteresis-tracked nearest note on auto).
+// practice.tuner/REQ-003/S4, S6 (converge round 1, I6) — takes the
+// live-or-lingering reading (`effectiveReading`, not the live-only
+// `reading`), so the caption lingers and fades with the "HEARD" caption
+// rather than clearing to "— IS" the instant a reading goes null.
 function referenceNoteOf(
   reading: NoteJudged | null,
   targetNote: Note | null,
@@ -363,32 +388,47 @@ export function TunerStave(props: {
   // note stands in instead (practice.tuner/REQ-005's amendment) rather than
   // the trail snapping to the un-shifted register.
   const newestTrailPoint = trail.length > 0 ? trail[trail.length - 1]! : null;
+  // The same note/cents pair `headReadingOf` gives the live/lingering head,
+  // so the trail's own register fallback (below) and its newest-point
+  // placement (`layoutHeard`, below) never draw a note the head itself
+  // would disagree with.
+  const newestTrailHeadReading =
+    newestTrailPoint === null
+      ? null
+      : headReadingOf(newestTrailPoint.reading, targetNote);
   const trailReferenceRawIndex =
     referenceRawIndex !== null
       ? referenceRawIndex
-      : newestTrailPoint === null
+      : newestTrailHeadReading === null
         ? null
-        : diatonicIndex(newestTrailPoint.reading.heard.nearest);
+        : diatonicIndex(newestTrailHeadReading.note);
   const trailAdj =
     trailReferenceRawIndex === null ? 0 : registerAdjOf(trailReferenceRawIndex);
 
+  // practice.tuner/REQ-002, REQ-005 (converge round 1, W1) — `headReadingOf`
+  // is the raw heard note when pinned, the same hysteresis-held note/offset
+  // the level itself shows on auto: the head, its accidental and its cents
+  // text below all read off this, not `reading.heard`/`effectiveReading.
+  // heard` directly.
+  const headReading =
+    reading === null ? null : headReadingOf(reading, targetNote);
   const heard =
-    reading === null
+    headReading === null
       ? null
-      : placeHeard(reading.heard.nearest, reading.heard.cents, adj);
+      : placeHeard(headReading.note, headReading.cents, adj);
   const target = targetNote === null ? null : placeTarget(targetNote, adj);
   // practice.tuner/REQ-003 — the head/cents/Hz's own placement, off
   // `effectiveReading` rather than `heard` (which stays live-only, still
   // governing the ledgers/guide/accidental below): identical to `heard`
   // while live, and the last reading's placement while it lingers.
-  const heardStale =
+  const effectiveHeadReading =
     effectiveReading === null
       ? null
-      : placeHeard(
-          effectiveReading.heard.nearest,
-          effectiveReading.heard.cents,
-          adj,
-        );
+      : headReadingOf(effectiveReading, targetNote);
+  const heardStale =
+    effectiveHeadReading === null
+      ? null
+      : placeHeard(effectiveHeadReading.note, effectiveHeadReading.cents, adj);
 
   const tone =
     reading === null ? paper.faint : TONE_BY_VERDICT[reading.verdict];
@@ -438,11 +478,11 @@ export function TunerStave(props: {
   const layoutHeard =
     heardStale !== null
       ? heardStale
-      : newestTrailPoint === null
+      : newestTrailHeadReading === null
         ? null
         : placeHeard(
-            newestTrailPoint.reading.heard.nearest,
-            newestTrailPoint.reading.heard.cents,
+            newestTrailHeadReading.note,
+            newestTrailHeadReading.cents,
             trailAdj,
           );
   const layoutHeardMarkY =
@@ -497,15 +537,14 @@ export function TunerStave(props: {
   // threshold on its own — matching the design's own `p.tot` applied
   // uniformly across `hist` (lines 1257-1264).
   const trailRenderPoints = trail
-    .map((point) => ({
-      x: trailXOf(nowMs - point.atMs),
-      y: placeHeard(
-        point.reading.heard.nearest,
-        point.reading.heard.cents,
-        trailAdj,
-      ).hy,
-      runId: point.runId,
-    }))
+    .map((point) => {
+      const pointReading = headReadingOf(point.reading, targetNote);
+      return {
+        x: trailXOf(nowMs - point.atMs),
+        y: placeHeard(pointReading.note, pointReading.cents, trailAdj).hy,
+        runId: point.runId,
+      };
+    })
     .filter((point) => point.x >= TRAIL_X_START && point.x <= TRAIL_X_END);
 
   // One sub-path per run (S6) — a run with a single point draws nothing for
@@ -530,10 +569,16 @@ export function TunerStave(props: {
   flushCurrentRun();
   const trailPath = runSubpaths.length > 0 ? runSubpaths.join(" ") : null;
 
-  const referenceNote = referenceNoteOf(reading, targetNote);
+  const referenceNote = referenceNoteOf(effectiveReading, targetNote);
   const referenceHz = referenceNote === null ? null : pitchHzOf(referenceNote);
   const referenceLabel =
     referenceNote === null ? "— IS" : `${noteLabel(referenceNote)} IS`;
+  // practice.tuner/REQ-003/S4, S6 (converge round 1, I6) — greyed while the
+  // head lingers (`headStaleAttrs`, the same flag the "HEARD" value carries),
+  // full ink otherwise — including REQ-003/S2's silence-with-a-target case,
+  // where nothing has ever lingered and `headStaleAttrs` stays `undefined`.
+  const referenceInk =
+    headStaleAttrs !== undefined ? paper.faint : paper.inkMid;
   // practice.tuner/REQ-003 — off `effectiveReading`, so the Hz figure
   // lingers with the rest.
   const heardHz = effectiveReading === null ? null : effectiveReading.heard.hz;
@@ -799,8 +844,8 @@ export function TunerStave(props: {
             lingers with the head at the colour/opacity it carries, instead
             of losing its own sharp/flat while the head is still shown. */}
         {heardStale !== null &&
-          effectiveReading !== null &&
-          effectiveReading.heard.nearest.accidental !== "natural" && (
+          effectiveHeadReading !== null &&
+          effectiveHeadReading.note.accidental !== "natural" && (
             <div
               data-testid="heard-accidental"
               {...(headStaleAttrs !== undefined
@@ -814,7 +859,7 @@ export function TunerStave(props: {
                 left: ACCIDENTAL_X_HEARD,
                 top:
                   heardStale.hy +
-                  (effectiveReading.heard.nearest.accidental === "flat"
+                  (effectiveHeadReading.note.accidental === "flat"
                     ? ACCIDENTAL_LOWERED_Y_ADJUST
                     : 0),
                 transform: "translate(-50%,-50%)",
@@ -825,11 +870,11 @@ export function TunerStave(props: {
                 ...(headStaleAttrs?.style ?? {}),
               }}
             >
-              {ACCIDENTAL_GLYPH[effectiveReading.heard.nearest.accidental]}
+              {ACCIDENTAL_GLYPH[effectiveHeadReading.note.accidental]}
             </div>
           )}
         {heardStale !== null &&
-          effectiveReading !== null &&
+          effectiveHeadReading !== null &&
           centsTop !== null && (
             <div
               data-testid="strip-cents"
@@ -853,7 +898,7 @@ export function TunerStave(props: {
                 ...(headStaleAttrs?.style ?? {}),
               }}
             >
-              {formatCents(effectiveReading.heard.cents)}
+              {formatCents(effectiveHeadReading.cents)}
             </div>
           )}
         {/* practice.tuner/REQ-003 — off `heardStale`, not `heard`, so the
@@ -943,11 +988,18 @@ export function TunerStave(props: {
           </div>
           <div
             data-testid="reference-hz"
+            {...(headStaleAttrs !== undefined
+              ? {
+                  "data-state": headStaleAttrs["data-state"],
+                  "aria-hidden": headStaleAttrs["aria-hidden"],
+                }
+              : {})}
             style={{
               fontFamily: fonts.mono,
               fontSize: COLUMN_VALUE_FONT_SIZE,
               fontWeight: 600,
-              color: paper.inkMid,
+              color: referenceInk,
+              ...(headStaleAttrs?.style ?? {}),
             }}
           >
             {hzText(referenceHz)}

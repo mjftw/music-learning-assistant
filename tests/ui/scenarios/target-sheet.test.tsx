@@ -30,6 +30,23 @@ test("practice.tuner/REQ-004/S1 — Hold", async () => {
   expect(screen.getByTestId("tuner-tag").textContent).toContain("▲ 1 st");
   expect(screen.getByText("playing A♯4")).toBeTruthy();
   expect(screen.getByTestId("tuner-line").style.top).toBe("9.5px"); // pinned at +50: 268 − 255 − 3.5
+  // converge round 1 (W2) — sharp-over sits BELOW the line (lineTop + 36),
+  // not above it, so it never runs into the header's LISTENING / NO MIC.
+  expect(screen.getByTestId("tuner-tag").style.top).toBe("45.5px");
+});
+
+test("practice.tuner/REQ-004 — a pinned target flat past −50 ¢: the tag sits above the line, clear of the header (converge W2)", async () => {
+  const f = await enterAndHear(440.0);
+  await userEvent.click(screen.getByRole("button", { name: "Target" }));
+  await userEvent.click(screen.getByRole("button", { name: "Hold" }));
+  f.listening.feed(426.5); // −54 ¢ from the pinned A4 — past the ±50 edge
+  f.clock.advanceMs(1);
+  await act(async () => {});
+  expect(screen.getByTestId("tuner-tag").textContent).toContain("▼ 1 st");
+  expect(screen.getByTestId("tuner-line").style.top).toBe("519.5px"); // pinned at −50: 268 + 255 − 3.5
+  // flat-over sits ABOVE the line (lineTop − 58), the mirror of the
+  // sharp-over case above.
+  expect(screen.getByTestId("tuner-tag").style.top).toBe("461.5px");
 });
 
 test("practice.tuner/REQ-004/S2 — a wedge of the spiral", async () => {

@@ -40,7 +40,7 @@ const AUTO_CARD_BACKGROUND_ON = paper.pillActive;
 const AUTO_TICK_COLOR = paper.accent;
 
 const HOLD_CARD_BORDER_ON = "#e0d7c5";
-const HOLD_CARD_BORDER_OFF = "#ece4d5";
+const HOLD_CARD_BORDER_OFF = paper.hairlineSoft;
 const HOLD_TITLE_COLOR_ON = paper.ink;
 const HOLD_TITLE_COLOR_OFF = "#b0a797";
 const HOLD_NAME_FONT_SIZE = 13;

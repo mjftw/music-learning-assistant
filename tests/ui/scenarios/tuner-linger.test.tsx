@@ -56,6 +56,15 @@ test("practice.tuner/REQ-003/S4 — the last reading lingers, then goes", async 
   expect(screen.getByTestId("strip-cents").textContent).toBe("+20");
   expect(screen.getByTestId("heard-hz").textContent).toBe("445.0 Hz");
   expect(screen.getByTestId("heard-hz").style.color).toBe(rgbOf(paper.faint));
+  // practice.tuner/REQ-003/S4 (converge round 1, I6) — the "<note> IS"
+  // caption lingers grey alongside "HEARD", not clearing to "— IS" at once.
+  expect(screen.getByTestId("reference-hz").getAttribute("data-state")).toBe(
+    "fading",
+  );
+  expect(screen.getByTestId("reference-hz").textContent).toBe("440.0 Hz");
+  expect(screen.getByTestId("reference-hz").style.color).toBe(
+    rgbOf(paper.faint),
+  );
   expect(screen.queryByTestId("tuner-empty")).toBeNull();
 
   // 0.5 s later they are still shown.
@@ -65,6 +74,10 @@ test("practice.tuner/REQ-003/S4 — the last reading lingers, then goes", async 
   expect(screen.getByTestId("tuner-line")).toBeTruthy();
   expect(screen.getByTestId("tuner-tag")).toBeTruthy();
   expect(screen.getByTestId("heard-head")).toBeTruthy();
+  expect(screen.getByTestId("reference-hz").textContent).toBe("440.0 Hz");
+  expect(screen.getByTestId("reference-hz").getAttribute("data-state")).toBe(
+    "fading",
+  );
   expect(screen.queryByTestId("tuner-empty")).toBeNull();
 
   // 0.8 s after they turned grey they are gone and "Play a note" is shown:
@@ -80,6 +93,8 @@ test("practice.tuner/REQ-003/S4 — the last reading lingers, then goes", async 
   expect(screen.queryByTestId("heard-head")).toBeNull();
   expect(screen.queryByTestId("strip-cents")).toBeNull();
   expect(screen.getByTestId("heard-hz").textContent).toBe("—");
+  expect(screen.getByTestId("reference-hz").textContent).toBe("—");
+  expect(screen.getByText("— IS")).toBeTruthy();
   expect(screen.getByTestId("tuner-empty").textContent).toBe("Play a note");
 });
 
@@ -135,12 +150,25 @@ test("practice.tuner/REQ-003/S6 — lingering with a target", async () => {
     "fading",
   );
   expect(screen.getByTestId("heard-hz").textContent).toBe("523.3 Hz");
+  // practice.tuner/REQ-003/S6 (converge round 1, I6) — "A4 IS 440.0 Hz"
+  // lingers grey and fades as in S4, even though the target's own name
+  // (above) never lingers — the two follow different rules.
+  expect(screen.getByTestId("reference-hz").getAttribute("data-state")).toBe(
+    "fading",
+  );
+  expect(screen.getByTestId("reference-hz").textContent).toBe("440.0 Hz");
 
   letLingerPass({ timer: animClock });
   expect(screen.queryByTestId("tuner-line")).toBeNull();
   expect(screen.queryByTestId("tuner-tag")).toBeNull();
   expect(screen.queryByTestId("heard-head")).toBeNull();
   expect(screen.getByTestId("tuner-empty").textContent).toBe("Play a note");
+  // Once gone, the strip shows only the target's grey head with "A4 IS
+  // 440.0 Hz" again (S2) — full strength, no longer fading.
+  expect(screen.getByTestId("reference-hz").textContent).toBe("440.0 Hz");
+  expect(
+    screen.getByTestId("reference-hz").getAttribute("data-state"),
+  ).toBeNull();
 });
 
 test("practice.tuner/REQ-003 — reduced motion removes the linger at 0.8 s without fading", async () => {

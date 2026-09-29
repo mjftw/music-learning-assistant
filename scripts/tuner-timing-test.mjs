@@ -384,10 +384,18 @@ function measureInPage(params) {
     let steadyCount = 0;
     let maxCentsErr = 0;
     let maxShownCentsErr = 0;
+    // converge round 1 (W4) — the cents-error and shown-offset gates below
+    // started each tone's worst-case at 0 and never checked that a
+    // qualifying reading actually arrived, so a regression that silenced
+    // readings after the settle point could pass silently. These count the
+    // readings each gate actually saw; sweepRow requires both non-zero.
+    let centsErrReadings = 0;
+    let shownErrReadings = 0;
     const unsubscribeJudged = noteJudgedSubscribe((event) => {
       const now = performance.now();
       if (now >= steadyStartMs && now < steadyEndMs) steadyCount += 1;
       if (now - onsetPerfMs >= centsSkipMs) {
+        centsErrReadings += 1;
         const err = Math.abs(1200 * Math.log2(event.heard.hz / hz));
         if (err > maxCentsErr) maxCentsErr = err;
       }
@@ -395,6 +403,7 @@ function measureInPage(params) {
       // sees: NoteJudged.target + .cents), read from SHOWN_SETTLE_MS into
       // the tone onward, against the tone actually fed.
       if (now - onsetPerfMs >= shownSettleMs) {
+        shownErrReadings += 1;
         const shownErr = Math.abs(
           (positionOfNote(event.target) - position) * 100 + event.cents,
         );
@@ -423,6 +432,8 @@ function measureInPage(params) {
         steadyCount / ((steadyEndFraction - steadyStartFraction) * toneSeconds),
       maxCentsErr,
       maxShownCentsErr,
+      centsErrReadings,
+      shownErrReadings,
     };
   }
 
@@ -641,12 +652,26 @@ function sweepRow(label, perTone) {
   );
   const centsErrMax = maxOf(perTone.map((tone) => tone.maxCentsErr));
   const shownCentsErrMax = maxOf(perTone.map((tone) => tone.maxShownCentsErr));
+  // converge round 1 (W4) — centsErrMax/shownCentsErrMax both start at 0 and
+  // a tone that never took a qualifying reading (its `if` above never ran)
+  // would silently report 0, the same value as a perfect reading. Requiring
+  // every tone's counter to be non-zero closes that hole.
+  const tonesWithNoCentsReading = perTone.filter(
+    (tone) => tone.centsErrReadings === 0,
+  );
+  const tonesWithNoShownReading = perTone.filter(
+    (tone) => tone.shownErrReadings === 0,
+  );
+  const everyToneRead =
+    tonesWithNoCentsReading.length === 0 &&
+    tonesWithNoShownReading.length === 0;
   const passed =
     firstReadoutMaxMs <= FIRST_READOUT_MAX_MS &&
     arrivalAgeMaxMs <= ARRIVAL_AGE_MAX_MS &&
     readingsPerSecondMin >= READINGS_PER_SECOND_MIN &&
     centsErrMax <= CENTS_ERROR_MAX_CENTS &&
-    shownCentsErrMax <= SHOWN_CENTS_ERROR_MAX_CENTS;
+    shownCentsErrMax <= SHOWN_CENTS_ERROR_MAX_CENTS &&
+    everyToneRead;
 
   const worstFirstReadout = worstToneOf(perTone, (tone) => tone.firstReadoutMs);
   const worstArrival = worstToneOf(perTone, (tone) => tone.arrivalAgeMs);
@@ -659,6 +684,20 @@ function sweepRow(label, perTone) {
     `${worstArrival.arrivalAgeMs === null ? "n/a" : worstArrival.arrivalAgeMs.toFixed(2)} ms · ` +
     `cents err ${noteLabelOfPosition(worstCents.position)} ${worstCents.maxCentsErr.toFixed(2)} ¢ · ` +
     `shown err ${noteLabelOfPosition(worstShown.position)} ${worstShown.maxShownCentsErr} ¢`;
+  // Only printed when the counter gate actually failed — names the tone(s)
+  // that took no qualifying reading, rather than the generic FAIL message
+  // restating the numeric gates (which would say nothing new here).
+  const noReadingLine = everyToneRead
+    ? undefined
+    : `  no qualifying reading: ` +
+      [
+        ...tonesWithNoCentsReading.map(
+          (tone) => `cents err ${noteLabelOfPosition(tone.position)}`,
+        ),
+        ...tonesWithNoShownReading.map(
+          (tone) => `shown err ${noteLabelOfPosition(tone.position)}`,
+        ),
+      ].join(", ");
 
   return {
     cells: [
@@ -674,6 +713,7 @@ function sweepRow(label, perTone) {
     ],
     passed,
     worstLine,
+    noReadingLine,
   };
 }
 
@@ -831,6 +871,7 @@ async function main() {
     // rather than lost in the row's aggregate max.
     for (const row of rows) {
       if (row.worstLine !== undefined) console.log(row.worstLine);
+      if (row.noReadingLine !== undefined) console.log(row.noReadingLine);
     }
     allPassed = rows.every((row) => row.passed);
   } catch (error) {

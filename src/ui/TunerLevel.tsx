@@ -78,10 +78,21 @@ const LINE_RADIUS = 4;
 const LINE_TOP_ADJUST = 3.5;
 const LINE_CENTS_LIMIT = 50;
 
-// The tag: tagTop = cents >= 0 ? lineTop - 36 : lineTop + 8.
+// The tag: tagTop = cents >= 0 ? lineTop - 36 : lineTop + 8, clamped within
+// the level's own height (converge round 1 W2, Tuner.dc.html:1292's
+// `Math.max(30, Math.min(536 - 62, L4.tagTop))`) so the tag never runs off
+// the level's own top or bottom edge. Past ±50 ¢ pinned (`over`, the line
+// pinned to the rule's edge) the tag instead swaps to the OPPOSITE side of
+// the line from the normal rule — sharp-over below it, flat-over above —
+// so it never covers the header's LISTENING / NO MIC: TAG_ABOVE_OFFSET
+// (36) is reused for the sharp-over case (same magnitude, other side);
+// TAG_OVER_ABOVE_OFFSET (58) is the flat-over case's own, larger offset.
 const TAG_RIGHT = 24;
 const TAG_ABOVE_OFFSET = 36;
 const TAG_BELOW_OFFSET = 8;
+const TAG_OVER_ABOVE_OFFSET = 58;
+const TAG_CLAMP_TOP_MARGIN = 30;
+const TAG_CLAMP_BOTTOM_MARGIN = 62;
 const TAG_GAP = 6;
 const TAG_PADDING = "2px 0";
 const TAG_RADIUS = 6;
@@ -145,10 +156,16 @@ function roundPx(value: number): number {
 // The reading's line + tag, clamped to the rule's ±50 ¢ edge when a pinned
 // target's offset runs past it (practice.tuner/REQ-004) — the line stays
 // at the edge and the tag switches to "▲ N st" / "▼ N st". `areaMid`/
-// `pxPerCent` parameterised the same way `buildTicks` is.
-function readingGeometry(
+// `pxPerCent` parameterised the same way `buildTicks` is; `areaHeight` is
+// threaded through explicitly (rather than assumed to be `2 * areaMid`) so
+// the clamp margins below can scale by the level's own `ratio` without
+// relying on that always holding. Exported, like `levelGeometryFor`, so its
+// own height-dependent shape can be tested directly — jsdom never actually
+// measures a rendered TunerLevel past the 536 px fallback.
+export function readingGeometry(
   reading: NoteJudged,
   areaMid: number,
+  areaHeight: number,
   pxPerCent: number,
 ): {
   readonly lineTop: number;
@@ -163,10 +180,30 @@ function readingGeometry(
     Math.min(LINE_CENTS_LIMIT, cents),
   );
   const lineTop = roundPx(areaMid - lineCents * pxPerCent - LINE_TOP_ADJUST);
-  const tagTop =
-    lineCents >= 0 ? lineTop - TAG_ABOVE_OFFSET : lineTop + TAG_BELOW_OFFSET;
-  const tone = TONE_BY_VERDICT[reading.verdict];
   const over = Math.abs(cents) > LINE_CENTS_LIMIT;
+  // converge round 1 (W2) — past ±50 ¢ pinned, the tag sits on the
+  // OPPOSITE side of the line from the normal rule (Tuner.dc.html:1292), so
+  // it never runs off the level's own top or bottom edge and never covers
+  // the header. Otherwise (not over), the normal rule's placement is
+  // additionally clamped within the level's own height, its two margins
+  // scaled by `ratio` the same way `levelGeometryFor` scales everything
+  // else, so the tag still clears the header at the level's minimum
+  // height too, not just at AREA_HEIGHT (536 px).
+  const ratio = areaHeight / AREA_HEIGHT;
+  const tagTop = over
+    ? cents > 0
+      ? lineTop + TAG_ABOVE_OFFSET
+      : lineTop - TAG_OVER_ABOVE_OFFSET
+    : Math.max(
+        ratio * TAG_CLAMP_TOP_MARGIN,
+        Math.min(
+          areaHeight - ratio * TAG_CLAMP_BOTTOM_MARGIN,
+          lineCents >= 0
+            ? lineTop - TAG_ABOVE_OFFSET
+            : lineTop + TAG_BELOW_OFFSET,
+        ),
+      );
+  const tone = TONE_BY_VERDICT[reading.verdict];
   const primaryText = over
     ? `${cents > 0 ? "▲" : "▼"} ${semitoneCountOf(cents)} st`
     : formatCents(cents);
@@ -293,6 +330,7 @@ export function TunerLevel(props: {
       : readingGeometry(
           effectiveReading,
           levelGeometry.areaMid,
+          levelGeometry.areaHeight,
           levelGeometry.pxPerCent,
         );
   // practice.tuner/REQ-003 — grey while lingering. Only read when `geometry`

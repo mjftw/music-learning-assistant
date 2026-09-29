@@ -3,7 +3,7 @@ import type { NoteJudged } from "../../../src/practice/published";
 import { sessionOn } from "../fakes";
 import { enter } from "../tuner-helpers";
 
-test("practice.tuner/REQ-006/S2 — late is dropped", async () => {
+test("practice.tuner/REQ-006/S2 · listening.pitch-detection/REQ-004/S3 — late is dropped", async () => {
   const f = sessionOn("G", "flute-concert");
   await enter(f.session);
   const judged: NoteJudged[] = [];
@@ -18,7 +18,7 @@ test("practice.tuner/REQ-006/S2 — late is dropped", async () => {
   expect(judged).toHaveLength(1);
 });
 
-test("listening.pitch-detection/REQ-004/S3 — a burst before the commit is coalesced to the newest", async () => {
+test("listening.pitch-detection/REQ-004/S1 — a burst before the commit is coalesced to the newest", async () => {
   const f = sessionOn("G", "flute-concert");
   await enter(f.session);
   const judged: NoteJudged[] = [];
