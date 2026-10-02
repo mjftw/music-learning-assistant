@@ -561,7 +561,7 @@ _Ends with a lead run that starts, judges, holds, advances, completes and stops 
 
 ### T006 · practice.session/REQ-016, practice.session/REQ-017, practice.session/REQ-021 · The lead branch of `onPitchDetected`: age, smoothing, judgement at the tolerance, the hold, the advance, the gap
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/session.ts:796-893` (the lead branch beside the tuner's; the lead gap timer), `src/practice/published/index.ts`
