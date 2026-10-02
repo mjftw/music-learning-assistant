@@ -10,7 +10,7 @@ tags: [sdd, autonomy]
 # Autonomy policy
 
 > Owned by the user. Agents apply it; they do not change it. `task-brief.sh`
-> puts it in every task brief, so the implementer sees it too.
+> puts "Who decides" in every task brief, so the implementer sees its part.
 
 ## The boundary
 

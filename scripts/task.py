@@ -5,7 +5,7 @@ tasks/index.md is the one thing a controller reads to know where it is.
   task.py changes/NNN next                 # first todo whose depends_on are all done; "none" if nothing
   task.py changes/NNN status T011 done     # todo | in-progress | done | parked (parked needs the decision: … parked D003)
   task.py changes/NNN park T014 D003       # park T014 and everything that depends on it, transitively
-  task.py changes/NNN new "<one outcome>" [--after T011] [--reqs a.b/REQ-001,…] [--group "<group>"]
+  task.py changes/NNN new "<one outcome>" [--after T011] [--reqs a.b/REQ-001,…] [--group "<group>"] [--class standard|trivial]
   task.py changes/NNN list                 # the index table (what index.sh writes)
   task.py changes/NNN coverage             # requirement → tasks table
   task.py changes/NNN split                # migrate a legacy tasks.md (### T0NN blocks) into tasks/
@@ -16,7 +16,8 @@ accepts the short form (T005) and qualifies it.
 
 Frontmatter keys (templates/task-template.md): sdd_task, sdd_phase
 (todo|in-progress|done|parked), sdd_requirements [..], sdd_depends_on [..],
-sdd_parked_on, sdd_group, sdd_parallel, sdd_attempts. Stdlib only.
+sdd_parked_on, sdd_group, sdd_parallel, sdd_class (standard|trivial),
+sdd_attempts. Stdlib only.
 """
 import datetime
 import os
@@ -108,7 +109,7 @@ def die(msg, code=1):
     sys.exit(code)
 
 
-# ── commands ────────────────────────────────────────────────────────────────
+# ── commands ────────────────────────────────────────────────────────────────────────────
 
 def cmd_next(ch, _args):
     tasks = ch.tasks()
@@ -165,8 +166,8 @@ def cmd_park(ch, args):
 
 def cmd_new(ch, args):
     if not args:
-        die('usage: task.py <change> new "<one outcome>" [--after T] [--reqs r,r] [--group g]')
-    title, opts, i = args[0], {"--after": "", "--reqs": "", "--group": "Appended"}, 1
+        die('usage: task.py <change> new "<one outcome>" [--after T] [--reqs r,r] [--group g] [--class standard|trivial]')
+    title, opts, i = args[0], {"--after": "", "--reqs": "", "--group": "Appended", "--class": "standard"}, 1
     while i < len(args):
         if args[i] in opts and i + 1 < len(args):
             opts[args[i]] = args[i + 1]
@@ -186,6 +187,9 @@ def cmd_new(ch, args):
     text = re.sub(r"^sdd_requirements: .*$", f"sdd_requirements: [{reqs}]", text, flags=re.M)
     text = re.sub(r"^sdd_depends_on: .*$", f"sdd_depends_on: [{after}]", text, flags=re.M)
     text = re.sub(r"^sdd_group: .*$", f'sdd_group: "{opts["--group"]}"', text, flags=re.M)
+    if opts["--class"] not in ("standard", "trivial"):
+        die("error: --class must be standard or trivial")
+    text = re.sub(r"^sdd_class: .*$", f'sdd_class: {opts["--class"]}', text, flags=re.M)
     path = ch.td / f"{tid}.md"
     path.write_text(text, encoding="utf-8")
     print(path)
@@ -247,6 +251,10 @@ def cmd_check(ch, _args):
                 print(f"  ⚠️  {t.id} is missing {need}")
         if PLACEHOLDER.search(t.text):
             print(f"  ⚠️  {t.id} contains a placeholder phrase")
+        if t.get("sdd_class", "standard") not in ("standard", "trivial"):
+            bad(f"{t.id}: sdd_class '{t.get('sdd_class')}' (standard | trivial)")
+        if t.get("sdd_class") == "trivial" and re.search(r"\bRED\b", "\n".join(t.body)):
+            print(f"  ⚠️  {t.id} is trivial but has a RED step: a task that proves a scenario is standard")
         if t.phase == "parked" and not t.get("sdd_parked_on"):
             bad(f"{t.id} is parked with no sdd_parked_on")
     if not fail:
@@ -254,7 +262,7 @@ def cmd_check(ch, _args):
     return 1 if fail else 0
 
 
-# ── split: a legacy single-file tasks.md → tasks/CNNN_TNNN.md ───────────────
+# ── split: a legacy single-file tasks.md → tasks/CNNN_TNNN.md ───────────────────
 
 HEADING = re.compile(r"^### (T\d+)\s*(\[P\])?\s*·\s*(.*?)\s*·\s*(.*)$")
 NOT_A_GROUP = re.compile(r"(Coverage|Deferred|Open questions|Self-review)", re.I)

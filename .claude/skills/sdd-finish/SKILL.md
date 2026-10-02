@@ -115,6 +115,8 @@ from step 5, are the last thing the run says.
 ## 6. After
 
 - Worktree, if used: `git worktree remove ../<repo>-<id>`.
+  Parallel task worktrees, if any: `git worktree remove` each under
+  `.sdd/worktrees/`, then `git worktree prune`.
 - `./scripts/record.sh changes/archive/<id> list` — the record travels with
   the archived change: task reports and reviews per attempt, every
   convergence report, every design round's screenshots. Check it is not

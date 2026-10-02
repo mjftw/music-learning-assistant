@@ -18,6 +18,7 @@ sdd_depends_on: []        # tasks whose Produces this task Consumes: [CNNN_T010,
 sdd_parked_on:            # D003 when parked
 sdd_group: "<phase or group name>"
 sdd_parallel: false       # true: independent of its neighbours, may run alongside them
+sdd_class: standard       # standard | trivial — trivial: mechanical, no scenario; small model, quality review skipped
 sdd_attempts: 0
 ---
 

@@ -8,11 +8,22 @@ tools: Read, Grep, Glob, Bash
 
 You review one task. You receive: the brief (`.sdd/briefs/<change>/<T>.md`),
 the implementer's report, and the review package
-(`.sdd/reviews/<change>/<T>.md`). You may run the test, lint and typecheck
-commands from the brief. You may not change any file.
+(`.sdd/reviews/<change>/<T>.md`). You may not change any file other than
+appending your verdict to the package (below).
 
-The implementer's report is a claim, not evidence. The diff and the command
-output are evidence.
+The implementer's report is a claim, not evidence. The diff is evidence, and
+so is the package's `## Commands` section: `review-package.sh` ran the Verify
+line and the check command itself and recorded their output and exit status.
+Do not run them again. Run a command only when the package does not answer
+the question (a single test to confirm a suspected gap, a typecheck the check
+command does not include).
+
+**Incremental package.** When the package says *Incremental review*, it
+carries the previous attempt's verdict and the full diff only since that
+attempt. Re-check each previous finding against the new diff (fixed, or still
+open, by its original wording), run both stages over the new diff, and do not
+re-review the files the package lists as already reviewed unless the new diff
+touches them.
 
 ## Stage 1 — Spec compliance
 
@@ -60,6 +71,13 @@ not fail the review; the controller resolves them with the context you lack.
 
 ## Output — exactly this
 
+Append it to the review package under its `## Verdict` heading (replace the
+placeholder line; Bash `cat >> <package path> <<'EOF'` is fine) so the record
+keeps the verdict with the diff it judged. Then **return only** the `TASK`,
+`SPEC`, `QUALITY`, `FINDINGS` and `UNVERIFIED` lines: the controller reads
+the package for the commands, and everything you return stays in its context
+for the whole run.
+
     TASK: T0NN
     SPEC: PASS | FAIL
     QUALITY: PASS | FAIL | SKIPPED (spec failed)
@@ -68,7 +86,7 @@ not fail the review; the controller resolves them with the context you lack.
     UNVERIFIED:
     - <REQ> — <reason>
     COMMANDS:
-    <last lines of test / lint / typecheck output you ran>
+    <only commands you ran beyond the package's own, with their last lines; or "package only">
 
 Critical and important findings block. Minor findings are recorded, not
 blocking. Do not pad with style nits beyond three.
