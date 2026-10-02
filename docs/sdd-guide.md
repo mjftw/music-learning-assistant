@@ -140,7 +140,7 @@ power follows.
 |---|---|---|
 | `sdd-init`, `sdd-constitution`, `sdd-engineering`, `grill`, `sdd-specify`, `sdd-plan`, `sdd-design` | main session | Fable |
 | `sdd-tasks`, `sdd-implement` (controller), `sdd-finish` | main session | Sonnet, the project default |
-| `implementer`, `task-reviewer` (per task) | subagents | Sonnet (Haiku for a trivial task) |
+| `implementer`, `task-reviewer` (per task) | subagents | Sonnet (Haiku for a task with `sdd_class: trivial`) |
 | `sdd-converge` → `reviewer` | subagent | Opus |
 
 The ladder is enforced, not requested. The session starts on Sonnet
@@ -187,9 +187,11 @@ whole plan per task. For each task it:
 2. dispatches an `implementer` (Sonnet, fresh context) that sees only that
    brief, works TDD, and reports `DONE` / `DONE_WITH_CONCERNS` /
    `DECISION_NEEDED` / `BLOCKED`;
-3. verifies independently, running the task's verify line and `check` itself;
-4. packages the diff with `scripts/review-package.sh`, against the commit
-   recorded *before* dispatch, never `HEAD~1`;
+3. packages the diff with `scripts/review-package.sh`, against the commit
+   recorded *before* dispatch, never `HEAD~1`; the script runs the task's
+   verify line and `check` itself and records output and exit status, which
+   is the independent verification;
+4. reads those exit statuses: a red one is a finding of its own;
 5. dispatches a `task-reviewer` (Sonnet) for two verdicts: spec compliance
    (everything required, nothing extra), then quality against your
    preferences;

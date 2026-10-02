@@ -112,7 +112,7 @@ power follows, and it is enforced, not requested.
 |---|---|---|---|
 | `sdd-init`, `sdd-constitution`, `sdd-engineering`, `grill`, `sdd-specify`, `sdd-plan`, `sdd-design` | main session | Fable | `model: fable` in the skill; `.sdd/phase` + `sdd-continue` every turn; the write guard |
 | `sdd-tasks`, `sdd-implement` (controller), `sdd-finish` | main session | Sonnet | project default (`.claude/settings.json › model`) |
-| `implementer` (per task) | subagent | Sonnet; `Trivial` → Haiku | `model:` in `.claude/agents/implementer.md` |
+| `implementer` (per task) | subagent | Sonnet; `sdd_class: trivial` → Haiku | `model:` in `.claude/agents/implementer.md`; the controller overrides it per task |
 | `task-reviewer` (per task) | subagent | Sonnet | agent frontmatter |
 | `sdd-converge` → `reviewer` | subagent | Opus — verification is never weaker than what it verifies | agent frontmatter |
 | `decider` (a decision mid-run) | subagent | Fable — it stands in for the user's judgement | agent frontmatter |
