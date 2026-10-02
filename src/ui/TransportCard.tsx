@@ -25,11 +25,6 @@ const CAPTION_FONT_SIZE = 10.5;
 const CAPTION_LETTER_SPACING = "0.04em";
 const CAPTION_INK = paper.muted;
 
-const TRACK_HEIGHT = 3;
-const TRACK_RADIUS = 2;
-const TRACK_BACKGROUND = "#e0d7c5";
-const FILL_BACKGROUND = paper.accent;
-
 const RIGHT_GAP = 4;
 
 const STEPPER_BORDER = "#e0d7c5";
@@ -142,24 +137,8 @@ export function TransportCard(props: {
         >
           {snapshot.caption}
         </div>
-        <div
-          style={{
-            height: TRACK_HEIGHT,
-            borderRadius: TRACK_RADIUS,
-            background: TRACK_BACKGROUND,
-            overflow: "hidden",
-          }}
-        >
-          <div
-            data-testid="progress-fill"
-            style={{
-              height: TRACK_HEIGHT,
-              borderRadius: TRACK_RADIUS,
-              background: FILL_BACKGROUND,
-              width: `${snapshot.progress * 100}%`,
-            }}
-          />
-        </div>
+        {/* practice.session/REQ-002 — the progress bar is removed here (the
+            mode words that replace it, beneath this caption, are T012's). */}
       </div>
       <div
         style={{

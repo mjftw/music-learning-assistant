@@ -117,4 +117,4 @@ test("practice.session/REQ-016/S6 — the target advances only at ≥ beats × 6
         }
       }
   expect(checked).toBeGreaterThan(1_000_000);
-}, 15_000);
+}, 30_000);

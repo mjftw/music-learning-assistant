@@ -95,7 +95,6 @@ test("practice.session/REQ-002/S2 — stop returns to the top", async () => {
   expect(sound.posted.at(-1)).toEqual({ kind: "stopAll" });
   expect(session.snapshot().transport).toEqual({ kind: "idle" });
   expect(session.snapshot().caption).toBe("29 notes · G4–G6");
-  expect(session.snapshot().progress).toBe(0);
   expect(wake.acquired).toBe(false);
 
   await flushStart(session);

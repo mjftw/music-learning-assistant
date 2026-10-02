@@ -376,7 +376,7 @@ _Ends with a lead run that starts, judges, holds, advances, completes and stops 
 
 ### T005 · practice.session/REQ-014, practice.session/REQ-015 · `start()` / `stop()` dispatch on the mode; the first target; the idle caption
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `tests/practice/lead-helpers.ts`

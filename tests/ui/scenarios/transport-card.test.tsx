@@ -6,6 +6,7 @@ import {
   defaultScaleChoice,
   defaultSessionSettings,
   defaultTraversal,
+  type LeadSnapshot,
   type SessionSnapshot,
   type TempoTerm,
   type TunerSnapshot,
@@ -53,6 +54,21 @@ const placeholderTuner: TunerSnapshot = {
   canStepUp: false,
 };
 
+// TransportCard renders nothing about "I lead" either (the mode words, the
+// live/complete/no-mic cards are T012+) — another valid placeholder, same
+// reasoning as defaultScale/placeholderTuner.
+const placeholderLead: LeadSnapshot = {
+  who: "tool",
+  phase: "idle",
+  listening: { kind: "off" },
+  target: null,
+  heldFraction: 0,
+  reading: null,
+  justHeld: null,
+  idleCaption: "",
+  completeCaption: null,
+};
+
 function baseSnapshot(
   overrides: Partial<SessionSnapshot> = {},
 ): SessionSnapshot {
@@ -65,7 +81,6 @@ function baseSnapshot(
     run: [],
     sequence: [],
     caption: "",
-    progress: 0,
     summaryLine: "",
     tempoTerm: andante,
     soundingPosition: null,
@@ -86,6 +101,7 @@ function baseSnapshot(
     // same reasoning as defaultScale/placeholderDroneNote above.
     tappedRunIndex: null,
     tuner: placeholderTuner,
+    lead: placeholderLead,
     ...overrides,
   };
 }
@@ -94,11 +110,10 @@ const noop = () => {
   // no-op handler for props not under test
 };
 
-test("practice.session/REQ-002/S1 (UI) — idle transport shows Play, the run caption, empty progress and the tempo", () => {
+test("practice.session/REQ-002/S1 (UI) — idle transport shows Play, the run caption and the tempo", () => {
   const idleSnapshot = baseSnapshot({
     transport: { kind: "idle" },
     caption: "15 notes · G4–G6",
-    progress: 0,
     tempoTerm: andante,
     settings: { ...defaultSessionSettings, tempoBpm: 96 },
   });
@@ -117,17 +132,14 @@ test("practice.session/REQ-002/S1 (UI) — idle transport shows Play, the run ca
   expect(screen.getByTestId("position-caption").textContent).toBe(
     "15 notes · G4–G6",
   );
-  const fill = screen.getByTestId("progress-fill");
-  expect(fill.style.width).toBe("0%");
   expect(screen.getByText("96")).toBeTruthy();
   expect(screen.getByText("Andante")).toBeTruthy();
 });
 
-test("practice.session/REQ-002/S1 (UI) — playing transport shows Stop, the sounding note and the run position as progress", () => {
+test("practice.session/REQ-002/S1 (UI) — playing transport shows Stop and the sounding note", () => {
   const playingSnapshot = baseSnapshot({
     transport: { kind: "playing", position: 4 },
     caption: "D5 · 5 of 29",
-    progress: 5 / 29,
     soundingPosition: 4,
   });
 
@@ -145,15 +157,12 @@ test("practice.session/REQ-002/S1 (UI) — playing transport shows Stop, the sou
   expect(screen.getByTestId("position-caption").textContent).toBe(
     "D5 · 5 of 29",
   );
-  const fill = screen.getByTestId("progress-fill");
-  expect(fill.style.width).toMatch(/^17\.24/);
 });
 
 test("practice.session/REQ-002/S2 (UI) — tapping Stop calls onTogglePlay once", async () => {
   const playingSnapshot = baseSnapshot({
     transport: { kind: "playing", position: 11 },
     caption: "D5 · 12 of 29",
-    progress: 12 / 29,
   });
   const onTogglePlay = vi.fn();
 
