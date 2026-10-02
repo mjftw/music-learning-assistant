@@ -317,7 +317,7 @@ _Nothing user-visible. The lead domain module, the settings, the store._
 
 ### T004 [P] · practice.session/REQ-011 · Stored state v6 with the lead settings; the `lead.holdFill` token
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/ui/selection-store.ts:10-60` (`StoredSelection`, `firstRunDefaults`), `src/ui/selection-store.ts:146-152` (v6 schema), `src/ui/selection-store.ts:170-260` (read: v6 | v5 → defaults; write v6), `src/ui/theme.ts` (append `lead`)

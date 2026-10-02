@@ -218,13 +218,13 @@ function initialTraversalOf(stored: StoredSelection | null): Traversal {
   return traversalFromStored(stored?.traversal ?? firstRunDefaults.traversal);
 }
 
-// The stored session (`StoredSelection["session"]`, schema v5) carries no
-// lead settings yet — that is a later task's v6 schema — so every restored
-// session takes the S2 lead default until then (practice.session/REQ-011/S3).
+// The stored session (`StoredSelection["session"]`, schema v6) carries the
+// lead settings restored alongside the rest (practice.session/REQ-011) —
+// the defaults apply only when nothing at all is stored.
 function initialSettingsOf(stored: StoredSelection | null): SessionSettings {
   return {
     ...(stored?.session ?? firstRunDefaults.session),
-    lead: defaultLeadSettings,
+    lead: stored?.session.lead ?? defaultLeadSettings,
   };
 }
 
@@ -397,7 +397,7 @@ export function App(props: {
     // completion re-renders with a snapshot, so this simply runs again.
     if (snapshot === null) return;
     const toSave: StoredSelection = {
-      schemaVersion: 5,
+      schemaVersion: 6,
       variantId: selection.variantId,
       keyId: keyIdOf(selectedKey),
       spelling: selection.spelling,

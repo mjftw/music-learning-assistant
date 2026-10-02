@@ -43,3 +43,11 @@ export const motion = {
   lingerHoldMs: 600,
   lingerFadeMs: 200,
 } as const;
+
+// practice.session/REQ-017 — the lead run's hold-fill band: the colour the
+// band fills with by held time ÷ required hold. The band, line and verdict
+// colours themselves are tuner.band / tuner.inTune / tuner.flat /
+// tuner.sharp (docs/design.md §8: one value per role).
+export const lead = {
+  holdFill: "oklch(0.80 0.07 150)",
+} as const;
