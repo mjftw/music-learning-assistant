@@ -125,10 +125,14 @@ if cur: blocks.append(cur)
 ids = {b["id"] for b in blocks}
 for b in blocks:
     blk = "\n".join(b["lines"]).rstrip() + "\n"
-    st = re.search(r"\*\*Status:\*\*\s*(\S+)", blk); status = st.group(1) if st else "todo"
+    st = re.search(r"^\*\*Status:\*\*[ \t]*(.*)$", blk, re.M)
+    full = st.group(1).strip() if st else ""
+    status = full.split()[0] if full else "todo"
     if status == "blocked": status = "parked"
     if status not in ("todo", "in-progress", "done", "parked"): status = "todo"
     blk = re.sub(r"^\*\*Status:\*\*.*\n?", "", blk, flags=re.M)
+    # a status line that said more than one word ("done — superseded by T023 …") keeps what it said
+    note = f"> **Status note, from the original task list:** {full}\n\n" if len(full.split()) > 1 else ""
     parked = re.search(r"Parked on (D\d+)", blk); parked = parked.group(1) if parked else ""
     reqs = [r for r in re.findall(r"[a-z0-9-]+\.[a-z0-9-]+/REQ-\d+", b["reqs"])]
     # dependencies: every earlier task named in the Interfaces › Consumes line(s)
@@ -159,7 +163,7 @@ sdd_attempts: {1 if status == 'done' else 0}
 
 # {Q(b['id'])} · {b['title']}
 
-{blk.strip()}
+{note}{blk.strip()}
 """
     (td / f"{Q(b['id'])}.md").write_text(fm, encoding="utf-8")
 print(f"  split {len(blocks)} tasks into {td}/ ({sum(1 for b in blocks)} files)")
@@ -170,16 +174,29 @@ import re, sys, pathlib
 p = pathlib.Path(sys.argv[1]); t = p.read_text(encoding="utf-8")
 fm_end = t.index("\n---", 4); fm, body = t[:fm_end+4], t[fm_end+4:]
 out, skip = [], False
-groups = []
+groups = []          # [heading, [lines between the heading and its first task]]
+collecting = None
 for l in body.splitlines():
-    if re.match(r"^### T\d+", l): skip = True; continue
+    if re.match(r"^### T\d+", l): skip = True; collecting = None; continue
     if re.match(r"^## ", l):
-        skip = False
-        if re.match(r"^## (Phase|Group) ", l): groups.append(l[3:].strip()); skip = True; continue
+        skip = False; collecting = None
+        if re.match(r"^## (Phase|Group) ", l):
+            groups.append([l[3:].strip(), []]); skip = True; collecting = groups[-1][1]; continue
+    if collecting is not None: collecting.append(l); continue
     if not skip: out.append(l)
 body = "\n".join(out)
+def paras(lines):    # the group's own prose (its italic summary, shared conventions) is kept, one paragraph per block
+    ps, cur = [], []
+    for x in lines:
+        if x.strip(): cur.append(x.strip())
+        elif cur: ps.append(" ".join(cur)); cur = []
+    if cur: ps.append(" ".join(cur))
+    return ps
 if groups:
-    body = body.rstrip() + "\n\n## Groups, in build order\n\n" + "\n".join(f"- {g}" for g in groups) + "\n"
+    items = []
+    for g, lines in groups:
+        items.append("- " + g + "".join("\n\n  " + p if i else "\n  " + p for i, p in enumerate(paras(lines))))
+    body = body.rstrip() + "\n\n## Groups, in build order\n\n" + "\n".join(items) + "\n"
 body = re.sub(r"\n{3,}", "\n\n", body)
 if "## Tasks" not in body:
     body = body.rstrip() + "\n\n## Tasks\n\nOne file per task under `tasks/`; the live table is `tasks/index.md`.\n"
