@@ -96,8 +96,9 @@ Converged  |  Not converged — N critical, M warning
 
 ## Outcome
 
-- **Critical or warning findings:** append each to `tasks.md` as a new task with
-  an ID continuing the sequence, in the full task anatomy (Status, Files, Steps,
+- **Critical or warning findings:** add each as a new task
+  (`./scripts/task.sh changes/<change> new "<finding>" --reqs <id> --group
+  "Converge N"`, then fill the file in the full anatomy: Files, Steps,
   Verify), citing its requirement. Warnings are tasked too; the user is not
   here to accept them by name (`AUTONOMY.md`). A finding that is really a
   question (the spec or plan is wrong, two requirements conflict) goes to the

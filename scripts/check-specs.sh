@@ -160,7 +160,7 @@ for d in changes/[0-9][0-9][0-9]-*/; do
     done
     # does it merge cleanly?
     if [[ "$status" != "draft" ]]; then
-      ./scripts/merge_delta.py preview "$d" >/dev/null 2>/tmp/md.err || bad "delta does not merge: $(tail -1 /tmp/md.err)"
+      MDERR=$(mktemp); ./scripts/merge_delta.py preview "$d" >/dev/null 2>"$MDERR" || bad "delta does not merge: $(tail -1 "$MDERR")"; rm -f "$MDERR"
     fi
   fi
 
@@ -170,14 +170,25 @@ for d in changes/[0-9][0-9][0-9]-*/; do
   fi
 
   UNTOUCHED=false
-  grep -qE '<[A-Za-z][^>]*>' "$d/proposal.md" && { warn "proposal.md still contains template placeholders"; UNTOUCHED=true; }
+  # a placeholder is one of the template's own <tokens>, outside the template's guidance quotes — not any <word> in the user's copy
+  PH=$(grep -vE '^\s*>' templates/proposal-template.md | grep -oE '<[A-Za-z][^>]*>' | sort -u)
+  if [[ -n "$PH" ]] && grep -vE '^\s*>' "$d/proposal.md" | grep -qF -f <(printf '%s\n' "$PH"); then warn "proposal.md still contains template placeholders"; UNTOUCHED=true; fi
   if $UNTOUCHED; then echo; continue; fi
 
   if [[ "$status" == "approved" ]] && awk '/^## Open questions/,/^## /' "$d/proposal.md" | grep -qE '^\| [0-9]+ \|[^|]*[A-Za-z]'; then
     warn "approved proposal still lists open questions"
   fi
 
-  if [[ -f "$d/tasks.md" ]]; then
+  if [[ -d "$d/tasks" ]]; then
+    ./scripts/task.sh "$d" check | sed 's/^/  /' | grep -v '^    ✅' || true
+    ./scripts/task.sh "$d" check >/dev/null 2>&1 || FAIL=1
+    for tf in "$d"/tasks/C*_T*.md; do
+      t=$(basename "$tf" .md)
+      [[ "$(./scripts/fm.py get "$tf" sdd_phase)" == done ]] && { compgen -G "$d/record/tasks/$t-review-*.md" >/dev/null || warn "$t is done but has no review in $d/record/tasks/ — run ./scripts/record.sh $d task $t"; }
+    done
+    parked=$(grep -l '^sdd_phase: parked' "$d"/tasks/C*_T*.md 2>/dev/null | wc -l)
+    nxt=$(./scripts/task.sh "$d" next); echo "  · tasks: $(ls "$d"/tasks/C*_T*.md | wc -l), next: $nxt"
+  elif [[ -f "$d/tasks.md" ]]; then
     for t in $(awk '/^### T[0-9]+/{t=$2} /\*\*Status:\*\* *done/{if(t)print t; t=""}' "$d/tasks.md" | sort -u); do
       compgen -G "$d/record/tasks/$t-review-*.md" >/dev/null || warn "$t is done but has no review in $d/record/tasks/ — run ./scripts/record.sh $d task $t"
     done
@@ -188,6 +199,9 @@ for d in changes/[0-9][0-9][0-9]-*/; do
     [[ $parked -gt 0 ]] && warn "$parked task(s) parked on an escalation — see ./scripts/report.sh $d"
     pend=$(./scripts/record.sh "$d" amendments 2>/dev/null | grep -c '→' || true)
     [[ $pend -gt 0 && "$(./scripts/fm.py get "$d/tasks.md" sdd_phase 2>/dev/null)" == complete ]] && bad "$pend decided amendment(s) not applied to the delta"
+  fi
+  if [[ -f "$d/tasks.md" && ! -d "$d/tasks" ]]; then
+    [[ "$(./scripts/fm.py get "$d/tasks.md" sdd_phase 2>/dev/null)" == draft ]] || warn "$d/tasks.md is a single-file task list — ./scripts/task.sh $d split"
     dupes=$(grep -oE '^### T[0-9]+' "$d/tasks.md" | sed 's/### //' | sort | uniq -d)
     [[ -n "$dupes" ]] && bad "tasks.md has duplicate task IDs: $(echo $dupes | tr '\n' ' ') — the brief would pick the first"
     for t in $(grep -oE '^### T[0-9]+' "$d/tasks.md" | sed 's/### //' | sort -u); do

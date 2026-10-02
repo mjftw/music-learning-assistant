@@ -56,7 +56,8 @@ Extension keys are flat and `sdd_`-prefixed so `grep` and `sed` keep working.
 | `changes/NNN/proposal.md` | `Change Proposal` | `draft \| in-review \| approved \| merged` |
 | `changes/NNN/delta/<context>/<capability>.md` | `Spec Delta` | `draft \| approved` |
 | `changes/NNN/plan.md` | `Implementation Plan` | `draft \| in-review \| approved` |
-| `changes/NNN/tasks.md` | `Task List` | `draft \| approved \| in-progress \| complete` |
+| `changes/NNN/tasks.md` | `Task List` | `draft \| approved \| in-progress \| complete` (the overview) |
+| `changes/NNN/tasks/C*_T*.md` | `Task` | `sdd_phase: todo \| in-progress \| done \| parked` (+ `sdd_requirements`, `sdd_depends_on`, `sdd_parked_on`, `sdd_group`, `sdd_attempts`); `tasks/index.md` is generated |
 | `changes/NNN/notes.md` | `Implementation Notes` | — |
 | `changes/NNN/design/rounds.md` | `Design Log` | `open \| exited` |
 | `docs/interviews/<phase>.md` | `Interview Record` | `open \| closed` |

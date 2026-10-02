@@ -21,9 +21,15 @@ fmget() { ./scripts/fm.py get "$1" "$2" 2>/dev/null || true; }
 shopt -s nullglob
 DEC=("$REC"/decisions/D*.md)
 ESC=(); for f in "${DEC[@]}"; do [[ "$(fmget "$f" sdd_verdict)" == escalated ]] && ESC+=("$f"); done
-PARKED=$(awk '/^### T[0-9]+/{t=$2} /\*\*Status:\*\* *parked/{if(t)print t; t=""}' "$CH/tasks.md" 2>/dev/null | sort -u | tr '\n' ' ' | sed 's/ *$//')
-DONE=$(grep -cE '\*\*Status:\*\* *done' "$CH/tasks.md" 2>/dev/null || true)
-TODO=$(grep -cE '\*\*Status:\*\* *todo' "$CH/tasks.md" 2>/dev/null || true)
+if [[ -d "$CH/tasks" ]]; then
+  PARKED=$(grep -l '^sdd_phase: parked' "$CH"/tasks/C*_T*.md 2>/dev/null | xargs -rn1 basename | sed 's/\.md$//' | sort | tr '\n' ' ' | sed 's/ *$//')
+  DONE=$(grep -l '^sdd_phase: done' "$CH"/tasks/C*_T*.md 2>/dev/null | wc -l)
+  TODO=$(grep -l '^sdd_phase: todo' "$CH"/tasks/C*_T*.md 2>/dev/null | wc -l)
+else
+  PARKED=$(awk '/^### T[0-9]+/{t=$2} /\*\*Status:\*\* *parked/{if(t)print t; t=""}' "$CH/tasks.md" 2>/dev/null | sort -u | tr '\n' ' ' | sed 's/ *$//')
+  DONE=$(grep -cE '\*\*Status:\*\* *done' "$CH/tasks.md" 2>/dev/null || true)
+  TODO=$(grep -cE '\*\*Status:\*\* *todo' "$CH/tasks.md" 2>/dev/null || true)
+fi
 CONV=("$REC"/converge-*.md); LASTCONV=""
 [[ ${#CONV[@]} -gt 0 ]] && LASTCONV=$(ls -1 "${CONV[@]}" | sort -V | tail -1)
 VERDICT="not run"
