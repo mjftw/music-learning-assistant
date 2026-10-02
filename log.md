@@ -4,6 +4,7 @@ Chronological history of this bundle. Newest date first.
 
 ## 2026-10-02
 
+- Implementation Plan `changes/008-learner-leads/plan.md` → approved (human:merlin-webster)
 - Spec Delta `changes/008-learner-leads/delta/practice/session.md` → approved (human:merlin-webster)
 - Change Proposal `changes/008-learner-leads/proposal.md` → approved (human:merlin-webster)
 - Intent `changes/008-learner-leads/intent.md` → resolved (human:merlin-webster)

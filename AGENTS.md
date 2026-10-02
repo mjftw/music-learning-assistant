@@ -83,6 +83,10 @@ pnpm test:timing
 # measured tuner budget (Playwright/Chromium; feeds the microphone from the page's own AudioContext,
 # sweeps E2–C7 as a sine and a flute-like tone) — required at converge and finish from 007, not per task:
 pnpm test:tuner
+# measured lead-run budget (Playwright/Chromium; feeds a scripted lead run of C major as the microphone —
+# silence, a flat entry settling, holds, one drift — and the tone cue fed back) — required at converge
+# and finish from 008, not per task; its healthy output is pasted here at 008's converge:
+pnpm test:lead
 # design fidelity screenshots against the vendored prototype (dev-only, human-reviewed):
 pnpm design:shots
 ```

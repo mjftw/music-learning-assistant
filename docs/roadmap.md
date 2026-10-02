@@ -42,7 +42,7 @@ sdd_phase: approved
 
 | # | Change | Context | Capability (creates / modifies) | Outcome (one line) | Depends on | Status | Dir |
 |---|---|---|---|---|---|---|---|
-| 008 | `learner-leads` | `practice` | `practice.session` (modifies) | The tool shows the target note, listens, and advances when it is held in tune for the required duration | 003, 007 | specified | `changes/008-learner-leads/` |
+| 008 | `learner-leads` | `practice` | `practice.session` (modifies) | The tool shows the target note, listens, and advances when it is held in tune for the required duration | 003, 007 | planned | `changes/008-learner-leads/` |
 | 009 | `temperament` | `theory` | `theory.temperament` (modifies), `practice.session` (modifies) | Choose just vs equal temperament for playback and drone | 003, 004 | proposed | |
 | 010 | `teach-me` | `theory` | `theory.explanations` (creates) | Tooltips that explain the theory behind whatever is on screen | 001 | proposed | |
 

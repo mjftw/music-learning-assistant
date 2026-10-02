@@ -3,7 +3,7 @@ type: Implementation Plan
 title: Learner leads — plan
 description: A pure hold-rule reducer over timestamped judgements; the Session aggregate owns the lead run beside the transport, the drone and the tuner on 007's listening pipeline; a NoteMeter overlay shared by both panels; the Traversal sheet rebuilt; a v6 store; a measured `test:lead` harness sharing `test:tuner`'s microphone feed.
 resource: /changes/008-learner-leads/plan.md
-status: draft
+status: stable
 tags: [sdd, plan, "change:008-learner-leads"]
 sources:
   - resource: /changes/008-learner-leads/proposal.md
@@ -14,10 +14,12 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-10-02T16:50:00Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-10-02T16:00:00Z
 sdd_id: 008-learner-leads
 sdd_context: practice
-sdd_phase: draft          # draft | in-review | approved
+sdd_phase: approved
 ---
 
 # Plan: Learner leads
@@ -314,6 +316,6 @@ No flag. The mode words are the only way in; play along is the stored default, s
 
 | # | Question | Blocks | Recommended answer |
 |---|---|---|---|
-| 1 | The README lists five "new" tokens; four (`band`, `in tune`, `flat`, `sharp`) already exist as `tuner.*` with the same values (the README itself says the band "i.e. `tuner.band`"). Add only `lead.holdFill` and have the meter use `tuner.*` for the rest, or duplicate them under `lead.*` as the README's list reads? | the theme task | Add `lead.holdFill` only; note in `docs/design.md` §8 that the four `tuner.*` tokens are shared by the meter on the note — one value per role, as §8's own rule says |
-| 2 | Lead settings inside `SessionSettings` (one `setSettings` verb, one `session.lead` store field) or a separate `LeadSettings` verb and store block like the drone's? | the settings task | Inside `SessionSettings` — the drone's separation exists because it has its own sheet and voice; these settings live in the Traversal sheet beside the session settings |
-| 3 | `test:lead`'s advance gate: "within one hop (≈ 11 ms) of the expected frame, never before" as written, or the spec's looser "within 100 ms" only? | the harness task's assertions | One hop and never before — it is what makes the hold rule's exactness measurable; "never before" is the invariant; the 100 ms gate on the *shown* advance stays as the spec names it |
+| 1 | *Answered 2026-10-02: add `lead.holdFill` only; the meter uses the four `tuner.*` tokens.* The README lists five "new" tokens; four (`band`, `in tune`, `flat`, `sharp`) already exist as `tuner.*` with the same values (the README itself says the band "i.e. `tuner.band`"). Add only `lead.holdFill` and have the meter use `tuner.*` for the rest, or duplicate them under `lead.*` as the README's list reads? | the theme task | Add `lead.holdFill` only; note in `docs/design.md` §8 that the four `tuner.*` tokens are shared by the meter on the note — one value per role, as §8's own rule says |
+| 2 | *Answered 2026-10-02: inside `SessionSettings`.* Lead settings inside `SessionSettings` (one `setSettings` verb, one `session.lead` store field) or a separate `LeadSettings` verb and store block like the drone's? | the settings task | Inside `SessionSettings` — the drone's separation exists because it has its own sheet and voice; these settings live in the Traversal sheet beside the session settings |
+| 3 | *Answered 2026-10-02: within one hop, never before.* `test:lead`'s advance gate: "within one hop (≈ 11 ms) of the expected frame, never before" as written, or the spec's looser "within 100 ms" only? | the harness task's assertions | One hop and never before — it is what makes the hold rule's exactness measurable; "never before" is the invariant; the 100 ms gate on the *shown* advance stays as the spec names it |
