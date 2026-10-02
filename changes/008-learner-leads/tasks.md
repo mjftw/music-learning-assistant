@@ -263,7 +263,7 @@ _Nothing user-visible. The lead domain module, the settings, the store._
 
 ### T003 · practice.session/REQ-016 · The target never advances early (invariant, exhaustive)
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Test: `tests/practice/invariants/hold-never-early.test.ts`
