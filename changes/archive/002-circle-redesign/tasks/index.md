@@ -1,6 +1,6 @@
 # Tasks: 002-circle-redesign
 
-Generated from each task's frontmatter. Next: `./scripts/task.sh changes/archive/002-circle-redesign next` → none
+Generated from each task's frontmatter. Next: `./scripts/task.py changes/archive/002-circle-redesign next` → none
 
 | Task | Status | Depends on | Requirements | Group | Attempts | Outcome |
 |---|---|---|---|---|---|---|

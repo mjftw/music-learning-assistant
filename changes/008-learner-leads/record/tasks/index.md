@@ -1,0 +1,14 @@
+# Task attempts: 008-learner-leads
+
+- [T001 — implementation report](T001-report-1.md) — Implementation Report
+- [Review package — T001 · 008-learner-leads](T001-review-1.md) — Task Review — The diff produced for T001, for the task reviewer.
+- [T002 — implementation report](T002-report-1.md) — Implementation Report
+- [Review package — T002 · 008-learner-leads](T002-review-1.md) — Task Review — The diff produced for T002, for the task reviewer.
+- [T003 — implementation report](T003-report-1.md) — Implementation Report
+- [Review package — T003 · 008-learner-leads](T003-review-1.md) — Task Review — The diff produced for T003, for the task reviewer.
+- [T004 — implementation report](T004-report-1.md) — Implementation Report
+- [Review package — T004 · 008-learner-leads](T004-review-1.md) — Task Review — The diff produced for T004, for the task reviewer.
+- [T005 — implementation report](T005-report-1.md) — Implementation Report
+- [Review package — T005 · 008-learner-leads](T005-review-1.md) — Task Review — The diff produced for T005, for the task reviewer.
+- [T006 — implementation report](T006-report-1.md) — Implementation Report
+- [Review package — T006 · 008-learner-leads](T006-review-1.md) — Task Review — The diff produced for T006, for the task reviewer.

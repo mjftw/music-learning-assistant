@@ -1,6 +1,6 @@
 # Tasks: 003-hear-the-scale
 
-Generated from each task's frontmatter. Next: `./scripts/task.sh changes/archive/003-hear-the-scale next` → none
+Generated from each task's frontmatter. Next: `./scripts/task.py changes/archive/003-hear-the-scale next` → none
 
 | Task | Status | Depends on | Requirements | Group | Attempts | Outcome |
 |---|---|---|---|---|---|---|
