@@ -1,7 +1,7 @@
 ---
 type: Skill
 name: sdd-implement
-description: Controller for executing an approved tasks.md — briefs an implementer subagent per task, verifies independently, runs a per-task two-stage review, loops fixes, keeps the artefacts honest. Use when the user says "implement", "build it", "start working", "carry on", "next task", "resume", or after a task list is approved. Requires an approved tasks.md. Adapted from obra/superpowers subagent-driven-development (MIT).
+description: Controller for executing an approved task list (tasks/CNNN_TNNN.md files) — briefs an implementer subagent per task, verifies independently, runs a per-task two-stage review, loops fixes, keeps the artefacts honest. Use when the user says "implement", "build it", "start working", "carry on", "next task", "resume", or after a task list is approved. Requires an approved tasks.md. Adapted from obra/superpowers subagent-driven-development (MIT).
 ---
 
 # Implement — the controller
@@ -11,7 +11,7 @@ You are the controller, not the hands. Each task is executed by the
 subagent from a diff package, and only then checked off. Your job is
 coordination: build the brief, dispatch, verify, review, loop, commit, record.
 
-**Preserve your own context.** Do not read the whole `tasks.md`, `spec.md` or
+**Preserve your own context.** Do not read the task files, `spec.md` or
 `plan.md` per task. `scripts/task-brief.sh` extracts what each task needs.
 You read the task's **Status** lines and the Coverage table; the subagents
 read the rest.
@@ -31,13 +31,18 @@ are not moved up to Fable for nothing.
    commit conventions.
 3. If the user wants isolation, create a worktree for the change
    (`git worktree add ../<repo>-<change> <branch>`) and work there.
-4. Find the first task with `**Status:** todo`. If resuming, say the last
-   `done` and the next `todo` in one line.
+4. `./scripts/task.py changes/<change> next` names the task: the first
+   `todo` whose `sdd_depends_on` are all `done`. "none" means nothing is
+   buildable (everything done or parked). If resuming, say the last `done`
+   and the next in one line; `tasks/index.md` has both. A change that still
+   has a single-file `tasks.md` with `### T0NN` blocks is migrated first:
+   `./scripts/task.py changes/<change> split`, commit.
 
 ## The loop — per task
 
 1. **Announce** the task ID in one line.
-2. **Brief.** `BASE=$(git rev-parse HEAD)`; then
+2. **Brief.** `./scripts/task.py changes/<change> status T0NN in-progress`
+   (counts the attempt). `BASE=$(git rev-parse HEAD)`; then
    `./scripts/task-brief.sh changes/<change> T0NN` → brief path. Read the brief's
    task block once (only that) and note anything the brief cannot know: an
    interface decision from an earlier task, an ambiguity you have already
@@ -71,13 +76,16 @@ are not moved up to Fable for nothing.
    possible without the answer. Follow the escalated verdict's
    `## Still buildable`:
    - **Split**: if it names steps that do not depend on the escalation,
-     append them to `tasks.md` as a new task with the next free ID, in the
-     full anatomy, citing the same requirements, and cut them from the
-     original task. The original keeps only the blocked steps.
-   - **Park** the task (what is left of it) and every task the verdict lists
-     as **Blocked**: `**Status:** parked` and a line `Parked on D003`.
-   - Tasks it lists as **Unaffected** stay `todo`, with a line
-     `Checked against D003: unaffected`.
+     `./scripts/task.py changes/<change> new "<outcome>" --reqs … --group …
+     --after <the same dependencies>`, move those steps into the new file in
+     the full anatomy, and cut them from the original. The original keeps
+     only the blocked steps.
+   - **Park**: `./scripts/task.py changes/<change> park T0NN D003` parks the
+     task and everything that depends on it through `sdd_depends_on`. Then,
+     for each task the verdict lists as **Unaffected** that the park caught,
+     `./scripts/task.py changes/<change> status T0NN todo` and add a line
+     `Checked against D003: unaffected` to its body; for each it lists as
+     **Blocked** that the park missed, `park` it too.
    Then carry on with the next task that is not parked. If a later task
    turns out to need the answer after all, that is a new `DECISION_NEEDED`
    on that task, and the decider parks it then.
@@ -107,7 +115,8 @@ are not moved up to Fable for nothing.
    implementer's report and the reviewer's review into
    `changes/<change>/record/tasks/`, numbered per attempt; run it after
    *every* review, including the ones that failed, so the fix loop is on the
-   record. Then set the task's `**Status:** done`. Copy CONCERNS and minor
+   record. Then `./scripts/task.py changes/<change> status T0NN done` and
+   `./scripts/index.sh`. Copy CONCERNS and minor
    findings into `notes.md` as one-liners. Commit the record with the task
    (`git add changes/<change>/record`). If the task is the last in a phase,
    say so in one line.
@@ -141,8 +150,8 @@ task done or parked.
 - Mark a task done on the implementer's say-so; on the reviewer's verdict
   without your own verify run; or with any critical/important finding open.
 - Let the implementer read the spec tree. If a brief is insufficient, fix the
-  task in `tasks.md` (the tasks file is yours after the plan; commit the fix
-  with `draft.sh`) or answer in the dispatch.
+  task file under `tasks/` (the task files are yours after the plan; commit
+  the fix with `draft.sh`) or answer in the dispatch.
 - Edit `spec.md` to match what was built.
 - Skip a task because it looks redundant. Send it to the decider.
 - Disable, skip, loosen, or delete a failing test — or accept a report that did.

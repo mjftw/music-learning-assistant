@@ -171,6 +171,12 @@ reviewer is Opus whatever the session is on. Subagent tiers live in
 
 ## The implementation loop
 
+Tasks are one file each under `changes/<id>/tasks/`, state in frontmatter
+(`sdd_phase`, `sdd_requirements`, `sdd_depends_on`, `sdd_parked_on`).
+`scripts/task.py <change> next` names the first todo whose dependencies are
+done; `tasks/index.md` is generated from the files; `tasks.md` is the
+overview only. `task.py split` migrates a single-file list.
+
 Below `tasks.md` the shape is borrowed from superpowers'
 subagent-driven-development. The controller (your main session) never reads the
 whole plan per task. For each task it:

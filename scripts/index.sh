@@ -38,7 +38,13 @@ done
 gen specs "Current specifications, by bounded context"
 # changes: one index per change, one for archive, one for changes/
 for ch in changes/[0-9][0-9][0-9]-*/ changes/archive/[0-9][0-9][0-9]-*/; do
-  [[ -d "$ch" ]] && gen "${ch%/}" "Change $(basename "$ch")"
+  [[ -d "$ch" ]] || continue
+  gen "${ch%/}" "Change $(basename "$ch")"
+  if [[ -d "${ch}tasks" ]]; then
+    { echo "# Tasks: $(basename "$ch")"; echo; echo "Generated from each task's frontmatter. Next: \`./scripts/task.py ${ch%/} next\` → $(./scripts/task.py "${ch%/}" next)"; echo
+      ./scripts/task.py "${ch%/}" list; } > "${ch}tasks/index.md"
+    echo "wrote ${ch}tasks/index.md"
+  fi
 done
 [[ -d changes/archive ]] && gen changes/archive "Shipped changes"
 [[ -d changes ]] && gen changes "Changes in flight"

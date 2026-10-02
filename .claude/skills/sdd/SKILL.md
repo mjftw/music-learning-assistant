@@ -75,8 +75,9 @@ Running `./scripts/check-specs.sh` answers most of 3–8 in one call.
 | `proposal.md` written, `sdd_phase` not `approved` | Present it for approval — **stop** |
 | `proposal.md` approved, `plan.md` still template | `sdd-plan` (runs `sdd-engineering` first if `docs/engineering.md` is missing or unapproved) |
 | `plan.md` written, `sdd_phase` not `approved` | Present it for approval — **stop** |
-| `plan.md` approved, `tasks.md` still template | `sdd-tasks` → straight into `sdd-implement`: **the unattended run starts here** (`AUTONOMY.md`) |
-| `tasks.md` approved, tasks with `**Status:** todo` remain | `sdd-implement` (tasks marked `parked` wait on an escalation; skip them) |
+| `plan.md` approved, `tasks/` empty | `sdd-tasks` → straight into `sdd-implement`: **the unattended run starts here** (`AUTONOMY.md`) |
+| `tasks.md` holds `### T0NN` blocks and `tasks/` has no task files | `./scripts/task.py changes/<id> split`, commit, then as below |
+| `tasks.md` approved, `./scripts/task.py changes/<id> next` names a task | `sdd-implement` (parked tasks wait on an escalation; `next` skips them) |
 | All tasks `done` or `parked` | amendments applied (`sdd-implement` › When every task is done), then `sdd-converge` |
 | The user answers a run report's visual check with changes | `sdd-design` D on the change's branch |
 | Converge found gaps (appended tasks) | `sdd-implement` again |
@@ -162,6 +163,6 @@ and `sdd-continue`).
 ## Resuming
 
 If the user returns mid-flow ("where were we", "carry on"), read the current
-slice's `tasks.md` statuses, report the last completed task and the next one,
+change's `tasks/index.md`, report the last completed task and the next one,
 and continue from there. Do not restart a phase that already has an approved
 artefact.
