@@ -18,7 +18,7 @@ verified:
     at: 2026-10-02T16:34:00Z
 sdd_id: 008-learner-leads
 sdd_context: practice
-sdd_phase: approved
+sdd_phase: in-progress
 ---
 
 # Tasks: Learner leads
@@ -59,7 +59,7 @@ _Nothing user-visible. The lead domain module, the settings, the store._
 
 ### T001 · practice.session/REQ-016, practice.session/REQ-018, practice.session/REQ-020 · The lead settings, the tolerances, the hints, `verdictOf` with a band
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Create: `src/practice/domain/lead.ts`

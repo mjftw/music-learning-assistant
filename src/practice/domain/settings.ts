@@ -1,4 +1,5 @@
 import type { Octaves, Shape, Traversal } from "../../theory/published";
+import { defaultLeadSettings, type LeadSettings } from "./lead";
 
 export type SoundMode = "notes" | "both" | "metronome";
 
@@ -8,6 +9,7 @@ export interface SessionSettings {
   readonly countIn: boolean;
   readonly restBar: boolean;
   readonly tempoBpm: number;
+  readonly lead: LeadSettings;
 }
 
 export const defaultSessionSettings: SessionSettings = {
@@ -16,6 +18,7 @@ export const defaultSessionSettings: SessionSettings = {
   countIn: true,
   restBar: false,
   tempoBpm: 96,
+  lead: defaultLeadSettings,
 };
 
 export const defaultTraversal: Traversal = {

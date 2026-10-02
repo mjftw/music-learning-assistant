@@ -13,6 +13,16 @@ export {
   defaultTraversal,
   summaryLineOf,
 } from "../domain/settings";
+export type { HoldBeats, LeadSettings, Tolerance, Who } from "../domain/lead";
+export {
+  cuesHintOf,
+  defaultLeadSettings,
+  holdHintOf,
+  requiredHoldMs,
+  TOLERANCE_CENTS,
+  toleranceHintOf,
+  whoHintOf,
+} from "../domain/lead";
 export type { ScaleChoice } from "../domain/scale-choice";
 export { defaultScaleChoice, chosenScaleIdFor } from "../domain/scale-choice";
 export type { DroneOctave, DroneSettings, DroneSound } from "../domain/drone";
@@ -55,6 +65,7 @@ export {
   semitoneCountOf,
   TUNER_HIGHEST_POSITION,
   TUNER_LOWEST_POSITION,
+  verdictOf,
 } from "../domain/tuner";
 export type { NoteJudged, Verdict } from "./note-judged.schema";
 export { verdictSchema } from "./note-judged.schema";

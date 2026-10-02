@@ -21,6 +21,7 @@ import {
 import {
   chosenScaleIdFor,
   createSession,
+  defaultLeadSettings,
   defaultScaleChoice,
   steppedTempo,
   tempoForTerm,
@@ -217,8 +218,14 @@ function initialTraversalOf(stored: StoredSelection | null): Traversal {
   return traversalFromStored(stored?.traversal ?? firstRunDefaults.traversal);
 }
 
+// The stored session (`StoredSelection["session"]`, schema v5) carries no
+// lead settings yet — that is a later task's v6 schema — so every restored
+// session takes the S2 lead default until then (practice.session/REQ-011/S3).
 function initialSettingsOf(stored: StoredSelection | null): SessionSettings {
-  return stored?.session ?? firstRunDefaults.session;
+  return {
+    ...(stored?.session ?? firstRunDefaults.session),
+    lead: defaultLeadSettings,
+  };
 }
 
 export function App(props: {

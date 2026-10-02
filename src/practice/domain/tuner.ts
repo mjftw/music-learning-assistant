@@ -82,9 +82,13 @@ function rawCentsFrom(note: Note, hz: number): number {
   return 1200 * Math.log2(hz / pitchHzOf(note));
 }
 
-// |cents| ≤ IN_TUNE_BAND_CENTS → "in-tune"; > 0 sharp; < 0 flat
-export function verdictOf(cents: number): Verdict {
-  if (Math.abs(cents) <= IN_TUNE_BAND_CENTS) return "in-tune";
+// |cents| ≤ bandCents → "in-tune"; > 0 sharp; < 0 flat — the band defaults
+// to the tuner's own (practice.session/REQ-016/S5 passes a lead tolerance).
+export function verdictOf(
+  cents: number,
+  bandCents: number = IN_TUNE_BAND_CENTS,
+): Verdict {
+  if (Math.abs(cents) <= bandCents) return "in-tune";
   return cents > 0 ? "sharp" : "flat";
 }
 
