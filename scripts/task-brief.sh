@@ -35,13 +35,20 @@ h2() { # file "## Heading"
 TARGET=".sdd/target/$NAME"
 ./scripts/merge_delta.py preview "$SLICE" >/dev/null || { echo "error: could not build target state for $SLICE" >&2; exit 1; }
 
-N=$(grep -cE "^### $TID " "$SLICE/tasks.md" || true)
+CNUM="C${NAME%%-*}"; case "$TID" in T[0-9]*) TID="${CNUM}_$TID" ;; esac
+TASKFILE="$SLICE/tasks/$TID.md"
+if [[ -f "$TASKFILE" ]]; then
+  TASK=$(sed '1,/^---$/{/^---$/!d}' "$TASKFILE" | sed '1,/^---$/d')   # body only: the anatomy, no frontmatter
+  N=1
+else
+N=$(grep -cE "^### $TID " "$SLICE/tasks.md" 2>/dev/null || true)
 if [[ "$N" -gt 1 ]]; then
   echo "error: $TID appears $N times in $SLICE/tasks.md; fix the duplicate before briefing" >&2; exit 1
 fi
 TASK=$(section "$SLICE/tasks.md" "### $TID ")
 if [[ -z "$TASK" ]]; then
-  echo "error: no task '$TID' in $SLICE/tasks.md" >&2; exit 1
+  echo "error: no task '$TID' in $SLICE/tasks/ or $SLICE/tasks.md" >&2; exit 1
+fi
 fi
 
 NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -56,7 +63,7 @@ STALE=$(date -u -d '+7 days' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v+7d +%
   echo "status: draft"
   echo "tags: [sdd, brief, \"change:$NAME\"]"
   echo "sources:"
-  echo "  - resource: /$SLICE/tasks.md"
+  echo "  - resource: /${TASKFILE#./}"
   echo "  - resource: /$SLICE/proposal.md"
   echo "  - resource: /$SLICE/plan.md"
   echo "  - resource: /docs/engineering.md"
@@ -73,12 +80,13 @@ STALE=$(date -u -d '+7 days' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v+7d +%
   echo "requirements; use them verbatim. If something you need is missing,"
   echo "report NEEDS_CONTEXT with the exact question. Do not guess."
   echo
-  echo "## Task (verbatim from tasks.md)"; echo
+  echo "## Task (verbatim from the task file)"; echo
   printf '%s\n' "$TASK"
   echo
   echo "## Requirements cited (verbatim from the target state of the capability)"
   # task heading cites qualified ids: <context>.<capability>/REQ-NNN
-  for qr in $(printf '%s\n' "$TASK" | head -1 | grep -oE '[a-z0-9-]+\.[a-z0-9-]+/REQ-[0-9]+' | sort -u); do
+  if [[ -f "$TASKFILE" ]]; then QRS=$(./scripts/fm.py get "$TASKFILE" sdd_requirements | tr -d '[],'); else QRS=$(printf '%s\n' "$TASK" | head -1 | grep -oE '[a-z0-9-]+\.[a-z0-9-]+/REQ-[0-9]+'); fi
+  for qr in $(printf '%s\n' $QRS | sort -u); do
     cc="${qr%%/*}"; r="${qr##*/}"; ctx="${cc%%.*}"; cap="${cc##*.}"
     tf="$TARGET/$ctx/$cap.md"
     echo; echo "**$qr** (from \`specs/$ctx/$cap.md\` after this change):"; echo

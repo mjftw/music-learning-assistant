@@ -34,6 +34,7 @@ stamp() { # file: append a footer saying when it was recorded, so a reader knows
 case "$WHAT" in
   task)
     T="${3:?usage: record.sh <change> task T0NN}"
+    case "$T" in T[0-9]*) T="C${ID%%-*}_$T" ;; esac      # short id → C008_T011
     mkdir -p "$REC/tasks"
     n=0
     for kind in report review; do
