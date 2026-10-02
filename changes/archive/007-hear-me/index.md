@@ -6,3 +6,4 @@
 - [Hear me — a tuner that proves listening](proposal.md) — Change Proposal · merged — A tuner screen hears the instrument and shows the nearest note and how far sharp or flat, within 100 ms, with an optional pinned target — the listening context's first capability, measured against Article V.
 - [Hear me — tasks](tasks.md) — Task List · complete — 25 tasks across 5 phases — the listening crate and its contract, the session holding the tuner, the tuner screen, the measured harness, hardening.
 - [record/](record/index.md)
+- [tasks/](tasks/index.md)
