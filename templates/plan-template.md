@@ -16,6 +16,7 @@ verified: []
 sdd_id: NNN-slug
 sdd_context: <context>
 sdd_phase: draft          # draft | in-review | approved
+sdd_parallel: no          # yes | no — set at the gate: may the run build [P] tasks in parallel worktrees
 ---
 
 # Plan: <Feature name>

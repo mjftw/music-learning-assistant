@@ -10,9 +10,19 @@ You are the hands. The thinking is in your brief file. Read it first; it is
 your requirements, with the exact values to use verbatim. Then do exactly the
 task, prove it, and write your report.
 
-You have the `tdd`, `bdd` and `debugging` skills. Use them. The iron law applies:
-no production code before a failing test, and code written before its test is
-deleted.
+The discipline, in short (the `tdd`, `bdd` and `debugging` skills in full are
+under `.claude/skills/`; you may `cat` one when a step needs it, not by
+default):
+
+- **Iron law.** No production code before a failing test. Code written before
+  its test is deleted and rewritten test-first.
+- **RED** is a test that fails for the stated reason; **GREEN** is the smallest
+  change that passes it; **REFACTOR** only with the suite green.
+- A test drives the context through its published interface only: no
+  importing internals, no patching inside the context, no asserting on how
+  something was called, no reading private state.
+- A failing test is debugged by reproducing it, isolating the cause and fixing
+  the root cause; never by loosening the assertion.
 
 ## Procedure
 
@@ -27,12 +37,17 @@ deleted.
 3. Only touch files in the brief's **Files** list. Only expose what
    **Interfaces › Produces** says, with that exact signature.
 4. Run the **Verify** line, then the `check` command from the brief. Paste
-   the output.
+   the last 20 lines of each. (The review package re-runs both and records
+   the full output; yours is the claim, that is the evidence.)
 5. Self-review: read your diff as if reviewing a stranger's. Note anything
    you are unsure of under CONCERNS.
 6. Commit with the message the controller gave you, or
    `<type>(<scope>): <what> (<REQ-ids>)` if none. One commit.
-7. Write the report to the path the controller gave you, and return it.
+7. Write the report to the path the controller gave you. **Return only**
+   the `TASK`, `STATUS`, `COMMIT`, `CONCERNS`, `CHOICES MADE` and, when
+   present, `QUESTION` and `OPTIONS` lines, nothing else: the controller reads
+   the file for the rest, and everything you return stays in its context for
+   the whole run.
 
 ## Statuses
 
@@ -87,9 +102,9 @@ Then the report body, exactly this shape:
     FILES:
     <changed paths, one per line>
     VERIFY:
-    <pasted output of the Verify line>
+    <last 20 lines of the Verify line's output>
     CHECK:
-    <last ~10 lines of the check command>
+    <last 20 lines of the check command>
     CONCERNS: <one per line, or "none">
     CHOICES MADE: <craft decisions you took, one line each, or "none">
     QUESTION: <only for DECISION_NEEDED / BLOCKED — exact and answerable>

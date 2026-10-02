@@ -1,13 +1,29 @@
 ---
 type: Skill
 name: sdd-tasks
-description: Break an approved plan into an ordered, dependency-aware task list in changes/NNN-slug/tasks.md, each task citing the requirement IDs it satisfies and how it will be verified. Use after a plan is approved, or when the user says "break this down", "make the task list", "generate tasks", or asks what the steps are for a planned feature.
+description: Break an approved plan into an ordered, dependency-aware task list — one file per task under changes/NNN-slug/tasks/ plus the tasks.md overview — each task citing the requirement IDs it satisfies and how it will be verified. Use after a plan is approved, or when the user says "break this down", "make the task list", "generate tasks", or asks what the steps are for a planned feature.
 ---
 
 # Tasks
 
-Produce `changes/NNN-slug/tasks.md`: an ordered checklist an agent can execute one
-item at a time without re-deriving the design.
+Produce `changes/NNN-slug/tasks/CNNN_TNNN.md`, one file per task from
+`templates/task-template.md`, and `changes/NNN-slug/tasks.md`, the short
+overview (groups in build order, the coverage table, deferrals). An agent
+executes one task file at a time without re-deriving the design; the
+controller finds the next one from each file's frontmatter
+(`./scripts/task.py <change> next`), never by reading the lot.
+
+Create each file with `./scripts/task.py changes/NNN-slug new "<one
+outcome>" --reqs <ids> --group "<group>" [--after T0NN]`, then fill its
+body. State is frontmatter: `sdd_requirements` (qualified ids),
+`sdd_depends_on` (every task whose Produces this one Consumes — the
+controller orders the build by it and parks only along it), `sdd_group`,
+`sdd_parallel`, `sdd_class`. Never set `sdd_phase` by hand.
+
+Task ids are qualified by the change number: `C008_T005` is task 5 of change
+008, unique across the repository, usable in commit messages, decisions,
+test names and `git log --grep`. Commands accept the short form (`T005`)
+and qualify it.
 
 ## Model
 
@@ -33,18 +49,25 @@ Foundations before what depends on them: **schema → models → services →
 endpoints → UI → hardening**. Group by vertical slice, not by layer, so each
 phase after the first ends with something demonstrable against a requirement.
 
-Mark independent tasks `[P]` — no dependency on each other, safe to parallelise.
-Be conservative: a wrongly parallelised pair costs more than a serial run.
+Mark independent tasks `sdd_parallel: true` — no dependency on each other,
+safe to build alongside their neighbours when the plan's gate authorised it
+(`plan.md` `sdd_parallel: yes`). Be conservative: a wrongly parallelised
+pair costs more than a serial run.
 
 ## Task anatomy
 
 Each task will be executed by an implementer that sees **only its brief**
 (`scripts/task-brief.sh` builds it: the task block, the cited requirements,
 the plan sections it names, `docs/engineering.md`, the commands, the
-constitution). It cannot read the rest of `tasks.md`, the spec, or the plan.
+constitution). It cannot read the other task files, the spec, or the plan.
 So each task carries everything it needs:
 
-- **Status** line — `todo` initially.
+- **`sdd_class`** in the frontmatter — `standard`, or `trivial` for purely
+  mechanical work with no judgement in it: a rename, deleting a REMOVED
+  requirement's tests and the code only it used, a format or lint chore,
+  filling a documented value in (`task.py new … --class trivial`). The
+  controller runs a trivial task on the small model and skips the quality
+  stage of its review. When in doubt, `standard`.
 - **Files** — exact paths. `Create:` / `Modify: path:lines` / `Test:`.
 - **Interfaces** — `Consumes:` exact signatures from earlier tasks;
   `Produces:` exact signatures this task exposes. Character-for-character.
@@ -85,16 +108,21 @@ Conventions / Architecture.
 Run these over the whole file and fix what fails before presenting:
 
 - **Spec coverage** — every `REQ-` appears in the Coverage table with a task.
-- **Interface consistency** — every `Consumes:` matches a `Produces:` above
-  it exactly. Fill the Interface consistency table.
-- **Placeholder scan** —
-  `grep -nE 'TBD|TODO|<[a-z ]+>|handle .* cases|error handling|similar to|like T[0-9]+' changes/NNN-slug/tasks.md`
-  returns nothing outside the template's own guidance block.
+- **Interface consistency** — every `Consumes:` matches a `Produces:` of a
+  task named in `sdd_depends_on`, exactly. A Consumes with no dependency
+  listed is a missing dependency; a dependency with nothing consumed is
+  noise. `./scripts/task.py changes/NNN-slug check` catches dangling ones.
+- **Class honesty** — a task with `sdd_class: trivial` has no RED step that
+  proves a scenario; anything with a scenario is `standard`. `task.py check`
+  warns on a trivial task with a RED step.
+- **Placeholder scan** — `./scripts/task.py changes/NNN-slug check` warns on
+  `TBD`, `TODO`, "handle edge cases", "similar to T…" and missing anatomy.
 - **Granularity** — no step you could not do in five minutes; no task with
   one step.
 - **Scenario coverage** — every scenario ID in the spec appears in some task's
   RED step. `./scripts/check-scenarios.sh changes/NNN-slug` reports gaps once
-  tests exist; before that, grep the spec's IDs against `tasks.md`.
+  tests exist; before that, `./scripts/task.py changes/NNN-slug coverage`
+  is the Coverage table — paste it into `tasks.md`.
 - **Preference conformance** — steps follow `docs/engineering.md` (types,
   error style, test style). A departure is a plan open question, not a task.
 
@@ -114,10 +142,10 @@ Tasks are the first artefact after the plan, and the plan was the last thing
 the user approved (`AUTONOMY.md`). Nobody reviews this file; the
 self-review above is the review. So:
 
-1. `./scripts/draft.sh changes/NNN-slug/tasks.md`.
-2. The coverage table must show every requirement covered and the
-   placeholder scan must be clean. If either is not, fix the tasks; do not
-   hand over a list with gaps.
+1. `./scripts/task.py changes/NNN-slug check` clean, the coverage table
+   pasted into `tasks.md` showing every requirement covered. If not, fix the
+   tasks; do not hand over a list with gaps.
+2. `./scripts/draft.sh changes/NNN-slug/tasks.md changes/NNN-slug/tasks`.
 3. `./scripts/approve.sh changes/NNN-slug/tasks.md approved` (the approval is
    the plan's; this records that the tasks follow from it), set the change's
    `docs/roadmap.md` status to `building`, `./scripts/index.sh`, commit

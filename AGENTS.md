@@ -45,7 +45,9 @@ If 4 conflicts with 1–3, stop and say so. Do not pick silently.
 - `changes/NNN-slug/` — a change in flight: `intent.md`, `proposal.md`,
   `delta/`, `design/` (wireframes or imported references, `rounds.md`, the
   screenshots of every round under `rounds/`, and at the loop's exit
-  `reference/`), `plan.md`, `tasks.md`, `notes.md`, and `record/` — the
+  `reference/`), `plan.md`, `tasks.md` (the overview: groups, coverage,
+  deferrals) with `tasks/CNNN_TNNN.md` one file per task and the generated
+  `tasks/index.md` (status, dependencies, next), `notes.md`, and `record/` — the
   implementer report and review for every task attempt and every
   convergence report, copied from `.sdd/` by `scripts/record.sh`.
   `changes/archive/` — shipped, record included.
@@ -216,7 +218,8 @@ runtime network dependencies.
 - Edit `memory/constitution.md`, `docs/engineering.md`, `docs/design.md` or
   `REVIEW.md` outside their skills; propose instead.
 - Hand-edit YAML frontmatter, `index.md` or `log.md`. Use `scripts/fm.py`,
-  `scripts/approve.sh`, `scripts/index.sh`.
+  `scripts/approve.sh`, `scripts/index.sh`; a task's status only through
+  `scripts/task.py`.
 - Delete or rewrite anything under a change's `record/`, `design/rounds/` or
   `docs/interviews/`. They are append-only; `record.sh` numbers attempts.
 - Show an artefact at a gate without `scripts/draft.sh` having committed

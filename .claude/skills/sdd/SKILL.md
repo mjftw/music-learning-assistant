@@ -75,8 +75,9 @@ Running `./scripts/check-specs.sh` answers most of 3–8 in one call.
 | `proposal.md` written, `sdd_phase` not `approved` | Present it for approval — **stop** |
 | `proposal.md` approved, `plan.md` still template | `sdd-plan` (runs `sdd-engineering` first if `docs/engineering.md` is missing or unapproved) |
 | `plan.md` written, `sdd_phase` not `approved` | Present it for approval — **stop** |
-| `plan.md` approved, `tasks.md` still template | `sdd-tasks` → straight into `sdd-implement`: **the unattended run starts here** (`AUTONOMY.md`) |
-| `tasks.md` approved, tasks with `**Status:** todo` remain | `sdd-implement` (tasks marked `parked` wait on an escalation; skip them) |
+| `plan.md` approved, `tasks/` empty | `sdd-tasks` → straight into `sdd-implement`: **the unattended run starts here** (`AUTONOMY.md`) |
+| `tasks.md` holds `### T0NN` blocks and `tasks/` has no task files | `./scripts/task.py changes/<id> split`, commit, then as below |
+| `tasks.md` approved, `./scripts/task.py changes/<id> next` names a task | `sdd-implement` (parked tasks wait on an escalation; `next` skips them) |
 | All tasks `done` or `parked` | amendments applied (`sdd-implement` › When every task is done), then `sdd-converge` |
 | The user answers a run report's visual check with changes | `sdd-design` D on the change's branch |
 | Converge found gaps (appended tasks) | `sdd-implement` again |
@@ -111,7 +112,7 @@ power follows, and it is enforced, not requested.
 |---|---|---|---|
 | `sdd-init`, `sdd-constitution`, `sdd-engineering`, `grill`, `sdd-specify`, `sdd-plan`, `sdd-design` | main session | Fable | `model: fable` in the skill; `.sdd/phase` + `sdd-continue` every turn; the write guard |
 | `sdd-tasks`, `sdd-implement` (controller), `sdd-finish` | main session | Sonnet | project default (`.claude/settings.json › model`) |
-| `implementer` (per task) | subagent | Sonnet; `Trivial` → Haiku | `model:` in `.claude/agents/implementer.md` |
+| `implementer` (per task) | subagent | Sonnet; `sdd_class: trivial` → Haiku | `model:` in `.claude/agents/implementer.md`; the controller overrides it per task |
 | `task-reviewer` (per task) | subagent | Sonnet | agent frontmatter |
 | `sdd-converge` → `reviewer` | subagent | Opus — verification is never weaker than what it verifies | agent frontmatter |
 | `decider` (a decision mid-run) | subagent | Fable — it stands in for the user's judgement | agent frontmatter |
@@ -162,6 +163,6 @@ and `sdd-continue`).
 ## Resuming
 
 If the user returns mid-flow ("where were we", "carry on"), read the current
-slice's `tasks.md` statuses, report the last completed task and the next one,
+change's `tasks/index.md`, report the last completed task and the next one,
 and continue from there. Do not restart a phase that already has an approved
 artefact.

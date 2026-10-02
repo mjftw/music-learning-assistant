@@ -17,7 +17,8 @@ are not moved up to Fable for nothing.
 
 ## 1. Confirm the state
 
-- `git status` clean; every task `**Status:** done`; `tasks.md`
+- `git status` clean; `./scripts/task.py changes/<id> next` says `none` and
+  every task file is `done` or `parked`; `tasks.md`
   `sdd_phase: complete`; the convergence report at
   `.sdd/reports/<change>/converge.md`.
 - `check` command green, run now, output shown.
@@ -29,7 +30,7 @@ are not moved up to Fable for nothing.
   live --base <dev url>` run now, so the run report can show each screen.
   No design round is required to finish; the user's visual check comes
   after, from the report.
-- Tasks with `**Status:** parked` do not block finish. Only what was built
+- Parked tasks do not block finish. Only what was built
   is merged: a requirement whose tasks are all parked is moved from the
   delta to a follow-up (step 2b).
 
@@ -114,6 +115,8 @@ from step 5, are the last thing the run says.
 ## 6. After
 
 - Worktree, if used: `git worktree remove ../<repo>-<id>`.
+  Parallel task worktrees, if any: `git worktree remove` each under
+  `.sdd/worktrees/`, then `git worktree prune`.
 - `./scripts/record.sh changes/archive/<id> list` — the record travels with
   the archived change: task reports and reviews per attempt, every
   convergence report, every design round's screenshots. Check it is not

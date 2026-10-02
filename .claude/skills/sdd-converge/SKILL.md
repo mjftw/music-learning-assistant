@@ -41,6 +41,13 @@ Your job in the main session:
    dev server URL so the reviewer can run the fidelity pass (REVIEW.md 3c);
    if no server can be started, say so in the report rather than skipping
    the pass silently.
+
+   **Second and later cycles are incremental.** If `record/converge-N.md`
+   exists for this change, pass the latest one and the commit on its `Run:`
+   line. The reviewer re-verifies that report's findings, audits the diff
+   since that commit through every pass, and runs the suite and the scripts
+   in full (`reviewer.md` 4x). Nothing already audited is read again unless
+   the new diff touches it.
 2. Receive the report. Do not edit it, soften it, or "fix a couple of things
    first". `./scripts/record.sh changes/<change> converge` — every cycle's
    report is kept as `record/converge-N.md`; a later cycle never overwrites
@@ -96,8 +103,9 @@ Converged  |  Not converged — N critical, M warning
 
 ## Outcome
 
-- **Critical or warning findings:** append each to `tasks.md` as a new task with
-  an ID continuing the sequence, in the full task anatomy (Status, Files, Steps,
+- **Critical or warning findings:** add each as a new task
+  (`./scripts/task.py changes/<change> new "<finding>" --reqs <id> --group
+  "Converge N"`, then fill the file in the full anatomy: Files, Steps,
   Verify), citing its requirement. Warnings are tasked too; the user is not
   here to accept them by name (`AUTONOMY.md`). A finding that is really a
   question (the spec or plan is wrong, two requirements conflict) goes to the

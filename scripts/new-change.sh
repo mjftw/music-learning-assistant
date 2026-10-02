@@ -31,7 +31,7 @@ HIGHEST=$( { ls -d changes/[0-9][0-9][0-9]-* changes/archive/[0-9][0-9][0-9]-* 2
 NNN=$(printf "%03d" "$NEXT"); ID="${NNN}-${SLUG}"; DIR="changes/${ID}"
 [[ -d "$DIR" ]] && { echo "error: $DIR already exists" >&2; exit 1; }
 
-mkdir -p "$DIR/delta" "$DIR/design" "$DIR/record"
+mkdir -p "$DIR/delta" "$DIR/design" "$DIR/record" "$DIR/tasks"
 TODAY=$(date +%Y-%m-%d); NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 CONST_VER=$(./scripts/fm.py get memory/constitution.md sdd_version 2>/dev/null || echo "0.0.0")
 

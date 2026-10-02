@@ -152,11 +152,17 @@ a one-way door mid-build (a published schema, a storage shape, a dependency,
 a data-handling rule) and settle it here, with the user, as an open question.
 Say in one line that approving the plan starts the unattended run.
 
-Then `AskUserQuestion`: *Approve*, *Revise*, *Change a specific choice*,
-*Answer open questions first*.
+Then `AskUserQuestion` with two questions: the gate — *Approve*, *Revise*,
+*Change a specific choice*, *Answer open questions first* — and whether the
+run may build independent `[P]` tasks in parallel worktrees — *Yes
+(Recommended)* when the tasks will be few enough to review in order and the
+suite runs in isolation, *No* otherwise. Nobody can be asked this after the
+gate (`AUTONOMY.md`), so it is asked here.
 
 On approval:
 
+- `./scripts/fm.py set changes/NNN-slug/plan.md sdd_parallel yes|no` from
+  the second answer
 - update `AGENTS.md` Commands / Conventions / Architecture with the real values
   (wrap the whole verification in one command where possible, and paste an
   example of healthy output)
