@@ -13,12 +13,34 @@ export {
   defaultTraversal,
   summaryLineOf,
 } from "../domain/settings";
-export type { HoldBeats, LeadSettings, Tolerance, Who } from "../domain/lead";
+export type {
+  Hold,
+  HoldBeats,
+  LeadPhase,
+  LeadSettings,
+  LeadTarget,
+  Tolerance,
+  Who,
+} from "../domain/lead";
+// SequenceNote is theory's type, but it appears in the lead reducer's own
+// public signature (targetAt, applyJudgement take `readonly
+// SequenceNote[]`) — re-exported here so a practice consumer never needs
+// to reach into theory/published just to name a practice parameter type.
+export type { SequenceNote } from "../../theory/published";
 export {
+  applyJudgement,
+  applySilence,
+  CUE_TAIL_MS,
+  CUE_TONE_MS,
   cuesHintOf,
   defaultLeadSettings,
+  emptyHold,
+  heldFractionOf,
+  HELD_TICK_MS,
   holdHintOf,
+  LEAD_GAP_MS,
   requiredHoldMs,
+  targetAt,
   TOLERANCE_CENTS,
   toleranceHintOf,
   whoHintOf,

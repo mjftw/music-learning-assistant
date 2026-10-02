@@ -139,7 +139,7 @@ _Nothing user-visible. The lead domain module, the settings, the store._
 
 ### T002 · practice.session/REQ-016, practice.session/REQ-015 · The hold rule as a pure reducer
 
-**Status:** todo
+**Status:** done
 
 **Files**
 - Modify: `src/practice/domain/lead.ts` (append), `src/practice/published/index.ts`
