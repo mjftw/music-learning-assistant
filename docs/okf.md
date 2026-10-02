@@ -60,6 +60,9 @@ Extension keys are flat and `sdd_`-prefixed so `grep` and `sed` keep working.
 | `changes/NNN/notes.md` | `Implementation Notes` | — |
 | `changes/NNN/design/rounds.md` | `Design Log` | `open \| exited` |
 | `docs/interviews/<phase>.md` | `Interview Record` | `open \| closed` |
+| `AUTONOMY.md` | `Autonomy Policy` | — |
+| `changes/NNN/record/decisions/D*.md` | `Decision` | `sdd_verdict: decided \| escalated`, `sdd_door: two-way \| one-way`, `sdd_amends`, `sdd_applied` |
+| `changes/NNN/record/run-report.md` | `Run Report` | — |
 | `changes/NNN/record/tasks/T*-report-N.md`, `T*-review-N.md`, `record/converge-N.md` | copies of the `Implementation Report`, `Task Review` and `Convergence Report` written under `.sdd/`, kept per attempt | — |
 | `changes/NNN/design/*.html`, `*.png` | — (not OKF; wireframes and references, listed by the proposal's Interface table) | — |
 | `.sdd/briefs/**` | `Task Brief` | — (ephemeral; `stale_after` set) |

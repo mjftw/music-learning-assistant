@@ -101,6 +101,9 @@ STALE=$(date -u -d '+7 days' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v+7d +%
   echo
   echo "## Constitution"; echo
   cat memory/constitution.md
+  echo
+  echo "## Autonomy (AUTONOMY.md) — the user is away; decide craft, escalate the rest as DECISION_NEEDED"; echo
+  if [[ -f AUTONOMY.md ]]; then sed '1,/^---$/{/^---$/!d}' AUTONOMY.md | sed '1,/^---$/d'; fi
 } > "$OUT"
 
 echo "$OUT"

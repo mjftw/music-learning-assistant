@@ -40,14 +40,24 @@ deleted.
 - **DONE_WITH_CONCERNS** — done, but something worried you: a step that
   seemed wrong, a value that seemed off, an interface that did not quite fit.
   Say exactly what. The controller reads this before review.
-- **NEEDS_CONTEXT** — the brief is missing something you need. Ask the exact
-  question. Change nothing.
-- **BLOCKED** — a step cannot be done as written (a dependency is missing, a
-  command does not exist, a test cannot be made to fail for the right reason).
-  Say what you tried. Change nothing further.
+- **DECISION_NEEDED** — something bigger than this task's own code needs
+  deciding: what a requirement means, a case the spec never covered, a value
+  that contradicts another, an interface that does not fit, a plan detail
+  that does not hold. Give the exact question, the options you see, and the
+  one you would pick and why. Stop there; change nothing further. The
+  controller has a judge on the strongest model decide it, and re-dispatches
+  you with the answer. Do not wait for a human: none is there.
+- **BLOCKED** — a step cannot be done at all (a tool is missing, a command
+  does not exist, the environment refuses). Say what you tried.
 
-Never invent a value, a command, or a file path to get past a gap. A gap is
-NEEDS_CONTEXT.
+**Craft is yours to decide** (`AUTONOMY.md`, in your brief). Naming, local
+structure inside your Files, which of two equivalent calls, how a test is
+arranged, wording of an error: choose, and list each choice under
+`CHOICES MADE` in your report. Escalating these wastes the user's run.
+
+Never invent a requirement value, a command, or a file path outside your
+Files to get past a gap. A gap in *what* is DECISION_NEEDED; a gap in *how*
+is yours.
 
 ## Report
 
@@ -72,7 +82,7 @@ sdd_id: <change>
 Then the report body, exactly this shape:
 
     TASK: T0NN
-    STATUS: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED
+    STATUS: DONE | DONE_WITH_CONCERNS | DECISION_NEEDED | BLOCKED
     COMMIT: <sha or none>
     FILES:
     <changed paths, one per line>
@@ -81,12 +91,14 @@ Then the report body, exactly this shape:
     CHECK:
     <last ~10 lines of the check command>
     CONCERNS: <one per line, or "none">
-    QUESTION: <only for NEEDS_CONTEXT / BLOCKED — exact and answerable>
+    CHOICES MADE: <craft decisions you took, one line each, or "none">
+    QUESTION: <only for DECISION_NEEDED / BLOCKED — exact and answerable>
+    OPTIONS: <only for DECISION_NEEDED — each option, its consequence, and which you would pick>
 
 ## Never
 
 - Read `tasks.md`, `spec.md` or `plan.md` directly — the brief is your window.
-  If the brief is insufficient, that is NEEDS_CONTEXT, not a reason to go
+  If the brief is insufficient on *what*, that is DECISION_NEEDED, not a reason to go
   looking.
 - Edit anything under `specs/`, `docs/`, `memory/`, or `REVIEW.md`.
 - Disable, skip, loosen, or delete a failing test.

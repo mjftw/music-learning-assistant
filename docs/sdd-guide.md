@@ -180,19 +180,21 @@ whole plan per task. For each task it:
    preferences, the commands and the constitution into one file;
 2. dispatches an `implementer` (Sonnet, fresh context) that sees only that
    brief, works TDD, and reports `DONE` / `DONE_WITH_CONCERNS` /
-   `NEEDS_CONTEXT` / `BLOCKED`;
+   `DECISION_NEEDED` / `BLOCKED`;
 3. verifies independently, running the task's verify line and `check` itself;
 4. packages the diff with `scripts/review-package.sh`, against the commit
    recorded *before* dispatch, never `HEAD~1`;
 5. dispatches a `task-reviewer` (Sonnet) for two verdicts: spec compliance
    (everything required, nothing extra), then quality against your
    preferences;
-6. loops a fixer on critical and important findings, at most three rounds;
+6. loops a fixer on critical and important findings; after three rounds the
+   decider rules on it;
 7. marks the task done and commits.
 
-A `NEEDS_CONTEXT` the controller cannot answer from `docs/decisions.md` comes
-to you. That is the design: the implementer never guesses, and you are asked
-exactly once per gap.
+A `DECISION_NEEDED` the controller cannot answer from what is already
+recorded goes to the decider, not to you: the implementer never guesses
+about what to build, and you are not asked mid-run. See "The unattended
+run".
 
 When every task is done, `sdd-converge` audits the whole change with a reviewer
 that saw none of this, and `sdd-finish` closes it out.
@@ -310,6 +312,20 @@ untouched.
 Shipped screens that feel wrong later get a lighter path: new-change.sh with
 --design seeds an intent and goes straight to the loop on the live app, with
 no plan or tasks unless a round changes what the product does.
+
+## The unattended run
+
+The plan's gate is the last human gate. After it, tasks are written and
+self-approved, and implementation, review, fix loops, amendments, converge
+and finish run without questions. AUTONOMY.md holds the policy. Craft
+inside a task is the implementer's call. Anything bigger goes to the
+decider subagent (Fable), which judges it on reversal cost, foundation,
+reach and promise, decides the two-way doors and escalates the one-way
+ones. Escalations park the task and its dependants; the rest is built.
+Decided amendments are applied to the delta on the strong model before
+converge. The reviewer re-judges every decision. The run ends with
+scripts/report.sh: what needs the user (escalations, parked work, the
+visual check for screens), what was decided, the amendments, the result.
 
 ## What is kept
 

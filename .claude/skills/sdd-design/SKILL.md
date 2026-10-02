@@ -192,10 +192,12 @@ the plan, like an engineering departure.
 
 ## D. The refinement loop — after the tasks are done, before converge
 
-Called by `sdd-implement` when every task is `done` and the change's
-Interface is not `none`; or directly, for a `--design` change (a change
-whose only purpose is to make shipped screens feel right); or whenever the
-user says the interface is wrong.
+Called when the user answers the visual check in a run report with
+something they want different (on the change's branch, before merge); or
+directly, for a `--design` change (shipped screens that should feel
+different); or whenever the user says the interface is wrong. It is never
+part of the unattended run: it needs the user's eyes, so it starts when the
+user starts it.
 
 **This is where the design actually happens.** The build so far is correct
 and grey. From here on the real app is the prototype, the user is the
@@ -257,7 +259,9 @@ walkthrough problem, not a taste problem.
    sdd_phase exited`; `./scripts/check-design.sh --change changes/<id>`
    must be clean (every row has its reference).
 5. Commit `design(<id>): exit — <N> rounds, <M> tokens promoted`.
-   `./scripts/phase.sh leave`, then hand to `sdd-converge`, whose fidelity pass compares the shipped screens to these
+   `./scripts/phase.sh leave`, then run the reviewer's fidelity pass
+   (`REVIEW.md` 3c) against the new references and re-run
+   `./scripts/report.sh` so the run report shows the check answered, whose fidelity pass compares the shipped screens to these
    references.
 
 ---

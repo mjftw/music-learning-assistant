@@ -73,6 +73,7 @@ expect "model globs are not file globs (Fable still allowed)" 0 "$(guard changes
 rm -f "$TRAP"
 expect "a widened allowlist admits Opus"                   0 "$(SDD_STRONG_MODELS='claude-fable-* claude-opus-*' guard docs/product.md "$T/opus" tO)"
 expect "secrets stay blocked on any model"                 2 "$(guard .env "$T/fable" tA)"
+expect "AUTONOMY.md is the user's, blocked on any model"   2 "$(guard AUTONOMY.md "$T/fable" tA)"
 
 echo "Phase marker"
 ./scripts/phase.sh leave >/dev/null
@@ -91,6 +92,7 @@ for s in sdd-init grill sdd-specify sdd-plan sdd-design sdd-constitution sdd-eng
   expect "$s carries model: fable"                         fable "$(./scripts/fm.py get .claude/skills/$s/SKILL.md model 2>/dev/null)"
 done
 expect "reviewer is pinned to Opus"                        opus "$(./scripts/fm.py get .claude/agents/reviewer.md model 2>/dev/null)"
+expect "decider is pinned to Fable"                       fable "$(./scripts/fm.py get .claude/agents/decider.md model 2>/dev/null)"
 
 echo
 [[ $FAIL -eq 0 ]] && echo "✅ $N checks passed" || echo "❌ model ladder self-test failed"

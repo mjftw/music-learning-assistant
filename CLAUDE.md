@@ -14,9 +14,11 @@ agents belongs in AGENTS.md.
 - Use `AskUserQuestion` for gate approvals and for any question with a small
   set of discrete answers. Always include your own recommended answer as the
   first option, marked `(Recommended)`.
-- Subagents: `implementer`, `task-reviewer` and `reviewer` live in
+- Subagents: `implementer`, `task-reviewer`, `reviewer` and `decider` live in
   `.claude/agents/`. Spawn them with the Agent tool; do not do their jobs
   inline. Their model tiers are the ladder in the `sdd` skill.
 - When a `[sdd]` line at the top of a turn says a phase is open, invoke
   `sdd-continue` before anything else. It moves the turn to Fable.
+- After the plan is approved, do not use `AskUserQuestion` until the run
+  report. Decisions go to `decider`.
 - Keep a task list for anything that runs past three steps.
