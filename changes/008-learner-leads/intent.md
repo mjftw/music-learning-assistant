@@ -3,7 +3,7 @@ type: Intent
 title: learner-leads — intent
 description: I lead: the tool shows each target note on the practice screen, listens, and moves on once the note has been held in tune for N beats
 resource: /changes/008-learner-leads/intent.md
-status: draft
+status: stable
 tags: [sdd, intent, "change:008-learner-leads"]
 sources:
   - resource: conversation:2026-10-02
@@ -12,10 +12,12 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-10-02T15:26:26Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-10-02T15:41:33Z
 sdd_id: 008-learner-leads
 sdd_context: practice
-sdd_phase: draft          # draft | resolved
+sdd_phase: resolved
 ---
 
 # Intent: learner-leads

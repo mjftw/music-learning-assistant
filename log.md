@@ -2,6 +2,10 @@
 
 Chronological history of this bundle. Newest date first.
 
+## 2026-10-02
+
+- Intent `changes/008-learner-leads/intent.md` → resolved (human:merlin-webster)
+
 ## 2026-09-29
 
 - Roadmap `docs/roadmap.md` → approved (human:merlin-webster)
