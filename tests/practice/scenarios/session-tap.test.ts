@@ -10,6 +10,7 @@ import {
   sessionOn,
   startDroneAndFlush,
 } from "../fakes";
+import { leadFixture, startLead } from "../lead-helpers";
 
 const GMajorTwoOctaves: Traversal = {
   direction: "updown",
@@ -119,4 +120,29 @@ test("practice.session/REQ-013/S5 — ignored while playing or counting", async 
   clock.advance(10);
   expect(sound.posted.filter(isTone).length).toBe(duringRun);
   expect(session.snapshot().tappedRunIndex).toBeNull();
+});
+
+test("practice.session/REQ-013/S5 — ignored while leading", async () => {
+  const f = leadFixture();
+  await startLead(f.session);
+  f.session.tapNote(3);
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(f.sound.posted.filter(isTone)).toEqual([]);
+  expect(f.session.snapshot().tappedRunIndex).toBeNull();
+  expect(f.session.snapshot().lead.target?.runIndex).toBe(0);
+});
+
+test("practice.session/REQ-013/S7 — idle in I lead, too", async () => {
+  const f = leadFixture();
+  f.session.tapNote(2); // E4
+  await Promise.resolve();
+  await Promise.resolve();
+  const tone = f.sound.posted.find(isTone)!;
+  expect(tone.hz).toBeCloseTo(329.63, 1);
+  expect(tone.durationFrames).toBe(Math.round((625 / 1000) * 48000));
+  expect(f.session.snapshot().lead.idleCaption).toBe(
+    "hold 2 beats · medium tuning",
+  );
+  expect(f.listening.startCalls).toBe(0);
 });

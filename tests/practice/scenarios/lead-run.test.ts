@@ -20,9 +20,12 @@ import {
   FakeSound,
   FakeVisibility,
   FakeWakeLock,
+  isStop,
   keyOf,
+  startDroneAndFlush,
   type SessionFixture,
 } from "../fakes";
+import { enter } from "../tuner-helpers";
 
 test("practice.session/REQ-015/S1 — the run starts on the first note", async () => {
   const f = leadFixture();
@@ -184,4 +187,37 @@ test("practice.session/REQ-015/S8 — no notes, no run", async () => {
   await startLead(f.session);
   expect(f.listening.startCalls).toBe(0);
   expect(f.session.snapshot().lead.phase).toBe("idle");
+});
+
+test("practice.session/REQ-015/S5 — the drone goes first", async () => {
+  const f = leadFixture();
+  await startDroneAndFlush(f.session);
+  expect(f.session.snapshot().drone.on).toBe(true);
+  await startLead(f.session);
+  const droneStopIndex = f.sound.posts.findIndex(
+    (p) => isStop(p.command) && p.command.tag >= 3_000_000,
+  );
+  expect(droneStopIndex).toBeGreaterThanOrEqual(0);
+  expect(f.session.snapshot().drone.on).toBe(false);
+  expect(f.session.snapshot().lead.phase).toBe("listening");
+  const g = leadFixture();
+  await startLead(g.session);
+  await startDroneAndFlush(g.session);
+  expect(g.listening.stopCalls).toBe(1);
+  expect(g.session.snapshot().lead.phase).toBe("idle");
+  expect(g.session.snapshot().drone.on).toBe(true);
+});
+
+test("practice.session/REQ-015/S7 — the Tuner pill ends the run", async () => {
+  const f = leadFixture();
+  await startLead(f.session);
+  await enter(f.session);
+  expect(f.listening.stopCalls).toBe(1);
+  expect(f.listening.startCalls).toBe(2);
+  expect(f.session.snapshot().lead.phase).toBe("idle");
+  expect(f.session.snapshot().tuner.active).toBe(true);
+  f.session.leaveTuner();
+  expect(f.session.snapshot().lead.idleCaption).toBe(
+    "hold 2 beats · medium tuning",
+  );
 });

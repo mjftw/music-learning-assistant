@@ -1417,17 +1417,13 @@ export function createSession(
     // (before this function's own await below), so it lands at this exact
     // frame; the first tick's lead then carries the drone's own release time
     // on top, so the click or note never sounds until the drone has
-    // actually faded to silence.
-    const droneWasOn = droneOn;
-    // Bumped unconditionally — even a startDrone() that is only still
-    // pending (droneOn still false, awaiting sound.start()/wakeLock.acquire())
-    // must be superseded the instant ▶ is tapped, or its continuation would
-    // pass its own generation check and post a drone under a run already in
-    // progress (T022). stopDrone() below bumps it again when the drone was
-    // actually on; a second bump there is harmless — only inequality with
-    // startedAtGeneration is ever tested.
-    droneGeneration += 1;
-    if (droneWasOn) stopDrone();
+    // actually faded to silence. stopAnyRun() also bumps droneGeneration
+    // unconditionally — even a startDrone() that is only still pending
+    // (droneOn still false, awaiting sound.start()/wakeLock.acquire()) must
+    // be superseded the instant ▶ is tapped, or its continuation would pass
+    // its own generation check and post a drone under a run already in
+    // progress (T022).
+    const droneWasOn = stopAnyRun();
     invalidateSnapshot();
     notice = null;
     cancelIdleTimer(); // Cancel any pending idle timer from the previous run
@@ -1511,6 +1507,33 @@ export function createSession(
     notifyChange();
   }
 
+  // practice.drone/REQ-004, practice.tuner/REQ-001, practice.session/REQ-015
+  // — the guard startDrone(), enterTuner() and start()-as-tool all open
+  // with: stop whatever is currently sounding or listening — playback
+  // (❚❚/■), the drone, or a lead run (■) — before beginning the new one, so
+  // the "never both" invariant holds across every way in. Returns whether
+  // the drone was on, since start()-as-tool needs that to compute the
+  // drone's own release delay before its first tick.
+  function stopAnyRun(): boolean {
+    const droneWasOn = droneOn;
+    // Bumped unconditionally, before stopDrone() — a startDrone() that is
+    // only still pending (droneOn still false, awaiting
+    // sound.start()/wakeLock.acquire()) must be superseded too, or its
+    // continuation would post a drone under whatever is starting now (T022;
+    // mirrors enterTuner()'s own unconditional bump, and the open note from
+    // T005 that startLead() needed the same for its own drone-goes-first
+    // guard).
+    droneGeneration += 1;
+    if (droneWasOn) stopDrone();
+    // practice.session/REQ-015/S5, S7 — a lead run in progress, or still
+    // requesting the microphone (listeningOwner is set synchronously,
+    // before either of its own awaits), ends the same way ■ ends it.
+    if (listeningOwner === "lead") stop();
+    // Playback in progress ends the same way ❚❚/■ ends it too.
+    if (transport.kind !== "idle") stop();
+    return droneWasOn;
+  }
+
   // practice.drone/REQ-001, REQ-004, REQ-008 — mirrors start()'s
   // sound.start() handling, but stays off on failure rather than proceeding
   // regardless: there is no walk-through to get stuck, so nothing is gained
@@ -1530,7 +1553,9 @@ export function createSession(
     // practice.tuner/REQ-001/S3 — nothing sounds while the tuner listens.
     if (tunerActive) return;
     if (droneOn) return;
-    if (transport.kind !== "idle") stop();
+    // practice.session/REQ-015/S5 — the drone switched on during a lead run
+    // stops it first (idle, the microphone released), then sounds.
+    stopAnyRun();
     invalidateSnapshot();
     // practice.drone/REQ-008/S2 — a retry clears the stale notice up front,
     // mirroring start(): a successful sound.start() below never re-sets it,
@@ -1677,6 +1702,9 @@ export function createSession(
     // practice.tuner/REQ-001/S3 — nothing sounds while the tuner listens.
     if (tunerActive) return;
     if (transport.kind !== "idle") return;
+    // practice.session/REQ-013/S5 — a lead run in progress (listening, or
+    // still requesting the microphone) ignores a tap too.
+    if (listeningOwner === "lead") return;
     const target = run[runIndex];
     if (target === undefined) return;
 
@@ -1934,6 +1962,22 @@ export function createSession(
   function startLead(): void {
     if (sequence.length === 0) return;
     if (listeningOwner === "lead") return;
+    // practice.session/REQ-015/S6 — "no sequence note, click, drone or
+    // tapped note" sounds while a lead run is in progress: a tap only ever
+    // sounds while idle, which a lead run starting from idle does not by
+    // itself end — found by this task's widened never-both enumeration
+    // (tapNote → start-as-me). Bumping tapGeneration too supersedes a tap
+    // still only pending (awaiting sound.start()), the same reasoning as
+    // enterTuner()'s own bump.
+    endTapIfSounding();
+    tapGeneration += 1;
+    // practice.session/REQ-015/S5 — the drone goes first: bumped
+    // unconditionally, before the conditional stopDrone() — mirrors
+    // stopAnyRun()'s own unconditional bump (the open note from T005): a
+    // startDrone() that is only still pending (droneOn still false,
+    // awaiting sound.start()/wakeLock.acquire()) must be superseded too, or
+    // its continuation would post a drone under the lead run just starting.
+    droneGeneration += 1;
     if (droneOn) stopDrone();
     invalidateSnapshot();
     listeningOwner = "lead";
@@ -2023,18 +2067,17 @@ export function createSession(
     // tapGeneration above).
     endTapIfSounding();
     tapGeneration += 1;
-    if (transport.kind !== "idle") stop();
-    // Bumped unconditionally — mirrors start()'s own T022 fix: a
-    // startDrone() that is only still pending (droneOn still false,
-    // awaiting sound.start()/wakeLock.acquire()) is not caught by the
-    // `if (droneOn) stopDrone()` below, since droneOn only flips true once
-    // that call's own post lands; without this, its continuation would
-    // pass its own generation check and post a drone after tunerActive is
-    // already true (found by T013's widened never-both enumeration:
-    // droneOnPending → enterTuner). stopDrone() below bumps it again when
-    // the drone was actually on; a second bump there is harmless.
-    droneGeneration += 1;
-    if (droneOn) stopDrone();
+    // practice.session/REQ-015/S7 — the Tuner pill ends a lead run first,
+    // the same way ■ does; stopAnyRun() also bumps droneGeneration
+    // unconditionally — mirrors start()'s own T022 fix: a startDrone() that
+    // is only still pending (droneOn still false, awaiting
+    // sound.start()/wakeLock.acquire()) is not caught by a plain
+    // `if (droneOn) stopDrone()`, since droneOn only flips true once that
+    // call's own post lands; without the unconditional bump, its
+    // continuation would pass its own generation check and post a drone
+    // after tunerActive is already true (found by T013's widened
+    // never-both enumeration: droneOnPending → enterTuner).
+    stopAnyRun();
     invalidateSnapshot();
     tunerActive = true;
     listeningOwner = "tuner";
@@ -2056,6 +2099,15 @@ export function createSession(
   // continuation cannot overwrite the "off" state this sets with a stale
   // "listening"/"cannot-hear" once it resolves.
   function leaveTuner(): void {
+    // practice.session/REQ-015/S6 — a no-op unless the tuner is actually
+    // active: without this, leaveTuner() called while a lead run owns
+    // listening (never reachable from the UI — entering the tuner always
+    // stops a lead run first, REQ-015/S7 — but found by this task's
+    // widened never-both enumeration: start-as-me → leaveTuner → droneOn)
+    // would clobber `listeningOwner` back to "none" out from under the
+    // still-"listening" lead run, letting startDrone()'s stopAnyRun() guard
+    // (which checks `listeningOwner === "lead"`) miss it entirely.
+    if (!tunerActive) return;
     invalidateSnapshot();
     tunerGeneration += 1;
     listening.stop();
