@@ -31,6 +31,17 @@ command you are about to run would write to the tree, do not run it.
    Also run `./scripts/check-scenarios.sh --change changes/<change>`,
    `./scripts/check-contexts.sh` and `./scripts/check-design.sh --change
    changes/<change>`; paste all three outputs into the report.
+4x. **Incremental cycle.** When the controller names a previous convergence
+   report (`record/converge-N.md`) and its commit, the code up to that commit
+   was audited in full by that report. Then: re-verify each of its findings
+   against the code (fixed, or still open, by its original wording — a
+   finding that survives is reported again with the same wording); run every
+   pass in `REVIEW.md` over `git diff <that commit> HEAD` and the files it
+   touches, reading the artefacts in step 2 only as far as those files need;
+   and run step 4 (the suite, lint, typecheck and the three scripts) in full,
+   because they are cheap and cover the whole tree. An earlier file the new
+   diff does not touch is not re-read. State in the report which commit the
+   cycle started from.
 4a. **Parked work.** For each escalated verdict, check its `Still buildable`
    judgement against the code: a task marked Unaffected that in fact depends
    on the open question is a **critical** finding (it was built on an answer
@@ -70,5 +81,6 @@ sdd_id: <change>
 Findings ranked most-severe first, every finding citing `file:line`, what the
 artefact requires, and what the code does.
 
-Return the report as your output as well as writing it. Do not append to
-tasks; the controller does that.
+Return only the report's `### Critical`, `### Warning` and `### Verdict`
+sections as your output; the controller reads the file for the rest. Do not
+add tasks; the controller does that.

@@ -35,6 +35,8 @@ sdd_phase: draft          # draft | approved | in-progress | complete
 > `sdd_parallel: true` on a task: no dependency on its neighbours.
 > `sdd_depends_on` lists the tasks whose Produces it Consumes; the controller
 > uses it to order the build and to park only what an escalation blocks.
+> `sdd_class: trivial` on a task: mechanical work with no scenario; it runs
+> on the small model and skips the quality stage of review.
 
 ## Groups, in build order
 

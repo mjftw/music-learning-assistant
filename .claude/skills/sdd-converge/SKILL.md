@@ -41,6 +41,13 @@ Your job in the main session:
    dev server URL so the reviewer can run the fidelity pass (REVIEW.md 3c);
    if no server can be started, say so in the report rather than skipping
    the pass silently.
+
+   **Second and later cycles are incremental.** If `record/converge-N.md`
+   exists for this change, pass the latest one and the commit on its `Run:`
+   line. The reviewer re-verifies that report's findings, audits the diff
+   since that commit through every pass, and runs the suite and the scripts
+   in full (`reviewer.md` 4x). Nothing already audited is read again unless
+   the new diff touches it.
 2. Receive the report. Do not edit it, soften it, or "fix a couple of things
    first". `./scripts/record.sh changes/<change> converge` — every cycle's
    report is kept as `record/converge-N.md`; a later cycle never overwrites

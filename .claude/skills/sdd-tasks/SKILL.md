@@ -18,7 +18,7 @@ outcome>" --reqs <ids> --group "<group>" [--after T0NN]`, then fill its
 body. State is frontmatter: `sdd_requirements` (qualified ids),
 `sdd_depends_on` (every task whose Produces this one Consumes — the
 controller orders the build by it and parks only along it), `sdd_group`,
-`sdd_parallel`. Never set `sdd_phase` by hand.
+`sdd_parallel`, `sdd_class`. Never set `sdd_phase` by hand.
 
 Task ids are qualified by the change number: `C008_T005` is task 5 of change
 008, unique across the repository, usable in commit messages, decisions,
@@ -49,8 +49,10 @@ Foundations before what depends on them: **schema → models → services →
 endpoints → UI → hardening**. Group by vertical slice, not by layer, so each
 phase after the first ends with something demonstrable against a requirement.
 
-Mark independent tasks `[P]` — no dependency on each other, safe to parallelise.
-Be conservative: a wrongly parallelised pair costs more than a serial run.
+Mark independent tasks `sdd_parallel: true` — no dependency on each other,
+safe to build alongside their neighbours when the plan's gate authorised it
+(`plan.md` `sdd_parallel: yes`). Be conservative: a wrongly parallelised
+pair costs more than a serial run.
 
 ## Task anatomy
 
@@ -60,7 +62,12 @@ the plan sections it names, `docs/engineering.md`, the commands, the
 constitution). It cannot read the other task files, the spec, or the plan.
 So each task carries everything it needs:
 
-- **Status** line — `todo` initially.
+- **`sdd_class`** in the frontmatter — `standard`, or `trivial` for purely
+  mechanical work with no judgement in it: a rename, deleting a REMOVED
+  requirement's tests and the code only it used, a format or lint chore,
+  filling a documented value in (`task.py new … --class trivial`). The
+  controller runs a trivial task on the small model and skips the quality
+  stage of its review. When in doubt, `standard`.
 - **Files** — exact paths. `Create:` / `Modify: path:lines` / `Test:`.
 - **Interfaces** — `Consumes:` exact signatures from earlier tasks;
   `Produces:` exact signatures this task exposes. Character-for-character.
@@ -105,6 +112,9 @@ Run these over the whole file and fix what fails before presenting:
   task named in `sdd_depends_on`, exactly. A Consumes with no dependency
   listed is a missing dependency; a dependency with nothing consumed is
   noise. `./scripts/task.py changes/NNN-slug check` catches dangling ones.
+- **Class honesty** — a task with `sdd_class: trivial` has no RED step that
+  proves a scenario; anything with a scenario is `standard`. `task.py check`
+  warns on a trivial task with a RED step.
 - **Placeholder scan** — `./scripts/task.py changes/NNN-slug check` warns on
   `TBD`, `TODO`, "handle edge cases", "similar to T…" and missing anatomy.
 - **Granularity** — no step you could not do in five minutes; no task with
