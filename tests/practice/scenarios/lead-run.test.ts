@@ -7,7 +7,12 @@ import {
   type TargetAdvanced,
 } from "../../../src/practice/published";
 import type { Variant, VariantId } from "../../../src/theory/published";
-import { leadFixture, leadSettings, startLead } from "../lead-helpers";
+import {
+  holdThrough,
+  leadFixture,
+  leadSettings,
+  startLead,
+} from "../lead-helpers";
 import {
   FakeClock,
   FakeListening,
@@ -107,6 +112,44 @@ function sessionWithEmptyRun(): SessionFixture {
   );
   return { session, sound, clock, wake, visibility, listening, context };
 }
+
+test("practice.session/REQ-015/S3 — the last note held, loop off", async () => {
+  const f = leadFixture({ ...leadSettings(), loop: false });
+  const advanced: TargetAdvanced[] = [];
+  f.session.onTargetAdvanced((e) => advanced.push(e));
+  await startLead(f.session);
+  holdThrough(f, 15);
+  const s = f.session.snapshot();
+  expect(s.lead.phase).toBe("complete");
+  expect(s.lead.completeCaption).toBe("15 of 15 held · C4–C5");
+  expect(s.lead.target).toBeNull();
+  expect(f.listening.stopCalls).toBe(1);
+  expect(f.wake.acquired).toBe(false);
+  expect(advanced).toHaveLength(15);
+  await startLead(f.session);
+  expect(f.session.snapshot().lead.target?.position).toBe(1);
+  expect(f.listening.startCalls).toBe(2);
+});
+
+test("practice.session/REQ-015/S4 — the last note held, loop on", async () => {
+  const f = leadFixture();
+  const advanced: TargetAdvanced[] = [];
+  f.session.onTargetAdvanced((e) => advanced.push(e));
+  await startLead(f.session);
+  holdThrough(f, 15);
+  expect(f.session.snapshot().lead.phase).toBe("listening");
+  expect(f.session.snapshot().lead.target).toMatchObject({
+    position: 1,
+    note: { letter: "C", octave: 4 },
+  });
+  expect(advanced).toHaveLength(16);
+  expect(advanced[15]).toMatchObject({
+    position: 1,
+    note: { letter: "C", octave: 4 },
+  });
+  expect(f.listening.stopCalls).toBe(0);
+  expect(f.session.snapshot().lead.completeCaption).toBeNull();
+});
 
 test("practice.session/REQ-015/S8 — no notes, no run", async () => {
   const f = sessionWithEmptyRun();
