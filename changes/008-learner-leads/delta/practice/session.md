@@ -182,6 +182,11 @@ THE SYSTEM SHALL advance the target to the next note of the sequence
 (`REQ-015`) with the hold at zero; and THE SYSTEM SHALL never advance the
 target in a lead run for any other reason (invariant)
 
+> Amended 2026-10-02 at the tasks gate, with the user's approval (the 005
+> precedent): S3's excursion lasts 100 ms, not one reading — with the
+> smoothing of `practice.tuner/REQ-002` a single +17 ¢ reading shows as
+> +6; S9's offset corrected from −655 ¢ to −194 ¢ (C4 +6 ¢ against D4).
+
 **Scenarios**
 - **REQ-016/S1 — held, then the next (acceptance)**
   Given the run of `REQ-015/S1`, medium, 2 beats, 96 bpm, the target C4
@@ -199,10 +204,11 @@ target in a lead run for any other reason (invariant)
 - **REQ-016/S3 — leaving the band resets**
   Given the target E4 (329.63 Hz), medium, 2 beats, 96 bpm
   When 330.6 Hz (+5 ¢) is detected for 900 ms, then 332.9 Hz (+17 ¢) for
-  one reading, then 330.6 Hz again
-  Then the hold had reached 900 ms, fell to zero on the +17 reading, and
-  the target advances 1250 ms after the first in-tune reading that
-  followed it — not 350 ms after
+  100 ms — smoothed as the tuner smooths, the shown offset leaves ±10 ¢
+  after about the sixth reading — then 330.6 Hz again
+  Then the hold had reached 900 ms, fell to zero on the first reading whose
+  smoothed offset was outside the band, and the target advances 1250 ms
+  after the first in-tune reading that followed it — not 350 ms after
 - **REQ-016/S4 — silence pauses**
   Given the target E4, the hold at 900 ms in tune
   When nothing is detected for two seconds and then 330.6 Hz (+5 ¢) again
@@ -237,7 +243,7 @@ target in a lead run for any other reason (invariant)
   Given the target D4 reached from C4 as in S1, with the same 262.5 Hz
   still sounding
   When the first reading against D4 arrives
-  Then it is shown as detected (−655 ¢, flat, pinned — `REQ-017`), not
+  Then it is shown as detected (−194 ¢, flat, pinned — `REQ-017`), not
   smoothed from C4's +6, and the hold is zero
 
 ### REQ-017: The meter on the target note and the live card
