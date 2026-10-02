@@ -97,7 +97,7 @@ Converged  |  Not converged — N critical, M warning
 ## Outcome
 
 - **Critical or warning findings:** add each as a new task
-  (`./scripts/task.sh changes/<change> new "<finding>" --reqs <id> --group
+  (`./scripts/task.py changes/<change> new "<finding>" --reqs <id> --group
   "Converge N"`, then fill the file in the full anatomy: Files, Steps,
   Verify), citing its requirement. Warnings are tasked too; the user is not
   here to accept them by name (`AUTONOMY.md`). A finding that is really a

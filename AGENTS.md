@@ -215,7 +215,7 @@ runtime network dependencies.
   `REVIEW.md` outside their skills; propose instead.
 - Hand-edit YAML frontmatter, `index.md` or `log.md`. Use `scripts/fm.py`,
   `scripts/approve.sh`, `scripts/index.sh`; a task's status only through
-  `scripts/task.sh`.
+  `scripts/task.py`.
 - Delete or rewrite anything under a change's `record/`, `design/rounds/` or
   `docs/interviews/`. They are append-only; `record.sh` numbers attempts.
 - Show an artefact at a gate without `scripts/draft.sh` having committed

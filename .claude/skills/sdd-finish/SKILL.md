@@ -17,7 +17,7 @@ are not moved up to Fable for nothing.
 
 ## 1. Confirm the state
 
-- `git status` clean; `./scripts/task.sh changes/<id> next` says `none` and
+- `git status` clean; `./scripts/task.py changes/<id> next` says `none` and
   every task file is `done` or `parked`; `tasks.md`
   `sdd_phase: complete`; the convergence report at
   `.sdd/reports/<change>/converge.md`.

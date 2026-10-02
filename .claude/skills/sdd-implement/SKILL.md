@@ -31,17 +31,17 @@ are not moved up to Fable for nothing.
    commit conventions.
 3. If the user wants isolation, create a worktree for the change
    (`git worktree add ../<repo>-<change> <branch>`) and work there.
-4. `./scripts/task.sh changes/<change> next` names the task: the first
+4. `./scripts/task.py changes/<change> next` names the task: the first
    `todo` whose `sdd_depends_on` are all `done`. "none" means nothing is
    buildable (everything done or parked). If resuming, say the last `done`
    and the next in one line; `tasks/index.md` has both. A change that still
    has a single-file `tasks.md` with `### T0NN` blocks is migrated first:
-   `./scripts/task.sh changes/<change> split`, commit.
+   `./scripts/task.py changes/<change> split`, commit.
 
 ## The loop — per task
 
 1. **Announce** the task ID in one line.
-2. **Brief.** `./scripts/task.sh changes/<change> status T0NN in-progress`
+2. **Brief.** `./scripts/task.py changes/<change> status T0NN in-progress`
    (counts the attempt). `BASE=$(git rev-parse HEAD)`; then
    `./scripts/task-brief.sh changes/<change> T0NN` → brief path. Read the brief's
    task block once (only that) and note anything the brief cannot know: an
@@ -76,14 +76,14 @@ are not moved up to Fable for nothing.
    possible without the answer. Follow the escalated verdict's
    `## Still buildable`:
    - **Split**: if it names steps that do not depend on the escalation,
-     `./scripts/task.sh changes/<change> new "<outcome>" --reqs … --group …
+     `./scripts/task.py changes/<change> new "<outcome>" --reqs … --group …
      --after <the same dependencies>`, move those steps into the new file in
      the full anatomy, and cut them from the original. The original keeps
      only the blocked steps.
-   - **Park**: `./scripts/task.sh changes/<change> park T0NN D003` parks the
+   - **Park**: `./scripts/task.py changes/<change> park T0NN D003` parks the
      task and everything that depends on it through `sdd_depends_on`. Then,
      for each task the verdict lists as **Unaffected** that the park caught,
-     `./scripts/task.sh changes/<change> status T0NN todo` and add a line
+     `./scripts/task.py changes/<change> status T0NN todo` and add a line
      `Checked against D003: unaffected` to its body; for each it lists as
      **Blocked** that the park missed, `park` it too.
    Then carry on with the next task that is not parked. If a later task
@@ -115,7 +115,7 @@ are not moved up to Fable for nothing.
    implementer's report and the reviewer's review into
    `changes/<change>/record/tasks/`, numbered per attempt; run it after
    *every* review, including the ones that failed, so the fix loop is on the
-   record. Then `./scripts/task.sh changes/<change> status T0NN done` and
+   record. Then `./scripts/task.py changes/<change> status T0NN done` and
    `./scripts/index.sh`. Copy CONCERNS and minor
    findings into `notes.md` as one-liners. Commit the record with the task
    (`git add changes/<change>/record`). If the task is the last in a phase,

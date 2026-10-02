@@ -41,8 +41,8 @@ for ch in changes/[0-9][0-9][0-9]-*/ changes/archive/[0-9][0-9][0-9]-*/; do
   [[ -d "$ch" ]] || continue
   gen "${ch%/}" "Change $(basename "$ch")"
   if [[ -d "${ch}tasks" ]]; then
-    { echo "# Tasks: $(basename "$ch")"; echo; echo "Generated from each task's frontmatter. Next: \`./scripts/task.sh ${ch%/} next\` → $(./scripts/task.sh "${ch%/}" next)"; echo
-      ./scripts/task.sh "${ch%/}" list; } > "${ch}tasks/index.md"
+    { echo "# Tasks: $(basename "$ch")"; echo; echo "Generated from each task's frontmatter. Next: \`./scripts/task.py ${ch%/} next\` → $(./scripts/task.py "${ch%/}" next)"; echo
+      ./scripts/task.py "${ch%/}" list; } > "${ch}tasks/index.md"
     echo "wrote ${ch}tasks/index.md"
   fi
 done

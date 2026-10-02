@@ -173,9 +173,9 @@ reviewer is Opus whatever the session is on. Subagent tiers live in
 
 Tasks are one file each under `changes/<id>/tasks/`, state in frontmatter
 (`sdd_phase`, `sdd_requirements`, `sdd_depends_on`, `sdd_parked_on`).
-`scripts/task.sh <change> next` names the first todo whose dependencies are
+`scripts/task.py <change> next` names the first todo whose dependencies are
 done; `tasks/index.md` is generated from the files; `tasks.md` is the
-overview only. `task.sh split` migrates a single-file list.
+overview only. `task.py split` migrates a single-file list.
 
 Below `tasks.md` the shape is borrowed from superpowers'
 subagent-driven-development. The controller (your main session) never reads the
