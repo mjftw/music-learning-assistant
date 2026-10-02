@@ -1791,6 +1791,15 @@ export function createSession(
     scheduler.start(sound.currentFrame() + firstTickLeadFrames(), next);
   }
 
+  // practice.session/REQ-015 — a key, traversal or scale change clears a
+  // complete lead card back to idle (the complete card otherwise persists
+  // until the circle is tapped or the mode/key/variant/scale/traversal
+  // changes). A run still listening is restarted on the new sequence by
+  // REQ-019, not here.
+  function clearCompleteLeadCard(): void {
+    if (leadPhase.kind === "complete") leadPhase = { kind: "idle" };
+  }
+
   function setContext(newContext: SessionContext): void {
     invalidateSnapshot();
     currentContext = newContext;
@@ -1800,6 +1809,8 @@ export function createSession(
     // so there is nothing to re-sync here.
     recomputeAndRetune();
     restartIfPlaying();
+    clearCompleteLeadCard();
+    invalidateSnapshot();
     notifyChange();
   }
 
@@ -1808,6 +1819,8 @@ export function createSession(
     currentTraversal = newTraversal;
     recomputeAndRetune();
     restartIfPlaying();
+    clearCompleteLeadCard();
+    invalidateSnapshot();
     notifyChange();
   }
 
@@ -1816,6 +1829,8 @@ export function createSession(
     currentScaleChoice = choice;
     recomputeAndRetune();
     restartIfPlaying();
+    clearCompleteLeadCard();
+    invalidateSnapshot();
     notifyChange();
   }
 

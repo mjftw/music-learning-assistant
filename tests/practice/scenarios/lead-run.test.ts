@@ -11,6 +11,7 @@ import {
   holdThrough,
   leadFixture,
   leadSettings,
+  oneOctaveUpdown,
   startLead,
 } from "../lead-helpers";
 import {
@@ -148,6 +149,32 @@ test("practice.session/REQ-015/S4 — the last note held, loop on", async () => 
     note: { letter: "C", octave: 4 },
   });
   expect(f.listening.stopCalls).toBe(0);
+  expect(f.session.snapshot().lead.completeCaption).toBeNull();
+});
+
+test("practice.session/REQ-015 — a key, traversal or scale change from complete returns to idle", async () => {
+  const f = leadFixture({ ...leadSettings(), loop: false });
+  await startLead(f.session);
+  holdThrough(f, 15);
+  expect(f.session.snapshot().lead.phase).toBe("complete");
+
+  f.session.setContext({ ...f.context, key: keyOf("G") });
+  expect(f.session.snapshot().lead.phase).toBe("idle");
+  expect(f.session.snapshot().lead.completeCaption).toBeNull();
+  expect(f.session.snapshot().lead.target).toBeNull();
+
+  await startLead(f.session);
+  holdThrough(f, 15);
+  expect(f.session.snapshot().lead.phase).toBe("complete");
+  f.session.setTraversal({ ...oneOctaveUpdown, direction: "up" });
+  expect(f.session.snapshot().lead.phase).toBe("idle");
+  expect(f.session.snapshot().lead.completeCaption).toBeNull();
+
+  await startLead(f.session);
+  holdThrough(f, 8);
+  expect(f.session.snapshot().lead.phase).toBe("complete");
+  f.session.setScaleChoice(defaultScaleChoice);
+  expect(f.session.snapshot().lead.phase).toBe("idle");
   expect(f.session.snapshot().lead.completeCaption).toBeNull();
 });
 
