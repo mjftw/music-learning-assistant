@@ -98,16 +98,19 @@ Converged  |  Not converged — N critical, M warning
 
 - **Critical or warning findings:** append each to `tasks.md` as a new task with
   an ID continuing the sequence, in the full task anatomy (Status, Files, Steps,
-  Verify), citing its requirement. Warnings the user accepts by name are
-  recorded under `## Deferred` instead. For pass-8 items: propose an ADR in
-  `docs/adr/` or a spec/plan amendment — as a proposal, gated — and where a note
-  reveals an engineering preference not in `docs/engineering.md`, propose it via
-  `sdd-engineering` › Refine. Report `Not converged`. Hand back to
-  `sdd-implement`. Repeat the cycle until clean.
-- **Info only, or clean:** report `Converged`. Run
-  `./scripts/approve.sh changes/<change>/spec.md implemented`, set the change's
+  Verify), citing its requirement. Warnings are tasked too; the user is not
+  here to accept them by name (`AUTONOMY.md`). A finding that is really a
+  question (the spec or plan is wrong, two requirements conflict) goes to the
+  `decider` and is recorded like any other decision. For pass-8 items: draft
+  the ADR in `docs/adr/` as `proposed`, and list engineering-preference
+  refinements in the run report for the user; never apply either. Report
+  `Not converged`. Hand back to `sdd-implement`. Repeat until clean. If the
+  same finding survives three cycles, the decider rules on it (deviation
+  accepted and recorded, or the task parked); the run does not stop.
+- **Info only, or clean:** report `Converged`. Set the change's
   `docs/roadmap.md` status to `converged`, `./scripts/index.sh`, then hand to
-  `sdd-finish`.
+  `sdd-finish`. Parked tasks do not block converging what was built; the
+  reviewer audits the built part and the report names what is parked.
 
 ## Never
 

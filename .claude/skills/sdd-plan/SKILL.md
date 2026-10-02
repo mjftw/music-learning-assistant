@@ -145,6 +145,13 @@ lines:
 - Open questions, numbered
 - Anything in the spec this plan cannot satisfy
 
+This is the **last gate**. After it the run is unattended (`AUTONOMY.md`):
+tasks, implementation, fixes, amendments, converge and finish happen without
+the user. So before asking, look for anything in the plan that could become
+a one-way door mid-build (a published schema, a storage shape, a dependency,
+a data-handling rule) and settle it here, with the user, as an open question.
+Say in one line that approving the plan starts the unattended run.
+
 Then `AskUserQuestion`: *Approve*, *Revise*, *Change a specific choice*,
 *Answer open questions first*.
 

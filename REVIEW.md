@@ -38,8 +38,9 @@ tags: [sdd, review]
    styles use `docs/design.md` §8 tokens only (hard-coded values are a
    warning unless justified in `notes.md`); screens the change did not list
    are unchanged against `docs/design/screens/` (a changed unlisted screen is
-   critical). A missing loop exit (`rounds.md` not `exited`) is critical: the
-   user has not said the screens are done.
+   critical). Before any design round, the reference is the wireframe: judge
+   structure (elements, order, states reachable), not taste. The user's
+   visual check happens after the run, from the run report.
 4. **Bugs and logic errors** — off-by-one, unhandled state, race, wrong
    default, silent failure.
 5. **Security** — input validation at boundaries, authz on every new surface,
@@ -47,6 +48,11 @@ tags: [sdd, review]
 6. **Scope** — code that satisfies no requirement.
 7. **Hygiene** — suite/lint/typecheck output, skipped tests, `TODO`/`FIXME`/
    stubs in covered paths, commented-out code.
+7b. **Decisions** — re-read every verdict in `record/decisions/` marked
+   `decided`. Apply `AUTONOMY.md`'s four questions yourself. A decision you
+   judge was really a one-way door (it changed a promise, crossed a published
+   contract, or cannot be taken back) is **critical**: it should have been
+   escalated. A decided amendment not applied to the delta is critical.
 8. **Notes fold-back** — each line in `notes.md` classified: ADR-worthy,
    spec/plan amendment, or local. Also: any note that reveals an engineering
    preference not recorded in `docs/engineering.md` → propose a refinement

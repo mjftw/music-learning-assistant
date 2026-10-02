@@ -75,10 +75,10 @@ Running `./scripts/check-specs.sh` answers most of 3–8 in one call.
 | `proposal.md` written, `sdd_phase` not `approved` | Present it for approval — **stop** |
 | `proposal.md` approved, `plan.md` still template | `sdd-plan` (runs `sdd-engineering` first if `docs/engineering.md` is missing or unapproved) |
 | `plan.md` written, `sdd_phase` not `approved` | Present it for approval — **stop** |
-| `plan.md` approved, `tasks.md` still template | `sdd-tasks` |
-| `tasks.md` approved, tasks with `**Status:** todo` remain | `sdd-implement` |
-| All tasks `done`, Interface not `none`, `design/rounds.md` not `exited` | `sdd-design` D — the refinement loop |
-| All tasks `done` (and loop exited if there were screens) | `sdd-converge` |
+| `plan.md` approved, `tasks.md` still template | `sdd-tasks` → straight into `sdd-implement`: **the unattended run starts here** (`AUTONOMY.md`) |
+| `tasks.md` approved, tasks with `**Status:** todo` remain | `sdd-implement` (tasks marked `parked` wait on an escalation; skip them) |
+| All tasks `done` or `parked` | amendments applied (`sdd-implement` › When every task is done), then `sdd-converge` |
+| The user answers a run report's visual check with changes | `sdd-design` D on the change's branch |
 | Converge found gaps (appended tasks) | `sdd-implement` again |
 | Converge reports Converged | `sdd-finish` (merges the deltas into `specs/`) |
 
@@ -86,7 +86,9 @@ Announce the phase you are entering in one short line. Do not narrate the table.
 
 ## The gates
 
-After `sdd-specify`, `sdd-plan` and `sdd-tasks` you **stop**. A gate is:
+After `sdd-specify` and `sdd-plan` you **stop**; the plan's is the last
+gate. After it the run is unattended until the run report (`AUTONOMY.md`).
+A gate is:
 
 1. The artefact is written to disk.
 2. You state, in at most five lines: what you decided that the user did not
@@ -112,6 +114,7 @@ power follows, and it is enforced, not requested.
 | `implementer` (per task) | subagent | Sonnet; `Trivial` → Haiku | `model:` in `.claude/agents/implementer.md` |
 | `task-reviewer` (per task) | subagent | Sonnet | agent frontmatter |
 | `sdd-converge` → `reviewer` | subagent | Opus — verification is never weaker than what it verifies | agent frontmatter |
+| `decider` (a decision mid-run) | subagent | Fable — it stands in for the user's judgement | agent frontmatter |
 
 Three mechanisms, each covering the others' gaps:
 
