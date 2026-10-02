@@ -3,7 +3,7 @@ type: Task List
 title: Learner leads — tasks
 description: 22 tasks across four phases — foundations (the lead domain, the store), the lead run in the Session aggregate, the practice screen (card, meter, panels, sheet), the harness and hardening.
 resource: /changes/008-learner-leads/tasks.md
-status: draft
+status: stable
 tags: [sdd, tasks, "change:008-learner-leads"]
 sources:
   - resource: /changes/008-learner-leads/plan.md
@@ -13,10 +13,12 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-10-02T17:20:00Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-10-02T16:34:00Z
 sdd_id: 008-learner-leads
 sdd_context: practice
-sdd_phase: draft          # draft | approved | in-progress | complete
+sdd_phase: approved
 ---
 
 # Tasks: Learner leads
