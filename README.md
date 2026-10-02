@@ -529,7 +529,7 @@ All stdlib bash and Python 3, no dependencies.
 | `check-scenarios.sh` | every live scenario has a test and no test cites a removed requirement; `--change` checks a change's target state |
 | `check-design.sh` | docs/design.md state and hard-coded values outside the tokens file; `--change` checks a change's Interface table: design files and states exist, cited requirements are in the target state, every row has a reference once the loop has exited |
 | `record.sh <change> task T0NN\|converge\|design-round N\|list` | copies the implementer report and task review, the convergence report, or a design round's screenshots from the ephemeral .sdd/ into the change's committed record, numbered per attempt |
-| `task.sh <change> next\|status\|park\|new\|list\|coverage\|check\|split` | one file per task under tasks/: the next buildable task, status changes, parking along dependencies, new tasks, the index table, the coverage table, consistency checks, and migrating an old single-file tasks.md |
+| `task.py <change> next\|status\|park\|new\|list\|coverage\|check\|split` | one file per task under tasks/: the next buildable task, status changes, parking along dependencies, new tasks, the index table, the coverage table, consistency checks, and migrating an old single-file tasks.md |
 | `report.sh <change>` | writes the end-of-run report: what needs you (escalations, parked tasks, the visual check), the decisions digest, the amendments, the result |
 | `draft.sh <path> [path...]` | commits the artefact as a numbered draft before a gate, so rejected versions stay in git history |
 | `phase.sh enter <skill>\|leave\|show` | opens and closes the top-of-ladder phase marker that keeps an interview on Fable; skills call it, you rarely need to |

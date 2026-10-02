@@ -180,14 +180,14 @@ for d in changes/[0-9][0-9][0-9]-*/; do
   fi
 
   if [[ -d "$d/tasks" ]]; then
-    ./scripts/task.sh "$d" check | sed 's/^/  /' | grep -v '^    ✅' || true
-    ./scripts/task.sh "$d" check >/dev/null 2>&1 || FAIL=1
+    ./scripts/task.py "$d" check | sed 's/^/  /' | grep -v '^    ✅' || true
+    ./scripts/task.py "$d" check >/dev/null 2>&1 || FAIL=1
     for tf in "$d"/tasks/C*_T*.md; do
       t=$(basename "$tf" .md)
       [[ "$(./scripts/fm.py get "$tf" sdd_phase)" == done ]] && { compgen -G "$d/record/tasks/$t-review-*.md" >/dev/null || warn "$t is done but has no review in $d/record/tasks/ — run ./scripts/record.sh $d task $t"; }
     done
     parked=$(grep -l '^sdd_phase: parked' "$d"/tasks/C*_T*.md 2>/dev/null | wc -l)
-    nxt=$(./scripts/task.sh "$d" next); echo "  · tasks: $(ls "$d"/tasks/C*_T*.md | wc -l), next: $nxt"
+    nxt=$(./scripts/task.py "$d" next); echo "  · tasks: $(ls "$d"/tasks/C*_T*.md | wc -l), next: $nxt"
   elif [[ -f "$d/tasks.md" ]]; then
     for t in $(awk '/^### T[0-9]+/{t=$2} /\*\*Status:\*\* *done/{if(t)print t; t=""}' "$d/tasks.md" | sort -u); do
       compgen -G "$d/record/tasks/$t-review-*.md" >/dev/null || warn "$t is done but has no review in $d/record/tasks/ — run ./scripts/record.sh $d task $t"
@@ -201,7 +201,7 @@ for d in changes/[0-9][0-9][0-9]-*/; do
     [[ $pend -gt 0 && "$(./scripts/fm.py get "$d/tasks.md" sdd_phase 2>/dev/null)" == complete ]] && bad "$pend decided amendment(s) not applied to the delta"
   fi
   if [[ -f "$d/tasks.md" && ! -d "$d/tasks" ]]; then
-    [[ "$(./scripts/fm.py get "$d/tasks.md" sdd_phase 2>/dev/null)" == draft ]] || warn "$d/tasks.md is a single-file task list — ./scripts/task.sh $d split"
+    [[ "$(./scripts/fm.py get "$d/tasks.md" sdd_phase 2>/dev/null)" == draft ]] || warn "$d/tasks.md is a single-file task list — ./scripts/task.py $d split"
     dupes=$(grep -oE '^### T[0-9]+' "$d/tasks.md" | sed 's/### //' | sort | uniq -d)
     [[ -n "$dupes" ]] && bad "tasks.md has duplicate task IDs: $(echo $dupes | tr '\n' ' ') — the brief would pick the first"
     for t in $(grep -oE '^### T[0-9]+' "$d/tasks.md" | sed 's/### //' | sort -u); do

@@ -11,9 +11,9 @@ Produce `changes/NNN-slug/tasks/CNNN_TNNN.md`, one file per task from
 overview (groups in build order, the coverage table, deferrals). An agent
 executes one task file at a time without re-deriving the design; the
 controller finds the next one from each file's frontmatter
-(`./scripts/task.sh <change> next`), never by reading the lot.
+(`./scripts/task.py <change> next`), never by reading the lot.
 
-Create each file with `./scripts/task.sh changes/NNN-slug new "<one
+Create each file with `./scripts/task.py changes/NNN-slug new "<one
 outcome>" --reqs <ids> --group "<group>" [--after T0NN]`, then fill its
 body. State is frontmatter: `sdd_requirements` (qualified ids),
 `sdd_depends_on` (every task whose Produces this one Consumes — the
@@ -104,14 +104,14 @@ Run these over the whole file and fix what fails before presenting:
 - **Interface consistency** — every `Consumes:` matches a `Produces:` of a
   task named in `sdd_depends_on`, exactly. A Consumes with no dependency
   listed is a missing dependency; a dependency with nothing consumed is
-  noise. `./scripts/task.sh changes/NNN-slug check` catches dangling ones.
-- **Placeholder scan** — `./scripts/task.sh changes/NNN-slug check` warns on
+  noise. `./scripts/task.py changes/NNN-slug check` catches dangling ones.
+- **Placeholder scan** — `./scripts/task.py changes/NNN-slug check` warns on
   `TBD`, `TODO`, "handle edge cases", "similar to T…" and missing anatomy.
 - **Granularity** — no step you could not do in five minutes; no task with
   one step.
 - **Scenario coverage** — every scenario ID in the spec appears in some task's
   RED step. `./scripts/check-scenarios.sh changes/NNN-slug` reports gaps once
-  tests exist; before that, `./scripts/task.sh changes/NNN-slug coverage`
+  tests exist; before that, `./scripts/task.py changes/NNN-slug coverage`
   is the Coverage table — paste it into `tasks.md`.
 - **Preference conformance** — steps follow `docs/engineering.md` (types,
   error style, test style). A departure is a plan open question, not a task.
@@ -132,7 +132,7 @@ Tasks are the first artefact after the plan, and the plan was the last thing
 the user approved (`AUTONOMY.md`). Nobody reviews this file; the
 self-review above is the review. So:
 
-1. `./scripts/task.sh changes/NNN-slug check` clean, the coverage table
+1. `./scripts/task.py changes/NNN-slug check` clean, the coverage table
    pasted into `tasks.md` showing every requirement covered. If not, fix the
    tasks; do not hand over a list with gaps.
 2. `./scripts/draft.sh changes/NNN-slug/tasks.md changes/NNN-slug/tasks`.

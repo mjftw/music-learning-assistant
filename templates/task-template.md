@@ -12,7 +12,7 @@ generated:
   at: YYYY-MM-DDTHH:MM:SSZ
 sdd_id: NNN-slug
 sdd_task: CNNN_T0NN
-sdd_phase: todo           # todo | in-progress | done | parked — set with scripts/task.sh, never by hand
+sdd_phase: todo           # todo | in-progress | done | parked — set with scripts/task.py, never by hand
 sdd_requirements: []      # qualified: [<context>.<capability>/REQ-001, …]
 sdd_depends_on: []        # tasks whose Produces this task Consumes: [CNNN_T010, CNNN_T011]
 sdd_parked_on:            # D003 when parked
