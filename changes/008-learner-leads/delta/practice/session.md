@@ -3,7 +3,7 @@ type: Spec Delta
 title: practice.session — delta for 008-learner-leads
 description: Adds the I lead mode — a lead run that shows each target note, judges the learner's pitch against it and advances once it has been held in tune for N beats — with its settings, meter, card, cues and sheet; retires the progress bar; extends hidden-page, tapped-note and remembered-settings rules to a lead run.
 resource: /changes/008-learner-leads/delta/practice/session.md
-status: draft
+status: stable
 tags: [sdd, delta, "change:008-learner-leads", "context:practice"]
 sources:
   - resource: /specs/practice/session.md
@@ -12,10 +12,13 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-10-02T16:20:00Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-10-02T15:50:48Z
 sdd_id: 008-learner-leads
 sdd_context: practice
 sdd_capability: session
+sdd_phase: approved
 ---
 
 # Delta: practice / session

@@ -3,7 +3,7 @@ type: Change Proposal
 title: Learner leads
 description: On the practice screen the learner can choose I lead — the tool shows each target note, listens, and moves on once the note has been held in tune for N beats.
 resource: /changes/008-learner-leads/proposal.md
-status: draft
+status: stable
 tags: [sdd, proposal, "change:008-learner-leads"]
 sources:
   - resource: /changes/008-learner-leads/intent.md
@@ -13,10 +13,12 @@ sources:
 generated:
   by: claude-code/claude-fable-5-1
   at: 2026-10-02T16:10:00Z
-verified: []
+verified:
+  - by: human:merlin-webster
+    at: 2026-10-02T15:50:48Z
 sdd_id: 008-learner-leads
 sdd_context: practice
-sdd_phase: draft          # draft | in-review | approved | merged
+sdd_phase: approved
 sdd_constitution: 1.0.0
 ---
 
