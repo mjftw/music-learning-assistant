@@ -1,4 +1,4 @@
-import { useLayoutEffect, type JSX } from "react";
+import { memo, useLayoutEffect, type JSX } from "react";
 import {
   inlineAccidentalsOf,
   signatureOf,
@@ -409,7 +409,12 @@ function buildStave(
 // parity with the rest of the key view even though this component no longer
 // derives the run itself — the caller (App.tsx) already fits it to the
 // variant via `traversalOf` before passing `notes` down.
-export function StaveView(props: {
+// A fixer finding (REQ-017): the stave must not re-render per reading (the
+// plan's constraint) — `App` re-renders on every reading (the live card),
+// and `leadTarget` is now memoized on the run index alone, but `React.memo`
+// here is the belt as well as the braces, since every other prop (`notes`,
+// `variant`, `onTapNote`, `onTargetBox`) is already stable across a reading.
+export const StaveView = memo(function StaveView(props: {
   readonly key_: Key;
   readonly variant: Variant;
   readonly notes: readonly KeyViewNote[];
@@ -657,4 +662,4 @@ export function StaveView(props: {
       ))}
     </div>
   );
-}
+});

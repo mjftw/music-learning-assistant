@@ -38,8 +38,17 @@ export function NoteMeter(props: {
     readonly cents: number;
     readonly verdict: Verdict;
   } | null;
+  // practice.session/REQ-017 — App renders the band and the line as two
+  // separate DOM layers (the band behind the panel's content, the line in
+  // front of it — see `KeyPanel`'s `underlay`/`overlay`), each its own
+  // `NoteMeter` sharing this geometry so the two paint either side of it
+  // with no `z-index`. Omitted (the unit tests below), both draw in one box
+  // as before.
+  readonly layer?: "band" | "line";
 }): JSX.Element {
-  const { geometry, toleranceCents, heldFraction, reading } = props;
+  const { geometry, toleranceCents, heldFraction, reading, layer } = props;
+  const showBand = layer !== "line";
+  const showLine = layer !== "band";
 
   const bandTopPercent = 50 - toleranceCents;
   const bandHeightPercent = 2 * toleranceCents;
@@ -71,33 +80,34 @@ export function NoteMeter(props: {
 
   return (
     <div style={boxStyle}>
-      <div
-        data-testid="note-meter-band"
-        style={{
-          position: "absolute",
-          top: `${bandTopPercent}%`,
-          height: `${bandHeightPercent}%`,
-          left: bandInset,
-          right: bandInset,
-          background: tuner.band,
-          borderRadius: noteMeter.bandRadius,
-          overflow: "hidden",
-          zIndex: -1,
-        }}
-      >
+      {showBand && (
         <div
-          data-testid="note-meter-fill"
+          data-testid="note-meter-band"
           style={{
             position: "absolute",
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: `${Math.round(heldFraction * 100)}%`,
-            background: lead.holdFill,
+            top: `${bandTopPercent}%`,
+            height: `${bandHeightPercent}%`,
+            left: bandInset,
+            right: bandInset,
+            background: tuner.band,
+            borderRadius: noteMeter.bandRadius,
+            overflow: "hidden",
           }}
-        />
-      </div>
-      {reading !== null && (
+        >
+          <div
+            data-testid="note-meter-fill"
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: `${Math.round(heldFraction * 100)}%`,
+              background: lead.holdFill,
+            }}
+          />
+        </div>
+      )}
+      {showLine && reading !== null && (
         <div
           data-testid="note-meter-line"
           style={{
@@ -110,7 +120,6 @@ export function NoteMeter(props: {
             borderRadius: noteMeter.lineRadius,
             background: verdictColour(reading.verdict),
             transition: noteMeter.lineTransition,
-            zIndex: 1,
           }}
         />
       )}

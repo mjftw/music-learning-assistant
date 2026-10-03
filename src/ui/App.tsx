@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type JSX } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type JSX,
+} from "react";
 import { flushSync } from "react-dom";
 import {
   circleOfFifths,
@@ -44,7 +51,7 @@ import { InstrumentSheet } from "./InstrumentSheet";
 import { keyLabel, keyNameFontSizeOf, noteLabel } from "./key-label";
 import { KeyPanel } from "./KeyPanel";
 import { NamesView } from "./NamesView";
-import { NoteMeter } from "./NoteMeter";
+import { NoteMeter, type MeterGeometry } from "./NoteMeter";
 import { Notices } from "./Notices";
 import { ScaleRow } from "./ScaleRow";
 import { ScaleSheet } from "./ScaleSheet";
@@ -462,13 +469,44 @@ export function App(props: {
       : snapshot.run[snapshot.tappedRunIndex];
   // practice.session/REQ-017 — the lead run's target, highlighted the same
   // way a sounding note is; null outside "listening" (idle, complete and
-  // cannot-hear all show the run plain).
-  const leadTarget =
+  // cannot-hear all show the run plain). Memoized on the run index alone
+  // (a fixer finding, REQ-017) so a reading that does not move the target
+  // — most of them — does not hand `StaveView` a new object identity and
+  // force it to re-render; the stave must not re-render per reading (the
+  // plan's constraint).
+  const leadTargetRunIndex =
     snapshot !== null &&
     snapshot.lead.phase === "listening" &&
     snapshot.lead.target !== null
-      ? { runIndex: snapshot.lead.target.runIndex }
+      ? snapshot.lead.target.runIndex
       : null;
+  const leadTarget = useMemo(
+    () =>
+      leadTargetRunIndex === null ? null : { runIndex: leadTargetRunIndex },
+    [leadTargetRunIndex],
+  );
+  // practice.session/REQ-017 — the meter's geometry and readings, computed
+  // once here and shared by the two `NoteMeter` layers (the band behind the
+  // panel's content, the line in front of it — `KeyPanel`'s `underlay` and
+  // `overlay`).
+  const meterGeometry: MeterGeometry | null =
+    snapshot !== null &&
+    snapshot.lead.phase === "listening" &&
+    snapshot.settings.lead.cueMeter &&
+    selection.view === "stave" &&
+    targetBox !== null
+      ? { kind: "stave", centreX: targetBox.x, centreY: targetBox.y }
+      : null;
+  const meterToleranceCents =
+    snapshot === null ? 0 : TOLERANCE_CENTS[snapshot.settings.lead.tolerance];
+  const meterHeldFraction = snapshot === null ? 0 : snapshot.lead.heldFraction;
+  const meterReading =
+    snapshot === null || snapshot.lead.reading === null
+      ? null
+      : {
+          cents: snapshot.lead.reading.cents,
+          verdict: snapshot.lead.reading.verdict,
+        };
   const soundingPitchClass: PitchClass | null = playing
     ? soundingSequenceNote === undefined
       ? null
@@ -838,82 +876,77 @@ export function App(props: {
               />
             </div>
           )}
-          <div style={{ position: "relative" }}>
-            <KeyPanel
-              view={selection.view}
-              onSelectView={(selectedView) =>
-                setSelection((current) => ({
-                  ...current,
-                  view: selectedView,
-                }))
-              }
-              rangeSummary={view === undefined ? "" : rangeSummaryText(view)}
-            >
-              {selection.view === "names" ? (
-                <NamesView
-                  key_={selectedKey}
-                  scale={
-                    // No session, no chosen scale yet — the mode's own default
-                    // stands in for the single render before the session-creating
-                    // effect completes, mirroring `notes`' `[]` fallback on the
-                    // StaveView branch below.
-                    snapshot === null
-                      ? scaleById(
-                          chosenScaleIdFor(defaultScaleChoice, selection.mode),
-                        )
-                      : snapshot.scale
-                  }
-                  direction={
-                    snapshot === null ? "updown" : snapshot.traversal.direction
-                  }
-                  degreesEnabled={selection.degreesEnabled}
-                  soundingPitchClass={soundingPitchClass}
-                  onTapColumn={handleTapColumn}
-                  tapsEnabled={tapsEnabled}
-                />
-              ) : (
-                variant !== undefined && (
-                  <StaveView
-                    key_={selectedKey}
-                    variant={variant}
-                    notes={snapshot === null ? [] : snapshot.run}
-                    staveNamesEnabled={selection.staveNamesEnabled}
-                    soundingRunIndex={soundingRunIndex}
-                    playing={playing}
-                    onTapNote={handleTapNote}
-                    tapsEnabled={tapsEnabled}
-                    leadTarget={leadTarget}
-                    onTargetBox={setTargetBox}
-                  />
-                )
-              )}
-            </KeyPanel>
-            {snapshot !== null &&
-              snapshot.lead.phase === "listening" &&
-              snapshot.settings.lead.cueMeter &&
-              selection.view === "stave" &&
-              targetBox !== null && (
+          <KeyPanel
+            view={selection.view}
+            onSelectView={(selectedView) =>
+              setSelection((current) => ({
+                ...current,
+                view: selectedView,
+              }))
+            }
+            rangeSummary={view === undefined ? "" : rangeSummaryText(view)}
+            underlay={
+              meterGeometry !== null && (
                 <NoteMeter
-                  geometry={{
-                    kind: "stave",
-                    centreX: targetBox.x,
-                    centreY: targetBox.y,
-                  }}
-                  toleranceCents={
-                    TOLERANCE_CENTS[snapshot.settings.lead.tolerance]
-                  }
-                  heldFraction={snapshot.lead.heldFraction}
-                  reading={
-                    snapshot.lead.reading === null
-                      ? null
-                      : {
-                          cents: snapshot.lead.reading.cents,
-                          verdict: snapshot.lead.reading.verdict,
-                        }
-                  }
+                  layer="band"
+                  geometry={meterGeometry}
+                  toleranceCents={meterToleranceCents}
+                  heldFraction={meterHeldFraction}
+                  reading={meterReading}
                 />
-              )}
-          </div>
+              )
+            }
+            overlay={
+              meterGeometry !== null && (
+                <NoteMeter
+                  layer="line"
+                  geometry={meterGeometry}
+                  toleranceCents={meterToleranceCents}
+                  heldFraction={meterHeldFraction}
+                  reading={meterReading}
+                />
+              )
+            }
+          >
+            {selection.view === "names" ? (
+              <NamesView
+                key_={selectedKey}
+                scale={
+                  // No session, no chosen scale yet — the mode's own default
+                  // stands in for the single render before the session-creating
+                  // effect completes, mirroring `notes`' `[]` fallback on the
+                  // StaveView branch below.
+                  snapshot === null
+                    ? scaleById(
+                        chosenScaleIdFor(defaultScaleChoice, selection.mode),
+                      )
+                    : snapshot.scale
+                }
+                direction={
+                  snapshot === null ? "updown" : snapshot.traversal.direction
+                }
+                degreesEnabled={selection.degreesEnabled}
+                soundingPitchClass={soundingPitchClass}
+                onTapColumn={handleTapColumn}
+                tapsEnabled={tapsEnabled}
+              />
+            ) : (
+              variant !== undefined && (
+                <StaveView
+                  key_={selectedKey}
+                  variant={variant}
+                  notes={snapshot === null ? [] : snapshot.run}
+                  staveNamesEnabled={selection.staveNamesEnabled}
+                  soundingRunIndex={soundingRunIndex}
+                  playing={playing}
+                  onTapNote={handleTapNote}
+                  tapsEnabled={tapsEnabled}
+                  leadTarget={leadTarget}
+                  onTargetBox={setTargetBox}
+                />
+              )
+            )}
+          </KeyPanel>
           {snapshot !== null && session !== null && (
             <div
               style={{
