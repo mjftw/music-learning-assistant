@@ -115,6 +115,11 @@ test("practice.session/REQ-015/S1 (card) — the live card", async () => {
   expect(screen.getByTestId("judgement").style.color).toBe(
     "rgb(154, 145, 134)",
   );
+  expect(screen.getByTestId("mode-word-tool")).toBeTruthy();
+  expect(screen.getByTestId("mode-word-me")).toBeTruthy();
+  expect(screen.getByTestId("mode-word-me").style.color).toBe(
+    "rgb(28, 25, 22)",
+  );
 });
 
 test("practice.session/REQ-017/S2 (card) — flat and sharp", async () => {
@@ -198,6 +203,8 @@ test("practice.session/REQ-015/S3 (card) — the complete card", async () => {
     "15 of 15 held · C4–C5",
   );
   expect(screen.getByTestId("judgement").textContent).toBe("All held");
+  expect(screen.getByTestId("mode-word-tool")).toBeTruthy();
+  expect(screen.getByTestId("mode-word-me")).toBeTruthy();
   expect(app.listening.stopCalls).toBe(1);
 }, 15000);
 

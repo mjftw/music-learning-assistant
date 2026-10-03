@@ -174,10 +174,156 @@ const TERM_FONT_WEIGHT_WORD = 600;
 const JUDGEMENT_FONT_SIZE = 12.5;
 const JUDGEMENT_FONT_WEIGHT = 600;
 
+const MODE_WORDS_ROW_MARGIN_TOP = 1;
+
 const NO_MIC_GAP = 4;
 const NO_MIC_TOP_MARGIN = 10;
 const NO_MIC_TITLE_WEIGHT = 600;
 const NO_MIC_BODY_INK = paper.muted;
+
+// practice.session/REQ-002, REQ-014 — the mode words, in every transport
+// state, as their own sibling row beneath the target line or caption.
+function ModeWordsRow(props: {
+  readonly who: Who;
+  readonly onWho: (who: Who) => void;
+}): JSX.Element {
+  return (
+    <div style={{ marginTop: MODE_WORDS_ROW_MARGIN_TOP }}>
+      <ModeWords who={props.who} onWho={props.onWho} />
+    </div>
+  );
+}
+
+// practice.session/REQ-016, REQ-017 — the judgement line, shared by the
+// idle card's complete sub-caption and the live card's target line.
+function JudgementLine(props: {
+  readonly judgement: { readonly text: string; readonly ink: string };
+}): JSX.Element {
+  return (
+    <div
+      data-testid="judgement"
+      style={{
+        fontSize: JUDGEMENT_FONT_SIZE,
+        fontWeight: JUDGEMENT_FONT_WEIGHT,
+        color: props.judgement.ink,
+      }}
+    >
+      {props.judgement.text}
+    </div>
+  );
+}
+
+// practice.session/REQ-015 — the target's letter, octave and the hidden Hz
+// span, shared by the live card's target line.
+function TargetLetterOctave(props: {
+  readonly target: LeadTarget;
+}): JSX.Element {
+  const { target } = props;
+  return (
+    <>
+      <span
+        data-testid="target-letter"
+        style={{
+          fontFamily: fonts.display,
+          fontSize: leadCard.targetLetterSize,
+          color: paper.accent,
+          lineHeight: 1,
+        }}
+      >
+        {pitchClassLabel(target.note)}
+      </span>
+      <span
+        data-testid="target-octave"
+        style={{
+          fontFamily: fonts.mono,
+          fontSize: leadCard.octaveSize,
+          fontWeight: 600,
+          color: paper.muted,
+        }}
+      >
+        {target.note.octave}
+      </span>
+      <span
+        data-testid="target-hz"
+        aria-hidden="true"
+        style={{ display: "none" }}
+      >
+        {pitchHzOf(target.note).toFixed(1)}
+      </span>
+    </>
+  );
+}
+
+// practice.session/REQ-022 — the no-mic message block, shared by NoMicCard
+// alone but kept apart so the card stays under 60 lines.
+function NoMicMessage(): JSX.Element {
+  return (
+    <div
+      data-testid="no-mic-card"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: NO_MIC_GAP,
+        marginTop: NO_MIC_TOP_MARGIN,
+      }}
+    >
+      <div
+        style={{
+          fontSize: leadCard.noMicTitleSize,
+          fontWeight: NO_MIC_TITLE_WEIGHT,
+          color: paper.ink,
+        }}
+      >
+        Can&apos;t hear — no microphone
+      </div>
+      <div
+        style={{
+          fontSize: leadCard.noMicBodySize,
+          lineHeight: leadCard.noMicLineHeight,
+          color: NO_MIC_BODY_INK,
+        }}
+      >
+        It was refused or isn&apos;t there. Allow the microphone for this site,
+        then press I lead again.
+      </div>
+    </div>
+  );
+}
+
+// practice.session/REQ-015, REQ-017 — the live card's small column beside
+// the target letter: the "<k> of <N>" caption over the judgement.
+function TargetCaptionAndJudgement(props: {
+  readonly caption: string;
+  readonly judgement: { readonly text: string; readonly ink: string } | null;
+}): JSX.Element {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: MIDDLE_GAP,
+        minWidth: 0,
+      }}
+    >
+      <div data-testid="position-caption" style={captionStyle()}>
+        {props.caption}
+      </div>
+      {props.judgement !== null && (
+        <JudgementLine judgement={props.judgement} />
+      )}
+    </div>
+  );
+}
+
+function middleColumnStyle(): CSSProperties {
+  return {
+    display: "flex",
+    flexDirection: "column",
+    gap: MIDDLE_GAP,
+    minWidth: 0,
+    flex: 1,
+  };
+}
 
 // The tempo stepper and term button, shared by every card layout — it never
 // changes with the mode or the lead phase (practice.session/REQ-014:
@@ -272,9 +418,8 @@ function cardShellStyle(): CSSProperties {
 }
 
 // practice.session/REQ-002, REQ-014, REQ-015 — play along idle/playing, and
-// I lead idle and complete: all four share one start circle (▶/❚❚ or the
-// Tuner glyph), one caption, and a second line that is either the mode
-// words or (once the run has completed) the judgement "All held".
+// I lead idle and complete: one start circle (▶/❚❚ or the Tuner glyph), one
+// caption, the judgement once complete, and the mode words beneath — always.
 function IdleCard(props: {
   readonly snapshot: SessionSnapshot;
   readonly onTogglePlay: () => void;
@@ -313,32 +458,12 @@ function IdleCard(props: {
         <TunerGlyph visible={tunerGlyphShown} />
         {tunerGlyphShown ? null : playing ? "❚❚" : "▶"}
       </button>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: MIDDLE_GAP,
-          minWidth: 0,
-          flex: 1,
-        }}
-      >
+      <div style={middleColumnStyle()}>
         <div data-testid="position-caption" style={captionStyle()}>
           {caption}
         </div>
-        {judgement === null ? (
-          <ModeWords who={snapshot.lead.who} onWho={onWho} />
-        ) : (
-          <div
-            data-testid="judgement"
-            style={{
-              fontSize: JUDGEMENT_FONT_SIZE,
-              fontWeight: JUDGEMENT_FONT_WEIGHT,
-              color: judgement.ink,
-            }}
-          >
-            {judgement.text}
-          </div>
-        )}
+        {judgement !== null && <JudgementLine judgement={judgement} />}
+        <ModeWordsRow who={snapshot.lead.who} onWho={onWho} />
       </div>
       <TempoStepper
         snapshot={snapshot}
@@ -349,17 +474,19 @@ function IdleCard(props: {
   );
 }
 
-// practice.session/REQ-015, REQ-017 — the live card: ■ in place of the
-// start circle, the target's letter large in the accent with its octave,
-// the "<k> of <N>" caption and the judgement line.
+// practice.session/REQ-015, REQ-017 — the live card: ■ in place of the start
+// circle, the target line (letter, octave, caption and judgement) and the
+// mode words beneath it as their own row, in every state.
 function LiveCard(props: {
   readonly snapshot: SessionSnapshot;
   readonly target: LeadTarget;
   readonly onTogglePlay: () => void;
   readonly onStepTempo: (delta: -2 | 2) => void;
   readonly onOpenTempo: () => void;
+  readonly onWho: (who: Who) => void;
 }): JSX.Element {
-  const { snapshot, target, onTogglePlay, onStepTempo, onOpenTempo } = props;
+  const { snapshot, target, onTogglePlay, onStepTempo, onOpenTempo, onWho } =
+    props;
   const judgement = judgementLabelOf(snapshot.lead);
 
   return (
@@ -380,70 +507,17 @@ function LiveCard(props: {
       >
         ■
       </button>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: MIDDLE_GAP,
-          minWidth: 0,
-          flex: 1,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
-          <span
-            data-testid="target-letter"
-            style={{
-              fontFamily: fonts.display,
-              fontSize: leadCard.targetLetterSize,
-              color: paper.accent,
-              lineHeight: 1,
-            }}
-          >
-            {pitchClassLabel(target.note)}
-          </span>
-          <span
-            data-testid="target-octave"
-            style={{
-              fontFamily: fonts.mono,
-              fontSize: leadCard.octaveSize,
-              fontWeight: 600,
-              color: paper.muted,
-            }}
-          >
-            {target.note.octave}
-          </span>
-          <span
-            data-testid="target-hz"
-            aria-hidden="true"
-            style={{ display: "none" }}
-          >
-            {pitchHzOf(target.note).toFixed(1)}
-          </span>
-        </div>
+      <div style={middleColumnStyle()}>
         <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: MIDDLE_GAP,
-            minWidth: 0,
-          }}
+          style={{ display: "flex", alignItems: "baseline", gap: MIDDLE_GAP }}
         >
-          <div data-testid="position-caption" style={captionStyle()}>
-            {`${target.position} of ${snapshot.sequence.length}`}
-          </div>
-          {judgement !== null && (
-            <div
-              data-testid="judgement"
-              style={{
-                fontSize: JUDGEMENT_FONT_SIZE,
-                fontWeight: JUDGEMENT_FONT_WEIGHT,
-                color: judgement.ink,
-              }}
-            >
-              {judgement.text}
-            </div>
-          )}
+          <TargetLetterOctave target={target} />
+          <TargetCaptionAndJudgement
+            caption={`${target.position} of ${snapshot.sequence.length}`}
+            judgement={judgement}
+          />
         </div>
+        <ModeWordsRow who={snapshot.lead.who} onWho={onWho} />
       </div>
       <TempoStepper
         snapshot={snapshot}
@@ -478,15 +552,7 @@ function NoMicCard(props: {
         >
           <TunerGlyph visible />
         </button>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: MIDDLE_GAP,
-            minWidth: 0,
-            flex: 1,
-          }}
-        >
+        <div style={middleColumnStyle()}>
           <div data-testid="position-caption" style={captionStyle()}>
             {snapshot.lead.idleCaption}
           </div>
@@ -498,35 +564,7 @@ function NoMicCard(props: {
           onOpenTempo={onOpenTempo}
         />
       </div>
-      <div
-        data-testid="no-mic-card"
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: NO_MIC_GAP,
-          marginTop: NO_MIC_TOP_MARGIN,
-        }}
-      >
-        <div
-          style={{
-            fontSize: leadCard.noMicTitleSize,
-            fontWeight: NO_MIC_TITLE_WEIGHT,
-            color: paper.ink,
-          }}
-        >
-          Can&apos;t hear — no microphone
-        </div>
-        <div
-          style={{
-            fontSize: leadCard.noMicBodySize,
-            lineHeight: leadCard.noMicLineHeight,
-            color: NO_MIC_BODY_INK,
-          }}
-        >
-          It was refused or isn&apos;t there. Allow the microphone for this
-          site, then press I lead again.
-        </div>
-      </div>
+      <NoMicMessage />
     </div>
   );
 }
