@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { afterEach, expect, test } from "vitest";
 import {
   builtInCatalogue,
@@ -51,6 +52,34 @@ const flute = () =>
   builtInCatalogue()
     .instruments.flatMap((instrument) => instrument.variants)
     .find((variant) => variant.variantId === "flute-concert")!;
+
+// practice.session/REQ-017 — a local helper for the lead-target tests
+// below: the eight KeyViewNotes of C major on the flute, rendered with the
+// file's usual base props, `extra` spread over the top.
+const cMajor: Key = {
+  tonic: { letter: "C", accidental: "natural" },
+  mode: "major",
+};
+const renderStave = (extra: Partial<ComponentProps<typeof StaveView>> = {}) => {
+  const notes = traversalOf(cMajor, flute(), scaleById("major"), {
+    direction: "up",
+    octaves: { kind: "count", count: 1 },
+    shape: "scale",
+  }).run;
+  return render(
+    <StaveView
+      key_={cMajor}
+      variant={flute()}
+      notes={notes}
+      staveNamesEnabled={false}
+      soundingRunIndex={null}
+      playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
+      {...extra}
+    />,
+  );
+};
 
 test("theory.circle-of-fifths/REQ-003/S1 — G major on the flute (acceptance)", () => {
   const notes = traversalOf(gMajor, flute(), scaleById("major"), {
@@ -491,4 +520,45 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
       .getAllByTestId("inline-accidental")
       .map((glyph) => glyph.getAttribute("data-glyph")),
   ).toEqual(expectedGlyphs);
+});
+
+test("practice.session/REQ-017/S8 — ink behind, faint ahead", () => {
+  renderStave({ leadTarget: { runIndex: 4 } });
+  const heads = screen.getAllByTestId("stave-note");
+  expect(heads.slice(0, 4).map((h) => h.getAttribute("opacity"))).toEqual([
+    "1",
+    "1",
+    "1",
+    "1",
+  ]);
+  expect(heads.slice(5).map((h) => h.getAttribute("opacity"))).toEqual([
+    "0.3",
+    "0.3",
+    "0.3",
+  ]);
+  expect(screen.getAllByTestId("sounding-halo")).toHaveLength(1);
+  expect(Number(heads[4]!.getAttribute("rx"))).toBeGreaterThan(
+    Number(heads[3]!.getAttribute("rx")),
+  );
+});
+
+test("practice.session/REQ-017/S1 (stave) — the target is highlighted as a sounding note", () => {
+  renderStave({ leadTarget: { runIndex: 0 } });
+  expect(screen.getAllByTestId("sounding-halo")).toHaveLength(1);
+  expect(screen.getAllByTestId("stave-note")[0]!.getAttribute("fill")).toBe(
+    "#8a4b2a",
+  );
+});
+
+test("practice.session/REQ-017 — onTargetBox reports the target head's centre", () => {
+  const boxes: ({ x: number; y: number } | null)[] = [];
+  renderStave({
+    leadTarget: { runIndex: 0 },
+    onTargetBox: (b) => boxes.push(b),
+  });
+  const head = screen.getAllByTestId("stave-note")[0]!;
+  expect(boxes.at(-1)).toEqual({
+    x: Number(head.getAttribute("cx")),
+    y: Number(head.getAttribute("cy")),
+  });
 });

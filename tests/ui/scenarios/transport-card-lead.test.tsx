@@ -222,3 +222,26 @@ test("practice.session/REQ-022/S1 (card) — the no-mic card", async () => {
   expect(screen.getByTestId("mode-word-me")).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();
 });
+
+test("practice.session/REQ-018/S1 (app) — meter off: no band, fill or line; the highlight stays", async () => {
+  const app = renderLeadApp(
+    storedCMajor({ who: "me", cueMeter: false }, { view: "stave" }),
+  );
+  await startLeadInApp(app);
+  hearInApp(app, 258.92, 0);
+  expect(screen.queryByTestId("note-meter-band")).toBeNull();
+  expect(screen.queryByTestId("note-meter-line")).toBeNull();
+  expect(screen.getAllByTestId("sounding-halo")).toHaveLength(1);
+  expect(screen.getByTestId("judgement").textContent).toBe("↓ 18 ¢ flat");
+});
+
+test("practice.session/REQ-017/S3 (app, stave) — the meter sits on the target", async () => {
+  const app = renderLeadApp(storedCMajor({ who: "me" }, { view: "stave" }));
+  await startLeadInApp(app);
+  hearSteadyInApp(app, 262.5, 0, 750);
+  const head = screen.getAllByTestId("stave-note")[0]!;
+  const box = screen.getByTestId("note-meter-band").parentElement!;
+  expect(box.style.left).toBe(`${Number(head.getAttribute("cx")) - 13}px`);
+  expect(box.style.top).toBe(`${Number(head.getAttribute("cy")) - 20}px`);
+  expect(screen.getByTestId("note-meter-fill").style.width).toBe("60%");
+});

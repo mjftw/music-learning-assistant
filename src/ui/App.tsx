@@ -25,6 +25,7 @@ import {
   defaultScaleChoice,
   steppedTempo,
   tempoForTerm,
+  TOLERANCE_CENTS,
   type DroneSettings,
   type DroneSound,
   type Session,
@@ -43,6 +44,7 @@ import { InstrumentSheet } from "./InstrumentSheet";
 import { keyLabel, keyNameFontSizeOf, noteLabel } from "./key-label";
 import { KeyPanel } from "./KeyPanel";
 import { NamesView } from "./NamesView";
+import { NoteMeter } from "./NoteMeter";
 import { Notices } from "./Notices";
 import { ScaleRow } from "./ScaleRow";
 import { ScaleSheet } from "./ScaleSheet";
@@ -274,6 +276,13 @@ export function App(props: {
   const [selection, setSelection] = useState<Selection>(() =>
     initialSelection(catalogue, selectionStore),
   );
+  // practice.session/REQ-017 — the target notehead's own centre, in the
+  // stave's px, as `StaveView` reports it; `NoteMeter` is positioned from
+  // this rather than the DOM so the stave never re-renders per reading.
+  const [targetBox, setTargetBox] = useState<{
+    readonly x: number;
+    readonly y: number;
+  } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [instrumentSheetOpen, setInstrumentSheetOpen] = useState(false);
   const [traversalSheetOpen, setTraversalSheetOpen] = useState(false);
@@ -451,6 +460,15 @@ export function App(props: {
     snapshot === null || snapshot.tappedRunIndex === null
       ? undefined
       : snapshot.run[snapshot.tappedRunIndex];
+  // practice.session/REQ-017 — the lead run's target, highlighted the same
+  // way a sounding note is; null outside "listening" (idle, complete and
+  // cannot-hear all show the run plain).
+  const leadTarget =
+    snapshot !== null &&
+    snapshot.lead.phase === "listening" &&
+    snapshot.lead.target !== null
+      ? { runIndex: snapshot.lead.target.runIndex }
+      : null;
   const soundingPitchClass: PitchClass | null = playing
     ? soundingSequenceNote === undefined
       ? null
@@ -820,50 +838,82 @@ export function App(props: {
               />
             </div>
           )}
-          <KeyPanel
-            view={selection.view}
-            onSelectView={(selectedView) =>
-              setSelection((current) => ({ ...current, view: selectedView }))
-            }
-            rangeSummary={view === undefined ? "" : rangeSummaryText(view)}
-          >
-            {selection.view === "names" ? (
-              <NamesView
-                key_={selectedKey}
-                scale={
-                  // No session, no chosen scale yet — the mode's own default
-                  // stands in for the single render before the session-creating
-                  // effect completes, mirroring `notes`' `[]` fallback on the
-                  // StaveView branch below.
-                  snapshot === null
-                    ? scaleById(
-                        chosenScaleIdFor(defaultScaleChoice, selection.mode),
-                      )
-                    : snapshot.scale
-                }
-                direction={
-                  snapshot === null ? "updown" : snapshot.traversal.direction
-                }
-                degreesEnabled={selection.degreesEnabled}
-                soundingPitchClass={soundingPitchClass}
-                onTapColumn={handleTapColumn}
-                tapsEnabled={tapsEnabled}
-              />
-            ) : (
-              variant !== undefined && (
-                <StaveView
+          <div style={{ position: "relative" }}>
+            <KeyPanel
+              view={selection.view}
+              onSelectView={(selectedView) =>
+                setSelection((current) => ({
+                  ...current,
+                  view: selectedView,
+                }))
+              }
+              rangeSummary={view === undefined ? "" : rangeSummaryText(view)}
+            >
+              {selection.view === "names" ? (
+                <NamesView
                   key_={selectedKey}
-                  variant={variant}
-                  notes={snapshot === null ? [] : snapshot.run}
-                  staveNamesEnabled={selection.staveNamesEnabled}
-                  soundingRunIndex={soundingRunIndex}
-                  playing={playing}
-                  onTapNote={handleTapNote}
+                  scale={
+                    // No session, no chosen scale yet — the mode's own default
+                    // stands in for the single render before the session-creating
+                    // effect completes, mirroring `notes`' `[]` fallback on the
+                    // StaveView branch below.
+                    snapshot === null
+                      ? scaleById(
+                          chosenScaleIdFor(defaultScaleChoice, selection.mode),
+                        )
+                      : snapshot.scale
+                  }
+                  direction={
+                    snapshot === null ? "updown" : snapshot.traversal.direction
+                  }
+                  degreesEnabled={selection.degreesEnabled}
+                  soundingPitchClass={soundingPitchClass}
+                  onTapColumn={handleTapColumn}
                   tapsEnabled={tapsEnabled}
                 />
-              )
-            )}
-          </KeyPanel>
+              ) : (
+                variant !== undefined && (
+                  <StaveView
+                    key_={selectedKey}
+                    variant={variant}
+                    notes={snapshot === null ? [] : snapshot.run}
+                    staveNamesEnabled={selection.staveNamesEnabled}
+                    soundingRunIndex={soundingRunIndex}
+                    playing={playing}
+                    onTapNote={handleTapNote}
+                    tapsEnabled={tapsEnabled}
+                    leadTarget={leadTarget}
+                    onTargetBox={setTargetBox}
+                  />
+                )
+              )}
+            </KeyPanel>
+            {snapshot !== null &&
+              snapshot.lead.phase === "listening" &&
+              snapshot.settings.lead.cueMeter &&
+              selection.view === "stave" &&
+              targetBox !== null && (
+                <NoteMeter
+                  geometry={{
+                    kind: "stave",
+                    centreX: targetBox.x,
+                    centreY: targetBox.y,
+                  }}
+                  toleranceCents={
+                    TOLERANCE_CENTS[snapshot.settings.lead.tolerance]
+                  }
+                  heldFraction={snapshot.lead.heldFraction}
+                  reading={
+                    snapshot.lead.reading === null
+                      ? null
+                      : {
+                          cents: snapshot.lead.reading.cents,
+                          verdict: snapshot.lead.reading.verdict,
+                        }
+                  }
+                />
+              )}
+          </div>
           {snapshot !== null && session !== null && (
             <div
               style={{

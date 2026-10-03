@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { useLayoutEffect, type JSX } from "react";
 import {
   inlineAccidentalsOf,
   signatureOf,
@@ -110,6 +110,30 @@ const SOUNDING_HALO_RADIUS_MULTIPLIER = 2.5;
 const DIM_OPACITY = 0.72;
 const FULL_OPACITY = 1;
 
+// A lead run's ink-behind / faint-ahead (practice.session/REQ-017/S8):
+// notes up to and including the target are ink, the rest of the run is
+// faint — a different dimming from `playing`'s uniform DIM_OPACITY, so the
+// two never mix.
+const LEAD_FAINT_OPACITY = 0.3;
+
+type NoteOpacityMode =
+  | { readonly kind: "none" }
+  | { readonly kind: "playing"; readonly soundingRunIndex: number | null }
+  | { readonly kind: "lead"; readonly targetRunIndex: number };
+
+function noteOpacityOf(runIndex: number, mode: NoteOpacityMode): number {
+  switch (mode.kind) {
+    case "none":
+      return FULL_OPACITY;
+    case "playing":
+      return mode.soundingRunIndex === runIndex ? FULL_OPACITY : DIM_OPACITY;
+    case "lead":
+      return runIndex <= mode.targetRunIndex
+        ? FULL_OPACITY
+        : LEAD_FAINT_OPACITY;
+  }
+}
+
 // The tap target behind every notehead (practice.session/REQ-013) — wider
 // than a narrow notehead's own spacing (`step`) so a cluster of notes
 // stays tappable, and tall enough to span the stave regardless of a
@@ -203,6 +227,7 @@ function buildStave(
   withNames: boolean,
   soundingRunIndex: number | null,
   playing: boolean,
+  leadTargetRunIndex: number | null,
 ): StaveGeometry {
   const indices = notes.map((entry) => diatonicIndex(entry.note));
   const highest = Math.max(...indices, PANEL_F5);
@@ -243,10 +268,22 @@ function buildStave(
     const stemUp = index_ < STEM_UP_THRESHOLD_INDEX;
     // No longer requires `playing` — REQ-013's tapped highlight applies
     // idle too; REQ-006's dim-the-rest still only applies while playing
-    // (below), so a tap's highlight is never accompanied by a dim.
-    const isSounding = soundingRunIndex === index;
+    // (below), so a tap's highlight is never accompanied by a dim. A lead
+    // run's target (REQ-017) is highlighted the same way, in place of
+    // `soundingRunIndex`.
+    const isSounding =
+      leadTargetRunIndex !== null
+        ? leadTargetRunIndex === index
+        : soundingRunIndex === index;
     const ink = isSounding ? SOUNDING_INK : isRoot ? TONIC_INK : NOTE_INK;
-    const opacity = playing && !isSounding ? DIM_OPACITY : FULL_OPACITY;
+    const opacity = noteOpacityOf(
+      index,
+      leadTargetRunIndex !== null
+        ? { kind: "lead", targetRunIndex: leadTargetRunIndex }
+        : playing
+          ? { kind: "playing", soundingRunIndex }
+          : { kind: "none" },
+    );
     const headRx = isSounding ? rx * SOUNDING_RX_MULTIPLIER : rx;
     const hitW = Math.max(step, HIT_RECT_MIN_WIDTH);
     const hitY = Math.min(ny, topY) - HIT_RECT_Y_INSET;
@@ -381,6 +418,10 @@ export function StaveView(props: {
   readonly playing: boolean;
   readonly onTapNote: (runIndex: number) => void;
   readonly tapsEnabled: boolean;
+  readonly leadTarget?: { readonly runIndex: number } | null;
+  readonly onTargetBox?: (
+    box: { readonly x: number; readonly y: number } | null,
+  ) => void;
 }): JSX.Element {
   const {
     key_,
@@ -390,6 +431,8 @@ export function StaveView(props: {
     playing,
     onTapNote,
     tapsEnabled,
+    leadTarget = null,
+    onTargetBox,
   } = props;
 
   const signature = signatureOf(key_);
@@ -413,7 +456,25 @@ export function StaveView(props: {
     staveNamesEnabled,
     soundingRunIndex,
     playing,
+    leadTarget?.runIndex ?? null,
   );
+
+  const targetHead =
+    leadTarget === null
+      ? null
+      : (stave.heads.find((head) => head.runIndex === leadTarget.runIndex) ??
+        null);
+
+  // The stave must never re-render per reading (the plan's constraint):
+  // `App` positions `NoteMeter` from this box, so it reads the target
+  // head's own centre rather than the DOM — this effect only reports a new
+  // box when the target (or its geometry) actually changes.
+  useLayoutEffect(() => {
+    if (onTargetBox === undefined) return;
+    onTargetBox(
+      targetHead === null ? null : { x: targetHead.x, y: targetHead.y },
+    );
+  }, [leadTarget?.runIndex, targetHead?.x, targetHead?.y, onTargetBox]);
 
   return (
     <div
@@ -462,6 +523,15 @@ export function StaveView(props: {
             data-testid="stave-note"
             data-note={noteLabel(head.note)}
             data-root={head.isRoot ? "true" : "false"}
+            // cx/cy/rx/fill/opacity mirror the notehead ellipse below —
+            // read-only probes so a test (and `onTargetBox`) can reach the
+            // head's own geometry and styling without `querySelector`;
+            // they carry no visual meaning on a `<g>`.
+            cx={head.x}
+            cy={head.y}
+            rx={head.rx}
+            fill={head.ink}
+            opacity={head.opacity}
           >
             <line
               x1={head.stemX}

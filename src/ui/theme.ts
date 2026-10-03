@@ -32,7 +32,12 @@ export const tuner = {
   sharp: "oklch(0.55 0.11 28)",
   flat: "oklch(0.55 0.11 258)",
   inTune: "oklch(0.55 0.11 150)",
-  band: "oklch(0.90 0.045 150)",
+  // 0.9, not 0.90 — jsdom's (and every browser's) CSSOM strips an
+  // insignificant trailing zero when a style value round-trips, so a test
+  // comparing `el.style.background` to this constant needs the same
+  // normal form the engine will hand back; the colour is identical either
+  // way.
+  band: "oklch(0.9 0.045 150)",
   targetHead: "#a39a8c",
   ghostInk: "#8a8175",
 } as const;
@@ -49,7 +54,25 @@ export const motion = {
 // colours themselves are tuner.band / tuner.inTune / tuner.flat /
 // tuner.sharp (docs/design.md §8: one value per role).
 export const lead = {
-  holdFill: "oklch(0.80 0.07 150)",
+  // 0.8, not 0.80 — see the comment on `tuner.band`.
+  holdFill: "oklch(0.8 0.07 150)",
+} as const;
+
+// practice.session/REQ-017 — the meter on the target note: the box (40 px
+// tall, ±50 ¢), the band's width on the stave / its inset in the names
+// view, the pitch line's overhang / inset, radii and its 180 ms move.
+export const noteMeter = {
+  boxHeight: 40,
+  pxPerCent: 0.4,
+  staveBandWidth: 26,
+  staveLineOverhang: 2,
+  columnBandInset: 6,
+  columnLineInset: 3,
+  columnBoxTop: 13,
+  bandRadius: 3,
+  lineHeight: 2,
+  lineRadius: 1,
+  lineTransition: "top .18s cubic-bezier(.3,.7,.3,1)",
 } as const;
 
 // practice.session/REQ-015, REQ-017, REQ-022 — the live lead card's target
