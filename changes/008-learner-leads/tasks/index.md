@@ -1,6 +1,6 @@
 # Tasks: 008-learner-leads
 
-Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-learner-leads next` → C008_T013
+Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-learner-leads next` → C008_T014
 
 | Task | Status | Depends on | Requirements | Group | Attempts | Outcome |
 |---|---|---|---|---|---|---|
@@ -16,7 +16,7 @@ Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-lea
 | [C008_T010](C008_T010.md) | done | C008_T005,C008_T009 | practice.session/REQ-019 | Phase 2 — The lead run in the Session aggregate | 1 | Changes while leading |
 | [C008_T011](C008_T011.md) | done | C008_T002,C008_T005,C008_T010 | practice.session/REQ-018,practice.session/REQ-017 | Phase 2 — The lead run in the Session aggregate | 1 | The tone cue and its mute window; 'held ✓' |
 | [C008_T012](C008_T012.md) | done | C008_T005 | practice.session/REQ-014,practice.session/REQ-002 | Phase 3 — The practice screen | 1 | The transport card: the mode words, the I-lead idle card, no progress bar |
-| [C008_T013](C008_T013.md) | todo | — | practice.session/REQ-015,practice.session/REQ-017,practice.session/REQ-022 | Phase 3 — The practice screen | 0 | The live lead card, the judgement copy, the complete card, the no-mic card |
+| [C008_T013](C008_T013.md) | done | — | practice.session/REQ-015,practice.session/REQ-017,practice.session/REQ-022 | Phase 3 — The practice screen | 1 | The live lead card, the judgement copy, the complete card, the no-mic card |
 | [C008_T014](C008_T014.md) | todo | — | practice.session/REQ-017,practice.session/REQ-018 | Phase 3 — The practice screen | 0 | `NoteMeter` and the stave: the band, the fill, the line on the target notehead; ink behind, faint ahead |
 | [C008_T015](C008_T015.md) | todo | C008_T014 | practice.session/REQ-017 | Phase 3 — The practice screen | 0 | The names view: the meter in the target column |
 | [C008_T016](C008_T016.md) | todo | C008_T001 | practice.session/REQ-020,practice.session/REQ-018 | Phase 3 — The practice screen | 0 | The Traversal sheet rebuilt: fixed rows with hints, Who leads with ✕, the three mode rows, the hairline, switches |
