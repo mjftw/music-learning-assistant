@@ -52,6 +52,16 @@ export const lead = {
   holdFill: "oklch(0.80 0.07 150)",
 } as const;
 
+// practice.session/REQ-015, REQ-017, REQ-022 — the live lead card's target
+// letter and octave, and the no-mic card's title and body copy.
+export const leadCard = {
+  targetLetterSize: 40,
+  octaveSize: 12,
+  noMicTitleSize: 14,
+  noMicBodySize: 12.5,
+  noMicLineHeight: 1.45,
+} as const;
+
 // practice.session/REQ-014 — the mode words beneath the caption, and the
 // Tuner glyph drawn in the start circle while I lead is idle.
 export const modeWords = {
