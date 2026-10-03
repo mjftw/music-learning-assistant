@@ -32,6 +32,7 @@ import {
   type SessionSettings,
   type SessionSnapshot,
   type TempoTerm,
+  type Who,
 } from "../practice/published";
 import { findVariantById } from "./catalogue-lookup";
 import { CircleOfFifths, locateSpelledKey } from "./CircleOfFifths";
@@ -473,6 +474,16 @@ export function App(props: {
     }
   }
 
+  // practice.session/REQ-014 — a mode word tapped selects that mode; the
+  // session itself stops a run in progress and shows the new mode idle.
+  function handleWho(who: Who): void {
+    if (session === null || snapshot === null) return;
+    session.setSettings({
+      ...snapshot.settings,
+      lead: { ...snapshot.settings.lead, who },
+    });
+  }
+
   // practice.session/REQ-013 — a names column names a pitch class, not a
   // run index (unlike a stave notehead, which already knows its own): this
   // resolves it to the lowest note of that name in the run — the descent's
@@ -873,6 +884,7 @@ export function App(props: {
                   })
                 }
                 onOpenTempo={handleOpenTempoSheet}
+                onWho={handleWho}
               />
               <TraversalRow
                 summaryLine={snapshot.summaryLine}

@@ -1,6 +1,6 @@
 import type { CSSProperties, JSX } from "react";
-import type { SessionSnapshot } from "../practice/published";
-import { fonts, paper } from "./theme";
+import type { SessionSnapshot, Who } from "../practice/published";
+import { fonts, modeWords, paper } from "./theme";
 
 // Geometry and colour below are copied verbatim from the vendored visual
 // reference's bottom-panel transport card (changes/003-hear-the-scale/
@@ -69,17 +69,122 @@ function isPlaying(transport: SessionSnapshot["transport"]): boolean {
   return transport.kind !== "idle";
 }
 
+// practice.session/REQ-014 — the Tuner glyph (three bars) drawn in the
+// start circle while I lead is idle, in place of ▶. Rendered at every
+// state — hidden (not unmounted) when not shown — so the card's DOM
+// structure (practice.session/REQ-002/S5) never gains or loses a node as
+// the mode or transport state changes; its bars carry no text, so hiding
+// it this way never affects another element's textContent.
+function TunerGlyph(props: { readonly visible: boolean }): JSX.Element {
+  return (
+    <div
+      data-testid="tuner-glyph"
+      style={{
+        display: props.visible ? "flex" : "none",
+        alignItems: "center",
+        gap: modeWords.glyphGap,
+      }}
+    >
+      {modeWords.glyphHeights.map((height, index) => (
+        <div
+          key={index}
+          style={{
+            width: modeWords.glyphBar,
+            height,
+            borderRadius: modeWords.glyphBar / 2,
+            background: modeWords.glyphCentre,
+            boxShadow: `0 0 0 2px ${modeWords.glyphOuter}`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// practice.session/REQ-014 — the two mode words beneath the caption, in
+// place of the progress bar, in every transport state.
+function ModeWords(props: {
+  readonly who: Who;
+  readonly onWho: (who: Who) => void;
+}): JSX.Element {
+  const { who, onWho } = props;
+  return (
+    <div style={{ display: "flex", gap: modeWords.gap }}>
+      <ModeWord
+        testId="mode-word-tool"
+        label="play along"
+        selected={who === "tool"}
+        onClick={() => onWho("tool")}
+      />
+      <ModeWord
+        testId="mode-word-me"
+        label="I lead"
+        selected={who === "me"}
+        onClick={() => onWho("me")}
+      />
+    </div>
+  );
+}
+
+function ModeWord(props: {
+  readonly testId: string;
+  readonly label: string;
+  readonly selected: boolean;
+  readonly onClick: () => void;
+}): JSX.Element {
+  const { testId, label, selected, onClick } = props;
+  return (
+    <button
+      type="button"
+      data-testid={testId}
+      onClick={onClick}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 0,
+        background: "transparent",
+        border: "none",
+        cursor: "pointer",
+        padding: `${modeWords.padding}px 0`,
+        fontSize: TERM_FONT_SIZE_WORD,
+        fontWeight: TERM_FONT_WEIGHT_WORD,
+        color: selected ? paper.ink : paper.faint,
+      }}
+    >
+      <span>{label}</span>
+      <span
+        style={{
+          marginTop: modeWords.barOffset,
+          width: "100%",
+          height: modeWords.barHeight,
+          borderRadius: modeWords.barHeight / 2,
+          background: selected ? paper.accent : "transparent",
+        }}
+      />
+    </button>
+  );
+}
+
+const TERM_FONT_SIZE_WORD = 12.5;
+const TERM_FONT_WEIGHT_WORD = 600;
+
 export function TransportCard(props: {
   readonly snapshot: SessionSnapshot;
   readonly onTogglePlay: () => void;
   readonly onStepTempo: (delta: -2 | 2) => void;
   readonly onOpenTempo: () => void;
+  readonly onWho: (who: Who) => void;
 }): JSX.Element {
-  const { snapshot, onTogglePlay, onStepTempo, onOpenTempo } = props;
+  const { snapshot, onTogglePlay, onStepTempo, onOpenTempo, onWho } = props;
   const playing = isPlaying(snapshot.transport);
+  const idleLeading =
+    snapshot.lead.who === "me" && snapshot.lead.phase === "idle";
+  const caption = idleLeading ? snapshot.lead.idleCaption : snapshot.caption;
 
   return (
     <div
+      data-testid="transport-card"
       style={{
         display: "flex",
         alignItems: "center",
@@ -92,6 +197,7 @@ export function TransportCard(props: {
     >
       <button
         type="button"
+        data-testid="start-circle"
         aria-label={playing ? "Stop" : "Play"}
         onClick={onTogglePlay}
         style={{
@@ -112,7 +218,8 @@ export function TransportCard(props: {
           flex: "none",
         }}
       >
-        {playing ? "❚❚" : "▶"}
+        <TunerGlyph visible={idleLeading} />
+        {idleLeading ? null : playing ? "❚❚" : "▶"}
       </button>
       <div
         style={{
@@ -135,10 +242,9 @@ export function TransportCard(props: {
             textOverflow: "ellipsis",
           }}
         >
-          {snapshot.caption}
+          {caption}
         </div>
-        {/* practice.session/REQ-002 — the progress bar is removed here (the
-            mode words that replace it, beneath this caption, are T012's). */}
+        <ModeWords who={snapshot.lead.who} onWho={onWho} />
       </div>
       <div
         style={{

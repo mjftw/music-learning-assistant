@@ -51,3 +51,17 @@ export const motion = {
 export const lead = {
   holdFill: "oklch(0.80 0.07 150)",
 } as const;
+
+// practice.session/REQ-014 — the mode words beneath the caption, and the
+// Tuner glyph drawn in the start circle while I lead is idle.
+export const modeWords = {
+  gap: 16,
+  barHeight: 2,
+  barOffset: 4,
+  padding: 4,
+  glyphBar: 3,
+  glyphGap: 3,
+  glyphHeights: [10, 20, 10] as const,
+  glyphOuter: "rgba(249,244,233,.6)",
+  glyphCentre: "#f9f4e9",
+} as const;

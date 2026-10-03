@@ -124,6 +124,7 @@ test("practice.session/REQ-002/S1 (UI) — idle transport shows Play, the run ca
       onTogglePlay={noop}
       onStepTempo={noop}
       onOpenTempo={noop}
+      onWho={noop}
     />,
   );
 
@@ -149,6 +150,7 @@ test("practice.session/REQ-002/S1 (UI) — playing transport shows Stop and the 
       onTogglePlay={noop}
       onStepTempo={noop}
       onOpenTempo={noop}
+      onWho={noop}
     />,
   );
 
@@ -172,6 +174,7 @@ test("practice.session/REQ-002/S2 (UI) — tapping Stop calls onTogglePlay once"
       onTogglePlay={onTogglePlay}
       onStepTempo={noop}
       onOpenTempo={noop}
+      onWho={noop}
     />,
   );
 
@@ -194,6 +197,7 @@ test("practice.session/REQ-004/S1, S3 (UI) — Faster and Slower step the tempo,
       onTogglePlay={noop}
       onStepTempo={onStepTempo}
       onOpenTempo={onOpenTempo}
+      onWho={noop}
     />,
   );
 
