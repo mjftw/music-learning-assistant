@@ -1151,11 +1151,30 @@ export function createSession(
   // does not itself fire onEnded, but a real track ending after release
   // well might) must not resurrect a state leaveTuner() already cleared.
   const unsubscribeListeningEnded = listening.onEnded(() => {
-    if (!tunerActive) return;
+    if (tunerActive) {
+      invalidateSnapshot();
+      tunerListeningState = { kind: "cannot-hear", reason: "failed" };
+      clearTunerReading();
+      cancelTunerTimers();
+      notifyChange();
+      return;
+    }
+    // practice.session/REQ-022/S3 — a lead run's microphone unplugged or its
+    // permission revoked mid-run: the same "cannot-hear(failed)" shape as
+    // the tuner's own branch above, but through `listeningOwner` rather than
+    // `tunerActive`, and with the lead run's own reading, smoothing, hold
+    // and timers forgotten (mirrors stop()'s lead branch) and the wake lock
+    // released, since nothing is listening or sounding once this ends it.
+    if (listeningOwner !== "lead") return;
     invalidateSnapshot();
-    tunerListeningState = { kind: "cannot-hear", reason: "failed" };
-    clearTunerReading();
-    cancelTunerTimers();
+    leadGeneration += 1; // supersede a startLead() still awaiting its asks
+    listeningOwner = "none";
+    leadListeningState = { kind: "cannot-hear", reason: "failed" };
+    leadPhase = { kind: "cannot-hear", reason: "failed" };
+    leadReading = null;
+    leadSmoothing = initialSmoothingState;
+    cancelLeadTimers();
+    releaseWakeLockIfSilent();
     notifyChange();
   });
 
@@ -2029,11 +2048,15 @@ export function createSession(
             // practice.session/REQ-022 — the attempt ends here rather than
             // leaving `listeningOwner` claimed: nothing is actually
             // listening, so the next tap of the start circle must be free
-            // to try again (T009 tests the cannot-hear card itself).
+            // to try again (T009 tests the cannot-hear card itself). The
+            // wake lock was acquired for this attempt alone (nothing else
+            // is sounding or listening at this point) — released the same
+            // way stop()'s lead branch releases it.
             listeningOwner = "none";
             const reason = cannotHearReasonOf(result.error.reason);
             leadListeningState = { kind: "cannot-hear", reason };
             leadPhase = { kind: "cannot-hear", reason };
+            releaseWakeLockIfSilent();
           }
           notifyChange();
         })();
