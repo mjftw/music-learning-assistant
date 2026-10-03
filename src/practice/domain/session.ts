@@ -1810,6 +1810,45 @@ export function createSession(
     })();
   }
 
+  // practice.session/REQ-019 — a key, variant, scale or traversal change
+  // mid-run restarts the lead run on the new sequence from its first note at
+  // once, still listening, with the hold at zero: `TargetAdvanced` emitted
+  // for the new first target, the smoothing reset, listening left entirely
+  // untouched (no stop/start of its own). A `complete` card clears to idle
+  // here too (REQ-015: "until … the mode, key, variant, scale or traversal
+  // changes") — folded into this one lead-aware branch (rather than its own
+  // `clearCompleteLeadCard()` called after `restartIfPlaying()`, T007's
+  // shape) because recomputeAndRetune() has already rebuilt `sequence` by
+  // the time this runs, so the new first target is read from the one fresh
+  // sequence rather than needing a second invalidateSnapshot() to undo a
+  // stale cache `restartIfPlaying()`'s own notifyChange() would otherwise
+  // have left behind.
+  function restartLeadIfRunning(): void {
+    if (leadPhase.kind === "complete") {
+      leadPhase = { kind: "idle" };
+      return;
+    }
+    if (leadPhase.kind !== "listening") return;
+    invalidateSnapshot();
+    leadSmoothing = initialSmoothingState;
+    cancelLeadTimers();
+    leadReading = null;
+    const target = targetAt(sequence, 1);
+    leadPhase = {
+      kind: "listening",
+      target,
+      hold: emptyHold,
+      mutedUntilMs: null,
+    };
+    const advancedEvent: TargetAdvanced = {
+      note: target.note,
+      position: 1,
+      length: sequence.length,
+      atFrame: listening.currentFrame(),
+    };
+    for (const listener of targetAdvancedListeners) listener(advancedEvent);
+  }
+
   function restartIfPlaying(): void {
     // practice.session/REQ-013 — a recompute (setContext/setTraversal/
     // setScaleChoice, all of which call this) can change what a run index
@@ -1817,6 +1856,7 @@ export function createSession(
     // — before the "only while playing" guard below, since a tap only ever
     // sounds while idle.
     endTapIfSounding();
+    restartLeadIfRunning();
     if (transport.kind !== "playing") return;
     invalidateSnapshot();
     // The superseded sequence's tones and clicks already posted inside the
@@ -1838,15 +1878,6 @@ export function createSession(
     scheduler.start(sound.currentFrame() + firstTickLeadFrames(), next);
   }
 
-  // practice.session/REQ-015 — a key, traversal or scale change clears a
-  // complete lead card back to idle (the complete card otherwise persists
-  // until the circle is tapped or the mode/key/variant/scale/traversal
-  // changes). A run still listening is restarted on the new sequence by
-  // REQ-019, not here.
-  function clearCompleteLeadCard(): void {
-    if (leadPhase.kind === "complete") leadPhase = { kind: "idle" };
-  }
-
   function setContext(newContext: SessionContext): void {
     invalidateSnapshot();
     currentContext = newContext;
@@ -1856,7 +1887,6 @@ export function createSession(
     // so there is nothing to re-sync here.
     recomputeAndRetune();
     restartIfPlaying();
-    clearCompleteLeadCard();
     invalidateSnapshot();
     notifyChange();
   }
@@ -1866,7 +1896,6 @@ export function createSession(
     currentTraversal = newTraversal;
     recomputeAndRetune();
     restartIfPlaying();
-    clearCompleteLeadCard();
     invalidateSnapshot();
     notifyChange();
   }
@@ -1876,7 +1905,6 @@ export function createSession(
     currentScaleChoice = choice;
     recomputeAndRetune();
     restartIfPlaying();
-    clearCompleteLeadCard();
     invalidateSnapshot();
     notifyChange();
   }
