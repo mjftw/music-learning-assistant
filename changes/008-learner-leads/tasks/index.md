@@ -1,6 +1,6 @@
 # Tasks: 008-learner-leads
 
-Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-learner-leads next` → C008_T009
+Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-learner-leads next` → C008_T010
 
 | Task | Status | Depends on | Requirements | Group | Attempts | Outcome |
 |---|---|---|---|---|---|---|
@@ -12,7 +12,7 @@ Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-lea
 | [C008_T006](C008_T006.md) | done | C008_T002,C008_T005 | practice.session/REQ-016,practice.session/REQ-017,practice.session/REQ-021 | Phase 2 — The lead run in the Session aggregate | 1 | The lead branch of `onPitchDetected`: age, smoothing, judgement at the tolerance, the hold, the advance, the gap |
 | [C008_T007](C008_T007.md) | done | C008_T005,C008_T006 | practice.session/REQ-015 | Phase 2 — The lead run in the Session aggregate | 1 | Complete, loop, and the target-in-sequence invariant for a lead run |
 | [C008_T008](C008_T008.md) | done | C008_T005,C008_T007 | practice.session/REQ-015,practice.session/REQ-013 | Phase 2 — The lead run in the Session aggregate | 1 | The exclusions: the drone both ways, the Tuner pill, tapped notes; never-both widened |
-| [C008_T009](C008_T009.md) | todo | C008_T005,C008_T008 | practice.session/REQ-009,practice.session/REQ-022 | Phase 2 — The lead run in the Session aggregate | 0 | Hidden, the wake lock, and the microphone that cannot be used |
+| [C008_T009](C008_T009.md) | done | C008_T005,C008_T008 | practice.session/REQ-009,practice.session/REQ-022 | Phase 2 — The lead run in the Session aggregate | 1 | Hidden, the wake lock, and the microphone that cannot be used |
 | [C008_T010](C008_T010.md) | todo | C008_T005,C008_T009 | practice.session/REQ-019 | Phase 2 — The lead run in the Session aggregate | 0 | Changes while leading |
 | [C008_T011](C008_T011.md) | todo | C008_T002,C008_T005,C008_T010 | practice.session/REQ-018,practice.session/REQ-017 | Phase 2 — The lead run in the Session aggregate | 0 | The tone cue and its mute window; 'held ✓' |
 | [C008_T012](C008_T012.md) | todo | C008_T005 | practice.session/REQ-014,practice.session/REQ-002 | Phase 3 — The practice screen | 0 | The transport card: the mode words, the I-lead idle card, no progress bar |
