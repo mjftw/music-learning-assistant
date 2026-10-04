@@ -1625,6 +1625,11 @@ export function createSession(
       startLead();
       return;
     }
+    // 008 proposal edge-case row (REQ-015) — "a key with no notes in range:
+    // the start circle does nothing in either mode". startLead() guards its
+    // own empty run (REQ-015/S8); play along has no scenario for it, only the
+    // edge-case test, so the guard is here.
+    if (sequence.length === 0) return;
     // practice.session/REQ-013 — ▶ ends any sounding tap the same way a
     // retap does, before anything else: a tap only ever sounds while idle,
     // and start() is about to leave idle.

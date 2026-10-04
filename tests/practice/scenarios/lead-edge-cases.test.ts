@@ -5,8 +5,7 @@
 //   Empty / first-run state          → practice.session/REQ-011/S2 (lead-settings.test.ts,
 //                                       selection-store.test.ts "first-run defaults")
 //   A key with no notes in range     → practice.session/REQ-015/S8 (lead-run.test.ts) for I lead;
-//                                       play along's ▶ is NOT covered — it starts a count-in on an
-//                                       empty run today, contradicting the row (see the T021 report)
+//                                       for play along, the edge-case test below (decision D003)
 //   Mode words tapped mid-run        → practice.session/REQ-014/S3 (lead-mode.test.ts)
 //   Upstream unavailable             → practice.session/REQ-022/S1–S4 (lead-cannot-hear.test.ts)
 //   The tool's own sound in the mic  → practice.session/REQ-018/S3 (lead-cues.test.ts),
@@ -32,8 +31,26 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "vitest";
+import { defaultSessionSettings } from "../../../src/practice/published";
 import { pitchHzOf } from "../../../src/theory/published";
-import { hearSteady, leadFixture, startLead } from "../lead-helpers";
+import {
+  hearSteady,
+  leadFixture,
+  sessionWithEmptyRun,
+  startLead,
+} from "../lead-helpers";
+
+test("edge case — a key with no notes in range in play along: ▶ does nothing", () => {
+  const f = sessionWithEmptyRun(defaultSessionSettings);
+  expect(f.session.snapshot().run).toHaveLength(0);
+
+  f.session.start();
+
+  expect(f.session.snapshot().transport).toEqual({ kind: "idle" });
+  expect(f.sound.posts).toEqual([]);
+  expect(f.wake.acquired).toBe(false);
+  expect(f.listening.startCalls).toBe(0);
+});
 
 test("edge case — the circle tapped while already leading is a no-op", async () => {
   const f = leadFixture();
