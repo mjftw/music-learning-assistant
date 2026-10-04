@@ -75,10 +75,6 @@ const HANDOVER_END_HZ = 470; // ~A♯4, ramped through the 56 ¢ crossing
 const SILENCE_SECONDS = 2;
 const NOISE_SECONDS = 2;
 
-// positionsE2ToC7, noteLabelOfPosition, isDevServerUp, waitForDevServer,
-// ensureDevServer, stopDevServer and installMicrophoneOverride moved to
-// harness-lib.mjs (C008_T018) — imported above.
-
 // Everything below runs inside the page via a single `page.evaluate` call —
 // every timestamp (onset, mutation, PitchDetected, NoteJudged, paint) stays
 // on the page's own performance.now()/AudioContext clocks, exactly as
@@ -488,9 +484,6 @@ function measureInPage(params) {
     noise: await measureNoise(),
   }))();
 }
-
-// maxOf, minOf, paintAgeMaxOf and printTable moved to harness-lib.mjs
-// (C008_T018) — imported above.
 
 // The tone whose `selector(tone)` is largest — null sorts as worse than any
 // number (it means no matching reading ever arrived for that tone at all).

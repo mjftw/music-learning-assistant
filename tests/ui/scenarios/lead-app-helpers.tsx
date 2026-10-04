@@ -1,4 +1,5 @@
 import { act, render, screen, within } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import userEvent from "@testing-library/user-event";
 import { builtInCatalogue } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
@@ -32,7 +33,13 @@ export function storedCMajor(
   };
 }
 
-export function renderLeadApp(stored: StoredSelection = storedCMajor()) {
+export function renderLeadApp(
+  stored: StoredSelection = storedCMajor(),
+  // Additive, mirroring tuner-helpers.ts's enterTuner — lets a scenario
+  // reach an <App> prop renderLeadApp doesn't otherwise expose (e.g.
+  // onPaintAge, C008_T019) without its own render/open dance.
+  extraProps: Partial<ComponentProps<typeof App>> = {},
+) {
   localStorage.clear();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
   const fakes = sessionDepsWithFakes();
@@ -41,6 +48,7 @@ export function renderLeadApp(stored: StoredSelection = storedCMajor()) {
       catalogue={builtInCatalogue()}
       selectionStore={localStorageSelectionStore(localStorage)}
       sessionDeps={fakes.sessionDeps}
+      {...extraProps}
     />,
   );
   return { ...fakes, user: userEvent.setup() };

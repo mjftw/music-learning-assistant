@@ -15,6 +15,7 @@
     "pretest": "pnpm build:sound",
     "test:timing": "node scripts/timing-test.mjs",
     "test:tuner": "node scripts/tuner-timing-test.mjs",
+    "test:lead": "node scripts/lead-timing-test.mjs",
     "design:shots": "node scripts/design-shots.mjs"
   },
   "dependencies": {

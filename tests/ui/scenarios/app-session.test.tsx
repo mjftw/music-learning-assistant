@@ -28,10 +28,12 @@ import {
   variantOf,
 } from "../../practice/fakes";
 import {
+  flushApp,
   openSheet,
   pill,
   pillSelected,
   renderLeadApp,
+  startLeadInApp,
   storedCMajor,
 } from "./lead-app-helpers";
 
@@ -713,4 +715,25 @@ test("practice.session/REQ-012/S4 (app) — the descent group follows the sessio
     "C♯",
     "D♯",
   ]);
+});
+
+// practice.session/REQ-021's measured lead budget (pnpm test:lead,
+// C008_T019) reads a lead reading's paint age off onPaintAge the same way
+// practice.tuner/REQ-006's harness does for the tuner's own reading
+// (tuner-screen.test.tsx) — this proves App forwards it for a lead run too,
+// mirroring that test's own shape exactly (bump the fake's frame after the
+// reading commits but before the deferred layout effect flushes, so the
+// reported age is the gap between them, not zero).
+test("practice.session/REQ-021 — every painted lead reading is reported with its age", async () => {
+  const ages: number[] = [];
+  const app = renderLeadApp(storedCMajor(), {
+    onPaintAge: (ms) => ages.push(ms),
+  });
+  await startLeadInApp(app);
+  app.listening.frame = 0;
+  app.listening.feed(262.5, 0);
+  app.clock.advance(1);
+  app.listening.frame = 480;
+  await flushApp();
+  expect(ages.at(-1)).toBe(10);
 });

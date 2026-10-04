@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -688,6 +689,21 @@ export function App(props: {
     },
     [session, onPaintAge],
   );
+  // practice.session/REQ-021 — the same report as the tuner's reading
+  // above, for a lead run's reading instead: there is no separate "lead
+  // screen" component to own this the way TunerScreen owns its own
+  // useLayoutEffect, so it lives here, keyed on the reading's own atFrame
+  // (not the NoteJudged object) so a re-render that commits nothing new
+  // reports only once — null outside "listening" (idle, complete and
+  // cannot-hear all show nothing).
+  const leadReadingAtFrame =
+    snapshot !== null && snapshot.lead.phase === "listening"
+      ? snapshot.lead.reading?.atFrame
+      : undefined;
+  useLayoutEffect(() => {
+    if (leadReadingAtFrame !== undefined)
+      handleReadingShown(leadReadingAtFrame);
+  }, [leadReadingAtFrame, handleReadingShown]);
 
   const handleSelectKey = useCallback((selectedWedgeKey: Key) => {
     setSelection((current) => {

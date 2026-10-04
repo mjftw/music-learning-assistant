@@ -88,7 +88,7 @@ pnpm test:timing
 pnpm test:tuner
 # measured lead-run budget (Playwright/Chromium; feeds a scripted lead run of C major as the microphone —
 # silence, a flat entry settling, holds, one drift — and the tone cue fed back) — required at converge
-# and finish from 008, not per task; its healthy output is pasted here at 008's converge:
+# and finish from 008, not per task:
 pnpm test:lead
 # design fidelity screenshots against the vendored prototype (dev-only, human-reviewed):
 pnpm design:shots
@@ -149,6 +149,26 @@ white noise          —      —                       —                     
   worst: first readout E2 95.10 ms · arrival age E2 63.98 ms · cents err A♯6 0.09 ¢ · shown err E2 0 ¢
   worst: first readout F♯6 77.40 ms · arrival age F♯6 63.98 ms · cents err B6 0.65 ¢ · shown err A♯6 1 ¢
 test:tuner: PASS — first readout ≤100 ms, arrival age ≤100 ms, ≥20 readings/s, |cents error| ≤2, shown offset within ±2 ¢, nothing for silence or noise
+```
+
+`pnpm test:lead` runs a scripted lead run of C major (flute Concert, ↑↓ 1 oct,
+15 notes) at medium, 2 beats, 96 bpm, fed as the microphone from the page's own
+AudioContext — each note a flat entry at −30 ¢ settling to −2 ¢ over 650 ms,
+held to its advance, with one drift out of tune on the fourth — then a second
+run with the tone cue on, 1 beat at 150 bpm, where the tool's own 400 ms tone
+is fed back as the microphone at each new target; it takes about 40 seconds.
+Gated: the first readout (≤100 ms), arrival age (≤100 ms), readings per second
+(≥20), each advance within one reading hop (512 frames) of the in-tune time it
+needed, computed from the recorded `NoteJudged` verdicts, and never earlier,
+the advance shown within 100 ms, and — in the tone cue row — no `NoteJudged`
+inside the cue's window and the hold at zero at its end. Paint age is printed
+for information and is not gated.
+
+```
+case               targets  first readout max (ms)  arrival age max (ms)  paint age max (ms)  readings/s min  advance lateness max (frames)  shown lateness max (ms)  status
+lead run C4–C5     15       70.33                   5.35                  8.02                94.21           0                              16.02                    PASS
+tone cue fed back  3        62.33                   8.02                  8.02                83.40           0                              18.69                    PASS
+test:lead: PASS — first readout ≤100 ms, arrival age ≤100 ms, ≥20 readings/s, advance within one hop and never early, shown ≤100 ms, nothing judged during the tone
 ```
 
 Run `check` before calling any task done, and paste the output.
