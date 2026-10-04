@@ -35,6 +35,22 @@ test("practice.session/REQ-014/S1 (card) — choosing I lead", async () => {
   expect(app.listening.startCalls).toBe(0);
 });
 
+test("practice.session/REQ-014/S1 (card) — the Tuner glyph is three bare bottom-aligned bars", () => {
+  renderLeadApp(storedCMajor({ who: "me" }));
+  const glyph = screen.getByTestId("tuner-glyph");
+  expect(glyph.style.display).toBe("flex");
+  expect(glyph.style.alignItems).toBe("flex-end");
+  const bars = [...glyph.children] as HTMLElement[];
+  expect(bars.map((bar) => bar.style.width)).toEqual(["3px", "3px", "3px"]);
+  expect(bars.map((bar) => bar.style.height)).toEqual(["10px", "20px", "10px"]);
+  expect(bars.map((bar) => bar.style.background)).toEqual([
+    "rgba(249, 244, 233, 0.6)",
+    "rgb(249, 244, 233)",
+    "rgba(249, 244, 233, 0.6)",
+  ]);
+  expect(bars.map((bar) => bar.style.boxShadow)).toEqual(["", "", ""]);
+});
+
 test("practice.session/REQ-014/S2 (card) — and back", async () => {
   const app = renderLeadApp(storedCMajor({ who: "me" }));
   expect(screen.getByTestId("tuner-glyph")).toBeTruthy();
@@ -221,6 +237,23 @@ test("practice.session/REQ-022/S1 (card) — the no-mic card", async () => {
   expect(screen.getByTestId("start-circle")).toBeTruthy();
   expect(screen.getByTestId("mode-word-me")).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+test("practice.session/REQ-022/S1 (card) — the title sits beside the circle, in place of the caption", async () => {
+  const app = renderLeadApp(storedCMajor({ who: "me" }));
+  app.listening.failWith = "refused";
+  await startLeadInApp(app);
+  expect(screen.queryByTestId("position-caption")).toBeNull();
+  const column = screen.getByText("Can't hear — no microphone").parentElement!;
+  expect(column.contains(screen.getByTestId("mode-word-me"))).toBe(true);
+  expect(column.contains(screen.getByTestId("mode-word-tool"))).toBe(true);
+  expect(column.textContent).not.toContain("It was refused");
+  expect(screen.getByTestId("no-mic-card").textContent).toContain(
+    "It was refused or isn't there. Allow the microphone for this site, then press I lead again.",
+  );
+  expect(
+    column.parentElement!.contains(screen.getByTestId("start-circle")),
+  ).toBe(true);
 });
 
 test("practice.session/REQ-018/S1 (app) — meter off: no band, fill or line; the highlight stays", async () => {

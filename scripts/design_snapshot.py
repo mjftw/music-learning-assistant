@@ -24,8 +24,11 @@ and the microphone fed by scripts/design-shots-page.mjs, shared with
 design-shots.mjs). A row with no driver is opened at its path and shot as is.
 
 Needs Playwright for Python (pip install playwright; playwright install
-chromium). Stdlib otherwise. A row with no design file (wireframes) or no
-route (live/reference) is skipped with a note, not an error.
+chromium). Stdlib otherwise. Playwright for Python must be the same version as
+the repo's node Playwright (see package.json), otherwise the AudioWorklet
+module load hangs and every microphone state times out. A row with no design
+file (wireframes) or no route (live/reference) is skipped with a note, not an
+error.
 """
 import re, sys, pathlib, argparse
 
@@ -278,7 +281,7 @@ def main(argv):
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        print("error: Playwright for Python not installed: pip install playwright && playwright install chromium", file=sys.stderr)
+        print("error: Playwright for Python not installed: pip install playwright && playwright install chromium (it must be the same version as the repo's node Playwright, see package.json, or the AudioWorklet module load hangs and every microphone state times out)", file=sys.stderr)
         return 1
 
     drivers = LIVE_DRIVERS.get(cid, {}) if a.mode != "wireframes" else {}

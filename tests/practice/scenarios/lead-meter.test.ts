@@ -52,3 +52,17 @@ test("practice.session/REQ-017/S4 — 'held ✓' goes after 0.4 s of silence", a
   f.clock.advanceMs(100);
   expect(f.session.snapshot().lead.justHeld).toBeNull();
 });
+test("practice.session/REQ-017/S4 (reading) — the completing reading is not drawn on the new target", async () => {
+  const f = leadFixture();
+  await startLead(f.session);
+  hearSteady(f, 262.5, 0, 1240);
+  hearAt(f, 262.5, 1260); // completes the hold → D4
+  f.clock.advanceMs(100); // silence, under the 300 ms gap
+  expect(f.session.snapshot().lead.target?.position).toBe(2);
+  expect(f.session.snapshot().lead.reading).toBeNull();
+  hearAt(f, 293.66, 1400);
+  expect(f.session.snapshot().lead.reading).toMatchObject({
+    cents: 0,
+    verdict: "in-tune",
+  });
+});

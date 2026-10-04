@@ -599,6 +599,10 @@ export function createSession(
   // burst of detections within one tick commits only the newest).
   let leadReading: NoteJudged | null = null;
   let leadPendingReading: NoteJudged | null = null;
+  // practice.session/REQ-017 — true when `leadPendingReading` is the reading
+  // that completed the hold: it was judged against the target just left, so
+  // it is emitted as NoteJudged but never shown on the new target.
+  let leadPendingCompleted = false;
   // Cancels for the lead run's own two timers — mirrors
   // `tunerCommitCancel`/`tunerGapCancel` above.
   let leadCommitCancel: (() => void) | null = null;
@@ -1119,6 +1123,7 @@ export function createSession(
     }
 
     leadPendingReading = reading;
+    leadPendingCompleted = advanced;
     if (leadCommitCancel === null) {
       leadCommitCancel = clock.setTimeout(commitLeadReading, 0);
     }
@@ -1152,9 +1157,10 @@ export function createSession(
     leadCommitCancel = null;
     if (leadPendingReading === null) return;
     invalidateSnapshot();
-    leadReading = leadPendingReading;
+    const committed = leadPendingReading;
+    leadReading = leadPendingCompleted ? null : committed;
     leadPendingReading = null;
-    for (const listener of noteJudgedListeners) listener(leadReading);
+    for (const listener of noteJudgedListeners) listener(committed);
     notifyChange();
   }
 

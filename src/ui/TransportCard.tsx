@@ -76,14 +76,15 @@ function isPlaying(transport: SessionSnapshot["transport"]): boolean {
 // state — hidden (not unmounted) when not shown — so the card's DOM
 // structure (practice.session/REQ-002/S5) never gains or loses a node as
 // the mode or transport state changes; its bars carry no text, so hiding
-// it this way never affects another element's textContent.
+// it this way never affects another element's textContent. Three bare
+// bars, bottom-aligned, the outer two dimmer than the centre.
 function TunerGlyph(props: { readonly visible: boolean }): JSX.Element {
   return (
     <div
       data-testid="tuner-glyph"
       style={{
         display: props.visible ? "flex" : "none",
-        alignItems: "center",
+        alignItems: "flex-end",
         gap: modeWords.glyphGap,
       }}
     >
@@ -93,9 +94,8 @@ function TunerGlyph(props: { readonly visible: boolean }): JSX.Element {
           style={{
             width: modeWords.glyphBar,
             height,
-            borderRadius: modeWords.glyphBar / 2,
-            background: modeWords.glyphCentre,
-            boxShadow: `0 0 0 2px ${modeWords.glyphOuter}`,
+            background:
+              index === 1 ? modeWords.glyphCentre : modeWords.glyphOuter,
           }}
         />
       ))}
@@ -176,8 +176,6 @@ const JUDGEMENT_FONT_WEIGHT = 600;
 
 const MODE_WORDS_ROW_MARGIN_TOP = 1;
 
-const NO_MIC_GAP = 4;
-const NO_MIC_TOP_MARGIN = 10;
 const NO_MIC_TITLE_WEIGHT = 600;
 const NO_MIC_BODY_INK = paper.muted;
 
@@ -254,38 +252,34 @@ function TargetLetterOctave(props: {
   );
 }
 
-// practice.session/REQ-022 — the no-mic message block, shared by NoMicCard
-// alone but kept apart so the card stays under 60 lines.
-function NoMicMessage(): JSX.Element {
+// practice.session/REQ-022 — the no-mic title, in the middle column beside
+// the start circle in place of the caption.
+function NoMicTitle(): JSX.Element {
   return (
     <div
-      data-testid="no-mic-card"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: NO_MIC_GAP,
-        marginTop: NO_MIC_TOP_MARGIN,
+        fontSize: leadCard.noMicTitleSize,
+        fontWeight: NO_MIC_TITLE_WEIGHT,
+        color: paper.ink,
       }}
     >
-      <div
-        style={{
-          fontSize: leadCard.noMicTitleSize,
-          fontWeight: NO_MIC_TITLE_WEIGHT,
-          color: paper.ink,
-        }}
-      >
-        Can&apos;t hear — no microphone
-      </div>
-      <div
-        style={{
-          fontSize: leadCard.noMicBodySize,
-          lineHeight: leadCard.noMicLineHeight,
-          color: NO_MIC_BODY_INK,
-        }}
-      >
-        It was refused or isn&apos;t there. Allow the microphone for this site,
-        then press I lead again.
-      </div>
+      Can&apos;t hear — no microphone
+    </div>
+  );
+}
+
+// practice.session/REQ-022 — the no-mic explanation, below the card's top row.
+function NoMicBody(): JSX.Element {
+  return (
+    <div
+      style={{
+        fontSize: leadCard.noMicBodySize,
+        lineHeight: leadCard.noMicLineHeight,
+        color: NO_MIC_BODY_INK,
+      }}
+    >
+      It was refused or isn&apos;t there. Allow the microphone for this site,
+      then press I lead again.
     </div>
   );
 }
@@ -403,6 +397,10 @@ function TempoStepper(props: {
       </button>
     </div>
   );
+}
+
+function cardShellColumnStyle(): CSSProperties {
+  return { display: "flex", flexDirection: "column", gap: CARD_GAP };
 }
 
 function cardShellStyle(): CSSProperties {
@@ -542,29 +540,29 @@ function NoMicCard(props: {
 
   return (
     <div data-testid="transport-card" style={cardShellStyle()}>
-      <div style={{ display: "flex", alignItems: "center", gap: CARD_GAP }}>
-        <button
-          type="button"
-          data-testid="start-circle"
-          aria-label="Play"
-          onClick={onTogglePlay}
-          style={circleStyle()}
-        >
-          <TunerGlyph visible />
-        </button>
-        <div style={middleColumnStyle()}>
-          <div data-testid="position-caption" style={captionStyle()}>
-            {snapshot.lead.idleCaption}
+      <div data-testid="no-mic-card" style={cardShellColumnStyle()}>
+        <div style={{ display: "flex", alignItems: "center", gap: CARD_GAP }}>
+          <button
+            type="button"
+            data-testid="start-circle"
+            aria-label="Play"
+            onClick={onTogglePlay}
+            style={circleStyle()}
+          >
+            <TunerGlyph visible />
+          </button>
+          <div style={middleColumnStyle()}>
+            <NoMicTitle />
+            <ModeWordsRow who={snapshot.lead.who} onWho={onWho} />
           </div>
-          <ModeWords who={snapshot.lead.who} onWho={onWho} />
+          <TempoStepper
+            snapshot={snapshot}
+            onStepTempo={onStepTempo}
+            onOpenTempo={onOpenTempo}
+          />
         </div>
-        <TempoStepper
-          snapshot={snapshot}
-          onStepTempo={onStepTempo}
-          onOpenTempo={onOpenTempo}
-        />
+        <NoMicBody />
       </div>
-      <NoMicMessage />
     </div>
   );
 }
