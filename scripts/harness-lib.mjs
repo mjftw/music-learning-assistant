@@ -159,18 +159,9 @@ export function paintAgeMaxOf(values) {
   return present.length > 0 ? Math.max(...present) : null;
 }
 
-export function printTable(rows) {
-  const header = [
-    "case",
-    "tones",
-    "first readout max (ms)",
-    "arrival age max (ms)",
-    "paint age max (ms)",
-    "readings/s min",
-    "cents err max",
-    "shown err max",
-    "status",
-  ];
+// Prints a padded table: `header` is the column labels, each row's `cells`
+// the strings under them.
+export function printTable(header, rows) {
   const table = [header, ...rows.map((row) => row.cells)];
   const widths = header.map((_, columnIndex) =>
     Math.max(...table.map((row) => row[columnIndex].length)),

@@ -705,7 +705,20 @@ async function main() {
       silentRow("silence", results.silence),
       silentRow("white noise", results.noise),
     ];
-    printTable(rows);
+    printTable(
+      [
+        "case",
+        "tones",
+        "first readout max (ms)",
+        "arrival age max (ms)",
+        "paint age max (ms)",
+        "readings/s min",
+        "cents err max",
+        "shown err max",
+        "status",
+      ],
+      rows,
+    );
     // One extra line per sweep row, under the table — the note each of its
     // worst figures belongs to, so a stray excursion can be attributed
     // rather than lost in the row's aggregate max.

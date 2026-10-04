@@ -26,6 +26,7 @@ import {
   installMicrophoneOverride,
   maxOf,
   minOf,
+  printTable,
 } from "./harness-lib.mjs";
 
 // practice.session/REQ-021, REQ-016 — the budgets this harness gates.
@@ -803,29 +804,6 @@ function cellsOf(row) {
   ];
 }
 
-function printTable(rows) {
-  const header = [
-    "case",
-    "targets",
-    "first readout max (ms)",
-    "arrival age max (ms)",
-    "paint age max (ms)",
-    "readings/s min",
-    "advance lateness max (frames)",
-    "shown lateness max (ms)",
-    "status",
-  ];
-  const table = [header, ...rows];
-  const widths = header.map((_, columnIndex) =>
-    Math.max(...table.map((row) => row[columnIndex].length)),
-  );
-  for (const row of table) {
-    console.log(
-      row.map((cell, index) => cell.padEnd(widths[index])).join("  "),
-    );
-  }
-}
-
 async function main() {
   const devServerChild = await ensureDevServer();
 
@@ -893,7 +871,20 @@ async function main() {
       leadRunRow("lead run C4–C5", results.case1),
       toneCueRow("tone cue fed back", results.case2),
     ];
-    printTable(rows.map(cellsOf));
+    printTable(
+      [
+        "case",
+        "targets",
+        "first readout max (ms)",
+        "arrival age max (ms)",
+        "paint age max (ms)",
+        "readings/s min",
+        "advance lateness max (frames)",
+        "shown lateness max (ms)",
+        "status",
+      ],
+      rows.map((row) => ({ cells: cellsOf(row) })),
+    );
     for (const row of rows) {
       for (const line of row.diagnostics) console.log(line);
     }
