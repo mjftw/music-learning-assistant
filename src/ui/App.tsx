@@ -50,7 +50,7 @@ import { Header } from "./Header";
 import { InstrumentSheet } from "./InstrumentSheet";
 import { keyLabel, keyNameFontSizeOf, noteLabel } from "./key-label";
 import { KeyPanel } from "./KeyPanel";
-import { NamesView } from "./NamesView";
+import { NamesView, targetColumnIndexOf } from "./NamesView";
 import { NoteMeter, type MeterGeometry } from "./NoteMeter";
 import { Notices } from "./Notices";
 import { ScaleRow } from "./ScaleRow";
@@ -515,6 +515,43 @@ export function App(props: {
           cents: snapshot.lead.reading.cents,
           verdict: snapshot.lead.reading.verdict,
         };
+  // practice.session/REQ-017 — the names view shows one octave's worth of
+  // columns regardless of how many the run traverses, so the lead target's
+  // run position is resolved to that view's own column index by pitch
+  // class (`targetColumnIndexOf`, the same match `isSounding` already
+  // makes) rather than reused as-is from the stave's `leadTarget`.
+  const namesLeadTargetColumnIndex =
+    snapshot !== null &&
+    snapshot.lead.phase === "listening" &&
+    snapshot.lead.target !== null
+      ? targetColumnIndexOf(
+          selectedKey,
+          snapshot.scale,
+          snapshot.traversal.direction,
+          {
+            letter: snapshot.lead.target.note.letter,
+            accidental: snapshot.lead.target.note.accidental,
+          },
+        )
+      : null;
+  const namesLeadTarget = useMemo(
+    () =>
+      namesLeadTargetColumnIndex === null
+        ? null
+        : { runIndex: namesLeadTargetColumnIndex },
+    [namesLeadTargetColumnIndex],
+  );
+  const namesMeter =
+    snapshot !== null &&
+    snapshot.lead.phase === "listening" &&
+    snapshot.settings.lead.cueMeter &&
+    selection.view === "names"
+      ? {
+          toleranceCents: meterToleranceCents,
+          heldFraction: meterHeldFraction,
+          reading: meterReading,
+        }
+      : null;
   const soundingPitchClass: PitchClass | null = playing
     ? soundingSequenceNote === undefined
       ? null
@@ -937,6 +974,8 @@ export function App(props: {
                 soundingPitchClass={soundingPitchClass}
                 onTapColumn={handleTapColumn}
                 tapsEnabled={tapsEnabled}
+                leadTarget={namesLeadTarget}
+                meter={namesMeter}
               />
             ) : (
               variant !== undefined && (

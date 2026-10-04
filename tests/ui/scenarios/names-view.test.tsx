@@ -1,5 +1,6 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { afterEach, expect, test } from "vitest";
 import {
   builtInCatalogue,
@@ -251,6 +252,71 @@ test("practice.session/REQ-012/S4 — the descent of a split-direction scale in 
     />,
   );
   expect(readColumns()).toHaveLength(7);
+});
+
+// practice.session/REQ-017 — base props shared by the names-view meter
+// scenarios below: the C major scale, direction ↑↓, degrees on, no sound
+// and no taps, idle of a lead target and a meter.
+type NamesViewProps = ComponentProps<typeof NamesView>;
+
+const baseNamesProps = (): NamesViewProps => ({
+  key_: {
+    tonic: { letter: "C", accidental: "natural" },
+    mode: "major",
+  },
+  scale: scaleById("major"),
+  direction: "updown",
+  degreesEnabled: true,
+  soundingPitchClass: null,
+  onTapColumn: () => {},
+  tapsEnabled: false,
+  leadTarget: null,
+  meter: null,
+});
+
+const renderNames = (extra: Partial<NamesViewProps>) =>
+  render(<NamesView {...baseNamesProps()} {...extra} />);
+
+test("practice.session/REQ-017/S6 — the names view: band inset 6, fill 40 %, line inset 3 at +5 ¢", () => {
+  renderNames({
+    leadTarget: { runIndex: 2 },
+    meter: {
+      toleranceCents: 10,
+      heldFraction: 0.4,
+      reading: { cents: 5, verdict: "in-tune" },
+    },
+  });
+  const columns = screen.getAllByTestId("names-column");
+  const band = within(columns[2]!).getByTestId("note-meter-band");
+  expect(band.style.left).toBe("6px");
+  expect(band.style.right).toBe("6px");
+  expect(band.style.height).toBe("20%");
+  expect(within(columns[2]!).getByTestId("note-meter-fill").style.width).toBe(
+    "40%",
+  );
+  const line = within(columns[2]!).getByTestId("note-meter-line");
+  expect(line.style.left).toBe("3px");
+  expect(line.style.right).toBe("3px");
+  expect(line.style.top).toBe("45%");
+  expect(screen.getAllByTestId("note-meter-band")).toHaveLength(1);
+  expect(columns[2]!.style.background).not.toBe("transparent");
+});
+
+test("practice.session/REQ-017/S1 (names) — silent: the column highlighted, the band, no line", () => {
+  renderNames({
+    leadTarget: { runIndex: 0 },
+    meter: { toleranceCents: 10, heldFraction: 0, reading: null },
+  });
+  const columns = screen.getAllByTestId("names-column");
+  expect(within(columns[0]!).getByTestId("note-meter-band")).toBeTruthy();
+  expect(screen.queryByTestId("note-meter-line")).toBeNull();
+  expect(
+    columns
+      .slice(1)
+      .every(
+        (c) => within(c).getByTestId("column-name").style.opacity === "0.4",
+      ),
+  ).toBe(true);
 });
 
 test("theory.circle-of-fifths/REQ-003/S5 (UI) — a five-note scale shows five columns", () => {
