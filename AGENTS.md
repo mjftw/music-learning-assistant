@@ -188,7 +188,9 @@ Run `check` before calling any task done, and paste the output.
   `tests/<context>/scenarios/` one test per spec scenario named by
   its full ID, `tests/<context>/invariants/` for invariants tested by
   exhaustive enumeration, `tests/ui/scenarios/` for view-observable
-  scenarios.
+  scenarios. Shared fixtures sit beside the tests: `tests/practice/lead-helpers.ts`
+  (lead-run) beside `tuner-helpers.ts`, and `tests/ui/scenarios/lead-app-helpers.tsx`
+  (app-level lead helpers).
 - Commits: Conventional Commits citing the requirement — `feat(auth): rate-limit login (REQ-004)`.
 
 ## Architecture
@@ -198,8 +200,10 @@ Four bounded contexts (docs/domain.md): `src/theory/` (pure functions —
 notes, keys, circle, traversal, pitch, catalogue, scales (the catalogue),
 notation), `src/practice/` (the session: a pure transport state machine, the
 drone, the tuner (target, reading, the never-both invariant extended to
-listening), a lookahead scheduler adapter on the audio clock, ports for sound
-/ clock / wake lock / visibility / listening),
+listening and to the lead run), a lead run (the hold rule as a pure reducer
+over timestamped judgements; the Session owns it beside the transport, the
+drone and the tuner), a lookahead scheduler adapter on the audio clock, ports
+for sound / clock / wake lock / visibility / listening),
 `src/sound/` (Rust→WASM synthesiser in an AudioWorklet plus a ~60-line TS
 host shim in its `published/`; ADR 0003) — voices are addressable by tag
 and a drone voice has no end (ADR 0005), `src/listening/` (pitch
