@@ -1051,6 +1051,7 @@ export function App(props: {
             effectiveOctaves={snapshot.effectiveOctaves}
             fittingCounts={snapshot.fittingCounts}
             settings={snapshot.settings}
+            tempoBpm={snapshot.settings.tempoBpm}
             onTraversal={handleTraversal}
             onSettings={handleSessionSettings}
             onClose={handleCloseTraversalSheet}

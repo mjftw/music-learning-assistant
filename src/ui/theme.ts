@@ -14,6 +14,10 @@ export const paper = {
   hairline: "#e6ddcc",
   hairlineSoft: "#ece4d5",
   pillActive: "#e7dcc6",
+  // The Traversal sheet's unselected pill ink — carried over verbatim from
+  // TraversalSheet.tsx's own PILL_INACTIVE_INK (changes/003, the vendored
+  // reference) and promoted to a token here per C008_T016's brief.
+  pillInk: "#756c60",
   accent: "#8a4b2a",
   trackOff: "#c8bfad",
   scrim: "rgba(28,25,22,.32)",
@@ -83,6 +87,27 @@ export const leadCard = {
   noMicTitleSize: 14,
   noMicBodySize: 12.5,
   noMicLineHeight: 1.45,
+} as const;
+
+// practice.session/REQ-020 — the Traversal sheet's fixed row frame (label,
+// two-line hint box, pills and switches) and the Who-leads row's ✕.
+export const sheetRow = {
+  height: 62,
+  paddingX: 18,
+  labelSize: 13,
+  hintSize: 11,
+  hintLineHeight: 14,
+  hintBoxHeight: 28,
+  pillPadding: "9px 10px 10px",
+  pillRadius: 10,
+  pillSize: 12.5,
+  switchWidth: 36,
+  switchHeight: 20,
+  knob: 14,
+  knobInset: 3,
+  knobOnLeft: 19,
+  closeSize: 28,
+  hairline: paper.borderSoft,
 } as const;
 
 // practice.session/REQ-014 — the mode words beneath the caption, and the
