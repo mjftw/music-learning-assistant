@@ -186,6 +186,9 @@ target in a lead run for any other reason (invariant)
 > precedent): S3's excursion lasts 100 ms, not one reading — with the
 > smoothing of `practice.tuner/REQ-002` a single +17 ¢ reading shows as
 > +6; S9's offset corrected from −655 ¢ to −194 ¢ (C4 +6 ¢ against D4).
+> Amended at converge (decision D001): S4 says the advance comes 350 ms
+> after the note returns to within one reading interval — the first reading
+> back counts nothing. Behaviour unchanged.
 
 **Scenarios**
 - **REQ-016/S1 — held, then the next (acceptance)**
@@ -214,7 +217,9 @@ target in a lead run for any other reason (invariant)
   When nothing is detected for two seconds and then 330.6 Hz (+5 ¢) again
   Then no `NoteJudged` was emitted during the silence, the hold is still
   900 ms when the note returns, and the target advances 350 ms after it
-  does
+  does — to within one reading interval, the first reading back counting
+  nothing: hold time is the elapsed time between consecutive in-tune
+  readings, so the count resumes from that reading, not across the gap
 - **REQ-016/S5 — the tolerance decides the verdict**
   Given a steady 331.92 Hz (+12 ¢) against the target E4
   When the In tune setting is lenient, medium, accurate in turn
@@ -273,6 +278,10 @@ first; and WHEN no detected pitch has been published for 300 ms THE SYSTEM
 SHALL clear the pitch line and show "Play <target>", the hold and the
 fill unchanged
 
+> Amended at converge (decision D002): S4 no longer shows the pinned line
+> beside "C4 held ✓"; the line is the first reading against D4
+> (`REQ-016/S9`), which also clears "held ✓". Behaviour unchanged.
+
 **Scenarios**
 - **REQ-017/S1 — silent on the stave**
   Given the run of `REQ-015/S1`, stave view, nothing detected
@@ -297,11 +306,13 @@ fill unchanged
   · holding" in green
 - **REQ-017/S4 — advanced**
   Given C4 just held and D4 the target, the same note still sounding
-  When the panel and card are read within 0.4 s
+  When the panel and card are read after the advance, before the first
+  reading against D4
   Then C4's notehead is ink and no longer enlarged, D4 is highlighted with
-  its band and the line pinned at the band box's bottom edge in the flat
-  colour, E4 onward faint, and the card reads "D 4", "2 of 15", "C4 held
-  ✓" in green until the first reading against D4
+  its band, no fill and no pitch line yet, E4 onward faint, and the card
+  reads "D 4", "2 of 15", "C4 held ✓" in green; the first reading against
+  D4 then draws the line, pinned at the band box's bottom edge in the flat
+  colour (`REQ-016/S9`), and "C4 held ✓" gives way to "↓ 194 ¢ flat"
 - **REQ-017/S5 — pinned beyond ±50 ¢**
   Given the target C4
   When 523.25 Hz (C5, +1200 ¢) is detected
