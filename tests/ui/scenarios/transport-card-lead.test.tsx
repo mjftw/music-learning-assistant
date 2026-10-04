@@ -278,3 +278,20 @@ test("practice.session/REQ-017/S3 (app, stave) — the meter sits on the target"
   expect(box.style.top).toBe(`${Number(head.getAttribute("cy")) - 20}px`);
   expect(screen.getByTestId("note-meter-fill").style.width).toBe("60%");
 });
+
+test("practice.session/REQ-015/S2 (card) — ■ stops the lead run", async () => {
+  const app = renderLeadApp(storedCMajor({ who: "me" }));
+  await startLeadInApp(app);
+  await app.user.click(screen.getByTestId("stop-circle"));
+  await flushApp();
+  expect(app.listening.stopCalls).toBe(1);
+  expect(screen.queryByTestId("stop-circle")).toBeNull();
+  expect(screen.getByTestId("tuner-glyph")).toBeTruthy();
+  expect(screen.getByTestId("position-caption").textContent).toBe(
+    "hold 2 beats · medium tuning",
+  );
+  await app.user.click(screen.getByTestId("start-circle"));
+  await flushApp();
+  expect(app.listening.startCalls).toBe(2);
+  expect(screen.getByTestId("target-letter").textContent).toBe("C");
+});

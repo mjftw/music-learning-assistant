@@ -569,10 +569,15 @@ export function App(props: {
 
   function handleTogglePlay(): void {
     if (session === null || snapshot === null) return;
-    if (snapshot.transport.kind === "idle") {
-      session.start();
-    } else {
+    // A lead run never touches the transport, so ■ on the live lead card
+    // (shown for the whole `listening` phase, the microphone request
+    // included) is told apart by the lead phase (practice.session/REQ-015).
+    const inProgress =
+      snapshot.transport.kind !== "idle" || snapshot.lead.phase === "listening";
+    if (inProgress) {
       session.stop();
+    } else {
+      session.start();
     }
   }
 
