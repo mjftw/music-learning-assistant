@@ -1,6 +1,6 @@
 # Tasks: 008-learner-leads
 
-Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-learner-leads next` → C008_T016
+Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-learner-leads next` → C008_T017
 
 | Task | Status | Depends on | Requirements | Group | Attempts | Outcome |
 |---|---|---|---|---|---|---|
@@ -19,7 +19,7 @@ Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-lea
 | [C008_T013](C008_T013.md) | done | — | practice.session/REQ-015,practice.session/REQ-017,practice.session/REQ-022 | Phase 3 — The practice screen | 1 | The live lead card, the judgement copy, the complete card, the no-mic card |
 | [C008_T014](C008_T014.md) | done | — | practice.session/REQ-017,practice.session/REQ-018 | Phase 3 — The practice screen | 1 | `NoteMeter` and the stave: the band, the fill, the line on the target notehead; ink behind, faint ahead |
 | [C008_T015](C008_T015.md) | done | C008_T014 | practice.session/REQ-017 | Phase 3 — The practice screen | 1 | The names view: the meter in the target column |
-| [C008_T016](C008_T016.md) | todo | C008_T001 | practice.session/REQ-020,practice.session/REQ-018 | Phase 3 — The practice screen | 0 | The Traversal sheet rebuilt: fixed rows with hints, Who leads with ✕, the three mode rows, the hairline, switches |
+| [C008_T016](C008_T016.md) | done | C008_T001 | practice.session/REQ-020,practice.session/REQ-018 | Phase 3 — The practice screen | 1 | The Traversal sheet rebuilt: fixed rows with hints, Who leads with ✕, the three mode rows, the hairline, switches |
 | [C008_T017](C008_T017.md) | todo | C008_T004,C008_T005,C008_T012,C008_T016 | practice.session/REQ-011 | Phase 3 — The practice screen | 0 | The app restores and stores the lead settings |
 | [C008_T018](C008_T018.md) | todo | — | — | Phase 4 — The harness and hardening | 0 | Extract the microphone-feeding harness helpers into `scripts/harness-lib.mjs` |
 | [C008_T019](C008_T019.md) | todo | C008_T018 | practice.session/REQ-021,practice.session/REQ-018,practice.session/REQ-016 | Phase 4 — The harness and hardening | 0 | `pnpm test:lead` — the measured lead run |
