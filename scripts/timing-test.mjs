@@ -434,7 +434,11 @@ async function measureTempo(browser, bpm, seconds) {
         octaves: { kind: "count", count: 2 },
         shape: "scale",
       });
+      // Merged into the session's own settings: SessionSettings carries the
+      // lead settings too (practice.session/REQ-011, 008) — a hand-built
+      // object without them is not a SessionSettings.
       window.__session.setSettings({
+        ...window.__session.snapshot().settings,
         soundMode: "both",
         loop: true,
         countIn: false,

@@ -2,12 +2,29 @@
 // — driving a lead run through the published Session interface only, never
 // its internals (docs/engineering.md §7).
 
-import type { Session, SessionSettings } from "../../src/practice/published";
-import { defaultSessionSettings } from "../../src/practice/published";
+import type {
+  Session,
+  SessionContext,
+  SessionSettings,
+} from "../../src/practice/published";
+import {
+  createSession,
+  defaultDroneSettings,
+  defaultScaleChoice,
+  defaultSessionSettings,
+} from "../../src/practice/published";
 import { pitchHzOf } from "../../src/theory/published";
-import type { Traversal } from "../../src/theory/published";
+import type { Traversal, Variant, VariantId } from "../../src/theory/published";
 import type { SessionFixture } from "./fakes";
-import { sessionOn } from "./fakes";
+import {
+  FakeClock,
+  FakeListening,
+  FakeSound,
+  FakeVisibility,
+  FakeWakeLock,
+  keyOf,
+  sessionOn,
+} from "./fakes";
 
 export const oneOctaveUpdown: Traversal = {
   direction: "updown",
@@ -87,4 +104,49 @@ export function holdThrough(
     t += 1700;
   }
   return t;
+}
+
+// An empty run, shared by practice.session/REQ-015/S8 and the edge-case row
+// "a key with no notes in range" — no key/scale/variant combination in the
+// built-in catalogue (flute Concert C4–C7, ocarina Alto C A4–F6, ocarina
+// Bass C A3–F5 — every one spans at least two octaves) actually leaves a
+// key with zero notes in range: an exhaustive search over the twelve
+// majors, every scale and every variant (the brief's one-off loop, run and
+// deleted — see the T005 implementation report) never found an empty run.
+// This synthetic variant's range is a single pitch outside the key's scale,
+// which reliably reproduces "no notes of this key in range" without
+// touching the real catalogue.
+const noNotesVariant: Variant = {
+  instrumentId: "test",
+  instrumentName: "Test",
+  // Test-only id, never a real catalogue entry — a cast is needed since
+  // VariantId is a branded string (docs/engineering.md §3).
+  variantId: "test-no-notes" as VariantId,
+  variantName: "No notes",
+  range: {
+    lowest: { letter: "C", accidental: "sharp", octave: 4 },
+    highest: { letter: "C", accidental: "sharp", octave: 4 },
+  },
+};
+
+export function sessionWithEmptyRun(settings: SessionSettings): SessionFixture {
+  const sound = new FakeSound();
+  const clock = new FakeClock(sound);
+  const wake = new FakeWakeLock();
+  const visibility = new FakeVisibility();
+  const listening = new FakeListening();
+  const context: SessionContext = {
+    key: keyOf("C"),
+    variant: noNotesVariant,
+    spelling: "sharp",
+  };
+  const session = createSession(
+    context,
+    { direction: "up", octaves: { kind: "count", count: 4 }, shape: "scale" },
+    defaultScaleChoice,
+    settings,
+    defaultDroneSettings,
+    { sound, clock, wakeLock: wake, visibility, listening },
+  );
+  return { session, sound, clock, wake, visibility, listening, context };
 }

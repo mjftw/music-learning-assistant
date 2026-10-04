@@ -1,30 +1,17 @@
 import { expect, test } from "vitest";
 import {
-  createSession,
-  defaultDroneSettings,
   defaultScaleChoice,
-  type SessionContext,
   type TargetAdvanced,
 } from "../../../src/practice/published";
-import type { Variant, VariantId } from "../../../src/theory/published";
 import {
   holdThrough,
   leadFixture,
   leadSettings,
   oneOctaveUpdown,
+  sessionWithEmptyRun,
   startLead,
 } from "../lead-helpers";
-import {
-  FakeClock,
-  FakeListening,
-  FakeSound,
-  FakeVisibility,
-  FakeWakeLock,
-  isStop,
-  keyOf,
-  startDroneAndFlush,
-  type SessionFixture,
-} from "../fakes";
+import { isStop, keyOf, startDroneAndFlush } from "../fakes";
 import { enter } from "../tuner-helpers";
 
 test("practice.session/REQ-015/S1 — the run starts on the first note", async () => {
@@ -72,50 +59,6 @@ test("practice.session/REQ-015/S2 — stop", async () => {
   expect(f.session.snapshot().lead.target?.position).toBe(1);
   expect(f.session.snapshot().lead.heldFraction).toBe(0);
 });
-
-// practice.session/REQ-015/S8 — no key/scale/variant combination in the
-// built-in catalogue (flute Concert C4–C7, ocarina Alto C A4–F6, ocarina
-// Bass C A3–F5 — every one spans at least two octaves) actually leaves a
-// key with zero notes in range: an exhaustive search over the twelve
-// majors, every scale and every variant (the brief's one-off loop, run and
-// deleted — see the T005 implementation report) never found an empty run.
-// This synthetic variant's range is a single pitch outside the key's scale,
-// which reliably reproduces "no notes of this key in range" without
-// touching the real catalogue.
-const noNotesVariant: Variant = {
-  instrumentId: "test",
-  instrumentName: "Test",
-  // Test-only id, never a real catalogue entry — a cast is needed since
-  // VariantId is a branded string (docs/engineering.md §3).
-  variantId: "test-no-notes" as VariantId,
-  variantName: "No notes",
-  range: {
-    lowest: { letter: "C", accidental: "sharp", octave: 4 },
-    highest: { letter: "C", accidental: "sharp", octave: 4 },
-  },
-};
-
-function sessionWithEmptyRun(): SessionFixture {
-  const sound = new FakeSound();
-  const clock = new FakeClock(sound);
-  const wake = new FakeWakeLock();
-  const visibility = new FakeVisibility();
-  const listening = new FakeListening();
-  const context: SessionContext = {
-    key: keyOf("C"),
-    variant: noNotesVariant,
-    spelling: "sharp",
-  };
-  const session = createSession(
-    context,
-    { direction: "up", octaves: { kind: "count", count: 4 }, shape: "scale" },
-    defaultScaleChoice,
-    leadSettings(),
-    defaultDroneSettings,
-    { sound, clock, wakeLock: wake, visibility, listening },
-  );
-  return { session, sound, clock, wake, visibility, listening, context };
-}
 
 test("practice.session/REQ-015/S3 — the last note held, loop off", async () => {
   const f = leadFixture({ ...leadSettings(), loop: false });
@@ -182,7 +125,7 @@ test("practice.session/REQ-015 — a key, traversal or scale change from complet
 });
 
 test("practice.session/REQ-015/S8 — no notes, no run", async () => {
-  const f = sessionWithEmptyRun();
+  const f = sessionWithEmptyRun(leadSettings());
   expect(f.session.snapshot().run).toHaveLength(0);
   await startLead(f.session);
   expect(f.listening.startCalls).toBe(0);
