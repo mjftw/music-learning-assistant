@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { builtInCatalogue } from "../../../src/theory/published";
 import { App } from "../../../src/ui/App";
@@ -84,4 +84,26 @@ export function hearSteadyInApp(
 
 export function silenceInApp(app: LeadApp, ms: number): void {
   act(() => app.clock.advance(ms));
+}
+
+/** Opens the Traversal sheet (REQ-020). */
+export async function openSheet(app: LeadApp): Promise<void> {
+  await app.user.click(screen.getByRole("button", { name: "Edit traversal" }));
+}
+
+/** A sheet row by its `data-row` (REQ-020). */
+export function row(name: string): HTMLElement {
+  return screen
+    .getAllByTestId("sheet-row")
+    .find((r) => r.dataset.row === name)!;
+}
+
+/** A pill labelled `label` within row `name` (REQ-020). */
+export function pill(name: string, label: string): HTMLElement {
+  return within(row(name)).getByText(label);
+}
+
+/** Whether the pill labelled `label` in row `name` is the selected one (REQ-020). */
+export function pillSelected(name: string, label: string): boolean {
+  return pill(name, label).style.background === "rgb(231, 220, 198)";
 }

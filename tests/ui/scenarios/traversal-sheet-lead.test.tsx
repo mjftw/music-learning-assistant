@@ -3,10 +3,13 @@ import { afterEach, expect, test } from "vitest";
 import { cleanup } from "@testing-library/react";
 import type { StoredSelection } from "../../../src/ui/selection-store";
 import {
+  openSheet,
+  pill,
+  pillSelected,
   renderLeadApp,
+  row,
   storedCMajor,
   STORAGE_KEY,
-  type LeadApp,
 } from "./lead-app-helpers";
 
 function storedSelection(): StoredSelection {
@@ -18,30 +21,12 @@ afterEach(() => {
   localStorage.clear();
 });
 
-async function openSheet(app: LeadApp): Promise<void> {
-  await app.user.click(screen.getByRole("button", { name: "Edit traversal" }));
-}
-
 function rows(): (string | undefined)[] {
   return screen.getAllByTestId("sheet-row").map((r) => r.dataset.row);
 }
 
-function row(name: string): HTMLElement {
-  return screen
-    .getAllByTestId("sheet-row")
-    .find((r) => r.dataset.row === name)!;
-}
-
 function hintOf(name: string): string | null {
   return within(row(name)).getByTestId("row-hint").textContent;
-}
-
-function pill(name: string, label: string): HTMLElement {
-  return within(row(name)).getByText(label);
-}
-
-function pillSelected(name: string, label: string): boolean {
-  return pill(name, label).style.background === "rgb(231, 220, 198)";
 }
 
 test("practice.session/REQ-020/S1 — play along's rows", async () => {
