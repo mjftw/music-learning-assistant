@@ -411,9 +411,10 @@ function buildStave(
 // variant via `traversalOf` before passing `notes` down.
 // A fixer finding (REQ-017): the stave must not re-render per reading (the
 // plan's constraint) — `App` re-renders on every reading (the live card),
-// and `leadTarget` is now memoized on the run index alone, but `React.memo`
-// here is the belt as well as the braces, since every other prop (`notes`,
-// `variant`, `onTapNote`, `onTargetBox`) is already stable across a reading.
+// so every prop passed down must keep its reference across one (`leadTarget`
+// memoized on the run index, `key_` memoized in `App` on the selection's
+// primitive fields, `notes`/`variant`/`onTapNote`/`onTargetBox` stable by
+// construction); `React.memo` here is the belt as well as the braces.
 export const StaveView = memo(function StaveView(props: {
   readonly key_: Key;
   readonly variant: Variant;

@@ -303,14 +303,22 @@ export function App(props: {
   // leaveTuner() through a render decision.
   const [screen, setScreen] = useState<"practice" | "tuner">("practice");
 
-  const position = circleOfFifths()[selection.positionIndex];
-  if (position === undefined) {
-    throw new Error("unreachable: selection position index out of range");
-  }
-  const selectedKey =
-    selection.mode === "major"
+  // practice.session/REQ-017 — memoized on the primitive selection fields,
+  // not recomputed every render: `circleOfFifths()` rebuilds its whole
+  // position/Key tree on every call, so without this `selectedKey` (passed
+  // to `StaveView` as `key_`) would be a fresh object identity on every
+  // `App` render — every reading while a lead run is in progress — and
+  // `React.memo` would re-render the stave regardless of `leadTarget`'s own
+  // memoization (a fixer finding, round 2).
+  const selectedKey = useMemo(() => {
+    const position = circleOfFifths()[selection.positionIndex];
+    if (position === undefined) {
+      throw new Error("unreachable: selection position index out of range");
+    }
+    return selection.mode === "major"
       ? spelledMajorAt(position, selection.spelling)
       : spelledMinorAt(position, selection.spelling);
+  }, [selection.positionIndex, selection.mode, selection.spelling]);
 
   // initialSelection already resolved variantId to a value that exists in
   // this catalogue (falling back to the default when it didn't), so this
