@@ -20,21 +20,18 @@
 // (against dev:phone's HTTPS server: APP_URL=https://localhost:5173 pnpm test:tuner)
 
 import { chromium } from "playwright";
-import { spawn } from "node:child_process";
-import net from "node:net";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, "..");
-// `pnpm dev` is plain HTTP on localhost (a secure context already). If a
-// `pnpm dev:phone` (HTTPS) server holds the port instead, run with
-// APP_URL=https://localhost:5173 — the contexts ignore its self-signed cert.
-const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
-const DEV_SERVER_POLL_INTERVAL_MS = 500;
-// `predev` compiles both crates to WebAssembly via cargo, which can take a
-// while on a cold build — same headroom timing-test.mjs gives it.
-const DEV_SERVER_TIMEOUT_MS = 120_000;
+import {
+  APP_URL,
+  positionsE2ToC7,
+  noteLabelOfPosition,
+  ensureDevServer,
+  stopDevServer,
+  installMicrophoneOverride,
+  maxOf,
+  minOf,
+  paintAgeMaxOf,
+  printTable,
+} from "./harness-lib.mjs";
 
 // practice.tuner/REQ-006, listening.pitch-detection/REQ-004 — the budgets
 // this harness gates.
@@ -53,10 +50,9 @@ const SHOWN_CENTS_ERROR_MAX_CENTS = 2;
 const HANDOVER_CENTS = 56;
 
 // The sweep — every semitone E2 (theory's pitchPosition 40) to C7
-// (position 96), one row for a sine, one for a flute-like tone (six
-// falling-amplitude harmonics, the plan's Data model).
-const TUNER_LOWEST_POSITION = 40;
-const TUNER_HIGHEST_POSITION = 96;
+// (position 96, harness-lib's positionsE2ToC7), one row for a sine, one
+// for a flute-like tone (six falling-amplitude harmonics, the plan's Data
+// model).
 const REFERENCE_A4_HZ = 440;
 const REFERENCE_A4_POSITION = 69;
 const TONE_SECONDS = 1.0;
@@ -79,123 +75,9 @@ const HANDOVER_END_HZ = 470; // ~A♯4, ramped through the 56 ¢ crossing
 const SILENCE_SECONDS = 2;
 const NOISE_SECONDS = 2;
 
-function positionsE2ToC7() {
-  const positions = [];
-  for (
-    let position = TUNER_LOWEST_POSITION;
-    position <= TUNER_HIGHEST_POSITION;
-    position += 1
-  ) {
-    positions.push(position);
-  }
-  return positions;
-}
-
-// theory/domain/notes.ts's noteAtPosition + labels.ts's noteLabel, sharp
-// spelling only, duplicated here — this script is plain Node ESM with no
-// TS/bundler step (as trueHzOfPosition, below, already duplicates
-// temperament's formula) — and used both in-page, to identify a mutation as
-// this tone's own reading (armReadoutTracking), and here, to attribute a
-// sweep's worst tone in the printed table. The fresh browser context this
-// harness launches has no stored selection, so the app's default spelling
-// (firstRunDefaults, selection-store.ts) applies throughout.
-const SHARP_PITCH_CLASS_LABELS = [
-  "C",
-  "C♯",
-  "D",
-  "D♯",
-  "E",
-  "F",
-  "F♯",
-  "G",
-  "G♯",
-  "A",
-  "A♯",
-  "B",
-];
-
-function noteLabelOfPosition(position) {
-  const pitchClass = ((position % 12) + 12) % 12;
-  const octave = Math.floor(position / 12) - 1;
-  return `${SHARP_PITCH_CLASS_LABELS[pitchClass]}${octave}`;
-}
-
-// A TCP probe, not a fetch: Node's fetch rejects the dev server's
-// self-signed certificate, which would read as "down" (timing-test.mjs).
-function isDevServerUp() {
-  const { port, hostname } = new URL(APP_URL);
-  return new Promise((resolve) => {
-    const socket = net.connect({ port: Number(port), host: hostname });
-    socket.once("connect", () => {
-      socket.destroy();
-      resolve(true);
-    });
-    socket.once("error", () => resolve(false));
-  });
-}
-
-async function waitForDevServer(deadline) {
-  while (Date.now() < deadline) {
-    if (await isDevServerUp()) return;
-    await new Promise((resolve) =>
-      setTimeout(resolve, DEV_SERVER_POLL_INTERVAL_MS),
-    );
-  }
-  throw new Error(
-    `dev server did not respond at ${APP_URL} within the timeout`,
-  );
-}
-
-// `pnpm dev`'s `predev` builds both crates to WebAssembly via cargo, which
-// is only on PATH once `~/.cargo/env` is sourced.
-async function ensureDevServer() {
-  if (await isDevServerUp()) return null;
-  const child = spawn("bash", ["-c", "source ~/.cargo/env && pnpm dev"], {
-    cwd: REPO_ROOT,
-    detached: true,
-    stdio: "ignore",
-  });
-  await waitForDevServer(Date.now() + DEV_SERVER_TIMEOUT_MS);
-  return child;
-}
-
-function stopDevServer(child) {
-  if (child === null || child.pid === undefined) return;
-  try {
-    process.kill(-child.pid, "SIGTERM");
-  } catch {
-    // Already gone — nothing to clean up.
-  }
-}
-
-// Runs in the page, before any of the app's own scripts (`page.addInitScript`)
-// — replaces `getUserMedia` with a function that hands back the *output* of
-// a `MediaStreamAudioDestinationNode` on the app's own AudioContext, so the
-// harness can feed known tones in as if they were the microphone. The
-// tuner creates its AudioContext lazily, inside `listening.start()`, before
-// this ever runs (webAudioListening's own `start()` calls `createContext()`
-// then `create(audioContext)`, and `create` — `createListener` — awaits
-// `getUserMedia` only after the worklet module has already been added on
-// that context) — so `window.__listening.context()` is non-null by the
-// time this function is called; if it were not, that is a harness fault,
-// not a silent no-op.
-function installMicrophoneOverride() {
-  navigator.mediaDevices.getUserMedia = async () => {
-    const listening = window.__listening;
-    if (listening === undefined) {
-      throw new Error("window.__listening not exposed — is this a dev build?");
-    }
-    const context = listening.context();
-    if (context === null) {
-      throw new Error(
-        "window.__listening.context() is null — the tuner has not created its AudioContext yet",
-      );
-    }
-    const destination = context.createMediaStreamDestination();
-    window.__micDestination = destination;
-    return destination.stream;
-  };
-}
+// positionsE2ToC7, noteLabelOfPosition, isDevServerUp, waitForDevServer,
+// ensureDevServer, stopDevServer and installMicrophoneOverride moved to
+// harness-lib.mjs (C008_T018) — imported above.
 
 // Everything below runs inside the page via a single `page.evaluate` call —
 // every timestamp (onset, mutation, PitchDetected, NoteJudged, paint) stays
@@ -607,20 +489,8 @@ function measureInPage(params) {
   }))();
 }
 
-function maxOf(values) {
-  if (values.some((value) => value === null)) return Number.POSITIVE_INFINITY;
-  return Math.max(...values);
-}
-
-function minOf(values) {
-  if (values.some((value) => value === null)) return Number.NEGATIVE_INFINITY;
-  return Math.min(...values);
-}
-
-function paintAgeMaxOf(values) {
-  const present = values.filter((value) => value !== null);
-  return present.length > 0 ? Math.max(...present) : null;
-}
+// maxOf, minOf, paintAgeMaxOf and printTable moved to harness-lib.mjs
+// (C008_T018) — imported above.
 
 // The tone whose `selector(tone)` is largest — null sorts as worse than any
 // number (it means no matching reading ever arrived for that tone at all).
@@ -757,29 +627,6 @@ function silentRow(label, result) {
     ],
     passed,
   };
-}
-
-function printTable(rows) {
-  const header = [
-    "case",
-    "tones",
-    "first readout max (ms)",
-    "arrival age max (ms)",
-    "paint age max (ms)",
-    "readings/s min",
-    "cents err max",
-    "shown err max",
-    "status",
-  ];
-  const table = [header, ...rows.map((row) => row.cells)];
-  const widths = header.map((_, columnIndex) =>
-    Math.max(...table.map((row) => row[columnIndex].length)),
-  );
-  for (const row of table) {
-    console.log(
-      row.map((cell, index) => cell.padEnd(widths[index])).join("  "),
-    );
-  }
 }
 
 async function main() {
