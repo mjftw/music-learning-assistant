@@ -26,4 +26,4 @@ Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-lea
 | [C008_T020](C008_T020.md) | done | — | — | Phase 4 — The harness and hardening | 1 | `design-shots` points at the eleven states; `design_snapshot.py live` reaches them |
 | [C008_T021](C008_T021.md) | todo | — | — | Phase 4 — The harness and hardening | 0 | Hardening: every edge-case row, the three measured budgets, the hygiene scripts |
 | [C008_T022](C008_T022.md) | todo | — | — | Phase 4 — The harness and hardening | 0 | `AGENTS.md` is real; converge |
-| [C008_T023](C008_T023.md) | todo | C008_T020 | practice.session/REQ-014,practice.session/REQ-022,practice.session/REQ-017 | Appended | 0 | First screenshot pass: the Tuner glyph drawn as designed, the no-mic title beside the circle, no stale line across a new target |
+| [C008_T023](C008_T023.md) | done | C008_T020 | practice.session/REQ-014,practice.session/REQ-022,practice.session/REQ-017 | Appended | 1 | First screenshot pass: the Tuner glyph drawn as designed, the no-mic title beside the circle, no stale line across a new target |
