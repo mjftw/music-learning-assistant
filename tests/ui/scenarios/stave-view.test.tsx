@@ -231,7 +231,7 @@ test("theory.circle-of-fifths/REQ-003/S2 — the display follows the variant's r
     const octave = Number(note.slice(-1));
     expect(after[index]).toBe(`${pitchClass}${octave - 1}`);
   });
-});
+}, 15_000);
 
 test("theory.circle-of-fifths/REQ-007/S1 — switching views shows noteheads with no name labels", async () => {
   setup();

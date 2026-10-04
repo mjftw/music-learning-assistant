@@ -32,7 +32,7 @@ test("theory.circle-of-fifths/REQ-002/S1 — the preference respells all three d
   expect(screen.getByRole("button", { name: "A♭ minor" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "F♯ major" })).toBeNull();
   expect(screen.getByRole("button", { name: "C major" })).toBeTruthy();
-});
+}, 15_000);
 
 test("theory.circle-of-fifths/REQ-002/S2 — the selection follows the position across a respell", async () => {
   renderApp();

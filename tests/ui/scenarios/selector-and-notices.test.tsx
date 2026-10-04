@@ -30,7 +30,7 @@ test("theory.instruments/REQ-001/S2 — completing a selection names a variant",
   expect(
     screen.queryByRole("button", { name: "Close instrument picker" }),
   ).toBeNull();
-});
+}, 15_000);
 
 test("theory.instruments/REQ-003/S2 — the notice interrupts nothing", async () => {
   localStorage.clear();

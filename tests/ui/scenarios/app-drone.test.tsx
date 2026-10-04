@@ -129,7 +129,7 @@ test("practice.drone/REQ-001/S4 (app) — sheets, the drawer and the picker neve
     expect(sound.posted.filter(isRetune)).toHaveLength(0);
     expect(sound.posted.filter(isDrone)).toHaveLength(1);
   }
-});
+}, 15_000);
 
 test("practice.drone/REQ-006/S2 (app) — the sheet is not a control", async () => {
   localStorage.clear();

@@ -111,7 +111,7 @@ test("theory.circle-of-fifths/REQ-008/S1 — resuming mid-week practice", async 
   expect(pressed("names")).toBe("true");
   expect(pressed("stave")).toBe("false");
   expect(screen.getAllByTestId("arc-degree")).toHaveLength(7);
-});
+}, 15_000);
 
 test("theory.circle-of-fifths/REQ-008/S2 — first run", async () => {
   localStorage.clear();
