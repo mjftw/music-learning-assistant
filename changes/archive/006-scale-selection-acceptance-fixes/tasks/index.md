@@ -1,6 +1,6 @@
 # Tasks: 006-scale-selection-acceptance-fixes
 
-Generated from each task's frontmatter. Next: `./scripts/task.sh changes/archive/006-scale-selection-acceptance-fixes next` → none
+Generated from each task's frontmatter. Next: `./scripts/task.py changes/archive/006-scale-selection-acceptance-fixes next` → none
 
 | Task | Status | Depends on | Requirements | Group | Attempts | Outcome |
 |---|---|---|---|---|---|---|

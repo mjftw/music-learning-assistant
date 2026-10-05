@@ -27,6 +27,15 @@ import {
   sessionDepsWithFakes,
   variantOf,
 } from "../../practice/fakes";
+import {
+  flushApp,
+  openSheet,
+  pill,
+  pillSelected,
+  renderLeadApp,
+  startLeadInApp,
+  storedCMajor,
+} from "./lead-app-helpers";
 
 afterEach(() => {
   cleanup();
@@ -58,7 +67,7 @@ test("practice.session/REQ-011/S2 (app) — first run shows the S2 defaults in t
 // recorded, so restoring it exercises the v3→v4 migration path (REQ-011/S4),
 // not S1 (which is about restoring a stored scale choice — see the new S1
 // test below).
-test("practice.session/REQ-011/S4 (app) — a stored v3 payload is restored exactly, idle", () => {
+test("practice.session/REQ-011/S4 (app) — a stored v3 payload is restored exactly, idle", async () => {
   localStorage.clear();
   localStorage.setItem(
     STORAGE_KEY,
@@ -94,6 +103,19 @@ test("practice.session/REQ-011/S4 (app) — a stored v3 payload is restored exac
   expect(screen.getByText("↓ · 2 oct · click only · once")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Allegro" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Play" })).toBeTruthy();
+  // practice.session/REQ-011/S4 — a v3 payload records no lead settings, so
+  // they take the S2 defaults: play along, Hold 2, medium, meter on, tone
+  // off.
+  expect(screen.getByTestId("mode-word-tool").style.color).toBe(
+    "rgb(28, 25, 22)",
+  );
+  const user = userEvent.setup();
+  await user.click(screen.getByTestId("mode-word-me"));
+  await user.click(screen.getByRole("button", { name: "Edit traversal" }));
+  expect(pillSelected("hold", "2")).toBe(true);
+  expect(pillSelected("in-tune", "medium")).toBe(true);
+  expect(pillSelected("cues", "meter")).toBe(true);
+  expect(pillSelected("cues", "tone")).toBe(false);
 });
 
 test("practice.session/REQ-012/S1 (app) — choosing a scale changes the heading, the formula row and the names view", async () => {
@@ -156,6 +178,142 @@ test("practice.session/REQ-011/S1 (app) — Dorian on the minor ring is restored
   expect(screen.getByRole("button", { name: "Allegro" })).toBeTruthy();
 });
 
+test("practice.session/REQ-011/S1 — back where it was, in I lead", async () => {
+  const app = renderLeadApp(
+    storedCMajor(
+      {
+        who: "me",
+        holdBeats: 4,
+        tolerance: "accurate",
+        cueMeter: false,
+        cueTone: true,
+      },
+      {
+        keyId: "E-naturalMinor",
+        traversal: { direction: "down", octaves: 2, shape: "arpeggio" },
+        scale: { major: "major", minor: "dorian" },
+        session: {
+          ...storedCMajor().session,
+          soundMode: "metronome",
+          loop: false,
+          countIn: false,
+          restBar: true,
+          tempoBpm: 132,
+        },
+      },
+    ),
+  );
+  expect(screen.getByRole("button", { name: "Allegro" })).toBeTruthy();
+  expect(screen.getByTestId("position-caption").textContent).toBe(
+    "hold 4 beats · accurate tuning",
+  );
+  expect(screen.getByTestId("mode-word-me").style.color).toBe(
+    "rgb(28, 25, 22)",
+  );
+  expect(screen.getByTestId("tuner-glyph")).toBeTruthy();
+  expect(app.listening.startCalls).toBe(0);
+  await openSheet(app);
+  expect(pillSelected("hold", "4")).toBe(true);
+  expect(pillSelected("in-tune", "accurate")).toBe(true);
+  expect(pillSelected("cues", "tone")).toBe(true);
+  expect(pillSelected("cues", "meter")).toBe(false);
+});
+
+test("practice.session/REQ-011/S2 — first run: play along, the lead defaults behind the sheet", async () => {
+  localStorage.clear();
+  const fakes = sessionDepsWithFakes();
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={fakes.sessionDeps}
+    />,
+  );
+  const user = userEvent.setup();
+  expect(screen.getByTestId("mode-word-tool").style.color).toBe(
+    "rgb(28, 25, 22)",
+  );
+  expect(screen.getByTestId("start-circle").textContent).toContain("▶");
+  await user.click(screen.getByTestId("mode-word-me"));
+  expect(screen.getByTestId("position-caption").textContent).toBe(
+    "hold 2 beats · medium tuning",
+  );
+  await user.click(screen.getByText("edit ›"));
+  expect(pillSelected("hold", "2")).toBe(true);
+  expect(pillSelected("in-tune", "medium")).toBe(true);
+  expect(pillSelected("cues", "meter")).toBe(true);
+});
+
+// practice.session/REQ-011/S5 — a stored v5 payload (predates lead
+// settings): the same shape `selection-store.test.ts`'s own `v5Document`
+// fixture carries (flute Concert, G major, ↓ 2 oct arpeggio, metronome,
+// loop off, count-in off, rest bar on, 132 bpm, Dorian on the minor ring,
+// drone octave 5 warm) — inlined here rather than imported across test
+// files.
+test("practice.session/REQ-011/S5 — stored state from 007", async () => {
+  localStorage.clear();
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      schemaVersion: 5,
+      variantId: "flute-concert",
+      keyId: "G-major",
+      spelling: "sharp",
+      view: "names",
+      degreesEnabled: true,
+      distanceRingEnabled: true,
+      staveNamesEnabled: false,
+      traversal: { direction: "down", octaves: 2, shape: "arpeggio" },
+      session: {
+        soundMode: "metronome",
+        loop: false,
+        countIn: false,
+        restBar: true,
+        tempoBpm: 132,
+      },
+      scale: { major: "major", minor: "dorian" },
+      drone: { octave: 5, sound: "warm" },
+    }),
+  );
+  const fakes = sessionDepsWithFakes();
+  render(
+    <App
+      catalogue={builtInCatalogue()}
+      selectionStore={localStorageSelectionStore(localStorage)}
+      sessionDeps={fakes.sessionDeps}
+    />,
+  );
+  expect(screen.getByText("132")).toBeTruthy();
+  expect(screen.getByTestId("mode-word-tool").style.color).toBe(
+    "rgb(28, 25, 22)",
+  );
+  await userEvent.setup().click(screen.getByTestId("mode-word-me"));
+  expect(screen.getByTestId("position-caption").textContent).toBe(
+    "hold 2 beats · medium tuning",
+  );
+});
+
+test("practice.session/REQ-011 — a mode or hold change is stored", async () => {
+  const app = renderLeadApp();
+  await app.user.click(screen.getByTestId("mode-word-me"));
+  expect(
+    (JSON.parse(localStorage.getItem(STORAGE_KEY)!) as StoredSelection).session
+      .lead.who,
+  ).toBe("me");
+  await openSheet(app);
+  await app.user.click(pill("hold", "4"));
+  expect(
+    (JSON.parse(localStorage.getItem(STORAGE_KEY)!) as StoredSelection).session
+      .lead,
+  ).toEqual({
+    who: "me",
+    holdBeats: 4,
+    tolerance: "medium",
+    cueMeter: true,
+    cueTone: false,
+  });
+});
+
 test("practice.session/REQ-011/S2 (app) — first run: plain key, no scale suffix", () => {
   localStorage.clear();
   render(
@@ -171,7 +329,7 @@ test("practice.session/REQ-011/S2 (app) — first run: plain key, no scale suffi
   );
 });
 
-test("practice.session/REQ-011/S4 (app) — a v3 payload keeps its settings and takes the default scales", () => {
+test("practice.session/REQ-011/S4 (app) — a v3 payload keeps its settings and takes the default scales", async () => {
   localStorage.clear();
   localStorage.setItem(
     STORAGE_KEY,
@@ -204,9 +362,23 @@ test("practice.session/REQ-011/S4 (app) — a v3 payload keeps its settings and 
   expect(screen.getByTestId("current-key").textContent).toBe("G major");
   expect(screen.getByText("↑ · 2 oct · scale · loop")).toBeTruthy();
   expect(screen.getByText("120")).toBeTruthy();
+  // practice.session/REQ-011/S4 — no lead settings recorded either: the S2
+  // defaults again.
+  expect(screen.getByTestId("mode-word-tool").style.color).toBe(
+    "rgb(28, 25, 22)",
+  );
+  {
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("mode-word-me"));
+    await user.click(screen.getByRole("button", { name: "Edit traversal" }));
+  }
+  expect(pillSelected("hold", "2")).toBe(true);
+  expect(pillSelected("in-tune", "medium")).toBe(true);
+  expect(pillSelected("cues", "meter")).toBe(true);
+  expect(pillSelected("cues", "tone")).toBe(false);
 });
 
-test("practice.session/REQ-011/S3 (app) — a stored v2 payload keeps the selection and takes the S2 defaults for the rest", () => {
+test("practice.session/REQ-011/S3 (app) — a stored v2 payload keeps the selection and takes the S2 defaults for the rest", async () => {
   localStorage.clear();
   localStorage.setItem(
     STORAGE_KEY,
@@ -250,6 +422,20 @@ test("practice.session/REQ-011/S3 (app) — a stored v2 payload keeps the select
   expect(screen.getByText(expectedSummary)).toBeTruthy();
   expect(screen.getByText("96")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Andante" })).toBeTruthy();
+  // practice.session/REQ-011/S3 — a v2 payload carries no lead settings
+  // either: the S2 defaults.
+  expect(screen.getByTestId("mode-word-tool").style.color).toBe(
+    "rgb(28, 25, 22)",
+  );
+  {
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("mode-word-me"));
+    await user.click(screen.getByRole("button", { name: "Edit traversal" }));
+  }
+  expect(pillSelected("hold", "2")).toBe(true);
+  expect(pillSelected("in-tune", "medium")).toBe(true);
+  expect(pillSelected("cues", "meter")).toBe(true);
+  expect(pillSelected("cues", "tone")).toBe(false);
 });
 
 test("practice.session/REQ-010/S1 (UI) — a notice appears, nothing modal opens, and the run still walks silently", async () => {
@@ -529,4 +715,25 @@ test("practice.session/REQ-012/S4 (app) — the descent group follows the sessio
     "C♯",
     "D♯",
   ]);
+});
+
+// practice.session/REQ-021's measured lead budget (pnpm test:lead,
+// C008_T019) reads a lead reading's paint age off onPaintAge the same way
+// practice.tuner/REQ-006's harness does for the tuner's own reading
+// (tuner-screen.test.tsx) — this proves App forwards it for a lead run too,
+// mirroring that test's own shape exactly (bump the fake's frame after the
+// reading commits but before the deferred layout effect flushes, so the
+// reported age is the gap between them, not zero).
+test("practice.session/REQ-021 — every painted lead reading is reported with its age", async () => {
+  const ages: number[] = [];
+  const app = renderLeadApp(storedCMajor(), {
+    onPaintAge: (ms) => ages.push(ms),
+  });
+  await startLeadInApp(app);
+  app.listening.frame = 0;
+  app.listening.feed(262.5, 0);
+  app.clock.advance(1);
+  app.listening.frame = 480;
+  await flushApp();
+  expect(ages.at(-1)).toBe(10);
 });

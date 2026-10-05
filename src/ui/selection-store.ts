@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Direction, ScaleId, Shape } from "../theory/published";
-import { defaultScaleChoice } from "../practice/published";
-import type { SoundMode } from "../practice/published";
+import { defaultLeadSettings, defaultScaleChoice } from "../practice/published";
+import type { LeadSettings, SoundMode } from "../practice/published";
 import {
   droneSoundSchema,
   type DroneSound,
@@ -10,7 +10,7 @@ import {
 export type StoredOctaves = "full" | 1 | 2 | 3 | 4;
 
 export interface StoredSelection {
-  readonly schemaVersion: 5;
+  readonly schemaVersion: 6;
   readonly variantId: string;
   readonly keyId: string;
   readonly spelling: "sharp" | "flat";
@@ -29,6 +29,7 @@ export interface StoredSelection {
     readonly countIn: boolean;
     readonly restBar: boolean;
     readonly tempoBpm: number;
+    readonly lead: LeadSettings;
   };
   readonly scale: { readonly major: ScaleId; readonly minor: ScaleId };
   readonly drone: {
@@ -38,7 +39,7 @@ export interface StoredSelection {
 }
 
 export const firstRunDefaults: Omit<StoredSelection, "variantId" | "keyId"> = {
-  schemaVersion: 5,
+  schemaVersion: 6,
   spelling: "sharp",
   view: "names",
   degreesEnabled: true,
@@ -51,6 +52,7 @@ export const firstRunDefaults: Omit<StoredSelection, "variantId" | "keyId"> = {
     countIn: true,
     restBar: false,
     tempoBpm: 96,
+    lead: defaultLeadSettings,
   },
   scale: defaultScaleChoice,
   drone: { octave: null, sound: "warm" },
@@ -99,6 +101,16 @@ const scaleIdSchema = z.enum([
   "chromatic",
 ]);
 
+// Named so the v6 schema (below) can `.extend()` it with `lead` rather than
+// repeat its five fields.
+const storedSessionSchema = z.object({
+  soundMode: soundModeSchema,
+  loop: z.boolean(),
+  countIn: z.boolean(),
+  restBar: z.boolean(),
+  tempoBpm: z.number().int().min(40).max(200),
+});
+
 const storedSelectionV3Schema = z.object({
   schemaVersion: z.literal(3),
   variantId: z.string(),
@@ -113,13 +125,7 @@ const storedSelectionV3Schema = z.object({
     octaves: storedOctavesSchema,
     shape: shapeSchema,
   }),
-  session: z.object({
-    soundMode: soundModeSchema,
-    loop: z.boolean(),
-    countIn: z.boolean(),
-    restBar: z.boolean(),
-    tempoBpm: z.number().int().min(40).max(200),
-  }),
+  session: storedSessionSchema,
 });
 
 const storedSelectionV4Schema = storedSelectionV3Schema.extend({
@@ -148,6 +154,27 @@ const storedSelectionV5Schema = storedSelectionV4Schema.extend({
   drone: storedDroneSchema,
 });
 
+// A bad lead field falls back on its own (`.catch` per field, as the drone
+// group does above); an unreadable group as a whole falls back to the lead
+// defaults entirely — but, unlike the drone, never blocks the rest of the
+// payload from restoring (practice.session/REQ-011).
+const storedLeadSchema = z
+  .object({
+    who: z.enum(["tool", "me"]).catch("tool"),
+    holdBeats: z.union([z.literal(1), z.literal(2), z.literal(4)]).catch(2),
+    tolerance: z.enum(["lenient", "medium", "accurate"]).catch("medium"),
+    cueMeter: z.boolean().catch(true),
+    cueTone: z.boolean().catch(false),
+  })
+  .catch(defaultLeadSettings);
+
+const storedSelectionV6Schema = storedSelectionV5Schema.extend({
+  schemaVersion: z.literal(6),
+  session: storedSessionSchema.extend({ lead: storedLeadSchema }),
+});
+
+type StoredSelectionV5 = z.infer<typeof storedSelectionV5Schema>;
+
 const storedSpanSchema = z.enum(["full", "oct-1", "oct-2", "oct-3", "oct-4"]);
 
 const storedSelectionV2Schema = z.object({
@@ -170,6 +197,7 @@ const storedSelectionV1Schema = z.object({
 });
 
 const storedSelectionSchema = z.union([
+  storedSelectionV6Schema,
   storedSelectionV5Schema,
   storedSelectionV4Schema,
   storedSelectionV3Schema,
@@ -243,11 +271,22 @@ function migrateFromV1(
 // about the drone, so it starts unpinned and warm.
 function migrateFromV4(
   v4: z.infer<typeof storedSelectionV4Schema>,
-): StoredSelection {
+): StoredSelectionV5 {
   return {
     ...v4,
     schemaVersion: 5,
     drone: firstRunDefaults.drone,
+  };
+}
+
+// Copies every v5 field and adds `lead` at its first-run default
+// (REQ-011/S5) — stored state from before this change carries nothing
+// about who leads, so it starts in play along.
+function migrateFromV5(v5: StoredSelectionV5): StoredSelection {
+  return {
+    ...v5,
+    schemaVersion: 6,
+    session: { ...v5.session, lead: defaultLeadSettings },
   };
 }
 
@@ -262,14 +301,16 @@ export function localStorageSelectionStore(storage: Storage): SelectionStore {
         if (!result.success) return null;
         switch (result.data.schemaVersion) {
           case 1:
-            return migrateFromV4(migrateFromV1(result.data));
+            return migrateFromV5(migrateFromV4(migrateFromV1(result.data)));
           case 2:
-            return migrateFromV4(migrateFromV2(result.data));
+            return migrateFromV5(migrateFromV4(migrateFromV2(result.data)));
           case 3:
-            return migrateFromV4(migrateFromV3(result.data));
+            return migrateFromV5(migrateFromV4(migrateFromV3(result.data)));
           case 4:
-            return migrateFromV4(result.data);
+            return migrateFromV5(migrateFromV4(result.data));
           case 5:
+            return migrateFromV5(result.data);
+          case 6:
             return result.data;
         }
       } catch {

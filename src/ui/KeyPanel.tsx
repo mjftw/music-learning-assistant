@@ -48,8 +48,23 @@ export function KeyPanel(props: {
   readonly onSelectView: (view: "names" | "stave") => void;
   readonly children: ReactNode;
   readonly rangeSummary: string;
+  // practice.session/REQ-017 — the target note's meter paints between the
+  // card's own background and the content (the band, behind the notehead)
+  // and in front of it (the pitch line); a fixer finding (REQ-017) found a
+  // wrapper rendered outside this card, with the band's `z-index: -1`, left
+  // the band painted beneath this card's own opaque background — negative
+  // z-index resolves against the nearest ancestor that forms a stacking
+  // context, which was above this card, not within it. These two slots
+  // share the one inner wrapper `children` renders into (no padding or
+  // margin of its own, so its origin is `children`'s own local origin —
+  // the same frame the stave reports its target head's centre in) so paint
+  // order alone (DOM order, no z-index) puts the underlay behind and the
+  // overlay in front of whatever `children` draws.
+  readonly underlay?: ReactNode;
+  readonly overlay?: ReactNode;
 }): JSX.Element {
-  const { view, onSelectView, children, rangeSummary } = props;
+  const { view, onSelectView, children, rangeSummary, underlay, overlay } =
+    props;
 
   return (
     <div
@@ -61,7 +76,11 @@ export function KeyPanel(props: {
         borderRadius: CARD_RADIUS,
       }}
     >
-      {children}
+      <div style={{ position: "relative" }}>
+        {underlay}
+        {children}
+        {overlay}
+      </div>
       <div
         style={{
           marginTop: ROW_MARGIN_TOP,

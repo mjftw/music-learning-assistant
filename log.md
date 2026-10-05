@@ -2,6 +2,22 @@
 
 Chronological history of this bundle. Newest date first.
 
+## 2026-10-05
+
+- Design Principles `docs/design.md` → approved (human:merlin-webster)
+- Glossary `docs/glossary.md` → approved (human:merlin-webster)
+- Domain Map `docs/domain.md` → approved (human:merlin-webster)
+- Capability Spec `specs/practice/session.md` → current (human:merlin-webster)
+- Design Principles `docs/design.md` → approved (human:merlin-webster)
+
+## 2026-10-02
+
+- Task List `changes/008-learner-leads/tasks.md` → approved (human:merlin-webster)
+- Implementation Plan `changes/008-learner-leads/plan.md` → approved (human:merlin-webster)
+- Spec Delta `changes/008-learner-leads/delta/practice/session.md` → approved (human:merlin-webster)
+- Change Proposal `changes/008-learner-leads/proposal.md` → approved (human:merlin-webster)
+- Intent `changes/008-learner-leads/intent.md` → resolved (human:merlin-webster)
+
 ## 2026-09-29
 
 - Roadmap `docs/roadmap.md` → approved (human:merlin-webster)

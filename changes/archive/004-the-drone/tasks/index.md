@@ -1,6 +1,6 @@
 # Tasks: 004-the-drone
 
-Generated from each task's frontmatter. Next: `./scripts/task.sh changes/archive/004-the-drone next` → none
+Generated from each task's frontmatter. Next: `./scripts/task.py changes/archive/004-the-drone next` → none
 
 | Task | Status | Depends on | Requirements | Group | Attempts | Outcome |
 |---|---|---|---|---|---|---|

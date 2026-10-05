@@ -24,6 +24,7 @@ import {
   sessionOn,
   startDroneAndFlush,
 } from "../fakes";
+import { leadSettings } from "../lead-helpers";
 
 type Action =
   | "play"
@@ -34,7 +35,9 @@ type Action =
   | "enterTuner"
   | "leaveTuner"
   | "tapNote"
-  | "tapNotePending";
+  | "tapNotePending"
+  | "start-as-me"
+  | "stop-lead";
 const ACTIONS: readonly Action[] = [
   "play",
   "pause",
@@ -45,6 +48,8 @@ const ACTIONS: readonly Action[] = [
   "leaveTuner",
   "tapNote",
   "tapNotePending",
+  "start-as-me",
+  "stop-lead",
 ];
 const GAP_MS = 300;
 const CLICK_MS = 25;
@@ -164,6 +169,24 @@ async function apply(session: Session, action: Action): Promise<void> {
       // next action's own `apply()` — landing after a later enterTuner()
       // in between has already run synchronously.
       session.tapNote(0);
+      return;
+    case "start-as-me":
+      // practice.session/REQ-015 — selects "I lead" and taps the start
+      // circle; mirrors flushStart's two-flush shape (requestListening's
+      // own wakeLock.acquire() then listening.start(), the same chain
+      // depth as sound.start() then wakeLock.acquire() above).
+      session.setSettings(leadSettings());
+      session.start();
+      await Promise.resolve();
+      await Promise.resolve();
+      return;
+    case "stop-lead":
+      // practice.session/REQ-015/S2 — ■ while leading; session.stop()
+      // dispatches on listeningOwner the same way it dispatches on the
+      // transport for "pause" above.
+      session.stop();
+      await Promise.resolve();
+      await Promise.resolve();
       return;
   }
 }
@@ -338,6 +361,71 @@ test(
               voice.from < drone.to && drone.from < voice.to,
               `overlap in ${sequence.join(" → ")}`,
             ).toBe(false);
+        session.dispose();
+        checked += 1;
+      }
+    expect(checked).toBe(
+      ACTIONS.length +
+        ACTIONS.length ** 2 +
+        ACTIONS.length ** 3 +
+        ACTIONS.length ** 4,
+    );
+  },
+  TEST_TIMEOUT_MS,
+);
+
+test(
+  "practice.session/REQ-015/S6 — nothing sounds while leading (invariant)",
+  async () => {
+    let checked = 0;
+    for (let length = 1; length <= 4; length += 1)
+      for (const sequence of sequences(length)) {
+        const { session, sound, clock } = sessionOn(
+          "G",
+          "flute-concert",
+          defaultTraversal,
+          { ...defaultSessionSettings, countIn: false },
+        );
+        for (const action of sequence) {
+          // tapNotePending must never itself be awaited — see its comment
+          // in apply() above.
+          if (action === "tapNotePending") void apply(session, action);
+          else await apply(session, action);
+          if (session.snapshot().lead.phase === "listening") {
+            // REQ-015/S5 grants the drone up to DRONE_RELEASE_MS (80 ms)
+            // and playback its own stop-fade to fall silent as *part of*
+            // the run starting — wait that out before judging "still
+            // sounding", mirroring the tuner invariant below.
+            clock.advance(DRONE_RELEASE_MS);
+            const liveAt = sound.frame;
+            expect(
+              liveVoicesAt(sound, liveAt).filter(
+                (v) =>
+                  isTone(v.command) || isClick(v.command) || isDrone(v.command),
+              ),
+              `sounding while leading in ${sequence.join(" → ")}`,
+            ).toEqual([]);
+            expect(session.snapshot().drone.on).toBe(false);
+          }
+          clock.advance(GAP_MS);
+        }
+        // As above — settle a trailing droneOnPending/enterTuner/start-as-me
+        // before the final check, so a post it makes only once flushed is
+        // not missed.
+        await Promise.resolve();
+        await Promise.resolve();
+        clock.advance(2000);
+        if (session.snapshot().lead.phase === "listening") {
+          const liveAt = sound.frame;
+          expect(
+            liveVoicesAt(sound, liveAt).filter(
+              (v) =>
+                isTone(v.command) || isClick(v.command) || isDrone(v.command),
+            ),
+            `sounding while leading after ${sequence.join(" → ")}`,
+          ).toEqual([]);
+          expect(session.snapshot().drone.on).toBe(false);
+        }
         session.dispose();
         checked += 1;
       }

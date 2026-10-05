@@ -43,6 +43,20 @@ import type { VisibilityPort } from "../ports/visibility";
 import type { WakeLockPort } from "../ports/wake-lock";
 import type { DroneSettings, DroneSound } from "./drone";
 import { canStepDroneOctave, droneNoteOf } from "./drone";
+import type { LeadPhase, LeadSettings, LeadTarget, Who } from "./lead";
+import {
+  applyJudgement,
+  applySilence,
+  CUE_TAIL_MS,
+  CUE_TONE_MS,
+  emptyHold,
+  heldFractionOf,
+  HELD_TICK_MS,
+  LEAD_GAP_MS,
+  requiredHoldMs,
+  targetAt,
+  TOLERANCE_CENTS,
+} from "./lead";
 import type { ScaleChoice } from "./scale-choice";
 import { chosenScaleIdFor } from "./scale-choice";
 import type { SessionSettings } from "./settings";
@@ -65,6 +79,7 @@ import {
   smoothedPitchHzOf,
   TUNER_HIGHEST_POSITION,
   TUNER_LOWEST_POSITION,
+  verdictOf,
 } from "./tuner";
 import type { NoteJudged } from "../published/note-judged.schema";
 import type { PitchDetected } from "../../listening/published/pitch-detected.schema";
@@ -112,6 +127,23 @@ export interface DroneSnapshot {
   readonly canStepUp: boolean;
 }
 
+// practice.session/REQ-014, REQ-015 — "I lead"'s own half of the session:
+// who leads, the lead run's phase and target, its listening state (the same
+// sum TunerSnapshot uses) and the two captions the card shows while idle or
+// complete. `reading` and `justHeld` are always null until T006 and T011
+// wire the judged-reading and "<note> held ✓" logic through.
+export interface LeadSnapshot {
+  readonly who: Who;
+  readonly phase: LeadPhase["kind"];
+  readonly listening: ListeningState;
+  readonly target: LeadTarget | null;
+  readonly heldFraction: number;
+  readonly reading: NoteJudged | null;
+  readonly justHeld: Note | null;
+  readonly idleCaption: string;
+  readonly completeCaption: string | null;
+}
+
 export interface SessionSnapshot {
   readonly transport: TransportState;
   readonly traversal: Traversal;
@@ -121,7 +153,6 @@ export interface SessionSnapshot {
   readonly run: readonly KeyViewNote[];
   readonly sequence: readonly SequenceNote[];
   readonly caption: string;
-  readonly progress: number;
   readonly summaryLine: string;
   readonly tempoTerm: TempoTerm;
   readonly soundingPosition: number | null;
@@ -133,6 +164,7 @@ export interface SessionSnapshot {
   readonly drone: DroneSnapshot;
   readonly tappedRunIndex: number | null;
   readonly tuner: TunerSnapshot;
+  readonly lead: LeadSnapshot;
 }
 
 export interface Session {
@@ -187,6 +219,11 @@ const DRONE_TAG_BASE = 3_000_000;
 // tag.
 const TAP_TAG_BASE = 2_000_000;
 
+// practice.session/REQ-018 — the tone cue's own tag, one per target shown;
+// well clear of the other three bases and never colliding with a position
+// tag.
+const CUE_TAG_BASE = 4_000_000;
+
 // practice.session/REQ-008 — the very first tick of a run (a fresh start()
 // or a REQ-007 restart) is scheduled this many milliseconds after
 // `sound.currentFrame()`, not at it: the audio thread's first renders lag
@@ -213,6 +250,13 @@ export const HIGHLIGHT_LEAD_MS = 20;
 // drone to fall silent before the first click or note sounds).
 export const DRONE_RELEASE_MS = 80;
 
+// practice.session/REQ-018 — mirrors `RELEASE_S` in src/sound/src/tone.rs:
+// how long a tone voice (the cue, a tapped note, a sequence note) takes to
+// fade to true silence once its duration ends. The tone cue's mute window
+// (below) runs until the cue's release has finished, not merely until its
+// nominal duration ends, so a resonant tail is never heard as the learner.
+const TONE_RELEASE_MS = 40;
+
 // The run's extremes by pitch, not by array position (T008) — a
 // written-out split-direction run (e.g. classical melodic minor's ↑↓,
 // REQ-012/S6) ends on the tonic it started on, so `run[0]`/`run[last]`
@@ -232,6 +276,19 @@ function extremesOf(
   return { lowest, highest };
 }
 
+// "<N> notes · <lowest>–<highest>" — play along's idle caption
+// (practice.session/REQ-002) and, when who is "tool", I lead's idle caption
+// too (practice.session/REQ-014/S2): the same sequence, read the same way,
+// shared rather than recomputed twice.
+function sequenceCaptionOf(
+  run: readonly KeyViewNote[],
+  sequence: readonly SequenceNote[],
+): string {
+  const extremes = extremesOf(run);
+  if (extremes === null) return "";
+  return `${sequence.length} notes · ${noteLabel(extremes.lowest.note)}–${noteLabel(extremes.highest.note)}`;
+}
+
 function captionOf(
   transport: TransportState,
   run: readonly KeyViewNote[],
@@ -239,11 +296,8 @@ function captionOf(
   soundingPosition: number | null,
 ): string {
   switch (transport.kind) {
-    case "idle": {
-      const extremes = extremesOf(run);
-      if (extremes === null) return "";
-      return `${sequence.length} notes · ${noteLabel(extremes.lowest.note)}–${noteLabel(extremes.highest.note)}`;
-    }
+    case "idle":
+      return sequenceCaptionOf(run, sequence);
     case "countingIn":
       return `COUNT IN · ${transport.beatsLeft}`;
     case "resting":
@@ -323,7 +377,6 @@ function snapshotsMateriallyEqual(
     transportEqual(a.transport, b.transport) &&
     a.soundingPosition === b.soundingPosition &&
     a.caption === b.caption &&
-    a.progress === b.progress &&
     a.notice === b.notice &&
     a.settings === b.settings &&
     a.traversal === b.traversal &&
@@ -347,7 +400,22 @@ function snapshotsMateriallyEqual(
     targetEqual(a.tuner.target, b.tuner.target) &&
     targetNoteEqual(a.tuner.targetNote, b.tuner.targetNote) &&
     a.tuner.reading === b.tuner.reading &&
-    targetNoteEqual(a.tuner.lastHeard, b.tuner.lastHeard)
+    targetNoteEqual(a.tuner.lastHeard, b.tuner.lastHeard) &&
+    // practice.session/REQ-014, REQ-015 — `who` and `idleCaption` are
+    // already covered by `settings`/`run` above (the same reasoning as this
+    // function's own comment: both are derived purely from one or the
+    // other); `phase`, `listening`, `target`, `heldFraction`, `reading` and
+    // `justHeld` are not, and need their own comparison. `listening` and
+    // `target` are only ever reassigned by `startLead()`/`stop()` (never
+    // mutated in place, never rebuilt fresh per buildSnapshot() call the
+    // way `tuner.targetNote` is), so reference equality is enough, the same
+    // reasoning as `tuner.active`/`tuner.listening` above.
+    a.lead.phase === b.lead.phase &&
+    a.lead.listening === b.lead.listening &&
+    a.lead.target === b.lead.target &&
+    a.lead.heldFraction === b.lead.heldFraction &&
+    a.lead.reading === b.lead.reading &&
+    a.lead.justHeld === b.lead.justHeld
   );
 }
 
@@ -395,6 +463,9 @@ export function createSession(
   // drone voice.
   let tappedTag: number | null = null;
   let tapCounter = 0;
+  // practice.session/REQ-018 — the tone cue's own tag counter, one per
+  // target shown while the cue is on.
+  let cueCounter = 0;
   // Bumped by tapNote() itself (every call, sync or async) and by
   // enterTuner() — mirrors droneGeneration: a first-ever tapNote() still
   // awaiting sound.start() compares this after its await and posts nothing
@@ -494,6 +565,61 @@ export function createSession(
   // continuation, so it never overwrites the "off" state leaveTuner() just
   // set with a stale "listening"/"cannot-hear".
   let tunerGeneration = 0;
+
+  // practice.session/REQ-014, REQ-015 — which subsystem currently holds (or
+  // is still requesting) the microphone: the tuner and a lead run never
+  // listen at once, so one flag settles who a detection or an ended-track
+  // event belongs to, and who requestListening()'s supersede check compares
+  // against. `tunerActive` is untouched by this — it stays the tuner's own
+  // "the tuner screen is open" flag, exactly as before.
+  let listeningOwner: "none" | "tuner" | "lead" = "none";
+  // practice.session/REQ-015 — a lead run's own state: the phase stays
+  // "idle" while the microphone is still being requested (leadListeningState
+  // carries "starting" for that window instead — LeadPhase has no variant
+  // for it, the same way TunerSnapshot's `active` and `listening` are two
+  // separate fields rather than one), and becomes "listening" only once
+  // leadListeningState does too, with the first target already pinned to it
+  // (REQ-015/S1: the target and `TargetAdvanced` arrive together).
+  let leadPhase: LeadPhase = { kind: "idle" };
+  let leadListeningState: ListeningState = { kind: "off" };
+  // Bumped by both startLead() and stop() — mirrors tunerGeneration: a
+  // stop() (or a second startLead()) landing while a startLead() is still
+  // awaiting wakeLock.acquire()/listening.start() must supersede that
+  // continuation, so it never overwrites the state the newer call already
+  // set with a stale "listening"/"cannot-hear".
+  let leadGeneration = 0;
+  // practice.session/REQ-016 — the lead run's own smoothing filter, pinned
+  // to the target note (never `shown`, which has no meaning for a pinned
+  // target): reset on a new target (T006) and inside a muted window (T011);
+  // mirrors `tunerSmoothingState` above.
+  let leadSmoothing: SmoothingState = initialSmoothingState;
+  // The committed reading shown on the meter and the card, and the one
+  // still awaiting its commit-on-next-tick timer — mirrors
+  // `tunerReading`/`tunerPendingReading` above (the same coalescing: a
+  // burst of detections within one tick commits only the newest).
+  let leadReading: NoteJudged | null = null;
+  let leadPendingReading: NoteJudged | null = null;
+  // practice.session/REQ-017 — true when `leadPendingReading` is the reading
+  // that completed the hold: it was judged against the target just left, so
+  // it is emitted as NoteJudged but never shown on the new target.
+  let leadPendingCompleted = false;
+  // Cancels for the lead run's own two timers — mirrors
+  // `tunerCommitCancel`/`tunerGapCancel` above.
+  let leadCommitCancel: (() => void) | null = null;
+  let leadGapCancel: (() => void) | null = null;
+  // practice.session/REQ-017 — "<previous note> held ✓": the note just
+  // advanced away from, or null the rest of the time. Set on an advance
+  // (the hold branch of onPitchDetected), cleared by the next surviving
+  // detection (judged against the new target — a muted or stale one never
+  // reaches that code) or by `leadJustHeldCancel` firing HELD_TICK_MS after
+  // the advance with no reading, whichever is first.
+  let leadJustHeld: Note | null = null;
+  let leadJustHeldCancel: (() => void) | null = null;
+  // practice.session/REQ-018 — the tone cue currently sounding (or just
+  // posted, mid-release), or null while none is — needed to stop it (`stop`
+  // with its tag) wherever a lead run ends or restarts, the same way
+  // `tappedTag`/`droneTag` stop their own voice.
+  let cueTag: number | null = null;
 
   let run: readonly KeyViewNote[] = [];
   let sequence: readonly SequenceNote[] = [];
@@ -616,6 +742,10 @@ export function createSession(
     return Math.round((FIRST_TICK_LEAD_MS * sound.sampleRate()) / 1000);
   }
 
+  function framesOfMs(ms: number): number {
+    return Math.round((ms * sound.sampleRate()) / 1000);
+  }
+
   function nextClickTag(): number {
     const tag = CLICK_TAG_BASE + clickCounter;
     clickCounter += 1;
@@ -632,6 +762,38 @@ export function createSession(
     const tag = TAP_TAG_BASE + tapCounter;
     tapCounter += 1;
     return tag;
+  }
+
+  function nextCueTag(): number {
+    const tag = CUE_TAG_BASE + cueCounter;
+    cueCounter += 1;
+    return tag;
+  }
+
+  // practice.session/REQ-013, REQ-018 — posts one tone command, shared by a
+  // tapped note and the lead tone cue (T011's refactor: the two used to
+  // build the command inline, separately): the onset is always
+  // `sound.currentFrame() + FIRST_TICK_LEAD_MS` ahead (REQ-008's reasoning
+  // applies here too), and the duration is given in ms, converted to frames
+  // the same way `firstTickLeadFrames()` converts its own constant. Returns
+  // the onset frame actually used, so a caller that needs to reason about
+  // when the tone ends (the cue's mute window) uses the same value the
+  // command itself carries, rather than recomputing it and risking the two
+  // disagreeing.
+  function scheduleOneTone(
+    hz: number,
+    durationMs: number,
+    tag: number,
+  ): number {
+    const onsetFrame = sound.currentFrame() + firstTickLeadFrames();
+    sound.post({
+      kind: "tone",
+      tag,
+      hz,
+      onsetFrame,
+      durationFrames: framesOfMs(durationMs),
+    });
+    return onsetFrame;
   }
 
   // A playing tick's tag packs the run's generation with the sequence
@@ -748,13 +910,18 @@ export function createSession(
     cancelIdle = null;
   }
 
-  // practice.drone/REQ-004, practice.tuner/REQ-001 — the wake lock is
-  // shared between playback, the drone and the tuner: it is released only
-  // when none remains, so stop(), the idle transition, stopDrone() and
-  // leaveTuner() all funnel through this one check rather than each
-  // deciding on its own.
+  // practice.drone/REQ-004, practice.tuner/REQ-001, practice.session/REQ-015
+  // — the wake lock is shared between playback, the drone, the tuner and a
+  // lead run: it is released only when none remains, so stop(), the idle
+  // transition, stopDrone() and leaveTuner() all funnel through this one
+  // check rather than each deciding on its own.
   function releaseWakeLockIfSilent(): void {
-    if (transport.kind === "idle" && !droneOn && !tunerActive) {
+    if (
+      transport.kind === "idle" &&
+      !droneOn &&
+      !tunerActive &&
+      listeningOwner !== "lead"
+    ) {
       wakeLock.release();
     }
   }
@@ -793,48 +960,174 @@ export function createSession(
     }
   });
 
-  // practice.tuner/REQ-002 — turns a detection into a judgement, held as
-  // `tunerPendingReading` until the next clock tick commits it (a burst of
-  // detections within one tick coalesces onto the newest). Ignored unless
-  // the tuner is active and actually listening — a detection that arrives
-  // after leaveTuner() (or before listening.start() resolves) is dropped.
-  function onPitchDetected(pitch: PitchDetected): void {
-    if (!tunerActive || tunerListeningState.kind !== "listening") return;
-    // practice.tuner/REQ-006 (Article V) — a detection older than the
-    // budget by the time it reaches here is dropped outright: no
-    // judgement, no NoteJudged, the pending reading (if any) untouched —
-    // silence beats a late reading.
+  // practice.tuner/REQ-006, practice.session/REQ-021 (Article V) — the age
+  // check shared by both subsystems: a detection already older than the
+  // budget by the time it reaches here is dropped outright, no matter who
+  // is listening — silence beats a late reading.
+  function isTooOld(pitch: PitchDetected): boolean {
     const ageMs =
       ((listening.currentFrame() - pitch.atFrame) / listening.sampleRate()) *
       1000;
-    if (ageMs > READING_MAX_AGE_MS) return;
-    // practice.tuner/REQ-002 — judge a smoothed pitch (never holding the
-    // reading back), but keep `heard.hz` the raw detected value: the
-    // measured harness reads it, and the spec says the Hz stays detected.
+    return ageMs > READING_MAX_AGE_MS;
+  }
+
+  // practice.tuner/REQ-002, practice.session/REQ-016 — turns a detection
+  // into a judgement for whichever subsystem is listening (the tuner and a
+  // lead run never listen at once — `listeningOwner` settles it), held as
+  // `tunerPendingReading`/`leadPendingReading` until the next clock tick
+  // commits it (a burst of detections within one tick coalesces onto the
+  // newest for display — the hold itself, below, applies to every one).
+  // Ignored unless the owning subsystem is active and actually listening —
+  // a detection that arrives after leaveTuner()/stop() (or before
+  // listening.start() resolves) is dropped.
+  function onPitchDetected(pitch: PitchDetected): void {
+    if (tunerActive && tunerListeningState.kind === "listening") {
+      if (isTooOld(pitch)) return;
+      // practice.tuner/REQ-002 — judge a smoothed pitch (never holding the
+      // reading back), but keep `heard.hz` the raw detected value: the
+      // measured harness reads it, and the spec says the Hz stays detected.
+      const { hz: smoothedHz, state } = smoothedPitchHzOf(
+        tunerSmoothingState,
+        tunerTarget,
+        tunerShownPosition,
+        pitch.hz,
+      );
+      tunerSmoothingState = state;
+      const result = judge(
+        { ...pitch, hz: smoothedHz },
+        tunerTarget,
+        tunerShownPosition,
+        currentContext.spelling,
+      );
+      tunerPendingReading = {
+        judged: {
+          ...result.judged,
+          heard: { ...result.judged.heard, hz: pitch.hz },
+        },
+        shown: result.shown,
+      };
+      if (tunerCommitCancel === null) {
+        tunerCommitCancel = clock.setTimeout(commitTunerReading, 0);
+      }
+      armTunerGapTimer();
+      return;
+    }
+
+    if (
+      listeningOwner !== "lead" ||
+      leadPhase.kind !== "listening" ||
+      leadListeningState.kind !== "listening"
+    ) {
+      return;
+    }
+    if (isTooOld(pitch)) return;
+
+    const atMs = (pitch.atFrame / listening.sampleRate()) * 1000;
+    // practice.session/REQ-018 — a detection inside the tone cue's mute
+    // window is dropped the same way a stale one is, except the smoothing
+    // resets too, so the first reading once the window ends is shown as
+    // detected rather than blended across it. Dropped entirely: it is never
+    // judged, so it never clears `justHeld` either (below).
+    if (leadPhase.mutedUntilMs !== null && atMs < leadPhase.mutedUntilMs) {
+      leadSmoothing = initialSmoothingState;
+      return;
+    }
+
+    // practice.session/REQ-017 — every surviving detection (not dropped as
+    // too old or muted, above) is a reading against the *current* target —
+    // clears "<note> held ✓" the instant the first one after an advance
+    // reaches here, before the hold rule (below) might advance again and
+    // set a fresh one.
+    clearLeadJustHeld();
+
+    // practice.session/REQ-016, REQ-017 — judged against the target's own
+    // pitch, pinned (never auto): the smoothing and the judgement are the
+    // tuner's own pure functions, called with a pinned target and no shown
+    // hysteresis (a pinned target ignores it) — then the verdict is
+    // recomputed at the lead tolerance rather than the tuner's fixed band.
+    const pinned: TunerTarget = {
+      kind: "pinned",
+      position: pitchPosition(leadPhase.target.note),
+    };
     const { hz: smoothedHz, state } = smoothedPitchHzOf(
-      tunerSmoothingState,
-      tunerTarget,
-      tunerShownPosition,
+      leadSmoothing,
+      pinned,
+      null,
       pitch.hz,
     );
-    tunerSmoothingState = state;
-    const result = judge(
+    leadSmoothing = state;
+    const { judged } = judge(
       { ...pitch, hz: smoothedHz },
-      tunerTarget,
-      tunerShownPosition,
+      pinned,
+      null,
       currentContext.spelling,
     );
-    tunerPendingReading = {
-      judged: {
-        ...result.judged,
-        heard: { ...result.judged.heard, hz: pitch.hz },
-      },
-      shown: result.shown,
+    const reading: NoteJudged = {
+      ...judged,
+      heard: { ...judged.heard, hz: pitch.hz },
+      verdict: verdictOf(
+        judged.cents,
+        TOLERANCE_CENTS[currentSettings.lead.tolerance],
+      ),
     };
-    if (tunerCommitCancel === null) {
-      tunerCommitCancel = clock.setTimeout(commitTunerReading, 0);
+
+    // practice.session/REQ-016 — the hold rule runs on every reading that
+    // reaches here, not only the one later committed for display: a burst
+    // coalesced away for `NoteJudged` still counts, and still can reset or
+    // complete the hold.
+    const previousTarget =
+      leadPhase.kind === "listening" ? leadPhase.target : null;
+    const { phase, advanced } = applyJudgement(
+      leadPhase,
+      reading,
+      atMs,
+      currentSettings.lead,
+      currentSettings.tempoBpm,
+      sequence,
+      currentSettings.loop,
+    );
+    leadPhase = phase;
+
+    if (advanced) {
+      leadSmoothing = initialSmoothingState;
+      if (phase.kind === "listening") {
+        // practice.session/REQ-015 — `TargetAdvanced` is emitted here,
+        // synchronously, the instant the completing reading is judged —
+        // never deferred to the commit tick, which only coalesces what is
+        // shown.
+        const advancedEvent: TargetAdvanced = {
+          note: phase.target.note,
+          position: phase.target.position,
+          length: sequence.length,
+          atFrame: pitch.atFrame,
+        };
+        for (const listener of targetAdvancedListeners) {
+          listener(advancedEvent);
+        }
+        // practice.session/REQ-017 — "<previous note> held ✓" from this
+        // advance until the first reading against the new target or
+        // HELD_TICK_MS of silence, whichever first (armLeadJustHeldTimer,
+        // below).
+        if (previousTarget !== null) armLeadJustHeld(previousTarget.note);
+        // practice.session/REQ-018 — the tone cue for the new target, the
+        // first included at startLead()/restartLeadIfRunning() too.
+        armCueTone(phase.target);
+      } else if (phase.kind === "complete") {
+        // practice.session/REQ-015/S3 — the last note of a non-looping run
+        // held: listening ends here, the same release stop()'s lead branch
+        // performs.
+        listening.stop();
+        listeningOwner = "none";
+        releaseWakeLockIfSilent();
+      }
     }
-    armTunerGapTimer();
+
+    leadPendingReading = reading;
+    leadPendingCompleted = advanced;
+    if (leadCommitCancel === null) {
+      leadCommitCancel = clock.setTimeout(commitLeadReading, 0);
+    }
+    armLeadGapTimer();
   }
 
   // practice.tuner/REQ-002 — one commit per tick, the newest pending
@@ -852,6 +1145,22 @@ export function createSession(
     tunerLastHeardPosition = pitchPosition(tunerReading.heard.nearest);
     tunerPendingReading = null;
     for (const listener of noteJudgedListeners) listener(tunerReading);
+    notifyChange();
+  }
+
+  // practice.session/REQ-016, REQ-021 — one commit per tick for a lead run,
+  // mirroring commitTunerReading(): moves `leadPendingReading` into
+  // `leadReading` and emits NoteJudged. The hold rule above already applied
+  // every reading in the burst to `leadPhase`, committed or not — this only
+  // decides what is shown.
+  function commitLeadReading(): void {
+    leadCommitCancel = null;
+    if (leadPendingReading === null) return;
+    invalidateSnapshot();
+    const committed = leadPendingReading;
+    leadReading = leadPendingCompleted ? null : committed;
+    leadPendingReading = null;
+    for (const listener of noteJudgedListeners) listener(committed);
     notifyChange();
   }
 
@@ -891,6 +1200,144 @@ export function createSession(
     tunerPendingReading = null;
   }
 
+  // practice.session/REQ-017 — the gap rule for a lead run, mirroring
+  // armTunerGapTimer(): re-armed on every detection; when it fires with no
+  // newer detection since it was armed, the shown reading clears (the fill
+  // stays where it was — only the reading and the "last in tune at" marker
+  // are forgotten) and nothing is judged again until the next detection.
+  function armLeadGapTimer(): void {
+    leadGapCancel?.();
+    leadGapCancel = clock.setTimeout(() => {
+      leadGapCancel = null;
+      invalidateSnapshot();
+      leadReading = null;
+      // REQ-016 — the first reading after nothing was heard is as detected:
+      // the smoothing restarts, as the tuner's gap restarts its own.
+      leadSmoothing = initialSmoothingState;
+      leadPhase = applySilence(leadPhase);
+      notifyChange();
+    }, LEAD_GAP_MS);
+  }
+
+  // Cancels both of the lead run's timers and forgets any reading awaiting
+  // commit — stop()'s lead branch calls this so a stale commit or gap timer
+  // from a superseded run never fires afterwards, mirroring
+  // cancelTunerTimers().
+  function cancelLeadTimers(): void {
+    leadCommitCancel?.();
+    leadCommitCancel = null;
+    leadGapCancel?.();
+    leadGapCancel = null;
+    leadPendingReading = null;
+  }
+
+  // practice.session/REQ-017 — "<previous note> held ✓" cleared, and its
+  // HELD_TICK_MS timer cancelled: a no-op when nothing is held. Called by
+  // the first surviving detection after an advance (onPitchDetected, above)
+  // and by every place a lead run's own state is otherwise forgotten
+  // (stop(), restartLeadIfRunning(), a mid-run failure) so a stale timer
+  // never fires after the run it belonged to has moved on.
+  function clearLeadJustHeld(): void {
+    if (leadJustHeld === null) return;
+    leadJustHeldCancel?.();
+    leadJustHeldCancel = null;
+    invalidateSnapshot();
+    leadJustHeld = null;
+  }
+
+  // practice.session/REQ-017 — sets "<note> held ✓" on an advance and arms
+  // the HELD_TICK_MS timer that clears it again if no reading against the
+  // new target arrives first (clearLeadJustHeld, above, called by the
+  // first one that does).
+  function armLeadJustHeld(note: Note): void {
+    invalidateSnapshot();
+    leadJustHeld = note;
+    leadJustHeldCancel?.();
+    leadJustHeldCancel = clock.setTimeout(() => {
+      leadJustHeldCancel = null;
+      invalidateSnapshot();
+      leadJustHeld = null;
+      notifyChange();
+    }, HELD_TICK_MS);
+  }
+
+  // practice.session/REQ-018 — stops a sounding (or still-releasing) cue
+  // tone, the same way `endTapIfSounding` stops a tapped note — called
+  // wherever a lead run ends or restarts, so a cue never outlasts the run
+  // or target it was sounding for.
+  function stopCueIfSounding(): void {
+    if (cueTag === null) return;
+    sound.post({ kind: "stop", tag: cueTag });
+    cueTag = null;
+  }
+
+  // practice.session/REQ-018 — the tone cue: sounds `target` as it becomes
+  // the target (the first on start, every advance, every restart of
+  // REQ-019), a no-op when the cue is off. `await sound.start()` once, as
+  // `tapNote` does (noticeFromSoundStart's own comment explains why that
+  // stays written inline rather than through a shared async helper); once
+  // sound is confirmed usable, posts the tone and sets `mutedUntilMs` on
+  // `leadPhase` from the same onset `scheduleOneTone` actually used, so the
+  // two can never disagree. Guarded against a run that has moved on (a
+  // stop(), a second advance, a restart) by the time sound.start() settles
+  // — `leadPhase.target !== target` catches a second/different target
+  // becoming current in the meantime, the same reference-identity reasoning
+  // `targetEqual`/`sameNote` elsewhere in this file avoid relying on for
+  // value types, but `LeadTarget` here is compared to the very object this
+  // closure captured, never reconstructed.
+  function armCueTone(target: LeadTarget): void {
+    if (!currentSettings.lead.cueTone) return;
+    const tag = nextCueTag();
+    const atGeneration = leadGeneration;
+
+    function postAndMute(): void {
+      if (
+        listeningOwner !== "lead" ||
+        leadGeneration !== atGeneration ||
+        leadPhase.kind !== "listening" ||
+        leadPhase.target !== target
+      ) {
+        return;
+      }
+      const onsetFrame = scheduleOneTone(
+        pitchHzOf(target.note),
+        CUE_TONE_MS,
+        tag,
+      );
+      cueTag = tag;
+      const onsetMs = (onsetFrame * 1000) / sound.sampleRate();
+      invalidateSnapshot();
+      leadPhase = {
+        ...leadPhase,
+        mutedUntilMs: onsetMs + CUE_TONE_MS + TONE_RELEASE_MS + CUE_TAIL_MS,
+      };
+      notifyChange();
+    }
+
+    if (soundReady) {
+      postAndMute();
+      return;
+    }
+
+    void (async () => {
+      let result: Result<void, SoundUnavailable>;
+      try {
+        result = await sound.start();
+      } catch (cause) {
+        result = {
+          ok: false,
+          error: { reason: "no-audio-context", detail: String(cause) },
+        };
+      }
+      if (!noticeFromSoundStart(result)) {
+        invalidateSnapshot();
+        notifyChange();
+        return;
+      }
+      postAndMute();
+    })();
+  }
+
   // practice.tuner/REQ-002 — subscribed once, for the session's whole
   // lifetime (not per enterTuner()/leaveTuner()): onPitchDetected itself
   // checks tunerActive and the listening state, the same shape as
@@ -904,11 +1351,32 @@ export function createSession(
   // does not itself fire onEnded, but a real track ending after release
   // well might) must not resurrect a state leaveTuner() already cleared.
   const unsubscribeListeningEnded = listening.onEnded(() => {
-    if (!tunerActive) return;
+    if (tunerActive) {
+      invalidateSnapshot();
+      tunerListeningState = { kind: "cannot-hear", reason: "failed" };
+      clearTunerReading();
+      cancelTunerTimers();
+      notifyChange();
+      return;
+    }
+    // practice.session/REQ-022/S3 — a lead run's microphone unplugged or its
+    // permission revoked mid-run: the same "cannot-hear(failed)" shape as
+    // the tuner's own branch above, but through `listeningOwner` rather than
+    // `tunerActive`, and with the lead run's own reading, smoothing, hold
+    // and timers forgotten (mirrors stop()'s lead branch) and the wake lock
+    // released, since nothing is listening or sounding once this ends it.
+    if (listeningOwner !== "lead") return;
     invalidateSnapshot();
-    tunerListeningState = { kind: "cannot-hear", reason: "failed" };
-    clearTunerReading();
-    cancelTunerTimers();
+    leadGeneration += 1; // supersede a startLead() still awaiting its asks
+    listeningOwner = "none";
+    leadListeningState = { kind: "cannot-hear", reason: "failed" };
+    leadPhase = { kind: "cannot-hear", reason: "failed" };
+    leadReading = null;
+    leadSmoothing = initialSmoothingState;
+    cancelLeadTimers();
+    stopCueIfSounding();
+    clearLeadJustHeld();
+    releaseWakeLockIfSilent();
     notifyChange();
   });
 
@@ -1013,6 +1481,28 @@ export function createSession(
     return { commands, durationFrames };
   }
 
+  // practice.session/REQ-014 — "hold 2 beats · medium tuning" while I lead
+  // is idle; the sequence caption (shared with play along, REQ-002) while
+  // who is "tool" — I lead's own idle card never shows while who is "tool",
+  // but the field is always well-defined.
+  function leadIdleCaptionOf(settings: LeadSettings): string {
+    if (settings.who === "tool") return sequenceCaptionOf(run, sequence);
+    const { holdBeats, tolerance } = settings;
+    const beatWord = holdBeats === 1 ? "beat" : "beats";
+    return `hold ${holdBeats} ${beatWord} · ${tolerance} tuning`;
+  }
+
+  // practice.session/REQ-015 — "15 of 15 held · C4–C5", shown only once the
+  // run has completed (looping disabled, the last note held); null the rest
+  // of the time. `extremesOf`/`noteLabel` are the same pair `captionOf`'s
+  // idle case uses, read against the run rather than the sequence position.
+  function leadCompleteCaptionOf(phase: LeadPhase): string | null {
+    if (phase.kind !== "complete") return null;
+    const extremes = extremesOf(run);
+    if (extremes === null) return null;
+    return `${sequence.length} of ${sequence.length} held · ${noteLabel(extremes.lowest.note)}–${noteLabel(extremes.highest.note)}`;
+  }
+
   function buildSnapshot(): SessionSnapshot {
     return {
       transport,
@@ -1023,10 +1513,6 @@ export function createSession(
       run,
       sequence,
       caption: captionOf(transport, run, sequence, soundingPosition),
-      progress:
-        soundingPosition !== null && transport.kind === "playing"
-          ? (soundingPosition + 1) / sequence.length
-          : 0,
       summaryLine: summaryLineOf(
         currentTraversal,
         effectiveOctaves,
@@ -1072,6 +1558,28 @@ export function createSession(
         canStepDown: canStepTarget(tunerTarget, -1),
         canStepUp: canStepTarget(tunerTarget, 1),
       },
+      lead: {
+        who: currentSettings.lead.who,
+        phase: leadPhase.kind,
+        listening: leadListeningState,
+        target: leadPhase.kind === "listening" ? leadPhase.target : null,
+        heldFraction:
+          leadPhase.kind === "listening"
+            ? heldFractionOf(
+                leadPhase.hold,
+                requiredHoldMs(
+                  currentSettings.lead.holdBeats,
+                  currentSettings.tempoBpm,
+                ),
+              )
+            : 0,
+        // commitLeadReading() commits a judged reading onto this field the
+        // same way commitTunerReading() does for the tuner.
+        reading: leadReading,
+        justHeld: leadJustHeld,
+        idleCaption: leadIdleCaptionOf(currentSettings.lead),
+        completeCaption: leadCompleteCaptionOf(leadPhase),
+      },
     };
   }
 
@@ -1113,6 +1621,18 @@ export function createSession(
     // practice.tuner/REQ-001/S3 — nothing sounds while the tuner listens:
     // ▶ is refused outright rather than queued for when the tuner is left.
     if (tunerActive) return;
+    // practice.session/REQ-014, REQ-015 — the start circle dispatches on the
+    // mode: "me" never touches the transport/scheduler machinery below at
+    // all, it asks to listen instead.
+    if (currentSettings.lead.who === "me") {
+      startLead();
+      return;
+    }
+    // 008 proposal edge-case row (REQ-015) — "a key with no notes in range:
+    // the start circle does nothing in either mode". startLead() guards its
+    // own empty run (REQ-015/S8); play along has no scenario for it, only the
+    // edge-case test, so the guard is here.
+    if (sequence.length === 0) return;
     // practice.session/REQ-013 — ▶ ends any sounding tap the same way a
     // retap does, before anything else: a tap only ever sounds while idle,
     // and start() is about to leave idle.
@@ -1122,17 +1642,13 @@ export function createSession(
     // (before this function's own await below), so it lands at this exact
     // frame; the first tick's lead then carries the drone's own release time
     // on top, so the click or note never sounds until the drone has
-    // actually faded to silence.
-    const droneWasOn = droneOn;
-    // Bumped unconditionally — even a startDrone() that is only still
-    // pending (droneOn still false, awaiting sound.start()/wakeLock.acquire())
-    // must be superseded the instant ▶ is tapped, or its continuation would
-    // pass its own generation check and post a drone under a run already in
-    // progress (T022). stopDrone() below bumps it again when the drone was
-    // actually on; a second bump there is harmless — only inequality with
-    // startedAtGeneration is ever tested.
-    droneGeneration += 1;
-    if (droneWasOn) stopDrone();
+    // actually faded to silence. stopAnyRun() also bumps droneGeneration
+    // unconditionally — even a startDrone() that is only still pending
+    // (droneOn still false, awaiting sound.start()/wakeLock.acquire()) must
+    // be superseded the instant ▶ is tapped, or its continuation would pass
+    // its own generation check and post a drone under a run already in
+    // progress (T022).
+    const droneWasOn = stopAnyRun();
     invalidateSnapshot();
     notice = null;
     cancelIdleTimer(); // Cancel any pending idle timer from the previous run
@@ -1179,6 +1695,31 @@ export function createSession(
 
   function stop(): void {
     invalidateSnapshot();
+    // practice.session/REQ-015/S2, REQ-009/S3 — a lead run in progress
+    // (phase "listening", or a startLead() still awaiting the wake lock or
+    // the microphone — listeningOwner is set synchronously, before either
+    // await) ends here instead of falling through to the transport/scheduler
+    // branch below, which a lead run never touches.
+    if (listeningOwner === "lead") {
+      leadGeneration += 1; // supersede a startLead() still awaiting its asks
+      listening.stop();
+      listeningOwner = "none";
+      leadListeningState = { kind: "off" };
+      leadPhase = { kind: "idle" };
+      // practice.session/REQ-016 — hold forgotten: the reading, its
+      // smoothing and any commit/gap timer in flight go with it, the same
+      // reasoning as cancelTunerTimers()/clearTunerReading() on leaveTuner().
+      leadReading = null;
+      leadSmoothing = initialSmoothingState;
+      cancelLeadTimers();
+      // practice.session/REQ-018 — a sounding (or still-releasing) cue tone
+      // stops here too — "nothing sounds" once the run has stopped.
+      stopCueIfSounding();
+      clearLeadJustHeld();
+      releaseWakeLockIfSilent();
+      notifyChange();
+      return;
+    }
     // practice.drone/REQ-004 (T022) — clears the drone first when it is on,
     // so droneOn/droneTag are never left stale: without this, a stop() that
     // runs while the drone is fully on would leave `on` true with no
@@ -1193,6 +1734,33 @@ export function createSession(
     soundingPosition = null;
     releaseWakeLockIfSilent();
     notifyChange();
+  }
+
+  // practice.drone/REQ-004, practice.tuner/REQ-001, practice.session/REQ-015
+  // — the guard startDrone(), enterTuner() and start()-as-tool all open
+  // with: stop whatever is currently sounding or listening — playback
+  // (❚❚/■), the drone, or a lead run (■) — before beginning the new one, so
+  // the "never both" invariant holds across every way in. Returns whether
+  // the drone was on, since start()-as-tool needs that to compute the
+  // drone's own release delay before its first tick.
+  function stopAnyRun(): boolean {
+    const droneWasOn = droneOn;
+    // Bumped unconditionally, before stopDrone() — a startDrone() that is
+    // only still pending (droneOn still false, awaiting
+    // sound.start()/wakeLock.acquire()) must be superseded too, or its
+    // continuation would post a drone under whatever is starting now (T022;
+    // mirrors enterTuner()'s own unconditional bump, and the open note from
+    // T005 that startLead() needed the same for its own drone-goes-first
+    // guard).
+    droneGeneration += 1;
+    if (droneWasOn) stopDrone();
+    // practice.session/REQ-015/S5, S7 — a lead run in progress, or still
+    // requesting the microphone (listeningOwner is set synchronously,
+    // before either of its own awaits), ends the same way ■ ends it.
+    if (listeningOwner === "lead") stop();
+    // Playback in progress ends the same way ❚❚/■ ends it too.
+    if (transport.kind !== "idle") stop();
+    return droneWasOn;
   }
 
   // practice.drone/REQ-001, REQ-004, REQ-008 — mirrors start()'s
@@ -1214,7 +1782,9 @@ export function createSession(
     // practice.tuner/REQ-001/S3 — nothing sounds while the tuner listens.
     if (tunerActive) return;
     if (droneOn) return;
-    if (transport.kind !== "idle") stop();
+    // practice.session/REQ-015/S5 — the drone switched on during a lead run
+    // stops it first (idle, the microphone released), then sounds.
+    stopAnyRun();
     invalidateSnapshot();
     // practice.drone/REQ-008/S2 — a retry clears the stale notice up front,
     // mirroring start(): a successful sound.start() below never re-sets it,
@@ -1361,6 +1931,9 @@ export function createSession(
     // practice.tuner/REQ-001/S3 — nothing sounds while the tuner listens.
     if (tunerActive) return;
     if (transport.kind !== "idle") return;
+    // practice.session/REQ-013/S5 — a lead run in progress (listening, or
+    // still requesting the microphone) ignores a tap too.
+    if (listeningOwner === "lead") return;
     const target = run[runIndex];
     if (target === undefined) return;
 
@@ -1379,18 +1952,11 @@ export function createSession(
     // cast.
     function post(note: Note): void {
       const tag = nextTapTag();
-      const onsetFrame = sound.currentFrame() + firstTickLeadFrames();
-      sound.post({
-        kind: "tone",
-        tag,
-        hz: pitchHzOf(note),
-        onsetFrame,
-        durationFrames: tickFramesOf(),
-      });
+      const beatMs = (tickFramesOf() * 1000) / sound.sampleRate();
+      const onsetFrame = scheduleOneTone(pitchHzOf(note), beatMs, tag);
       tappedTag = tag;
 
       const msUntilOnset = msUntilAudible(onsetFrame);
-      const beatMs = (tickFramesOf() * 1000) / sound.sampleRate();
 
       tapHighlightCancel = clock.setTimeout(() => {
         tapHighlightCancel = null;
@@ -1447,6 +2013,59 @@ export function createSession(
     })();
   }
 
+  // practice.session/REQ-015, REQ-022 — a finished lead run's card (complete,
+  // or the no-mic card) goes back to the I lead idle state: the phase idle
+  // and listening off, so the cannot-hear reason goes with it.
+  function clearLeadCard(): void {
+    leadPhase = { kind: "idle" };
+    leadListeningState = { kind: "off" };
+  }
+
+  // practice.session/REQ-019 — a key, variant, scale or traversal change
+  // mid-run restarts the lead run on the new sequence from its first note at
+  // once, still listening, with the hold at zero: `TargetAdvanced` emitted
+  // for the new first target, the smoothing reset, listening left entirely
+  // untouched (no stop/start of its own). A `complete` card clears to idle
+  // here too (REQ-015: "until … the mode, key, variant, scale or traversal
+  // changes") — folded into this one lead-aware branch (rather than its own
+  // `clearCompleteLeadCard()` called after `restartIfPlaying()`, T007's
+  // shape) because recomputeAndRetune() has already rebuilt `sequence` by
+  // the time this runs, so the new first target is read from the one fresh
+  // sequence rather than needing a second invalidateSnapshot() to undo a
+  // stale cache `restartIfPlaying()`'s own notifyChange() would otherwise
+  // have left behind.
+  function restartLeadIfRunning(): void {
+    if (leadPhase.kind === "complete") {
+      clearLeadCard();
+      return;
+    }
+    if (leadPhase.kind !== "listening") return;
+    invalidateSnapshot();
+    leadSmoothing = initialSmoothingState;
+    cancelLeadTimers();
+    leadReading = null;
+    stopCueIfSounding();
+    clearLeadJustHeld();
+    const target = targetAt(sequence, 1);
+    leadPhase = {
+      kind: "listening",
+      target,
+      hold: emptyHold,
+      mutedUntilMs: null,
+    };
+    const advancedEvent: TargetAdvanced = {
+      note: target.note,
+      position: 1,
+      length: sequence.length,
+      atFrame: listening.currentFrame(),
+    };
+    for (const listener of targetAdvancedListeners) listener(advancedEvent);
+    // practice.session/REQ-018, REQ-019 — "a cue changes THE SYSTEM SHALL
+    // apply it at once": the restarted run's own first target gets the cue
+    // too, the same as startLead()'s.
+    armCueTone(target);
+  }
+
   function restartIfPlaying(): void {
     // practice.session/REQ-013 — a recompute (setContext/setTraversal/
     // setScaleChoice, all of which call this) can change what a run index
@@ -1454,6 +2073,7 @@ export function createSession(
     // — before the "only while playing" guard below, since a tap only ever
     // sounds while idle.
     endTapIfSounding();
+    restartLeadIfRunning();
     if (transport.kind !== "playing") return;
     invalidateSnapshot();
     // The superseded sequence's tones and clicks already posted inside the
@@ -1484,6 +2104,7 @@ export function createSession(
     // so there is nothing to re-sync here.
     recomputeAndRetune();
     restartIfPlaying();
+    invalidateSnapshot();
     notifyChange();
   }
 
@@ -1492,6 +2113,7 @@ export function createSession(
     currentTraversal = newTraversal;
     recomputeAndRetune();
     restartIfPlaying();
+    invalidateSnapshot();
     notifyChange();
   }
 
@@ -1500,12 +2122,41 @@ export function createSession(
     currentScaleChoice = choice;
     recomputeAndRetune();
     restartIfPlaying();
+    invalidateSnapshot();
     notifyChange();
   }
 
   function setSettings(newSettings: SessionSettings): void {
     invalidateSnapshot();
+    // practice.session/REQ-014/S3 — changing who leads while a run (playback
+    // or a lead run) is in progress stops it first and shows the new mode
+    // idle, rather than leaving the old run going under the new mode's
+    // settings. A run in progress either side of the switch: the transport
+    // not idle (play along) or listeningOwner "lead" (a lead run listening,
+    // or still asking to).
+    if (
+      newSettings.lead.who !== currentSettings.lead.who &&
+      (transport.kind !== "idle" || listeningOwner === "lead")
+    ) {
+      stop();
+    }
+    // practice.session/REQ-014, REQ-015, REQ-022 — a complete or cannot-hear
+    // card has no run (listeningOwner "none"), so the stop above never
+    // reaches it; a changed mode clears it, in both directions. A `who`
+    // that did not change leaves it (REQ-019: the sheet's other settings
+    // never clear it).
+    if (
+      newSettings.lead.who !== currentSettings.lead.who &&
+      leadPhase.kind !== "idle"
+    ) {
+      clearLeadCard();
+    }
     currentSettings = newSettings;
+    // stop() above (when called) already rebuilt and cached a snapshot of
+    // its own, from the *old* settings — invalidated again here so the
+    // notifyChange() below reads one built from the settings just stored,
+    // not stop()'s stale one.
+    invalidateSnapshot();
     notifyChange();
   }
 
@@ -1520,16 +2171,36 @@ export function createSession(
       : reason;
   }
 
+  // listening.pitch-detection/REQ-001/S3 — whether anything now wants the
+  // microphone: a lead run asking for or holding it, or the tuner asking for
+  // or holding it (a hidden tuner keeps `tunerActive` but is "off" — it wants
+  // nothing until shown again). A superseded request whose microphone opens
+  // after it was superseded releases it only when this is false: a newer
+  // request may be pending, or already running, on the very same microphone,
+  // and a stop() would take that one away (or, in the adapter, discard it).
+  function microphoneWanted(): boolean {
+    return (
+      listeningOwner === "lead" ||
+      (tunerActive &&
+        (tunerListeningState.kind === "starting" ||
+          tunerListeningState.kind === "listening"))
+    );
+  }
+
   // practice.tuner/REQ-001, REQ-008 — the shared second half of "starting
   // to listen": state → "starting", notify, then request the microphone;
   // settles on "listening" or "cannot-hear" once it resolves, unless
   // `tunerGeneration` has moved past `generation` in the meantime (a
   // leaveTuner() or a hidden event landing mid-await), in which case
-  // whatever was just opened is released again instead — safe either way, a
-  // no-op if start() failed. Shared by enterTuner() (called once its own
-  // wakeLock.acquire() await has settled) and the onShown handler above
-  // (REQ-008/S1: resumes listening without a tap; the wake lock is
-  // untouched here — it was never released while hidden).
+  // whatever was just opened is released again instead — unless a newer
+  // request wants the microphone (`microphoneWanted()`), in which case it is
+  // that request's. A request that itself fails also calls stop(): an
+  // earlier, superseded request may have opened the microphone and been kept
+  // for this one, which will now never use it — a no-op when nothing is
+  // open. Shared by enterTuner() (called once its own wakeLock.acquire()
+  // await has settled) and the onShown handler above (REQ-008/S1: resumes
+  // listening without a tap; the wake lock is untouched here — it was never
+  // released while hidden).
   function startListening(generation: number): void {
     invalidateSnapshot();
     tunerListeningState = { kind: "starting" };
@@ -1538,10 +2209,11 @@ export function createSession(
     void (async () => {
       const result = await listening.start();
       if (tunerGeneration !== generation) {
-        listening.stop();
+        if (!microphoneWanted()) listening.stop();
         return;
       }
       invalidateSnapshot();
+      if (!result.ok) listening.stop();
       tunerListeningState = result.ok
         ? { kind: "listening" }
         : {
@@ -1552,6 +2224,128 @@ export function createSession(
     })();
   }
 
+  // practice.tuner/REQ-001, REQ-008; practice.session/REQ-015 — the shared
+  // "wait for the wake lock, then ask to listen" trampoline both
+  // enterTuner() and startLead() run after committing to a request
+  // (`listeningOwner`/their own generation already set synchronously, before
+  // this is called): once the wake lock resolves, hand off to `onReady` —
+  // unless a later call has superseded this one in the meantime, in which
+  // case `onReady` never runs. `isCurrent` stays each caller's own
+  // generation check (tunerGeneration/leadGeneration) rather than folding
+  // into `owner` alone: a *second* call for the same owner (a second
+  // enterTuner(), say) must supersede the first just as surely as the other
+  // subsystem taking over would, and only the caller's own generation
+  // distinguishes those two from one another.
+  function requestListening(
+    owner: "tuner" | "lead",
+    isCurrent: () => boolean,
+    onReady: () => void,
+  ): void {
+    void (async () => {
+      await wakeLock.acquire();
+      if (listeningOwner !== owner || !isCurrent()) return;
+      onReady();
+    })();
+  }
+
+  // practice.session/REQ-015 — the "me" branch of start(): stop the drone if
+  // it sounds, then ask to listen exactly as enterTuner() does below (the
+  // microphone is asked for "at that moment", never before) — a no-op on an
+  // empty sequence (REQ-015/S8) or while a lead run is already listening or
+  // still asking to (guarded by `listeningOwner`, since LeadPhase itself has
+  // no "starting" of its own — `leadListeningState` carries that instead,
+  // the same split as TunerSnapshot's `active`/`listening`).
+  function startLead(): void {
+    if (sequence.length === 0) return;
+    if (listeningOwner === "lead") return;
+    // practice.session/REQ-015/S6 — "no sequence note, click, drone or
+    // tapped note" sounds while a lead run is in progress: a tap only ever
+    // sounds while idle, which a lead run starting from idle does not by
+    // itself end — found by this task's widened never-both enumeration
+    // (tapNote → start-as-me). Bumping tapGeneration too supersedes a tap
+    // still only pending (awaiting sound.start()), the same reasoning as
+    // enterTuner()'s own bump.
+    endTapIfSounding();
+    tapGeneration += 1;
+    // practice.session/REQ-015/S5 — the drone goes first: bumped
+    // unconditionally, before the conditional stopDrone() — mirrors
+    // stopAnyRun()'s own unconditional bump (the open note from T005): a
+    // startDrone() that is only still pending (droneOn still false,
+    // awaiting sound.start()/wakeLock.acquire()) must be superseded too, or
+    // its continuation would post a drone under the lead run just starting.
+    droneGeneration += 1;
+    if (droneOn) stopDrone();
+    invalidateSnapshot();
+    listeningOwner = "lead";
+    leadListeningState = { kind: "starting" };
+    leadGeneration += 1;
+    const startedAtGeneration = leadGeneration;
+    notifyChange();
+
+    requestListening(
+      "lead",
+      () => leadGeneration === startedAtGeneration,
+      () => {
+        void (async () => {
+          const result = await listening.start();
+          if (
+            listeningOwner !== "lead" ||
+            leadGeneration !== startedAtGeneration
+          ) {
+            // Superseded (a stop() or a second startLead()) while the
+            // microphone was being asked for — if it actually opened, hand
+            // it straight back rather than leaving it open under nobody's
+            // name, unless a newer request now wants it (a start, stop,
+            // start: the microphone is that request's, not this one's).
+            if (result.ok && !microphoneWanted()) listening.stop();
+            return;
+          }
+          invalidateSnapshot();
+          if (result.ok) {
+            leadListeningState = { kind: "listening" };
+            // practice.session/REQ-015/S1 — the first target, pinned the
+            // instant listening actually starts: the "listening" phase and
+            // `TargetAdvanced` arrive together, never one before the other.
+            const target = targetAt(sequence, 1);
+            leadPhase = {
+              kind: "listening",
+              target,
+              hold: emptyHold,
+              mutedUntilMs: null,
+            };
+            const advancedEvent: TargetAdvanced = {
+              note: target.note,
+              position: 1,
+              length: sequence.length,
+              atFrame: listening.currentFrame(),
+            };
+            for (const listener of targetAdvancedListeners) {
+              listener(advancedEvent);
+            }
+            // practice.session/REQ-018 — the tone cue, the first target
+            // included.
+            armCueTone(target);
+          } else {
+            // practice.session/REQ-022 — the attempt ends here rather than
+            // leaving `listeningOwner` claimed: nothing is actually
+            // listening, so the next tap of the start circle must be free
+            // to try again (T009 tests the cannot-hear card itself). The
+            // wake lock was acquired for this attempt alone (nothing else
+            // is sounding or listening at this point) — released the same
+            // way stop()'s lead branch releases it.
+            listeningOwner = "none";
+            listening.stop();
+            const reason = cannotHearReasonOf(result.error.reason);
+            leadListeningState = { kind: "cannot-hear", reason };
+            leadPhase = { kind: "cannot-hear", reason };
+            releaseWakeLockIfSilent();
+          }
+          notifyChange();
+        })();
+      },
+    );
+  }
+
   // practice.tuner/REQ-001 — the way in: stop playback and the drone (never
   // both sounding) before requesting listening, exactly as startDrone()
   // stops playback before requesting sound — same shape, same generation
@@ -1560,9 +2354,9 @@ export function createSession(
   // startListening() above, so a single check after wakeLock.acquire()
   // cannot by itself protect it — a leaveTuner() (or a hidden event) that
   // lands while wakeLock.acquire() is still resolving must stop this
-  // continuation from ever calling startListening() at all (checked here,
-  // before it); one that lands while listening.start() itself is resolving
-  // is caught by startListening()'s own check.
+  // continuation from ever calling startListening() at all (checked by
+  // requestListening(), before it); one that lands while listening.start()
+  // itself is resolving is caught by startListening()'s own check.
   function enterTuner(): void {
     // practice.tuner/REQ-001/S3 — a tapped note is a named way in (its Given
     // lists "a tapped note sounding") and nothing sounds once the tuner
@@ -1578,29 +2372,29 @@ export function createSession(
     // tapGeneration above).
     endTapIfSounding();
     tapGeneration += 1;
-    if (transport.kind !== "idle") stop();
-    // Bumped unconditionally — mirrors start()'s own T022 fix: a
-    // startDrone() that is only still pending (droneOn still false,
-    // awaiting sound.start()/wakeLock.acquire()) is not caught by the
-    // `if (droneOn) stopDrone()` below, since droneOn only flips true once
-    // that call's own post lands; without this, its continuation would
-    // pass its own generation check and post a drone after tunerActive is
-    // already true (found by T013's widened never-both enumeration:
-    // droneOnPending → enterTuner). stopDrone() below bumps it again when
-    // the drone was actually on; a second bump there is harmless.
-    droneGeneration += 1;
-    if (droneOn) stopDrone();
+    // practice.session/REQ-015/S7 — the Tuner pill ends a lead run first,
+    // the same way ■ does; stopAnyRun() also bumps droneGeneration
+    // unconditionally — mirrors start()'s own T022 fix: a startDrone() that
+    // is only still pending (droneOn still false, awaiting
+    // sound.start()/wakeLock.acquire()) is not caught by a plain
+    // `if (droneOn) stopDrone()`, since droneOn only flips true once that
+    // call's own post lands; without the unconditional bump, its
+    // continuation would pass its own generation check and post a drone
+    // after tunerActive is already true (found by T013's widened
+    // never-both enumeration: droneOnPending → enterTuner).
+    stopAnyRun();
     invalidateSnapshot();
     tunerActive = true;
+    listeningOwner = "tuner";
     tunerGeneration += 1;
     const startedAtGeneration = tunerGeneration;
     notifyChange();
 
-    void (async () => {
-      await wakeLock.acquire();
-      if (tunerGeneration !== startedAtGeneration) return;
-      startListening(startedAtGeneration);
-    })();
+    requestListening(
+      "tuner",
+      () => tunerGeneration === startedAtGeneration,
+      () => startListening(startedAtGeneration),
+    );
   }
 
   // practice.tuner/REQ-001/S4 — the way out: release the microphone, forget
@@ -1610,11 +2404,21 @@ export function createSession(
   // continuation cannot overwrite the "off" state this sets with a stale
   // "listening"/"cannot-hear" once it resolves.
   function leaveTuner(): void {
+    // practice.session/REQ-015/S6 — a no-op unless the tuner is actually
+    // active: without this, leaveTuner() called while a lead run owns
+    // listening (never reachable from the UI — entering the tuner always
+    // stops a lead run first, REQ-015/S7 — but found by this task's
+    // widened never-both enumeration: start-as-me → leaveTuner → droneOn)
+    // would clobber `listeningOwner` back to "none" out from under the
+    // still-"listening" lead run, letting startDrone()'s stopAnyRun() guard
+    // (which checks `listeningOwner === "lead"`) miss it entirely.
+    if (!tunerActive) return;
     invalidateSnapshot();
     tunerGeneration += 1;
     listening.stop();
     cancelTunerTimers();
     tunerActive = false;
+    listeningOwner = "none";
     tunerListeningState = { kind: "off" };
     tunerTarget = { kind: "auto" };
     clearTunerReading();
@@ -1726,6 +2530,8 @@ export function createSession(
     stopDrone();
     // practice.tuner/REQ-001 — release the microphone too, the same reason.
     if (tunerActive) listening.stop();
+    // practice.session/REQ-015 — and a lead run's, the same reason.
+    if (listeningOwner === "lead") listening.stop();
     sound.dispose();
     changeListeners.clear();
     targetAdvancedListeners.clear();

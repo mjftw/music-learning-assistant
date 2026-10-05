@@ -25,6 +25,8 @@ verified:
     at: 2026-09-26T12:17:08Z
   - by: human:merlin-webster
     at: 2026-09-29T22:20:41Z
+  - by: human:merlin-webster
+    at: 2026-10-05T12:59:36Z
 sdd_phase: approved
 ---
 
@@ -56,11 +58,16 @@ sdd_phase: approved
 | NoteSequence | `theory` | The concrete list of notes produced by fitting a traversal to an instrument's range, in playing order with direction applied (a ↑↓ run of 8 notes is a 15-note sequence) | Traversal — the recipe, not the result; the run — the ascending set the stave shows | domain map; 003-hear-the-scale |
 | Traversal | `theory` | How a scale or arpeggio is walked: direction (↑, ↓ or ↑↓), octaves (1–4 whole octaves from the lowest fitting tonic, or the full range) and shape (scale or arpeggio) — the recipe for the NoteSequence | NoteSequence — the resulting notes; Session settings — how the sequence is played | intent-product; widened in 003-hear-the-scale |
 | Session | `practice` | One run of practising: instrument, key, traversal, mode, tempo, the session settings, and the position within the sequence | — | domain map |
-| Mode | `practice` | Who leads: tool leads (it plays, learner follows) or learner leads (it shows the target, listens, advances) | Musical mode (Dorian etc.) — used since 005-scale-selection as Scale catalogue entries; still a different word: Mode is who leads, Scale is what is played | intent-product |
+| Mode | `practice` | Who leads: tool leads (it plays, learner follows) or learner leads (it shows the target, listens, advances) | Musical mode (Dorian etc.) — used since 005-scale-selection as Scale catalogue entries; still a different word: Mode is who leads, Scale is what is played. On screen the two modes read "play along" and "I lead" | intent-product; 008-learner-leads |
 | Target note | `practice` | The note the learner should be playing right now; in the tuner it is the nearest note unless one is pinned | — | domain map; 007-hear-me |
 | Tuner | UI | The screen that listens and shows the detected pitch against the nearest or a pinned note | Drone — sounds a note for the learner to match; the tuner only listens | 007-hear-me |
 | Nearest note | `theory` | The note whose pitch under the temperament is closest to a detected pitch, with the offset in cents | Target note — what the pitch is measured from; the two differ once a target is pinned | 007-hear-me |
-| In-tune band | `practice` | The ±5 ¢ within which a judgement is in tune | In tune — the verdict itself | 007-hear-me |
+| In-tune band | `practice` | The offset within which a judgement is in tune: ±5 ¢ on the tuner; the chosen tolerance in a lead run | In tune — the verdict itself | 007-hear-me; 008-learner-leads |
+| Lead run | `practice` | One pass of learner-leads mode: the tool shows each target note of the sequence in turn, listens, and advances when the note has been held | Playback — the tool's own run in play along; a lead run sounds nothing but an optional tone cue | 008-learner-leads |
+| Hold | `practice` | The beats a note must stay in tune before the target advances (1, 2 or 4, timed at the tempo); also the time so far, which builds while in tune, resets on leaving the band and pauses in silence | Held — the outcome once the hold is complete; Hold on the tuner — pinning the target note | 008-learner-leads |
+| Tolerance | `practice` | How close counts as in tune in a lead run: lenient ±15 ¢, medium ±10 ¢, accurate ±5 ¢ | In-tune band — the band the tolerance sets; the tuner's is fixed | 008-learner-leads |
+| Cue | `practice` | What a lead run gives the learner beyond the highlighted target: the meter on the note, the tone, both or neither | Count-in — playback's bar of clicks | 008-learner-leads |
+| Tone cue | `practice` | The target note sounded briefly by the tool as it becomes the target; never judged as the learner's playing | Tapped note — sounded on demand while idle; Drone — a note that does not end | 008-learner-leads |
 | Tempo | `practice` | The speed notes are played or expected, as chosen for the session | — | intent-product |
 | Session setting | `practice` | How the sequence is played, as distinct from which notes: sound mode (notes, both, metronome), loop, count-in, rest bar, tempo | Traversal — which notes | 003-hear-the-scale |
 | Count-in | `practice` | One bar of four clicks, counted down before the first note of a run | Rest bar — between loops | 003-hear-the-scale |

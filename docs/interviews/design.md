@@ -221,6 +221,29 @@ recorded as an accepted exception. Offered alongside: choose; build the
 **Became:** `docs/design.md` §8, §9, Refinement log (v1.1.0);
 `changes/007-hear-me/design/rounds.md` › Exit
 
+### Q13: 008 at converge (sdd-design D) — the mode words on the live lead card
+**Recommended:** Keep the words: the approved spec says the card carries
+"play along / I lead" in every state (REQ-014, REQ-002; decided
+2026-10-02), and switching mode mid-run stays one tap; the prototype's
+live card draws none, so ours is about 40 px taller. Offered alongside:
+drop them while leading (a spec amendment and one more task).
+**Answer:** Keep the words (Recommended).
+**Status:** decided
+**Became:** `docs/design.md` §9 "A card keeps one structure in every
+state"; converge-1's W2 accepted by name
+
+### Q14: 008 exit (sdd-design D) — what is promoted to docs/design.md
+**Recommended:** Promote all: `paper.pillInk`, `lead.holdFill`, the Tuner
+glyph's two colours, the `modeWords` / `leadCard` / `noteMeter` /
+`sheetRow` metric groups, radii 3 and 1, the meter line's motion;
+patterns "The reading is on the note", "A card keeps one structure in
+every state", "A sheet never changes height". Offered alongside: review
+the list first.
+**Answer:** Promote all (Recommended).
+**Status:** decided
+**Became:** `docs/design.md` §8, §9, Refinement log (v1.2.0);
+`changes/008-learner-leads/design/rounds.md` › Exit
+
 ## Not asked
 
 > Questions the interview deliberately skipped, and why (already decided in

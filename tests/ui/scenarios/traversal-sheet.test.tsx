@@ -43,6 +43,7 @@ test("practice.session/REQ-001/S1 (UI) — Octaves offers a pill for each fittin
       effectiveOctaves={{ kind: "count", count: 2 }}
       fittingCounts={[1, 2, 3]}
       settings={baseSettings()}
+      tempoBpm={96}
       onTraversal={noop}
       onSettings={noop}
       onClose={noop}
@@ -67,6 +68,7 @@ test("practice.session/REQ-001/S1 (UI) — Octaves offers a pill for each fittin
       effectiveOctaves={{ kind: "full" }}
       fittingCounts={[]}
       settings={baseSettings()}
+      tempoBpm={96}
       onTraversal={noop}
       onSettings={noop}
       onClose={noop}
@@ -91,6 +93,7 @@ test("practice.session/REQ-001/S1 (UI) — picking full, ↓ and arpeggio calls 
       effectiveOctaves={effectiveOctaves}
       fittingCounts={[1, 2, 3]}
       settings={baseSettings()}
+      tempoBpm={96}
       onTraversal={onTraversal}
       onSettings={noop}
       onClose={noop}
@@ -128,18 +131,19 @@ test("practice.session/REQ-003 (UI) — the settings pills and toggles call onSe
       effectiveOctaves={defaultTraversal.octaves}
       fittingCounts={[1]}
       settings={settings}
+      tempoBpm={96}
       onTraversal={noop}
       onSettings={onSettings}
       onClose={noop}
     />,
   );
 
-  const countInButton = screen.getByRole("button", { name: "count-in" });
-  expect(countInButton.getAttribute("aria-pressed")).toBe("true");
+  const countInSwitch = screen.getByRole("switch", { name: "Count-in" });
+  expect(countInSwitch.getAttribute("aria-checked")).toBe("true");
 
   await userEvent.click(screen.getByRole("button", { name: "metronome" }));
-  await userEvent.click(screen.getByRole("button", { name: "rest bar" }));
-  await userEvent.click(countInButton);
+  await userEvent.click(screen.getByRole("switch", { name: "Rest bar" }));
+  await userEvent.click(countInSwitch);
 
   expect(onSettings).toHaveBeenNthCalledWith(1, {
     ...settings,
@@ -182,6 +186,7 @@ test("practice.session/REQ-001/S5 — arpeggio unavailable in the Traversal shee
       effectiveOctaves={{ kind: "count", count: 1 }}
       fittingCounts={[1, 2]}
       settings={baseSettings()}
+      tempoBpm={96}
       onTraversal={onTraversal}
       onSettings={noop}
       onClose={noop}
@@ -206,6 +211,7 @@ test("practice.session/REQ-012/S3 (UI) — an offered arpeggio is pressable agai
       effectiveOctaves={{ kind: "count", count: 1 }}
       fittingCounts={[1, 2]}
       settings={baseSettings()}
+      tempoBpm={96}
       onTraversal={onTraversal}
       onSettings={noop}
       onClose={noop}

@@ -103,16 +103,22 @@ export function OverlayScrim(props: {
   );
 }
 
-function OverlayCloseButton(props: {
+// Exported (beyond OverlayHeader's own use) for the Traversal sheet's
+// Who-leads row, which has no title row to host it (C008_T016,
+// practice.session/REQ-020) — the same 28 px circle, reused rather than
+// duplicated.
+export function OverlayCloseButton(props: {
   readonly ariaLabel: string;
   readonly onClose: () => void;
+  readonly testId?: string;
 }): JSX.Element {
-  const { ariaLabel, onClose } = props;
+  const { ariaLabel, onClose, testId } = props;
 
   return (
     <button
       type="button"
       aria-label={ariaLabel}
+      data-testid={testId}
       onClick={onClose}
       style={{
         width: CLOSE_SIZE,

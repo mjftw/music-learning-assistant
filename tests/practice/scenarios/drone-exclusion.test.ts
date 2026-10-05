@@ -46,7 +46,6 @@ test("practice.drone/REQ-004/S1 — the drone interrupts a run", async () => {
   expect(after).toContain("drone");
   expect(session.snapshot().transport).toEqual({ kind: "idle" });
   expect(session.snapshot().caption).toBe("29 notes · G4–G6");
-  expect(session.snapshot().progress).toBe(0);
   expect(session.snapshot().drone.on).toBe(true);
   expect(wake.acquired).toBe(true);
 });

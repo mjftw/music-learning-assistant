@@ -1,6 +1,6 @@
 # Tasks: 005-scale-selection
 
-Generated from each task's frontmatter. Next: `./scripts/task.sh changes/archive/005-scale-selection next` → none
+Generated from each task's frontmatter. Next: `./scripts/task.py changes/archive/005-scale-selection next` → none
 
 | Task | Status | Depends on | Requirements | Group | Attempts | Outcome |
 |---|---|---|---|---|---|---|

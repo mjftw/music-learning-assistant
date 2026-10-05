@@ -1,0 +1,77 @@
+# Task attempts: 008-learner-leads
+
+- [C008_T007 — implementation report](C008_T007-report-1.md) — Implementation Report
+- [C008_T007 — implementation report](C008_T007-report-2.md) — Implementation Report
+- [Review package — C008_T007 · 008-learner-leads](C008_T007-review-1.md) — Task Review — The diff produced for C008_T007, with its Verify and check output, for the task reviewer.
+- [Review package — C008_T007 · 008-learner-leads](C008_T007-review-2.md) — Task Review — The diff produced for C008_T007, with its Verify and check output, for the task reviewer.
+- [C008_T008 — implementation report](C008_T008-report-1.md) — Implementation Report
+- [Review package — C008_T008 · 008-learner-leads](C008_T008-review-1.md) — Task Review — The diff produced for C008_T008, with its Verify and check output, for the task reviewer.
+- [C008_T009 — implementation report](C008_T009-report-1.md) — Implementation Report
+- [Review package — C008_T009 · 008-learner-leads](C008_T009-review-1.md) — Task Review — The diff produced for C008_T009, with its Verify and check output, for the task reviewer.
+- [C008_T010 — implementation report](C008_T010-report-1.md) — Implementation Report
+- [Review package — C008_T010 · 008-learner-leads](C008_T010-review-1.md) — Task Review — The diff produced for C008_T010, with its Verify and check output, for the task reviewer.
+- [C008_T011 — implementation report](C008_T011-report-1.md) — Implementation Report
+- [Review package — C008_T011 · 008-learner-leads](C008_T011-review-1.md) — Task Review — The diff produced for C008_T011, with its Verify and check output, for the task reviewer.
+- [C008_T012 — implementation report](C008_T012-report-1.md) — Implementation Report
+- [Review package — C008_T012 · 008-learner-leads](C008_T012-review-1.md) — Task Review — The diff produced for C008_T012, with its Verify and check output, for the task reviewer.
+- [C008_T013 — implementation report](C008_T013-report-1.md) — Implementation Report
+- [C008_T013 — implementation report](C008_T013-report-2.md) — Implementation Report
+- [Review package — C008_T013 · 008-learner-leads](C008_T013-review-1.md) — Task Review — The diff produced for C008_T013, with its Verify and check output, for the task reviewer.
+- [Review package — C008_T013 · 008-learner-leads](C008_T013-review-2.md) — Task Review — The diff produced for C008_T013, with its Verify and check output, for the task reviewer.
+- [C008_T014 — implementation report](C008_T014-report-1.md) — Implementation Report
+- [C008_T014 — implementation report](C008_T014-report-2.md) — Implementation Report
+- [C008_T014 — implementation report](C008_T014-report-3.md) — Implementation Report
+- [Review package — C008_T014 · 008-learner-leads](C008_T014-review-1.md) — Task Review — The diff produced for C008_T014, with its Verify and check output, for the task reviewer.
+- [Review package — C008_T014 · 008-learner-leads](C008_T014-review-2.md) — Task Review — The diff produced for C008_T014, with its Verify and check output, for the task reviewer.
+- [Review package — C008_T014 · 008-learner-leads](C008_T014-review-3.md) — Task Review — The diff produced for C008_T014, with its Verify and check output, for the task reviewer.
+- [C008_T015 — implementation report](C008_T015-report-1.md) — Implementation Report
+- [Review package — C008_T015 · 008-learner-leads](C008_T015-review-1.md) — Task Review — The diff produced for C008_T015, with its Verify and check output, for the task reviewer.
+- [Review package — C008_T015 · 008-learner-leads](C008_T015-review-2.md) — Task Review — The diff produced for C008_T015, with its Verify and check output, for the task reviewer.
+- [C008_T016 — implementation report](C008_T016-report-1.md) — Implementation Report
+- [Review package — C008_T016 · 008-learner-leads](C008_T016-review-1.md) — Task Review — The diff produced for C008_T016, with its Verify and check output, for the task reviewer.
+- [C008_T017 — implementation report](C008_T017-report-1.md) — Implementation Report
+- [Review package — C008_T017 · 008-learner-leads](C008_T017-review-1.md) — Task Review — The diff produced for C008_T017, with its Verify and check output, for the task reviewer.
+- [C008_T018 — implementation report](C008_T018-report-1.md) — Implementation Report
+- [Review package — C008_T018 · 008-learner-leads](C008_T018-review-1.md) — Task Review — The diff produced for C008_T018, with its Verify and check output, for the task reviewer.
+- [C008_T019 — implementation report](C008_T019-report-1.md) — Implementation Report
+- [C008_T019 — implementation report (fixer round)](C008_T019-report-2.md) — Implementation Report
+- [Review package — C008_T019 · 008-learner-leads](C008_T019-review-1.md) — Task Review — The diff produced for C008_T019, with its Verify and check output, for the task reviewer.
+- [Review package — C008_T019 · 008-learner-leads](C008_T019-review-2.md) — Task Review — The diff produced for C008_T019, with its Verify and check output, for the task reviewer.
+- [C008_T020 — implementation report](C008_T020-report-1.md) — Implementation Report
+- [Review package — C008_T020 · 008-learner-leads](C008_T020-review-1.md) — Task Review — The diff produced for C008_T020, with its Verify and check output, for the task reviewer.
+- [C008_T021 — implementation report](C008_T021-report-1.md) — Implementation Report
+- [C008_T021 — implementation report](C008_T021-report-2.md) — Implementation Report
+- [Review package — C008_T021 · 008-learner-leads](C008_T021-review-1.md) — Task Review — The diff produced for C008_T021, with its Verify and check output, for the task reviewer.
+- [Review package — C008_T021 · 008-learner-leads](C008_T021-review-2.md) — Task Review — The diff produced for C008_T021, with its Verify and check output, for the task reviewer.
+- [C008_T022 — implementation report](C008_T022-report-1.md) — Implementation Report
+- [Review package — C008_T022 · 008-learner-leads](C008_T022-review-1.md) — Task Review — The diff produced for C008_T022, with its Verify and check output, for the task reviewer.
+- [C008_T023 — implementation report](C008_T023-report-1.md) — Implementation Report
+- [Review package — C008_T023 · 008-learner-leads](C008_T023-review-1.md) — Task Review — The diff produced for C008_T023, with its Verify and check output, for the task reviewer.
+- [C008_T024 — implementation report](C008_T024-report-1.md) — Implementation Report
+- [Review package — C008_T024 · 008-learner-leads](C008_T024-review-1.md) — Task Review — The diff produced for C008_T024, with its Verify and check output, for the task reviewer.
+- [C008_T025 — implementation report](C008_T025-report-1.md) — Implementation Report
+- [Review package — C008_T025 · 008-learner-leads](C008_T025-review-1.md) — Task Review — The diff produced for C008_T025, with its Verify and check output, for the task reviewer.
+- [C008_T026 — implementation report](C008_T026-report-1.md) — Implementation Report
+- [Review package — C008_T026 · 008-learner-leads](C008_T026-review-1.md) — Task Review — The diff produced for C008_T026, with its Verify and check output, for the task reviewer.
+- [C008_T027 — implementation report](C008_T027-report-1.md) — Implementation Report
+- [Review package — C008_T027 · 008-learner-leads](C008_T027-review-1.md) — Task Review — The diff produced for C008_T027, with its Verify and check output, for the task reviewer.
+- [C008_T028 — implementation report](C008_T028-report-1.md) — Implementation Report
+- [Review package — C008_T028 · 008-learner-leads](C008_T028-review-1.md) — Task Review — The diff produced for C008_T028, with its Verify and check output, for the task reviewer.
+- [C008_T029 — implementation report](C008_T029-report-1.md) — Implementation Report
+- [Review package — C008_T029 · 008-learner-leads](C008_T029-review-1.md) — Task Review — The diff produced for C008_T029, with its Verify and check output, for the task reviewer.
+- [C008_T030 — implementation report](C008_T030-report-1.md) — Implementation Report
+- [C008_T030 — implementation report](C008_T030-report-2.md) — Implementation Report
+- [Review package — C008_T030 · 008-learner-leads](C008_T030-review-1.md) — Task Review — The diff produced for C008_T030, with its Verify and check output, for the task reviewer.
+- [Review package — C008_T030 · 008-learner-leads](C008_T030-review-2.md) — Task Review — The diff produced for C008_T030, with its Verify and check output, for the task reviewer.
+- [T001 — implementation report](T001-report-1.md) — Implementation Report
+- [Review package — T001 · 008-learner-leads](T001-review-1.md) — Task Review — The diff produced for T001, for the task reviewer.
+- [T002 — implementation report](T002-report-1.md) — Implementation Report
+- [Review package — T002 · 008-learner-leads](T002-review-1.md) — Task Review — The diff produced for T002, for the task reviewer.
+- [T003 — implementation report](T003-report-1.md) — Implementation Report
+- [Review package — T003 · 008-learner-leads](T003-review-1.md) — Task Review — The diff produced for T003, for the task reviewer.
+- [T004 — implementation report](T004-report-1.md) — Implementation Report
+- [Review package — T004 · 008-learner-leads](T004-review-1.md) — Task Review — The diff produced for T004, for the task reviewer.
+- [T005 — implementation report](T005-report-1.md) — Implementation Report
+- [Review package — T005 · 008-learner-leads](T005-review-1.md) — Task Review — The diff produced for T005, for the task reviewer.
+- [T006 — implementation report](T006-report-1.md) — Implementation Report
+- [Review package — T006 · 008-learner-leads](T006-review-1.md) — Task Review — The diff produced for T006, for the task reviewer.

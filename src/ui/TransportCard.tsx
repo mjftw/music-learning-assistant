@@ -1,6 +1,8 @@
 import type { CSSProperties, JSX } from "react";
-import type { SessionSnapshot } from "../practice/published";
-import { fonts, paper } from "./theme";
+import type { LeadTarget, SessionSnapshot, Who } from "../practice/published";
+import { pitchClassLabel, pitchHzOf } from "../theory/published";
+import { judgementLabelOf } from "./cents-label";
+import { fonts, leadCard, modeWords, paper } from "./theme";
 
 // Geometry and colour below are copied verbatim from the vendored visual
 // reference's bottom-panel transport card (changes/003-hear-the-scale/
@@ -24,11 +26,6 @@ const MIDDLE_GAP = 7;
 const CAPTION_FONT_SIZE = 10.5;
 const CAPTION_LETTER_SPACING = "0.04em";
 const CAPTION_INK = paper.muted;
-
-const TRACK_HEIGHT = 3;
-const TRACK_RADIUS = 2;
-const TRACK_BACKGROUND = "#e0d7c5";
-const FILL_BACKGROUND = paper.accent;
 
 const RIGHT_GAP = 4;
 
@@ -74,160 +71,549 @@ function isPlaying(transport: SessionSnapshot["transport"]): boolean {
   return transport.kind !== "idle";
 }
 
+// practice.session/REQ-014 — the Tuner glyph (three bars) drawn in the
+// start circle while I lead is idle, in place of ▶. Rendered at every
+// state — hidden (not unmounted) when not shown — so the card's DOM
+// structure (practice.session/REQ-002/S5) never gains or loses a node as
+// the mode or transport state changes; its bars carry no text, so hiding
+// it this way never affects another element's textContent. Three bare
+// bars, bottom-aligned, the outer two dimmer than the centre.
+function TunerGlyph(props: { readonly visible: boolean }): JSX.Element {
+  return (
+    <div
+      data-testid="tuner-glyph"
+      style={{
+        display: props.visible ? "flex" : "none",
+        alignItems: "flex-end",
+        gap: modeWords.glyphGap,
+      }}
+    >
+      {modeWords.glyphHeights.map((height, index) => (
+        <div
+          key={index}
+          style={{
+            width: modeWords.glyphBar,
+            height,
+            background:
+              index === 1 ? modeWords.glyphCentre : modeWords.glyphOuter,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// practice.session/REQ-014 — the two mode words beneath the caption, in
+// place of the progress bar, in every transport state.
+function ModeWords(props: {
+  readonly who: Who;
+  readonly onWho: (who: Who) => void;
+}): JSX.Element {
+  const { who, onWho } = props;
+  return (
+    <div style={{ display: "flex", gap: modeWords.gap }}>
+      <ModeWord
+        testId="mode-word-tool"
+        label="play along"
+        selected={who === "tool"}
+        onClick={() => onWho("tool")}
+      />
+      <ModeWord
+        testId="mode-word-me"
+        label="I lead"
+        selected={who === "me"}
+        onClick={() => onWho("me")}
+      />
+    </div>
+  );
+}
+
+function ModeWord(props: {
+  readonly testId: string;
+  readonly label: string;
+  readonly selected: boolean;
+  readonly onClick: () => void;
+}): JSX.Element {
+  const { testId, label, selected, onClick } = props;
+  return (
+    <button
+      type="button"
+      data-testid={testId}
+      onClick={onClick}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 0,
+        background: "transparent",
+        border: "none",
+        cursor: "pointer",
+        padding: `${modeWords.padding}px 0`,
+        fontSize: TERM_FONT_SIZE_WORD,
+        fontWeight: TERM_FONT_WEIGHT_WORD,
+        color: selected ? paper.ink : paper.faint,
+      }}
+    >
+      <span>{label}</span>
+      <span
+        style={{
+          marginTop: modeWords.barOffset,
+          width: "100%",
+          height: modeWords.barHeight,
+          borderRadius: modeWords.barHeight / 2,
+          background: selected ? paper.accent : "transparent",
+        }}
+      />
+    </button>
+  );
+}
+
+const TERM_FONT_SIZE_WORD = 12.5;
+const TERM_FONT_WEIGHT_WORD = 600;
+
+const JUDGEMENT_FONT_SIZE = 12.5;
+const JUDGEMENT_FONT_WEIGHT = 600;
+
+const MODE_WORDS_ROW_MARGIN_TOP = 1;
+
+const NO_MIC_TITLE_WEIGHT = 600;
+const NO_MIC_BODY_INK = paper.muted;
+
+// practice.session/REQ-002, REQ-014 — the mode words, in every transport
+// state, as their own sibling row beneath the target line or caption.
+function ModeWordsRow(props: {
+  readonly who: Who;
+  readonly onWho: (who: Who) => void;
+}): JSX.Element {
+  return (
+    <div style={{ marginTop: MODE_WORDS_ROW_MARGIN_TOP }}>
+      <ModeWords who={props.who} onWho={props.onWho} />
+    </div>
+  );
+}
+
+// practice.session/REQ-016, REQ-017 — the judgement line, shared by the
+// idle card's complete sub-caption and the live card's target line.
+function JudgementLine(props: {
+  readonly judgement: { readonly text: string; readonly ink: string };
+}): JSX.Element {
+  return (
+    <div
+      data-testid="judgement"
+      style={{
+        fontSize: JUDGEMENT_FONT_SIZE,
+        fontWeight: JUDGEMENT_FONT_WEIGHT,
+        color: props.judgement.ink,
+      }}
+    >
+      {props.judgement.text}
+    </div>
+  );
+}
+
+// practice.session/REQ-015 — the target's letter, octave and the hidden Hz
+// span, shared by the live card's target line.
+function TargetLetterOctave(props: {
+  readonly target: LeadTarget;
+}): JSX.Element {
+  const { target } = props;
+  return (
+    <>
+      <span
+        data-testid="target-letter"
+        style={{
+          fontFamily: fonts.display,
+          fontSize: leadCard.targetLetterSize,
+          color: paper.accent,
+          lineHeight: 1,
+        }}
+      >
+        {pitchClassLabel(target.note)}
+      </span>
+      <span
+        data-testid="target-octave"
+        style={{
+          fontFamily: fonts.mono,
+          fontSize: leadCard.octaveSize,
+          fontWeight: 600,
+          color: paper.muted,
+        }}
+      >
+        {target.note.octave}
+      </span>
+      <span
+        data-testid="target-hz"
+        aria-hidden="true"
+        style={{ display: "none" }}
+      >
+        {pitchHzOf(target.note).toFixed(1)}
+      </span>
+    </>
+  );
+}
+
+// practice.session/REQ-022 — the no-mic title, in the middle column beside
+// the start circle in place of the caption.
+function NoMicTitle(): JSX.Element {
+  return (
+    <div
+      style={{
+        fontSize: leadCard.noMicTitleSize,
+        fontWeight: NO_MIC_TITLE_WEIGHT,
+        color: paper.ink,
+      }}
+    >
+      Can&apos;t hear — no microphone
+    </div>
+  );
+}
+
+// practice.session/REQ-022 — the no-mic explanation, below the card's top row.
+function NoMicBody(): JSX.Element {
+  return (
+    <div
+      style={{
+        fontSize: leadCard.noMicBodySize,
+        lineHeight: leadCard.noMicLineHeight,
+        color: NO_MIC_BODY_INK,
+      }}
+    >
+      It was refused or isn&apos;t there. Allow the microphone for this site,
+      then press I lead again.
+    </div>
+  );
+}
+
+// practice.session/REQ-015, REQ-017 — the live card's small column beside
+// the target letter: the "<k> of <N>" caption over the judgement.
+function TargetCaptionAndJudgement(props: {
+  readonly caption: string;
+  readonly judgement: { readonly text: string; readonly ink: string } | null;
+}): JSX.Element {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: MIDDLE_GAP,
+        minWidth: 0,
+      }}
+    >
+      <div data-testid="position-caption" style={captionStyle()}>
+        {props.caption}
+      </div>
+      {props.judgement !== null && (
+        <JudgementLine judgement={props.judgement} />
+      )}
+    </div>
+  );
+}
+
+function middleColumnStyle(): CSSProperties {
+  return {
+    display: "flex",
+    flexDirection: "column",
+    gap: MIDDLE_GAP,
+    minWidth: 0,
+    flex: 1,
+  };
+}
+
+// The tempo stepper and term button, shared by every card layout — it never
+// changes with the mode or the lead phase (practice.session/REQ-014:
+// "the page unchanged otherwise").
+function TempoStepper(props: {
+  readonly snapshot: SessionSnapshot;
+  readonly onStepTempo: (delta: -2 | 2) => void;
+  readonly onOpenTempo: () => void;
+}): JSX.Element {
+  const { snapshot, onStepTempo, onOpenTempo } = props;
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: RIGHT_GAP,
+        flex: "none",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: STEPPER_GAP,
+          border: `1px solid ${STEPPER_BORDER}`,
+          borderRadius: 999,
+          padding: STEPPER_PADDING,
+          background: STEPPER_BACKGROUND,
+        }}
+      >
+        <button
+          type="button"
+          aria-label="Slower"
+          onClick={() => onStepTempo(-2)}
+          style={stepButtonStyle()}
+        >
+          −
+        </button>
+        <div
+          style={{
+            fontFamily: fonts.mono,
+            fontSize: TEMPO_FONT_SIZE,
+            fontWeight: TEMPO_FONT_WEIGHT,
+            minWidth: TEMPO_MIN_WIDTH,
+            textAlign: "center",
+            lineHeight: 1,
+          }}
+        >
+          {snapshot.settings.tempoBpm}
+        </div>
+        <button
+          type="button"
+          aria-label="Faster"
+          onClick={() => onStepTempo(2)}
+          style={stepButtonStyle()}
+        >
+          +
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={onOpenTempo}
+        style={{
+          fontSize: TERM_FONT_SIZE,
+          fontWeight: TERM_FONT_WEIGHT,
+          lineHeight: 1,
+          color: TERM_INK,
+          whiteSpace: "nowrap",
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          padding: 0,
+        }}
+      >
+        {snapshot.tempoTerm.name}
+      </button>
+    </div>
+  );
+}
+
+function cardShellColumnStyle(): CSSProperties {
+  return { display: "flex", flexDirection: "column", gap: CARD_GAP };
+}
+
+function cardShellStyle(): CSSProperties {
+  return {
+    display: "flex",
+    flexDirection: "column",
+    gap: CARD_GAP,
+    padding: CARD_PADDING,
+    background: CARD_BACKGROUND,
+    border: CARD_BORDER,
+    borderRadius: CARD_RADIUS,
+  };
+}
+
+// practice.session/REQ-002, REQ-014, REQ-015 — play along idle/playing, and
+// I lead idle and complete: one start circle (▶/❚❚ or the Tuner glyph), one
+// caption, the judgement once complete, and the mode words beneath — always.
+function IdleCard(props: {
+  readonly snapshot: SessionSnapshot;
+  readonly onTogglePlay: () => void;
+  readonly onStepTempo: (delta: -2 | 2) => void;
+  readonly onOpenTempo: () => void;
+  readonly onWho: (who: Who) => void;
+}): JSX.Element {
+  const { snapshot, onTogglePlay, onStepTempo, onOpenTempo, onWho } = props;
+  const playing = isPlaying(snapshot.transport);
+  const complete = snapshot.lead.phase === "complete";
+  const tunerGlyphShown =
+    snapshot.lead.who === "me" && (snapshot.lead.phase === "idle" || complete);
+  const caption = complete
+    ? (snapshot.lead.completeCaption ?? "")
+    : snapshot.lead.phase === "idle" && snapshot.lead.who === "me"
+      ? snapshot.lead.idleCaption
+      : snapshot.caption;
+  const judgement = complete ? judgementLabelOf(snapshot.lead) : null;
+
+  return (
+    <div
+      data-testid="transport-card"
+      style={{
+        ...cardShellStyle(),
+        flexDirection: "row",
+        alignItems: "center",
+      }}
+    >
+      <button
+        type="button"
+        data-testid="start-circle"
+        aria-label={playing ? "Stop" : "Play"}
+        onClick={onTogglePlay}
+        style={circleStyle()}
+      >
+        <TunerGlyph visible={tunerGlyphShown} />
+        {tunerGlyphShown ? null : playing ? "❚❚" : "▶"}
+      </button>
+      <div style={middleColumnStyle()}>
+        <div data-testid="position-caption" style={captionStyle()}>
+          {caption}
+        </div>
+        {judgement !== null && <JudgementLine judgement={judgement} />}
+        <ModeWordsRow who={snapshot.lead.who} onWho={onWho} />
+      </div>
+      <TempoStepper
+        snapshot={snapshot}
+        onStepTempo={onStepTempo}
+        onOpenTempo={onOpenTempo}
+      />
+    </div>
+  );
+}
+
+// practice.session/REQ-015, REQ-017 — the live card: ■ in place of the start
+// circle, the target line (letter, octave, caption and judgement) and the
+// mode words beneath it as their own row, in every state.
+function LiveCard(props: {
+  readonly snapshot: SessionSnapshot;
+  readonly target: LeadTarget;
+  readonly onTogglePlay: () => void;
+  readonly onStepTempo: (delta: -2 | 2) => void;
+  readonly onOpenTempo: () => void;
+  readonly onWho: (who: Who) => void;
+}): JSX.Element {
+  const { snapshot, target, onTogglePlay, onStepTempo, onOpenTempo, onWho } =
+    props;
+  const judgement = judgementLabelOf(snapshot.lead);
+
+  return (
+    <div
+      data-testid="transport-card"
+      style={{
+        ...cardShellStyle(),
+        flexDirection: "row",
+        alignItems: "center",
+      }}
+    >
+      <button
+        type="button"
+        data-testid="stop-circle"
+        aria-label="Stop"
+        onClick={onTogglePlay}
+        style={circleStyle()}
+      >
+        ■
+      </button>
+      <div style={middleColumnStyle()}>
+        <div
+          style={{ display: "flex", alignItems: "baseline", gap: MIDDLE_GAP }}
+        >
+          <TargetLetterOctave target={target} />
+          <TargetCaptionAndJudgement
+            caption={`${target.position} of ${snapshot.sequence.length}`}
+            judgement={judgement}
+          />
+        </div>
+        <ModeWordsRow who={snapshot.lead.who} onWho={onWho} />
+      </div>
+      <TempoStepper
+        snapshot={snapshot}
+        onStepTempo={onStepTempo}
+        onOpenTempo={onOpenTempo}
+      />
+    </div>
+  );
+}
+
+// practice.session/REQ-022 — "Can't hear — no microphone" with its
+// explanation, the start circle and the mode words still shown; nothing
+// modal.
+function NoMicCard(props: {
+  readonly snapshot: SessionSnapshot;
+  readonly onTogglePlay: () => void;
+  readonly onStepTempo: (delta: -2 | 2) => void;
+  readonly onOpenTempo: () => void;
+  readonly onWho: (who: Who) => void;
+}): JSX.Element {
+  const { snapshot, onTogglePlay, onStepTempo, onOpenTempo, onWho } = props;
+
+  return (
+    <div data-testid="transport-card" style={cardShellStyle()}>
+      <div data-testid="no-mic-card" style={cardShellColumnStyle()}>
+        <div style={{ display: "flex", alignItems: "center", gap: CARD_GAP }}>
+          <button
+            type="button"
+            data-testid="start-circle"
+            aria-label="Play"
+            onClick={onTogglePlay}
+            style={circleStyle()}
+          >
+            <TunerGlyph visible />
+          </button>
+          <div style={middleColumnStyle()}>
+            <NoMicTitle />
+            <ModeWordsRow who={snapshot.lead.who} onWho={onWho} />
+          </div>
+          <TempoStepper
+            snapshot={snapshot}
+            onStepTempo={onStepTempo}
+            onOpenTempo={onOpenTempo}
+          />
+        </div>
+        <NoMicBody />
+      </div>
+    </div>
+  );
+}
+
+function circleStyle(): CSSProperties {
+  return {
+    width: PLAY_SIZE,
+    height: PLAY_SIZE,
+    borderRadius: 999,
+    background: PLAY_BACKGROUND,
+    color: PLAY_INK,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: PLAY_FONT_SIZE,
+    fontWeight: PLAY_FONT_WEIGHT,
+    lineHeight: 1,
+    border: "none",
+    cursor: "pointer",
+    padding: 0,
+    flex: "none",
+  };
+}
+
+function captionStyle(): CSSProperties {
+  return {
+    fontFamily: fonts.mono,
+    fontSize: CAPTION_FONT_SIZE,
+    letterSpacing: CAPTION_LETTER_SPACING,
+    color: CAPTION_INK,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  };
+}
+
 export function TransportCard(props: {
   readonly snapshot: SessionSnapshot;
   readonly onTogglePlay: () => void;
   readonly onStepTempo: (delta: -2 | 2) => void;
   readonly onOpenTempo: () => void;
+  readonly onWho: (who: Who) => void;
 }): JSX.Element {
-  const { snapshot, onTogglePlay, onStepTempo, onOpenTempo } = props;
-  const playing = isPlaying(snapshot.transport);
+  const { snapshot } = props;
+  const { lead } = snapshot;
 
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: CARD_GAP,
-        padding: CARD_PADDING,
-        background: CARD_BACKGROUND,
-        border: CARD_BORDER,
-        borderRadius: CARD_RADIUS,
-      }}
-    >
-      <button
-        type="button"
-        aria-label={playing ? "Stop" : "Play"}
-        onClick={onTogglePlay}
-        style={{
-          width: PLAY_SIZE,
-          height: PLAY_SIZE,
-          borderRadius: 999,
-          background: PLAY_BACKGROUND,
-          color: PLAY_INK,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: PLAY_FONT_SIZE,
-          fontWeight: PLAY_FONT_WEIGHT,
-          lineHeight: 1,
-          border: "none",
-          cursor: "pointer",
-          padding: 0,
-          flex: "none",
-        }}
-      >
-        {playing ? "❚❚" : "▶"}
-      </button>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: MIDDLE_GAP,
-          minWidth: 0,
-          flex: 1,
-        }}
-      >
-        <div
-          data-testid="position-caption"
-          style={{
-            fontFamily: fonts.mono,
-            fontSize: CAPTION_FONT_SIZE,
-            letterSpacing: CAPTION_LETTER_SPACING,
-            color: CAPTION_INK,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {snapshot.caption}
-        </div>
-        <div
-          style={{
-            height: TRACK_HEIGHT,
-            borderRadius: TRACK_RADIUS,
-            background: TRACK_BACKGROUND,
-            overflow: "hidden",
-          }}
-        >
-          <div
-            data-testid="progress-fill"
-            style={{
-              height: TRACK_HEIGHT,
-              borderRadius: TRACK_RADIUS,
-              background: FILL_BACKGROUND,
-              width: `${snapshot.progress * 100}%`,
-            }}
-          />
-        </div>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: RIGHT_GAP,
-          flex: "none",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: STEPPER_GAP,
-            border: `1px solid ${STEPPER_BORDER}`,
-            borderRadius: 999,
-            padding: STEPPER_PADDING,
-            background: STEPPER_BACKGROUND,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Slower"
-            onClick={() => onStepTempo(-2)}
-            style={stepButtonStyle()}
-          >
-            −
-          </button>
-          <div
-            style={{
-              fontFamily: fonts.mono,
-              fontSize: TEMPO_FONT_SIZE,
-              fontWeight: TEMPO_FONT_WEIGHT,
-              minWidth: TEMPO_MIN_WIDTH,
-              textAlign: "center",
-              lineHeight: 1,
-            }}
-          >
-            {snapshot.settings.tempoBpm}
-          </div>
-          <button
-            type="button"
-            aria-label="Faster"
-            onClick={() => onStepTempo(2)}
-            style={stepButtonStyle()}
-          >
-            +
-          </button>
-        </div>
-        <button
-          type="button"
-          onClick={onOpenTempo}
-          style={{
-            fontSize: TERM_FONT_SIZE,
-            fontWeight: TERM_FONT_WEIGHT,
-            lineHeight: 1,
-            color: TERM_INK,
-            whiteSpace: "nowrap",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-          }}
-        >
-          {snapshot.tempoTerm.name}
-        </button>
-      </div>
-    </div>
-  );
+  if (lead.phase === "listening" && lead.target !== null) {
+    return <LiveCard {...props} target={lead.target} />;
+  }
+  if (lead.phase === "cannot-hear") {
+    return <NoMicCard {...props} />;
+  }
+  return <IdleCard {...props} />;
 }

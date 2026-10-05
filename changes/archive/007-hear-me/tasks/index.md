@@ -1,6 +1,6 @@
 # Tasks: 007-hear-me
 
-Generated from each task's frontmatter. Next: `./scripts/task.sh changes/archive/007-hear-me next` → C007_T025
+Generated from each task's frontmatter. Next: `./scripts/task.py changes/archive/007-hear-me next` → C007_T025
 
 | Task | Status | Depends on | Requirements | Group | Attempts | Outcome |
 |---|---|---|---|---|---|---|

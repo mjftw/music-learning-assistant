@@ -1,4 +1,5 @@
 import type { JSX } from "react";
+import type { Verdict } from "../practice/published";
 import {
   signatureOf,
   spelledScaleOf,
@@ -9,6 +10,7 @@ import {
   type ScaleNote,
 } from "../theory/published";
 import { pitchClassLabel } from "./key-label";
+import { NoteMeter } from "./NoteMeter";
 import { fonts, paper } from "./theme";
 
 // Mirrors the vendored visual reference's `scale:` mapping in renderVals()
@@ -47,6 +49,12 @@ const DESCENT_SYMBOL = "↓";
 // class (spelling and octave both irrelevant to the names view).
 const SOUNDING_BACKGROUND = "rgba(138,75,42,.10)";
 const SOUNDING_INK = paper.accent;
+
+// practice.session/REQ-017 — while a lead run is in progress, every column
+// but the target's dims (the prototype's `op`); the target itself keeps
+// full opacity and carries the meter.
+const LEAD_OTHER_OPACITY = 0.4;
+const FULL_OPACITY = 1;
 
 interface ColumnData {
   readonly name: string;
@@ -158,6 +166,23 @@ function columnsOf(
   return [...mainColumns, ...descentColumns];
 }
 
+// practice.session/REQ-017 — App resolves a lead run's target (a position
+// in the session's run, with its own octave) down to this view's own
+// column index by the same pitch-class match `isSounding` already uses:
+// the names view shows one octave's worth of columns regardless of how
+// many the run actually traverses.
+export function targetColumnIndexOf(
+  key_: Key,
+  scale: Scale,
+  direction: Direction,
+  pitchClass: PitchClass,
+): number | null {
+  const index = columnsOf(key_, scale, direction, null).findIndex((column) =>
+    samePitchClass(column.pitchClass, pitchClass),
+  );
+  return index === -1 ? null : index;
+}
+
 function nameFontSizeOf(columnCount: number): number {
   if (columnCount <= 7) return NAME_FONT_SIZE_UP_TO_SEVEN_COLUMNS;
   if (columnCount <= 9) return NAME_FONT_SIZE_UP_TO_NINE_COLUMNS;
@@ -172,6 +197,20 @@ export function NamesView(props: {
   readonly soundingPitchClass: PitchClass | null;
   readonly onTapColumn: (pitchClass: PitchClass) => void;
   readonly tapsEnabled: boolean;
+  // practice.session/REQ-017 — the lead run's target, as this view's own
+  // column index (App resolves the session's run position to it via
+  // `targetColumnIndexOf`); null outside a listening lead run.
+  readonly leadTarget?: { readonly runIndex: number } | null;
+  // practice.session/REQ-017 — null when the meter cue is off or no lead
+  // run is in progress; otherwise drawn inside the target's own column.
+  readonly meter?: {
+    readonly toleranceCents: number;
+    readonly heldFraction: number;
+    readonly reading: {
+      readonly cents: number;
+      readonly verdict: Verdict;
+    } | null;
+  } | null;
 }): JSX.Element {
   const {
     key_,
@@ -181,96 +220,126 @@ export function NamesView(props: {
     soundingPitchClass,
     onTapColumn,
     tapsEnabled,
+    leadTarget = null,
+    meter = null,
   } = props;
   const columns = columnsOf(key_, scale, direction, soundingPitchClass);
   const nameFontSize = nameFontSizeOf(columns.length);
 
   return (
     <div style={{ display: "flex", alignItems: "flex-end", gap: ROW_FLEX_GAP }}>
-      {columns.map((column, index) => (
-        <button
-          key={`${column.name}-${index}`}
-          type="button"
-          data-testid="names-column"
-          data-descent={column.isDescent ? "true" : "false"}
-          data-sounding={column.isSounding ? "true" : "false"}
-          aria-label={column.name}
-          aria-disabled={tapsEnabled ? undefined : "true"}
-          onClick={
-            tapsEnabled ? () => onTapColumn(column.pitchClass) : undefined
-          }
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: COLUMN_GAP,
-            background: column.isSounding ? SOUNDING_BACKGROUND : "transparent",
-            border: "none",
-            padding: 0,
-            font: "inherit",
-          }}
-        >
-          {column.isDescent ? (
-            <div
-              data-testid="descent-mark"
-              style={{
-                fontFamily: fonts.mono,
-                fontSize: MARK_FONT_SIZE,
-                fontWeight: MARK_WEIGHT_PLAIN,
-                color: MARK_INK_PLAIN,
-                lineHeight: 1,
-                height: MARK_ROW_HEIGHT,
-              }}
-            >
-              {DESCENT_SYMBOL}
-            </div>
-          ) : (
-            <div
-              data-testid="note-mark"
-              data-accented={column.accented ? "true" : "false"}
-              style={{
-                fontFamily: fonts.mono,
-                fontSize: MARK_FONT_SIZE,
-                fontWeight: column.accented
-                  ? MARK_WEIGHT_ACCENTED
-                  : MARK_WEIGHT_PLAIN,
-                color: column.accented ? MARK_INK_ACCENTED : MARK_INK_PLAIN,
-                lineHeight: 1,
-                height: MARK_ROW_HEIGHT,
-              }}
-            >
-              {column.mark}
-            </div>
-          )}
-          <div
-            data-testid="column-name"
+      {columns.map((column, index) => {
+        const isLeadTarget =
+          leadTarget !== null && leadTarget.runIndex === index;
+        const highlighted = column.isSounding || isLeadTarget;
+        return (
+          <button
+            key={`${column.name}-${index}`}
+            type="button"
+            data-testid="names-column"
+            data-descent={column.isDescent ? "true" : "false"}
+            data-sounding={column.isSounding ? "true" : "false"}
+            aria-label={column.name}
+            aria-disabled={tapsEnabled ? undefined : "true"}
+            onClick={
+              tapsEnabled ? () => onTapColumn(column.pitchClass) : undefined
+            }
             style={{
-              fontSize: nameFontSize,
-              fontWeight: NAME_FONT_WEIGHT,
-              letterSpacing: NAME_LETTER_SPACING,
-              color: column.isSounding ? SOUNDING_INK : NAME_INK,
-              lineHeight: 1,
+              position: "relative",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: COLUMN_GAP,
+              background: highlighted ? SOUNDING_BACKGROUND : "transparent",
+              border: "none",
+              padding: 0,
+              font: "inherit",
             }}
           >
-            {column.name}
-          </div>
-          <div
-            data-testid="note-degree"
-            data-altered={column.altered ? "true" : "false"}
-            style={{
-              fontFamily: fonts.mono,
-              fontSize: DEGREE_FONT_SIZE,
-              fontWeight: DEGREE_FONT_WEIGHT,
-              color: column.altered ? DEGREE_INK_ACCENTED : DEGREE_INK_PLAIN,
-              lineHeight: 1,
-              height: DEGREE_ROW_HEIGHT,
-            }}
-          >
-            {degreesEnabled ? column.degreeLabel : ""}
-          </div>
-        </button>
-      ))}
+            {isLeadTarget && meter !== null && (
+              <NoteMeter
+                layer="band"
+                geometry={{ kind: "column" }}
+                toleranceCents={meter.toleranceCents}
+                heldFraction={meter.heldFraction}
+                reading={meter.reading}
+              />
+            )}
+            {column.isDescent ? (
+              <div
+                data-testid="descent-mark"
+                style={{
+                  fontFamily: fonts.mono,
+                  fontSize: MARK_FONT_SIZE,
+                  fontWeight: MARK_WEIGHT_PLAIN,
+                  color: MARK_INK_PLAIN,
+                  lineHeight: 1,
+                  height: MARK_ROW_HEIGHT,
+                }}
+              >
+                {DESCENT_SYMBOL}
+              </div>
+            ) : (
+              <div
+                data-testid="note-mark"
+                data-accented={column.accented ? "true" : "false"}
+                style={{
+                  fontFamily: fonts.mono,
+                  fontSize: MARK_FONT_SIZE,
+                  fontWeight: column.accented
+                    ? MARK_WEIGHT_ACCENTED
+                    : MARK_WEIGHT_PLAIN,
+                  color: column.accented ? MARK_INK_ACCENTED : MARK_INK_PLAIN,
+                  lineHeight: 1,
+                  height: MARK_ROW_HEIGHT,
+                }}
+              >
+                {column.mark}
+              </div>
+            )}
+            <div
+              data-testid="column-name"
+              style={{
+                fontSize: nameFontSize,
+                fontWeight: NAME_FONT_WEIGHT,
+                letterSpacing: NAME_LETTER_SPACING,
+                color: highlighted ? SOUNDING_INK : NAME_INK,
+                lineHeight: 1,
+                opacity:
+                  leadTarget !== null && !isLeadTarget
+                    ? LEAD_OTHER_OPACITY
+                    : FULL_OPACITY,
+              }}
+            >
+              {column.name}
+            </div>
+            <div
+              data-testid="note-degree"
+              data-altered={column.altered ? "true" : "false"}
+              style={{
+                fontFamily: fonts.mono,
+                fontSize: DEGREE_FONT_SIZE,
+                fontWeight: DEGREE_FONT_WEIGHT,
+                color: column.altered ? DEGREE_INK_ACCENTED : DEGREE_INK_PLAIN,
+                lineHeight: 1,
+                height: DEGREE_ROW_HEIGHT,
+              }}
+            >
+              {degreesEnabled ? column.degreeLabel : ""}
+            </div>
+            {isLeadTarget && meter !== null && (
+              <NoteMeter
+                layer="line"
+                geometry={{ kind: "column" }}
+                toleranceCents={meter.toleranceCents}
+                heldFraction={meter.heldFraction}
+                reading={meter.reading}
+              />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

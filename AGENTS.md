@@ -86,6 +86,10 @@ pnpm test:timing
 # measured tuner budget (Playwright/Chromium; feeds the microphone from the page's own AudioContext,
 # sweeps E2–C7 as a sine and a flute-like tone) — required at converge and finish from 007, not per task:
 pnpm test:tuner
+# measured lead-run budget (Playwright/Chromium; feeds a scripted lead run of C major as the microphone —
+# silence, a flat entry settling, holds, one drift — and the tone cue fed back) — required at converge
+# and finish from 008, not per task:
+pnpm test:lead
 # design fidelity screenshots against the vendored prototype (dev-only, human-reviewed):
 pnpm design:shots
 ```
@@ -147,6 +151,28 @@ white noise          —      —                       —                     
 test:tuner: PASS — first readout ≤100 ms, arrival age ≤100 ms, ≥20 readings/s, |cents error| ≤2, shown offset within ±2 ¢, nothing for silence or noise
 ```
 
+`pnpm test:lead` runs a scripted lead run of C major (flute Concert, ↑↓ 1 oct,
+15 notes) at medium, 2 beats, 96 bpm, fed as the microphone from the page's own
+AudioContext — each note a flat entry at −30 ¢ settling to −2 ¢ over 650 ms,
+held to its advance, with one drift out of tune on the fourth — then a second
+run with the tone cue on, 1 beat at 150 bpm, where the tool's own 400 ms tone
+is fed back as the microphone at each new target; it takes about 40 seconds.
+Gated: the first readout (≤100 ms), arrival age (≤100 ms), readings per second
+(≥20), the largest gap between consecutive `NoteJudged` readings within a tone's
+sounding span (≤50 ms — never measured across the scripted silences, the tone
+cue's mute window or the post-advance gap), each advance within one reading hop
+(512 frames) of the in-tune time it needed, computed from the recorded `NoteJudged` verdicts, and never earlier,
+the advance shown within 100 ms, and — in the tone cue row — no `NoteJudged`
+inside the cue's window and the hold at zero at its end. Paint age is printed
+for information and is not gated.
+
+```
+case               targets  first readout max (ms)  arrival age max (ms)  paint age max (ms)  readings/s min  max gap (ms)  advance lateness max (frames)  shown lateness max (ms)  status
+lead run C4–C5     15       70.33                   5.35                  8.02                94.21           10.67         0                              16.02                    PASS
+tone cue fed back  3        67.67                   5.35                  5.35                82.92           10.67         0                              13.35                    PASS
+test:lead: PASS — first readout ≤100 ms, arrival age ≤100 ms, ≥20 readings/s, no gap over 50 ms, advance within one hop and never early, shown ≤100 ms, nothing judged during the tone
+```
+
 Run `check` before calling any task done, and paste the output.
 
 ## Conventions
@@ -164,7 +190,9 @@ Run `check` before calling any task done, and paste the output.
   `tests/<context>/scenarios/` one test per spec scenario named by
   its full ID, `tests/<context>/invariants/` for invariants tested by
   exhaustive enumeration, `tests/ui/scenarios/` for view-observable
-  scenarios.
+  scenarios. Shared fixtures sit beside the tests: `tests/practice/lead-helpers.ts`
+  (lead-run) beside `tuner-helpers.ts`, and `tests/ui/scenarios/lead-app-helpers.tsx`
+  (app-level lead helpers).
 - Commits: Conventional Commits citing the requirement — `feat(auth): rate-limit login (REQ-004)`.
 
 ## Architecture
@@ -174,8 +202,10 @@ Four bounded contexts (docs/domain.md): `src/theory/` (pure functions —
 notes, keys, circle, traversal, pitch, catalogue, scales (the catalogue),
 notation), `src/practice/` (the session: a pure transport state machine, the
 drone, the tuner (target, reading, the never-both invariant extended to
-listening), a lookahead scheduler adapter on the audio clock, ports for sound
-/ clock / wake lock / visibility / listening),
+listening and to the lead run), a lead run (the hold rule as a pure reducer
+over timestamped judgements; the Session owns it beside the transport, the
+drone and the tuner), a lookahead scheduler adapter on the audio clock, ports
+for sound / clock / wake lock / visibility / listening),
 `src/sound/` (Rust→WASM synthesiser in an AudioWorklet plus a ~60-line TS
 host shim in its `published/`; ADR 0003) — voices are addressable by tag
 and a drone voice has no end (ADR 0005), `src/listening/` (pitch

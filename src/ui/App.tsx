@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type JSX } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type JSX,
+} from "react";
 import { flushSync } from "react-dom";
 import {
   circleOfFifths,
@@ -21,9 +29,11 @@ import {
 import {
   chosenScaleIdFor,
   createSession,
+  defaultLeadSettings,
   defaultScaleChoice,
   steppedTempo,
   tempoForTerm,
+  TOLERANCE_CENTS,
   type DroneSettings,
   type DroneSound,
   type Session,
@@ -31,6 +41,7 @@ import {
   type SessionSettings,
   type SessionSnapshot,
   type TempoTerm,
+  type Who,
 } from "../practice/published";
 import { findVariantById } from "./catalogue-lookup";
 import { CircleOfFifths, locateSpelledKey } from "./CircleOfFifths";
@@ -40,7 +51,8 @@ import { Header } from "./Header";
 import { InstrumentSheet } from "./InstrumentSheet";
 import { keyLabel, keyNameFontSizeOf, noteLabel } from "./key-label";
 import { KeyPanel } from "./KeyPanel";
-import { NamesView } from "./NamesView";
+import { NamesView, targetColumnIndexOf } from "./NamesView";
+import { NoteMeter, type MeterGeometry } from "./NoteMeter";
 import { Notices } from "./Notices";
 import { ScaleRow } from "./ScaleRow";
 import { ScaleSheet } from "./ScaleSheet";
@@ -217,8 +229,14 @@ function initialTraversalOf(stored: StoredSelection | null): Traversal {
   return traversalFromStored(stored?.traversal ?? firstRunDefaults.traversal);
 }
 
+// The stored session (`StoredSelection["session"]`, schema v6) carries the
+// lead settings restored alongside the rest (practice.session/REQ-011) —
+// the defaults apply only when nothing at all is stored.
 function initialSettingsOf(stored: StoredSelection | null): SessionSettings {
-  return stored?.session ?? firstRunDefaults.session;
+  return {
+    ...(stored?.session ?? firstRunDefaults.session),
+    lead: stored?.session.lead ?? defaultLeadSettings,
+  };
 }
 
 export function App(props: {
@@ -266,6 +284,13 @@ export function App(props: {
   const [selection, setSelection] = useState<Selection>(() =>
     initialSelection(catalogue, selectionStore),
   );
+  // practice.session/REQ-017 — the target notehead's own centre, in the
+  // stave's px, as `StaveView` reports it; `NoteMeter` is positioned from
+  // this rather than the DOM so the stave never re-renders per reading.
+  const [targetBox, setTargetBox] = useState<{
+    readonly x: number;
+    readonly y: number;
+  } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [instrumentSheetOpen, setInstrumentSheetOpen] = useState(false);
   const [traversalSheetOpen, setTraversalSheetOpen] = useState(false);
@@ -279,14 +304,22 @@ export function App(props: {
   // leaveTuner() through a render decision.
   const [screen, setScreen] = useState<"practice" | "tuner">("practice");
 
-  const position = circleOfFifths()[selection.positionIndex];
-  if (position === undefined) {
-    throw new Error("unreachable: selection position index out of range");
-  }
-  const selectedKey =
-    selection.mode === "major"
+  // practice.session/REQ-017 — memoized on the primitive selection fields,
+  // not recomputed every render: `circleOfFifths()` rebuilds its whole
+  // position/Key tree on every call, so without this `selectedKey` (passed
+  // to `StaveView` as `key_`) would be a fresh object identity on every
+  // `App` render — every reading while a lead run is in progress — and
+  // `React.memo` would re-render the stave regardless of `leadTarget`'s own
+  // memoization (a fixer finding, round 2).
+  const selectedKey = useMemo(() => {
+    const position = circleOfFifths()[selection.positionIndex];
+    if (position === undefined) {
+      throw new Error("unreachable: selection position index out of range");
+    }
+    return selection.mode === "major"
       ? spelledMajorAt(position, selection.spelling)
       : spelledMinorAt(position, selection.spelling);
+  }, [selection.positionIndex, selection.mode, selection.spelling]);
 
   // initialSelection already resolved variantId to a value that exists in
   // this catalogue (falling back to the default when it didn't), so this
@@ -390,7 +423,7 @@ export function App(props: {
     // completion re-renders with a snapshot, so this simply runs again.
     if (snapshot === null) return;
     const toSave: StoredSelection = {
-      schemaVersion: 5,
+      schemaVersion: 6,
       variantId: selection.variantId,
       keyId: keyIdOf(selectedKey),
       spelling: selection.spelling,
@@ -443,6 +476,83 @@ export function App(props: {
     snapshot === null || snapshot.tappedRunIndex === null
       ? undefined
       : snapshot.run[snapshot.tappedRunIndex];
+  // practice.session/REQ-017 — the lead run's target, highlighted the same
+  // way a sounding note is; null outside "listening" (idle, complete and
+  // cannot-hear all show the run plain). Memoized on the run index alone
+  // (a fixer finding, REQ-017) so a reading that does not move the target
+  // — most of them — does not hand `StaveView` a new object identity and
+  // force it to re-render; the stave must not re-render per reading (the
+  // plan's constraint).
+  const leadTargetRunIndex =
+    snapshot !== null &&
+    snapshot.lead.phase === "listening" &&
+    snapshot.lead.target !== null
+      ? snapshot.lead.target.runIndex
+      : null;
+  const leadTarget = useMemo(
+    () =>
+      leadTargetRunIndex === null ? null : { runIndex: leadTargetRunIndex },
+    [leadTargetRunIndex],
+  );
+  // practice.session/REQ-017 — the meter's geometry and readings, computed
+  // once here and shared by the two `NoteMeter` layers (the band behind the
+  // panel's content, the line in front of it — `KeyPanel`'s `underlay` and
+  // `overlay`).
+  const meterGeometry: MeterGeometry | null =
+    snapshot !== null &&
+    snapshot.lead.phase === "listening" &&
+    snapshot.settings.lead.cueMeter &&
+    selection.view === "stave" &&
+    targetBox !== null
+      ? { kind: "stave", centreX: targetBox.x, centreY: targetBox.y }
+      : null;
+  const meterToleranceCents =
+    snapshot === null ? 0 : TOLERANCE_CENTS[snapshot.settings.lead.tolerance];
+  const meterHeldFraction = snapshot === null ? 0 : snapshot.lead.heldFraction;
+  const meterReading =
+    snapshot === null || snapshot.lead.reading === null
+      ? null
+      : {
+          cents: snapshot.lead.reading.cents,
+          verdict: snapshot.lead.reading.verdict,
+        };
+  // practice.session/REQ-017 — the names view shows one octave's worth of
+  // columns regardless of how many the run traverses, so the lead target's
+  // run position is resolved to that view's own column index by pitch
+  // class (`targetColumnIndexOf`, the same match `isSounding` already
+  // makes) rather than reused as-is from the stave's `leadTarget`.
+  const namesLeadTargetColumnIndex =
+    snapshot !== null &&
+    snapshot.lead.phase === "listening" &&
+    snapshot.lead.target !== null
+      ? targetColumnIndexOf(
+          selectedKey,
+          snapshot.scale,
+          snapshot.traversal.direction,
+          {
+            letter: snapshot.lead.target.note.letter,
+            accidental: snapshot.lead.target.note.accidental,
+          },
+        )
+      : null;
+  const namesLeadTarget = useMemo(
+    () =>
+      namesLeadTargetColumnIndex === null
+        ? null
+        : { runIndex: namesLeadTargetColumnIndex },
+    [namesLeadTargetColumnIndex],
+  );
+  const namesMeter =
+    snapshot !== null &&
+    snapshot.lead.phase === "listening" &&
+    snapshot.settings.lead.cueMeter &&
+    selection.view === "names"
+      ? {
+          toleranceCents: meterToleranceCents,
+          heldFraction: meterHeldFraction,
+          reading: meterReading,
+        }
+      : null;
   const soundingPitchClass: PitchClass | null = playing
     ? soundingSequenceNote === undefined
       ? null
@@ -459,11 +569,31 @@ export function App(props: {
 
   function handleTogglePlay(): void {
     if (session === null || snapshot === null) return;
-    if (snapshot.transport.kind === "idle") {
-      session.start();
-    } else {
+    // A lead run never touches the transport, so ■ on the live lead card
+    // (shown from the `listening` phase on) is told apart by the lead phase
+    // (practice.session/REQ-015). While the microphone is still being asked
+    // for, the phase is yet idle, the lead snapshot says "starting" and the
+    // card still shows the start circle, not ■ — a tap then is nonetheless
+    // the stop.
+    const inProgress =
+      snapshot.transport.kind !== "idle" ||
+      snapshot.lead.phase === "listening" ||
+      snapshot.lead.listening.kind === "starting";
+    if (inProgress) {
       session.stop();
+    } else {
+      session.start();
     }
+  }
+
+  // practice.session/REQ-014 — a mode word tapped selects that mode; the
+  // session itself stops a run in progress and shows the new mode idle.
+  function handleWho(who: Who): void {
+    if (session === null || snapshot === null) return;
+    session.setSettings({
+      ...snapshot.settings,
+      lead: { ...snapshot.settings.lead, who },
+    });
   }
 
   // practice.session/REQ-013 — a names column names a pitch class, not a
@@ -569,6 +699,21 @@ export function App(props: {
     },
     [session, onPaintAge],
   );
+  // practice.session/REQ-021 — the same report as the tuner's reading
+  // above, for a lead run's reading instead: there is no separate "lead
+  // screen" component to own this the way TunerScreen owns its own
+  // useLayoutEffect, so it lives here, keyed on the reading's own atFrame
+  // (not the NoteJudged object) so a re-render that commits nothing new
+  // reports only once — null outside "listening" (idle, complete and
+  // cannot-hear all show nothing).
+  const leadReadingAtFrame =
+    snapshot !== null && snapshot.lead.phase === "listening"
+      ? snapshot.lead.reading?.atFrame
+      : undefined;
+  useLayoutEffect(() => {
+    if (leadReadingAtFrame !== undefined)
+      handleReadingShown(leadReadingAtFrame);
+  }, [leadReadingAtFrame, handleReadingShown]);
 
   const handleSelectKey = useCallback((selectedWedgeKey: Key) => {
     setSelection((current) => {
@@ -805,9 +950,34 @@ export function App(props: {
           <KeyPanel
             view={selection.view}
             onSelectView={(selectedView) =>
-              setSelection((current) => ({ ...current, view: selectedView }))
+              setSelection((current) => ({
+                ...current,
+                view: selectedView,
+              }))
             }
             rangeSummary={view === undefined ? "" : rangeSummaryText(view)}
+            underlay={
+              meterGeometry !== null && (
+                <NoteMeter
+                  layer="band"
+                  geometry={meterGeometry}
+                  toleranceCents={meterToleranceCents}
+                  heldFraction={meterHeldFraction}
+                  reading={meterReading}
+                />
+              )
+            }
+            overlay={
+              meterGeometry !== null && (
+                <NoteMeter
+                  layer="line"
+                  geometry={meterGeometry}
+                  toleranceCents={meterToleranceCents}
+                  heldFraction={meterHeldFraction}
+                  reading={meterReading}
+                />
+              )
+            }
           >
             {selection.view === "names" ? (
               <NamesView
@@ -830,6 +1000,8 @@ export function App(props: {
                 soundingPitchClass={soundingPitchClass}
                 onTapColumn={handleTapColumn}
                 tapsEnabled={tapsEnabled}
+                leadTarget={namesLeadTarget}
+                meter={namesMeter}
               />
             ) : (
               variant !== undefined && (
@@ -842,6 +1014,8 @@ export function App(props: {
                   playing={playing}
                   onTapNote={handleTapNote}
                   tapsEnabled={tapsEnabled}
+                  leadTarget={leadTarget}
+                  onTargetBox={setTargetBox}
                 />
               )
             )}
@@ -866,6 +1040,7 @@ export function App(props: {
                   })
                 }
                 onOpenTempo={handleOpenTempoSheet}
+                onWho={handleWho}
               />
               <TraversalRow
                 summaryLine={snapshot.summaryLine}
@@ -902,6 +1077,7 @@ export function App(props: {
             effectiveOctaves={snapshot.effectiveOctaves}
             fittingCounts={snapshot.fittingCounts}
             settings={snapshot.settings}
+            tempoBpm={snapshot.settings.tempoBpm}
             onTraversal={handleTraversal}
             onSettings={handleSessionSettings}
             onClose={handleCloseTraversalSheet}

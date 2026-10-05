@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style>body{margin:0;background:#ddd6c7}a{color:#8a4b2a}a:hover{color:#a85c33}</style></helmet>
+<section style="padding:40px;display:flex;flex-direction:column;gap:28px;font-family:'Public Sans',system-ui,sans-serif;color:#1c1916;background:#ddd6c7">
+  <div style="display:flex;flex-direction:column;gap:6px;max-width:900px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;color:#6f675c">008 · LEARNER LEADS · FINAL DESIGN</div>
+    <div style="font-family:'Instrument Serif',serif;font-size:40px;line-height:1">Learner leads, on the practice screen</div>
+    <div style="font-size:14px;line-height:1.5;color:#4a4136;text-wrap:pretty">Every screen and state to build. Each phone is the same component with the same settings; only the state differs. Phones are interactive: switch names / stave, play along / I lead, and the sheet's rows. 11 runs a simulated player.</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start">
+    <sc-for list="{{ screens }}" as="o" hint-placeholder-count="11">
+      <div data-screen-label="{{ o.id }} {{ o.title }}" id="s{{ o.id }}" style="display:flex;flex-direction:column;gap:10px;width:392px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#f9f4e9;background:#8a4b2a;border-radius:6px;padding:3px 7px">{{ o.id }}</div>
+          <div style="font-size:16px;font-weight:600">{{ o.title }}</div>
+        </div>
+        <div style="font-size:12.5px;line-height:1.45;color:#4a4136;text-wrap:pretty;min-height:36px">{{ o.desc }}</div>
+        <dc-import name="Learner Leads Practice" mode="{{ o.mode }}" ll-state="{{ o.state }}" hint-size="392px,846px"></dc-import>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const SCREENS = [
+  ["01", "Idle · play along", "tool", "idle", "As shipped, plus the 'play along / I lead' words under the note count. ▶ plays the run."],
+  ["02", "Idle · I lead chosen", "me", "idle", "I lead is underlined. ▶ becomes the Tuner glyph, and the caption reads 'hold 2 beats · medium tuning'."],
+  ["03", "Listening · silent", "me", "silent", "The target is highlighted on the stave or names. The play card reads 'Play E4'."],
+  ["04", "Heard · out of tune", "me", "out", "The level line sits below the note in the flat colour (above it in the sharp colour when sharp). The band does not fill."],
+  ["05", "Holding in tune", "me", "holding", "The line is in the band, and the band fills from left to right in mid green as the beats are held."],
+  ["06", "Advanced to the next note", "me", "advanced", "The held note stays ink, the next note becomes the target, and the card briefly shows 'E4 held ✓'."],
+  ["07", "Run complete", "me", "complete", "Every note has been held. ▶ goes again."],
+  ["08", "Can't hear · no microphone", "me", "nomic", "Permission was refused or there is no microphone. Recover by allowing it and pressing ▶."],
+  ["09", "Sheet · play along", "tool", "sheet", "Who leads is the first row. Sound, Count-in and Rest bar follow, then a hairline and the shared rows."],
+  ["10", "Sheet · I lead", "me", "sheet", "The same sheet, with Hold, In tune and Cues in place of the three play-along rows. The sheet keeps the same height."],
+  ["11", "Demo · simulated player", "me", "demo", "Walks up and down C major: silence, then a flat or sharp entry, settling, and an occasional drift that resets the hold."],
+];
+class Component extends DCLogic {
+  renderVals() {
+    return { screens: SCREENS.map(([id, title, mode, state, desc]) => ({ id, title, mode, state, desc })) };
+  }
+}
+</script>
+</body>
+</html>

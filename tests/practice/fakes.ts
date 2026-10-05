@@ -298,6 +298,15 @@ export class FakeListening implements ListeningPort {
   // "fake" } } instead of succeeding — REQ-006/REQ-007's refused/none/failed
   // scenarios.
   failWith: ListeningUnavailable["reason"] | null = null;
+  // While set, start() stays pending (the microphone "being asked for") until
+  // resolveStart() answers it — a stop() landing in that window is the
+  // supersede path of practice.session/REQ-015. Several held starts may be
+  // pending at once (start, stop, start): each is answered by its index among
+  // the held starts, in the order they were made.
+  holdStart = false;
+  private readonly answersToStart: (
+    ((refuseWith: ListeningUnavailable["reason"] | null) => void) | null
+  )[] = [];
   private readonly pitchListeners = new Set<(pitch: PitchDetected) => void>();
   private readonly endedListeners = new Set<(ended: ListeningEnded) => void>();
 
@@ -309,8 +318,42 @@ export class FakeListening implements ListeningPort {
         error: { reason: this.failWith, detail: "fake" },
       });
     }
+    if (this.holdStart) {
+      return new Promise((resolve) => {
+        this.answersToStart.push((refuseWith) => {
+          if (refuseWith !== null) {
+            resolve({
+              ok: false,
+              error: { reason: refuseWith, detail: "fake" },
+            });
+            return;
+          }
+          this.listening = true;
+          resolve({ ok: true, value: undefined });
+        });
+      });
+    }
     this.listening = true;
     return Promise.resolve({ ok: true, value: undefined });
+  }
+
+  /**
+   * Answers a start() held by `holdStart`: the microphone opens now. With no
+   * argument, the oldest one still pending; with `n`, the nth held start
+   * (0-based, in the order they were made) — so two pending starts can be
+   * answered in either order. With `refuseWith`, that start fails with the
+   * reason instead of opening the microphone (it leaves `listening` as it
+   * was). Nothing pending: nothing happens.
+   */
+  resolveStart(
+    n?: number,
+    refuseWith: ListeningUnavailable["reason"] | null = null,
+  ): void {
+    const index = n ?? this.answersToStart.findIndex((a) => a !== null);
+    if (index < 0 || index >= this.answersToStart.length) return;
+    const answer = this.answersToStart[index];
+    this.answersToStart[index] = null;
+    answer?.(refuseWith);
   }
 
   stop(): void {

@@ -1,6 +1,6 @@
 # Tasks: 001-the-circle
 
-Generated from each task's frontmatter. Next: `./scripts/task.sh changes/archive/001-the-circle next` → none
+Generated from each task's frontmatter. Next: `./scripts/task.py changes/archive/001-the-circle next` → none
 
 | Task | Status | Depends on | Requirements | Group | Attempts | Outcome |
 |---|---|---|---|---|---|---|

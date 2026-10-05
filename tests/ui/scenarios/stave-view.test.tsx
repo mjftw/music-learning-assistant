@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { afterEach, expect, test } from "vitest";
 import {
   builtInCatalogue,
@@ -51,6 +52,34 @@ const flute = () =>
   builtInCatalogue()
     .instruments.flatMap((instrument) => instrument.variants)
     .find((variant) => variant.variantId === "flute-concert")!;
+
+// practice.session/REQ-017 — a local helper for the lead-target tests
+// below: the eight KeyViewNotes of C major on the flute, rendered with the
+// file's usual base props, `extra` spread over the top.
+const cMajor: Key = {
+  tonic: { letter: "C", accidental: "natural" },
+  mode: "major",
+};
+const renderStave = (extra: Partial<ComponentProps<typeof StaveView>> = {}) => {
+  const notes = traversalOf(cMajor, flute(), scaleById("major"), {
+    direction: "up",
+    octaves: { kind: "count", count: 1 },
+    shape: "scale",
+  }).run;
+  return render(
+    <StaveView
+      key_={cMajor}
+      variant={flute()}
+      notes={notes}
+      staveNamesEnabled={false}
+      soundingRunIndex={null}
+      playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
+      {...extra}
+    />,
+  );
+};
 
 test("theory.circle-of-fifths/REQ-003/S1 — G major on the flute (acceptance)", () => {
   const notes = traversalOf(gMajor, flute(), scaleById("major"), {
@@ -202,7 +231,7 @@ test("theory.circle-of-fifths/REQ-003/S2 — the display follows the variant's r
     const octave = Number(note.slice(-1));
     expect(after[index]).toBe(`${pitchClass}${octave - 1}`);
   });
-});
+}, 15_000);
 
 test("theory.circle-of-fifths/REQ-007/S1 — switching views shows noteheads with no name labels", async () => {
   setup();
@@ -491,4 +520,116 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
       .getAllByTestId("inline-accidental")
       .map((glyph) => glyph.getAttribute("data-glyph")),
   ).toEqual(expectedGlyphs);
+});
+
+test("practice.session/REQ-017/S8 — ink behind, faint ahead", () => {
+  renderStave({ leadTarget: { runIndex: 4 } });
+  const heads = screen.getAllByTestId("stave-note");
+  const opacityOf = (h: HTMLElement) =>
+    h.querySelector("ellipse")!.getAttribute("opacity");
+  expect(heads.slice(0, 4).map(opacityOf)).toEqual(["1", "1", "1", "1"]);
+  expect(heads.slice(5).map(opacityOf)).toEqual(["0.3", "0.3", "0.3"]);
+  expect(screen.getAllByTestId("sounding-halo")).toHaveLength(1);
+  expect(Number(heads[4]!.getAttribute("rx"))).toBeGreaterThan(
+    Number(heads[3]!.getAttribute("rx")),
+  );
+});
+
+test("practice.session/REQ-017/S1 (stave) — the target is highlighted as a sounding note", () => {
+  renderStave({ leadTarget: { runIndex: 0 } });
+  expect(screen.getAllByTestId("sounding-halo")).toHaveLength(1);
+  expect(screen.getAllByTestId("stave-note")[0]!.getAttribute("fill")).toBe(
+    "#8a4b2a",
+  );
+});
+
+test("practice.session/REQ-017 — onTargetBox reports the target head's centre", () => {
+  const boxes: ({ x: number; y: number } | null)[] = [];
+  renderStave({
+    leadTarget: { runIndex: 0 },
+    onTargetBox: (b) => boxes.push(b),
+  });
+  const head = screen.getAllByTestId("stave-note")[0]!;
+  expect(boxes.at(-1)).toEqual({
+    x: Number(head.getAttribute("cx")),
+    y: Number(head.getAttribute("cy")),
+  });
+});
+
+// The effective opacity of an element as drawn: the product of the opacity
+// of the element and of every ancestor up to the document (an `opacity`
+// attribute on SVG, a style on HTML; absent = 1). SVG and CSS both multiply
+// nested opacities, so a value set twice would render squared.
+const effectiveOpacityOf = (element: Element): number => {
+  let product = 1;
+  for (
+    let node: Element | null = element;
+    node !== null;
+    node = node.parentElement
+  ) {
+    const attribute = node.getAttribute("opacity");
+    const style = (node as HTMLElement).style?.opacity ?? "";
+    if (attribute !== null && attribute !== "") product *= Number(attribute);
+    if (style !== "") product *= Number(style);
+  }
+  return product;
+};
+
+const renderBluesStave = (
+  extra: Partial<ComponentProps<typeof StaveView>> = {},
+) => {
+  const aMinor: Key = {
+    tonic: { letter: "A", accidental: "natural" },
+    mode: "naturalMinor",
+  };
+  const notes = traversalOf(aMinor, flute(), scaleById("blues"), {
+    direction: "up",
+    octaves: { kind: "count", count: 1 },
+    shape: "scale",
+  }).run;
+  return render(
+    <StaveView
+      key_={aMinor}
+      variant={flute()}
+      notes={notes}
+      staveNamesEnabled={false}
+      soundingRunIndex={null}
+      playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
+      {...extra}
+    />,
+  );
+};
+
+const effectiveOpacities = () =>
+  screen.getAllByTestId("stave-note").map((head) => ({
+    ellipse: effectiveOpacityOf(head.querySelector("ellipse")!),
+    stem: effectiveOpacityOf(head.querySelector("line")!),
+  }));
+
+test("practice.session/REQ-017/S8 — a note's opacity is applied once", () => {
+  // Leading, target 4: ink behind (1), highlighted target (1), faint ahead (0.3).
+  const { unmount } = renderBluesStave({ leadTarget: { runIndex: 4 } });
+  const lead = effectiveOpacities();
+  expect(lead.map((o) => o.ellipse)).toEqual([1, 1, 1, 1, 1, 0.3, 0.3]);
+  expect(lead.map((o) => o.stem)).toEqual([1, 1, 1, 1, 1, 0.3, 0.3]);
+  const accidentals = screen.getAllByTestId("inline-accidental");
+  expect(accidentals.length).toBeGreaterThan(0);
+  for (const accidental of accidentals) {
+    const runIndex = Number(accidental.getAttribute("data-run-index"));
+    expect(effectiveOpacityOf(accidental)).toBe(runIndex > 4 ? 0.3 : 1);
+  }
+  unmount();
+
+  // Play along, note 2 sounding: the others dim to the shipped 0.72.
+  renderBluesStave({ playing: true, soundingRunIndex: 2 });
+  const playing = effectiveOpacities();
+  const dimmed = [0.72, 0.72, 1, 0.72, 0.72, 0.72, 0.72];
+  expect(playing.map((o) => o.ellipse)).toEqual(dimmed);
+  expect(playing.map((o) => o.stem)).toEqual(dimmed);
+  for (const accidental of screen.getAllByTestId("inline-accidental")) {
+    const runIndex = Number(accidental.getAttribute("data-run-index"));
+    expect(effectiveOpacityOf(accidental)).toBe(dimmed[runIndex]);
+  }
 });

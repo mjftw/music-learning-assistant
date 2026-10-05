@@ -116,7 +116,7 @@ STALE=$(date -u -d '+7 days' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v+7d +%
   echo "## From plan.md"
   echo
   echo "### Requirement → design mapping (rows for the cited requirements)"; echo
-  h2 "$SLICE/plan.md" "## Requirement → design mapping" | grep -E '^\|' | head -2
+  h2 "$SLICE/plan.md" "## Requirement → design mapping" | grep -E '^\|' | awk 'NR <= 2'
   for qr in $QRS; do
     h2 "$SLICE/plan.md" "## Requirement → design mapping" | grep -F "$qr" || true
   done
