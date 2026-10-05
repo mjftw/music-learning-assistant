@@ -2,6 +2,10 @@
 
 Chronological history of this bundle. Newest date first.
 
+## 2026-10-05
+
+- Design Principles `docs/design.md` → approved (human:merlin-webster)
+
 ## 2026-10-02
 
 - Task List `changes/008-learner-leads/tasks.md` → approved (human:merlin-webster)
