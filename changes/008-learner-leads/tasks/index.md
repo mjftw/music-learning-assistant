@@ -1,6 +1,6 @@
 # Tasks: 008-learner-leads
 
-Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-learner-leads next` → C008_T026
+Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-learner-leads next` → C008_T027
 
 | Task | Status | Depends on | Requirements | Group | Attempts | Outcome |
 |---|---|---|---|---|---|---|
@@ -29,7 +29,7 @@ Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-lea
 | [C008_T023](C008_T023.md) | done | C008_T020 | practice.session/REQ-014,practice.session/REQ-022,practice.session/REQ-017 | Appended | 1 | First screenshot pass: the Tuner glyph drawn as designed, the no-mic title beside the circle, no stale line across a new target |
 | [C008_T024](C008_T024.md) | done | C008_T013 | practice.session/REQ-015 | Appended | 1 | ■ on the live lead card stops the run |
 | [C008_T025](C008_T025.md) | done | — | practice.session/REQ-014,practice.session/REQ-015,practice.session/REQ-022,practice.session/REQ-002 | Converge 1 | 1 | A mode change clears a complete or cannot-hear lead card (converge C1) |
-| [C008_T026](C008_T026.md) | todo | C008_T025 | practice.session/REQ-016 | Converge 1 | 0 | The first lead reading after silence is as detected, not smoothed (converge C2) |
+| [C008_T026](C008_T026.md) | done | C008_T025 | practice.session/REQ-016 | Converge 1 | 1 | The first lead reading after silence is as detected, not smoothed (converge C2) |
 | [C008_T027](C008_T027.md) | todo | — | practice.session/REQ-017 | Converge 1 | 0 | The stave applies each note's opacity once (converge W1) |
 | [C008_T028](C008_T028.md) | todo | — | practice.session/REQ-021 | Converge 1 | 0 | test:lead gates the largest gap between readings, not only the average rate (converge W3) |
 | [C008_T029](C008_T029.md) | todo | C008_T026 | practice.session/REQ-015 | Converge 1 | 0 | A second tap while the microphone is being asked for stops the lead run (converge W5) |
