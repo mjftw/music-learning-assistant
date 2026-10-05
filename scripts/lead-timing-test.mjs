@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Measured lead-run budget — practice.session/REQ-021/S1 (every shown
-// reading within 100 ms of its sound, ≥20 readings/s while steady, every
+// reading within 100 ms of its sound, ≥20 readings/s while steady and no
+// gap over 50 ms between readings while a tone sounds, every
 // advance shown within 100 ms, each advance at 1250 ms of accumulated
 // in-tune time and never earlier), practice.session/REQ-016/S1's timing
 // (the same budget, read off the hold rule itself) and practice.session/
@@ -33,6 +34,11 @@ import {
 const FIRST_READOUT_MAX_MS = 100;
 const ARRIVAL_AGE_MAX_MS = 100;
 const READINGS_PER_SECOND_MIN = 20;
+// REQ-021's "refreshed at least every 50 ms while a steady note is heard",
+// gated on the largest interval between consecutive NoteJudged.atFrame
+// inside one tone's sounding span — the average rate above would pass a
+// single 200 ms stall.
+const MAX_GAP_MAX_MS = 50;
 // The hold rule can only act on a reading it has already received — one
 // hop's worth of slack (512 frames, the detector's own hop — notes.md's
 // "the 10.667 ms reading grid") between the reading that completed the
@@ -331,6 +337,24 @@ function measureInPage(params) {
     const readingsPerSecond =
       steadySeconds > 0 ? steadyReadings.length / steadySeconds : 0;
 
+    // The largest interval between consecutive readings while this tone
+    // sounds and readings are expected: from its first reading to its last
+    // before the advance — never across the silence before the onset, the
+    // tone-cue's mute window (before the onset too) or the gap after the
+    // advance (windowReadings stops at it). Fewer than two readings leave
+    // no interval to measure, which cannot hold a note: null, so it fails.
+    const soundingReadings = windowReadings.filter(
+      (reading) => reading.atFrame >= onsetFrame,
+    );
+    let maxGap = null;
+    for (let i = 1; i < soundingReadings.length; i += 1) {
+      const fromFrame = soundingReadings[i - 1].atFrame;
+      const toFrame = soundingReadings[i].atFrame;
+      const ms = ((toFrame - fromFrame) / sampleRate) * 1000;
+      if (maxGap === null || ms > maxGap.ms)
+        maxGap = { ms, fromFrame, toFrame };
+    }
+
     // practice.session/REQ-016 — the hold rule runs on every raw reading,
     // "committed or not" (session.ts's own comment on commitLeadReading) —
     // a zero-delay commit timer can batch several raw readings into one
@@ -370,6 +394,7 @@ function measureInPage(params) {
       label: labelOfNote(note),
       firstReadoutMs,
       readingsPerSecond,
+      maxGap,
       advanceLatenessFrames,
       completingReadingMissing,
       shownLatenessMs,
@@ -709,6 +734,13 @@ function leadRunRow(label, result) {
   const firstReadoutMaxMs = maxOf(perTarget.map((t) => t.firstReadoutMs));
   const arrivalAgeMaxMs = result.arrivalAgeMaxMs;
   const readingsPerSecondMin = minOf(perTarget.map((t) => t.readingsPerSecond));
+  const gapValues = perTarget.map((t) =>
+    t.maxGap === null ? null : t.maxGap.ms,
+  );
+  const maxGapMs = maxOf(gapValues);
+  const widestGapTarget =
+    perTarget.find((t) => t.maxGap === null) ??
+    perTarget.reduce((worst, t) => (t.maxGap.ms > worst.maxGap.ms ? t : worst));
   const advanceLatenessValues = perTarget.map((t) => t.advanceLatenessFrames);
   const advanceLatenessMax = maxOf(advanceLatenessValues);
   const advanceEarly = advanceLatenessValues.some(
@@ -728,6 +760,12 @@ function leadRunRow(label, result) {
   if (readingsPerSecondMin < READINGS_PER_SECOND_MIN)
     failures.push(
       `readings/s min ${readingsPerSecondMin} < ${READINGS_PER_SECOND_MIN}`,
+    );
+  if (maxGapMs > MAX_GAP_MAX_MS)
+    failures.push(
+      widestGapTarget.maxGap === null
+        ? `max gap unmeasurable at target ${widestGapTarget.position} (${widestGapTarget.label}): fewer than two readings while the tone sounded`
+        : `max gap ${maxGapMs.toFixed(2)} ms > ${MAX_GAP_MAX_MS} at target ${widestGapTarget.position} (${widestGapTarget.label}), between atFrame ${widestGapTarget.maxGap.fromFrame} and ${widestGapTarget.maxGap.toFrame}`,
     );
   if (advanceEarly)
     failures.push("an advance fell earlier than the in-tune time it needed");
@@ -756,6 +794,7 @@ function leadRunRow(label, result) {
     arrivalAgeMaxMs,
     paintAgeMaxMs: result.maxPaintAgeMs,
     readingsPerSecondMin,
+    maxGapMs,
     advanceLatenessMax,
     shownLatenessMaxMs,
     failures,
@@ -798,6 +837,7 @@ function cellsOf(row) {
     row.arrivalAgeMaxMs.toFixed(2),
     row.paintAgeMaxMs === null ? "n/a" : row.paintAgeMaxMs.toFixed(2),
     row.readingsPerSecondMin.toFixed(2),
+    row.maxGapMs.toFixed(2),
     row.advanceLatenessMax.toFixed(0),
     row.shownLatenessMaxMs.toFixed(2),
     row.failures.length === 0 ? "PASS" : "FAIL",
@@ -879,6 +919,7 @@ async function main() {
         "arrival age max (ms)",
         "paint age max (ms)",
         "readings/s min",
+        "max gap (ms)",
         "advance lateness max (frames)",
         "shown lateness max (ms)",
         "status",
@@ -913,7 +954,7 @@ async function main() {
     return;
   }
   console.log(
-    `test:lead: PASS — first readout ≤${FIRST_READOUT_MAX_MS} ms, arrival age ≤${ARRIVAL_AGE_MAX_MS} ms, ≥${READINGS_PER_SECOND_MIN} readings/s, advance within one hop and never early, shown ≤${SHOWN_LATENESS_MAX_MS} ms, nothing judged during the tone`,
+    `test:lead: PASS — first readout ≤${FIRST_READOUT_MAX_MS} ms, arrival age ≤${ARRIVAL_AGE_MAX_MS} ms, ≥${READINGS_PER_SECOND_MIN} readings/s, no gap over ${MAX_GAP_MAX_MS} ms, advance within one hop and never early, shown ≤${SHOWN_LATENESS_MAX_MS} ms, nothing judged during the tone`,
   );
 }
 

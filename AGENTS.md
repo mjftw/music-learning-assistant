@@ -158,17 +158,19 @@ held to its advance, with one drift out of tune on the fourth — then a second
 run with the tone cue on, 1 beat at 150 bpm, where the tool's own 400 ms tone
 is fed back as the microphone at each new target; it takes about 40 seconds.
 Gated: the first readout (≤100 ms), arrival age (≤100 ms), readings per second
-(≥20), each advance within one reading hop (512 frames) of the in-tune time it
-needed, computed from the recorded `NoteJudged` verdicts, and never earlier,
+(≥20), the largest gap between consecutive `NoteJudged` readings within a tone's
+sounding span (≤50 ms — never measured across the scripted silences, the tone
+cue's mute window or the post-advance gap), each advance within one reading hop
+(512 frames) of the in-tune time it needed, computed from the recorded `NoteJudged` verdicts, and never earlier,
 the advance shown within 100 ms, and — in the tone cue row — no `NoteJudged`
 inside the cue's window and the hold at zero at its end. Paint age is printed
 for information and is not gated.
 
 ```
-case               targets  first readout max (ms)  arrival age max (ms)  paint age max (ms)  readings/s min  advance lateness max (frames)  shown lateness max (ms)  status
-lead run C4–C5     15       70.33                   5.35                  8.02                94.21           0                              16.02                    PASS
-tone cue fed back  3        62.33                   8.02                  8.02                83.40           0                              18.69                    PASS
-test:lead: PASS — first readout ≤100 ms, arrival age ≤100 ms, ≥20 readings/s, advance within one hop and never early, shown ≤100 ms, nothing judged during the tone
+case               targets  first readout max (ms)  arrival age max (ms)  paint age max (ms)  readings/s min  max gap (ms)  advance lateness max (frames)  shown lateness max (ms)  status
+lead run C4–C5     15       70.33                   5.35                  8.02                94.21           10.67         0                              16.02                    PASS
+tone cue fed back  3        67.67                   5.35                  5.35                82.92           10.67         0                              13.35                    PASS
+test:lead: PASS — first readout ≤100 ms, arrival age ≤100 ms, ≥20 readings/s, no gap over 50 ms, advance within one hop and never early, shown ≤100 ms, nothing judged during the tone
 ```
 
 Run `check` before calling any task done, and paste the output.
