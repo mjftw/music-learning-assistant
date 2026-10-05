@@ -42,7 +42,6 @@ sdd_phase: approved
 
 | # | Change | Context | Capability (creates / modifies) | Outcome (one line) | Depends on | Status | Dir |
 |---|---|---|---|---|---|---|---|
-| 008 | `learner-leads` | `practice` | `practice.session` (modifies) | The tool shows the target note, listens, and advances when it is held in tune for the required duration | 003, 007 | converged | `changes/008-learner-leads/` |
 | 009 | `temperament` | `theory` | `theory.temperament` (modifies), `practice.session` (modifies) | Choose just vs equal temperament for playback and drone | 003, 004 | proposed | |
 | 010 | `teach-me` | `theory` | `theory.explanations` (creates) | Tooltips that explain the theory behind whatever is on screen | 001 | proposed | |
 
@@ -84,3 +83,4 @@ the tuner or learner-leads.
 | 006 | `scale-selection-acceptance-fixes` | `practice.session`, `theory.circle-of-fifths` | v0.3.0, v1.2.0 | 2026-09-24 |
 | 004 | `the-drone` | `practice.drone` (new), `practice.session` | v0.1.0, v0.4.0 | 2026-09-26 |
 | 007 | `hear-me` | `listening.pitch-detection` (new), `practice.tuner` (new), `theory.temperament` | v0.1.0, v0.1.0, v0.2.0 | 2026-09-29 — shipped with convergence round 2 open by the user's decision: T040–T045 in `changes/archive/007-hear-me/tasks.md` carry forward |
+| 008 | `learner-leads` | `practice.session` | v0.5.0 | 2026-10-05 |

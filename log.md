@@ -5,6 +5,10 @@ Chronological history of this bundle. Newest date first.
 ## 2026-10-05
 
 - Design Principles `docs/design.md` → approved (human:merlin-webster)
+- Glossary `docs/glossary.md` → approved (human:merlin-webster)
+- Domain Map `docs/domain.md` → approved (human:merlin-webster)
+- Capability Spec `specs/practice/session.md` → current (human:merlin-webster)
+- Design Principles `docs/design.md` → approved (human:merlin-webster)
 
 ## 2026-10-02
 

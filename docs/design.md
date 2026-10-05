@@ -22,6 +22,8 @@ verified:
     at: 2026-09-29T22:21:12Z
   - by: human:merlin-webster
     at: 2026-10-05T12:00:15Z
+  - by: human:merlin-webster
+    at: 2026-10-05T13:00:03Z
 sdd_phase: approved
 sdd_version: 1.2.0
 sdd_interface: yes
@@ -241,6 +243,18 @@ rows were promoted at 008's exit from the Learner Leads handoff.
 | `tuner` | `cannot-hear` | `/` then the Tuner pill, microphone refused | `docs/design/screens/tuner--cannot-hear.png` (at 360 × 660: `tuner--cannot-hear--360x660.png`) | 007-hear-me |
 | `tuner` | `target-pinned` | `/` then the Tuner pill, then Hold or a wedge | `docs/design/screens/tuner--target-pinned.png` | 007-hear-me |
 | `tuner` | `target-sheet` | `/` then the Tuner pill, then TARGET | `docs/design/screens/tuner--target-sheet.png` | 007-hear-me |
+| `practice` | `idle-play-along` — the mode words under the caption, play along underlined | `/` | `docs/design/screens/practice--idle-play-along.png` | 008-learner-leads |
+| `practice` | `idle-i-lead` — the Tuner glyph in the circle, "hold N beat(s) · <tolerance> tuning" | `/` then "I lead" | `docs/design/screens/practice--idle-i-lead.png` | 008-learner-leads |
+| `practice` | `playing-play-along` — ❚❚, "<note> · k of N", the mode words where the progress bar was | `/` then ▶ | `docs/design/screens/practice--playing-play-along.png` | 008-learner-leads |
+| `practice` | `listening-silent` — ■, the target letter, "Play <target>"; the band on the target, no line | `/` then "I lead", the circle; no signal | `docs/design/screens/practice--listening-silent.png` | 008-learner-leads |
+| `practice` | `heard-out-of-tune` — the line outside the band in the flat or sharp colour | as `listening-silent`, a tone off the target | `docs/design/screens/practice--heard-out-of-tune.png` | 008-learner-leads |
+| `practice` | `holding` — "in tune · holding", the band filling | as `listening-silent`, an in-tune tone held | `docs/design/screens/practice--holding.png` | 008-learner-leads |
+| `practice` | `holding-meter-off` — Cues → meter off: the highlight and the judgement, no band, fill or line | the sheet → Cues → meter off, then as `holding` | `docs/design/screens/practice--holding-meter-off.png` | 008-learner-leads |
+| `practice` | `advanced` — the held note ink, the next the target, "<note> held ✓" | as `holding`, to the advance | `docs/design/screens/practice--advanced.png` | 008-learner-leads |
+| `practice` | `complete` — "N of N held · <range>", "All held", the start circle back | loop off, every note held | `docs/design/screens/practice--complete.png` | 008-learner-leads |
+| `practice` | `no-microphone` — "Can't hear — no microphone" beside the circle, its line below | `/` then "I lead", the circle; microphone refused | `docs/design/screens/practice--no-microphone.png` | 008-learner-leads |
+| `practice` | `sheet-play-along` — Who leads, Sound, Count-in, Rest bar, the hairline, Direction, Octaves, Shape, Loop | `/` then edit › in play along | `docs/design/screens/practice--sheet-play-along.png` | 008-learner-leads |
+| `practice` | `sheet-i-lead` — Who leads, Hold, In tune, Cues, the hairline, the shared rows; the same height | `/` then edit › in I lead | `docs/design/screens/practice--sheet-i-lead.png` | 008-learner-leads |
 
 ## Refinement log
 
