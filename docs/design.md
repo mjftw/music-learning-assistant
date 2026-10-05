@@ -20,8 +20,10 @@ verified:
     at: 2026-09-29T19:10:23Z
   - by: human:merlin-webster
     at: 2026-09-29T22:21:12Z
+  - by: human:merlin-webster
+    at: 2026-10-05T12:00:15Z
 sdd_phase: approved
-sdd_version: 1.1.0
+sdd_version: 1.2.0
 sdd_interface: yes
 master: ~/.config/sdd/design-taste.md
 ---
@@ -163,7 +165,8 @@ inside a tool; motion for its own sake.
 > refinement loop settled is promoted here at the loop's exit.
 
 Promoted at 007's plan from what 001–006 already used (`src/ui/theme.ts`
-is authoritative for the values; this table names the roles).
+is authoritative for the values; this table names the roles). The lead
+rows were promoted at 008's exit from the Learner Leads handoff.
 
 | Token | Value | Used for |
 |---|---|---|
@@ -181,6 +184,7 @@ is authoritative for the values; this table names the roles).
 | `paper.hairline` | `#e6ddcc` | row separators (strong) |
 | `paper.hairlineSoft` | `#ece4d5` | row separators (soft) |
 | `paper.pillActive` | `#e7dcc6` | the selected pill in a segmented control |
+| `paper.pillInk` | `#756c60` | an unselected pill's label in a segmented control |
 | `paper.accent` | `#8a4b2a` | ▶, the sounding note, the tonic, the distance ring's warm end, TARGET when pinned |
 | `paper.trackOff` | `#c8bfad` | a switch's off track |
 | `paper.scrim` | `rgba(28,25,22,.32)` | behind sheets and the drawer |
@@ -190,14 +194,21 @@ is authoritative for the values; this table names the roles).
 | `tuner.band` | `oklch(0.90 0.045 150)` | the in-tune band behind the level and the stave |
 | `tuner.targetHead` | `#a39a8c` | the pinned target's grey notehead |
 | `tuner.ghostInk` | `#8a8175` | the target head's accidental and octave mark |
+| `lead.holdFill` | `oklch(0.80 0.07 150)` | the hold filling the in-tune band on the target note, left to right (the band, line and verdict colours of a lead run are `tuner.band` / `tuner.inTune` / `tuner.flat` / `tuner.sharp` — one value per role) |
+| `modeWords.glyphCentre` | `#f9f4e9` | a glyph on the accent circle — ▶, ❚❚, ■, the Tuner glyph's centre bar |
+| `modeWords.glyphOuter` | `rgba(249,244,233,.6)` | the Tuner glyph's two outer bars |
+| `modeWords` (metrics) | gap 16 · underline 2 px, 4 px below · 4 px vertical padding · glyph bars 3 px wide, 3 px apart, 10 / 20 / 10 px tall, bottom-aligned | the "play along / I lead" words under the caption; the Tuner glyph in the start circle |
+| `leadCard` (metrics) | target letter 40 (display) · octave 12 (mono 600) · no-mic title 14 / 600 · body 12.5, line-height 1.45 | the live lead card and the no-microphone card |
+| `noteMeter` (metrics) | box 40 px tall = ±50 ¢ (0.4 px per cent) · stave band 26 px wide, line 2 px past it each side · names band inset 6, line inset 3, box 13 px from the cell's top · band radius 3 · line 2 px, radius 1 | the meter on the target note, stave and names |
+| `sheetRow` (metrics) | row 62 px, padding 0 18 · label 13 / 600 · hint 11 on a 14 px line in a 28 px two-line box · pill padding 9 10 10, radius 10, 12.5 / 600 · switch 36 × 20, knob 14 at 3 / 19 · ✕ 28 px | a sheet row with a hint: label and hint left, control right; a sheet built from these never changes height |
 | `fonts.body` | Public Sans (400/500/600/700) | labels, buttons, prose |
 | `fonts.display` | Instrument Serif | the key name, the big note name (164 px on the tuner), sheet titles' numerals |
 | `fonts.mono` | JetBrains Mono (400/500/600) | captions, cents, Hz, tempo, formulas, tick labels, TARGET |
 | `fonts.music` | Noto Music | clefs, accidentals, note-length glyphs |
 | type scale | 164 · 40 · 22 · 20 · 17 · 15 · 14.5 · 14 · 13 · 12.5 · 12 · 11.5 · 11 · 10.5 · 10 · 9.5 px | the sizes the designs use; a new size is a departure noted in `notes.md` |
 | spacing | 2 · 4 · 6 · 8 · 9 · 10 · 12 · 14 · 16 · 18 · 20 · 24 px | gaps and padding |
-| radii | 999 (pill) · 18 (the column) · 16 (transport card) · 14 (cards, sheets' rows) · 12 (tiles) · 10 (segmented pills) · 6 (tags) · 4 (the level's line) | corners |
-| motion | sheet slide `.34s cubic-bezier(.32,.72,0,1)` · scrim `.26s ease` · the tuner head and cents `.18s cubic-bezier(.3,.7,.3,1)` · drone pill `.2s ease` | the only animations; every one shows a state change or time passing (§3 Unhurried) |
+| radii | 999 (pill) · 18 (the column) · 16 (transport card) · 14 (cards, sheets' rows) · 12 (tiles) · 10 (segmented pills) · 6 (tags) · 4 (the level's line) · 3 (the meter's band) · 1 (the meter's line) | corners |
+| motion | sheet slide `.34s cubic-bezier(.32,.72,0,1)` · scrim `.26s ease` · the tuner head and cents, and the meter's line on the note, `.18s cubic-bezier(.3,.7,.3,1)` · drone pill `.2s ease` | the only animations; every one shows a state change or time passing (§3 Unhurried) |
 | `motion.lingerHoldMs` | 600 ms | how long a reading that has stopped stays, grey, before it fades |
 | `motion.lingerFadeMs` | 200 ms | the fade of a lingering reading; "Play a note" coming in |
 
@@ -212,6 +223,9 @@ is authoritative for the values; this table names the roles).
 | What was heard goes grey | 007 rounds 2–4 | `changes/007-hear-me/design/reference/tuner--target-pinned.png` | Anything that shows a past sound rather than a live one is grey (`paper.faint`, `tuner.ghostInk`) and is not updated: the lingering reading, the trail in silence, the spiral's needle on the last note heard. It is hidden from assistive technology. |
 | A live reading is never delayed by motion | 007 round 4 | `changes/007-hear-me/design/reference/tuner--listening.png` | Holds and fades apply only to what is going away. A new reading appears at once, at full strength. Reduced motion removes what is going away at the end of the same time, without fading. |
 | Readings are smoothed, jumps are not | 007 round 1 | `changes/007-hear-me/design/reference/tuner--listening.png` | A live value that jitters is low-pass filtered (a tenth of the way per reading); a change larger than the jitter (25 ¢) is shown at once, as is the first reading after silence. |
+| The reading is on the note | 008 (the Learner Leads handoff) | `changes/008-learner-leads/design/reference/practice--holding.png` | When the learner is judged against a note, the judgement is drawn on that note — band behind it, line in front, fill for time held — so there is one place to look. The card repeats it in words; it never carries a second meter. Paint order is DOM order, never a negative z-index. |
+| A card keeps one structure in every state | 008 (decided 2026-10-02, kept 2026-10-05) | `changes/008-learner-leads/design/reference/practice--listening-silent.png` | The transport card carries the same rows idle, playing, leading, complete and without a microphone: the circle, the caption column with the mode words beneath it, the tempo. A state changes what a row says, not which rows exist — so nothing moves under the finger. Where a prototype's state omits a row, the row stays (the live lead card is about 40 px taller than the prototype's, accepted). |
+| A sheet never changes height | 008 (the Learner Leads handoff) | `changes/008-learner-leads/design/reference/practice--sheet-i-lead.png` | Rows that depend on a mode swap in place, the same number either way, every row the same height with its hint; the close control lives in the first row. |
 
 ## Screens
 
@@ -238,3 +252,5 @@ is authoritative for the values; this table names the roles).
 | 2026-09-28 | 007-hear-me | §8, §9 | Round 4: the last reading lingers grey 0.6 s and fades over 0.2 s — `motion.lingerHoldMs`, `motion.lingerFadeMs` | "very abrupt how quickly everything disappears … could it do more of a soft fade out?" |
 | 2026-09-29 | 007-hear-me | §9 | Round 5: the tuner fits the visible height; the level flexes | "too tall and doesn't fit on my phone without scrolling" (Galaxy S24, 360 px wide) |
 | 2026-09-29 | 007-hear-me | §8 | The motion row no longer lists the strip's `.35s` vertical centring | the code never had it; nobody missed it |
+| 2026-10-05 | 008-learner-leads | §8 | `paper.pillInk`, `lead.holdFill`, the two glyph colours, the `modeWords` / `leadCard` / `noteMeter` / `sheetRow` metrics, radii 3 and 1, the meter line's motion | "Promote all" — what the Learner Leads handoff specified and the build used |
+| 2026-10-05 | 008-learner-leads | §9 | The reading is on the note; a card keeps one structure in every state; a sheet never changes height | the handoff's "the learner looks in one place only"; the mode words kept on the live card over the prototype's shorter one ("Keep the words") |

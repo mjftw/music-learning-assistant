@@ -13,7 +13,7 @@ generated:
   at: 2026-10-02T15:21:41Z
 verified: []
 sdd_id: 008-learner-leads
-sdd_phase: open           # open | exited
+sdd_phase: exited
 ---
 
 # Design rounds — 008-learner-leads
@@ -105,20 +105,38 @@ sdd_phase: open           # open | exited
 
 ## Rounds
 
-### Round 1 — <screen · state>
+No taste rounds were run: the design arrived finished (the Learner Leads
+handoff), and the build was checked against it by screenshot rather than
+re-explored.
 
-- **Looked at:** <where: device, distance, situation from docs/design.md §2>
-- **Problem:** <the user's words>
-- **Tried:** A <one line> · B <one line> · C <one line>
-- **Chose:** <A/B/C or a mix> — <why, the user's words>
-- **Rejected because:** A <…> · C <…>
-- **Requirement changed?** <no | yes: <context>.<capability>/REQ-NNN — noted for the delta>
+- **Screenshot pass (2026-10-04, T020):** all twelve Interface rows shot,
+  prototype beside live (`rounds/shots/`). Four structural findings: the
+  Tuner glyph drawn as outlined pills, the no-mic title below the caption
+  instead of in its place, a stale pitch line across a new target — fixed
+  (T023) and re-shot; and the live card about 40 px taller than the
+  prototype's because it keeps the mode words.
+- **Phone walk (2026-10-04, Galaxy S24, on the stand with the flute):**
+  ■ did nothing while leading — fixed (T024); "Looks like it's working".
+- **Converge 1 (2026-10-05):** note opacity applied twice on the stave
+  (notes ahead at 0.09, play along's dim at 0.52) — fixed (T027) and
+  re-shot.
+- **The live card's height (2026-10-05):** asked — keep the mode words or
+  match the prototype. **Chose:** keep the words. **Requirement changed?**
+  no — REQ-014 and REQ-002 already say "in every state".
 
 ## Exit
 
-- **Exited:** <date>
-- **Reference screenshots:** `reference/<screen>--<state>.png` for every row
-  in the proposal's Interface table
-- **Promoted to `docs/design.md`:** <tokens and patterns, by name; or none>
-- **Requirement changes written to the delta:** <list, or none>
-- **Left for a later change:** <anything the user chose to stop short of>
+- **Exited:** 2026-10-05
+- **Reference screenshots:** `reference/practice--<state>.png` for all
+  twelve rows of the proposal's Interface table, shot from the final build
+- **Promoted to `docs/design.md` (v1.2.0):** tokens `paper.pillInk`,
+  `lead.holdFill`, `modeWords.glyphCentre`, `modeWords.glyphOuter`, the
+  `modeWords` / `leadCard` / `noteMeter` / `sheetRow` metrics, radii 3 and
+  1, the meter line's motion; patterns "The reading is on the note", "A
+  card keeps one structure in every state", "A sheet never changes height"
+- **Requirement changes written to the delta:** none from the design; the
+  run's two wording amendments (D001, D002) are recorded under
+  `record/decisions/`
+- **Left for a later change:** the three literals in `src/ui/global.css`
+  that `check-design.sh` has warned about since 002/007; the ocarina
+  ranges (the user's finding on the walk, a separate fix after the MR)
