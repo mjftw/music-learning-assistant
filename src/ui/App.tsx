@@ -571,9 +571,13 @@ export function App(props: {
     if (session === null || snapshot === null) return;
     // A lead run never touches the transport, so ■ on the live lead card
     // (shown for the whole `listening` phase, the microphone request
-    // included) is told apart by the lead phase (practice.session/REQ-015).
+    // included) is told apart by the lead phase (practice.session/REQ-015);
+    // while the microphone is still being asked for the phase is yet idle
+    // and the lead snapshot says "starting" — the second tap is the stop.
     const inProgress =
-      snapshot.transport.kind !== "idle" || snapshot.lead.phase === "listening";
+      snapshot.transport.kind !== "idle" ||
+      snapshot.lead.phase === "listening" ||
+      snapshot.lead.listening.kind === "starting";
     if (inProgress) {
       session.stop();
     } else {

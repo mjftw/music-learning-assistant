@@ -298,6 +298,11 @@ export class FakeListening implements ListeningPort {
   // "fake" } } instead of succeeding — REQ-006/REQ-007's refused/none/failed
   // scenarios.
   failWith: ListeningUnavailable["reason"] | null = null;
+  // While set, start() stays pending (the microphone "being asked for") until
+  // resolveStart() answers it — a stop() landing in that window is the
+  // supersede path of practice.session/REQ-015.
+  holdStart = false;
+  private answerStart: (() => void) | null = null;
   private readonly pitchListeners = new Set<(pitch: PitchDetected) => void>();
   private readonly endedListeners = new Set<(ended: ListeningEnded) => void>();
 
@@ -309,8 +314,23 @@ export class FakeListening implements ListeningPort {
         error: { reason: this.failWith, detail: "fake" },
       });
     }
+    if (this.holdStart) {
+      return new Promise((resolve) => {
+        this.answerStart = () => {
+          this.listening = true;
+          resolve({ ok: true, value: undefined });
+        };
+      });
+    }
     this.listening = true;
     return Promise.resolve({ ok: true, value: undefined });
+  }
+
+  /** Answers a start() held by `holdStart`: the microphone opens now. */
+  resolveStart(): void {
+    const answer = this.answerStart;
+    this.answerStart = null;
+    answer?.();
   }
 
   stop(): void {

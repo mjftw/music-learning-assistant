@@ -296,6 +296,28 @@ test("practice.session/REQ-015/S2 (card) — ■ stops the lead run", async () =
   expect(screen.getByTestId("target-letter").textContent).toBe("C");
 });
 
+test("practice.session/REQ-015/S2 (card) — a second tap while the microphone is asked for stops", async () => {
+  const app = renderLeadApp(storedCMajor({ who: "me" }));
+  app.listening.holdStart = true;
+  await app.user.click(screen.getByTestId("start-circle"));
+  await flushApp();
+  expect(app.listening.startCalls).toBe(1);
+  expect(screen.queryByTestId("stop-circle")).toBeNull();
+
+  await app.user.click(screen.getByTestId("start-circle"));
+  act(() => app.listening.resolveStart());
+  await flushApp();
+
+  expect(screen.queryByTestId("stop-circle")).toBeNull();
+  expect(screen.getByTestId("position-caption").textContent).toBe(
+    "hold 2 beats · medium tuning",
+  );
+  // The late microphone was handed back: nothing is listening, and no
+  // second request was made.
+  expect(app.listening.startCalls).toBe(1);
+  expect(app.listening.listening).toBe(false);
+});
+
 test("practice.session/REQ-014/S2 (card) — play along after a finished run is the play-along card", async () => {
   const app = renderLeadApp(
     storedCMajor(

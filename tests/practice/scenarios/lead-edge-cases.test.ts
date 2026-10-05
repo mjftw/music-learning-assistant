@@ -74,6 +74,28 @@ test("edge case — the circle tapped while already leading is a no-op", async (
   expect(after.target).toEqual(before.target);
 });
 
+test("edge case — the circle tapped again while the microphone is being asked for is the stop", async () => {
+  const f = leadFixture();
+  f.listening.holdStart = true;
+  const targets: unknown[] = [];
+  f.session.onTargetAdvanced((e) => targets.push(e));
+
+  await startLead(f.session);
+  expect(f.listening.startCalls).toBe(1);
+  expect(f.session.snapshot().lead.listening).toEqual({ kind: "starting" });
+
+  f.session.stop();
+  f.listening.resolveStart();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(f.session.snapshot().lead.phase).toBe("idle");
+  expect(f.session.snapshot().lead.target).toBeNull();
+  expect(f.session.snapshot().lead.listening).toEqual({ kind: "off" });
+  expect(targets).toEqual([]);
+  expect(f.listening.listening).toBe(false);
+  expect(f.wake.acquired).toBe(false);
+});
+
 test("edge case — ■ twice", async () => {
   const f = leadFixture();
   await startLead(f.session);
