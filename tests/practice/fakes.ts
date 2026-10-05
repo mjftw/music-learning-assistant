@@ -304,7 +304,9 @@ export class FakeListening implements ListeningPort {
   // pending at once (start, stop, start): each is answered by its index among
   // the held starts, in the order they were made.
   holdStart = false;
-  private readonly answersToStart: ((() => void) | null)[] = [];
+  private readonly answersToStart: (
+    ((refuseWith: ListeningUnavailable["reason"] | null) => void) | null
+  )[] = [];
   private readonly pitchListeners = new Set<(pitch: PitchDetected) => void>();
   private readonly endedListeners = new Set<(ended: ListeningEnded) => void>();
 
@@ -318,7 +320,14 @@ export class FakeListening implements ListeningPort {
     }
     if (this.holdStart) {
       return new Promise((resolve) => {
-        this.answersToStart.push(() => {
+        this.answersToStart.push((refuseWith) => {
+          if (refuseWith !== null) {
+            resolve({
+              ok: false,
+              error: { reason: refuseWith, detail: "fake" },
+            });
+            return;
+          }
           this.listening = true;
           resolve({ ok: true, value: undefined });
         });
@@ -332,13 +341,19 @@ export class FakeListening implements ListeningPort {
    * Answers a start() held by `holdStart`: the microphone opens now. With no
    * argument, the oldest one still pending; with `n`, the nth held start
    * (0-based, in the order they were made) — so two pending starts can be
-   * answered in either order.
+   * answered in either order. With `refuseWith`, that start fails with the
+   * reason instead of opening the microphone (it leaves `listening` as it
+   * was). Nothing pending: nothing happens.
    */
-  resolveStart(n?: number): void {
+  resolveStart(
+    n?: number,
+    refuseWith: ListeningUnavailable["reason"] | null = null,
+  ): void {
     const index = n ?? this.answersToStart.findIndex((a) => a !== null);
-    const answer = this.answersToStart[index] ?? null;
+    if (index < 0 || index >= this.answersToStart.length) return;
+    const answer = this.answersToStart[index];
     this.answersToStart[index] = null;
-    answer?.();
+    answer?.(refuseWith);
   }
 
   stop(): void {

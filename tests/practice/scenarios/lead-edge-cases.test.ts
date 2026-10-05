@@ -34,6 +34,7 @@ import { expect, test } from "vitest";
 import { defaultSessionSettings } from "../../../src/practice/published";
 import { pitchHzOf } from "../../../src/theory/published";
 import {
+  flush,
   hearSteady,
   leadFixture,
   sessionWithEmptyRun,
@@ -97,9 +98,7 @@ test("edge case — the circle tapped again while the microphone is being asked 
 });
 
 const settle = async (): Promise<void> => {
-  for (let i = 0; i < 3; i += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  }
+  for (let i = 0; i < 3; i += 1) await flush();
 };
 
 for (const order of [
@@ -160,6 +159,76 @@ for (const order of [
     expect(f.listening.listening).toBe(false);
   });
 }
+
+// listening.pitch-detection/REQ-001/S3 — an earlier request whose microphone
+// opened and was kept (a newer request wanted it), then the newer request
+// failed: nothing owns the microphone, so it must be released.
+test("edge case — an earlier request opens the microphone, the newer is refused: nothing is left listening (lead)", async () => {
+  const f = leadFixture();
+  f.listening.holdStart = true;
+
+  f.session.start();
+  await settle();
+  f.session.stop();
+  f.session.start();
+  await settle();
+  expect(f.listening.startCalls).toBe(2);
+
+  f.listening.resolveStart(0);
+  await settle();
+  f.listening.resolveStart(1, "refused");
+  await settle();
+
+  expect(f.session.snapshot().lead.listening).toEqual({
+    kind: "cannot-hear",
+    reason: "refused",
+  });
+  expect(f.listening.listening).toBe(false);
+});
+
+test("edge case — an earlier request opens the microphone, the newer is refused: nothing is left listening (tuner)", async () => {
+  const f = leadFixture();
+  f.listening.holdStart = true;
+
+  f.session.enterTuner();
+  await settle();
+  f.session.enterTuner();
+  await settle();
+  expect(f.listening.startCalls).toBe(2);
+
+  f.listening.resolveStart(0);
+  await settle();
+  f.listening.resolveStart(1, "refused");
+  await settle();
+
+  expect(f.session.snapshot().tuner.listening).toEqual({
+    kind: "cannot-hear",
+    reason: "refused",
+  });
+  expect(f.listening.listening).toBe(false);
+});
+
+test("edge case — a lead request opens the microphone, the Tuner pill's request is refused: nothing is left listening", async () => {
+  const f = leadFixture();
+  f.listening.holdStart = true;
+
+  f.session.start();
+  await settle();
+  f.session.enterTuner();
+  await settle();
+  expect(f.listening.startCalls).toBe(2);
+
+  f.listening.resolveStart(0);
+  await settle();
+  f.listening.resolveStart(1, "refused");
+  await settle();
+
+  expect(f.session.snapshot().tuner.listening).toEqual({
+    kind: "cannot-hear",
+    reason: "refused",
+  });
+  expect(f.listening.listening).toBe(false);
+});
 
 test("edge case — ■ twice", async () => {
   const f = leadFixture();

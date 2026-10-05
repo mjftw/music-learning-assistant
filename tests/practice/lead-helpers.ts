@@ -51,7 +51,7 @@ export function leadFixture(
   return sessionOn("C", "flute-concert", oneOctaveUpdown, settings);
 }
 
-const flush = (): Promise<void> =>
+export const flush = (): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, 0));
 
 /** start() with who = "me", driven past wakeLock.acquire() and listening.start(). */

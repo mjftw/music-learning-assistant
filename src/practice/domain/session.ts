@@ -2171,16 +2171,6 @@ export function createSession(
       : reason;
   }
 
-  // practice.tuner/REQ-001, REQ-008 — the shared second half of "starting
-  // to listen": state → "starting", notify, then request the microphone;
-  // settles on "listening" or "cannot-hear" once it resolves, unless
-  // `tunerGeneration` has moved past `generation` in the meantime (a
-  // leaveTuner() or a hidden event landing mid-await), in which case
-  // whatever was just opened is released again instead — safe either way, a
-  // no-op if start() failed. Shared by enterTuner() (called once its own
-  // wakeLock.acquire() await has settled) and the onShown handler above
-  // (REQ-008/S1: resumes listening without a tap; the wake lock is
-  // untouched here — it was never released while hidden).
   // listening.pitch-detection/REQ-001/S3 — whether anything now wants the
   // microphone: a lead run asking for or holding it, or the tuner asking for
   // or holding it (a hidden tuner keeps `tunerActive` but is "off" — it wants
@@ -2197,6 +2187,20 @@ export function createSession(
     );
   }
 
+  // practice.tuner/REQ-001, REQ-008 — the shared second half of "starting
+  // to listen": state → "starting", notify, then request the microphone;
+  // settles on "listening" or "cannot-hear" once it resolves, unless
+  // `tunerGeneration` has moved past `generation` in the meantime (a
+  // leaveTuner() or a hidden event landing mid-await), in which case
+  // whatever was just opened is released again instead — unless a newer
+  // request wants the microphone (`microphoneWanted()`), in which case it is
+  // that request's. A request that itself fails also calls stop(): an
+  // earlier, superseded request may have opened the microphone and been kept
+  // for this one, which will now never use it — a no-op when nothing is
+  // open. Shared by enterTuner() (called once its own wakeLock.acquire()
+  // await has settled) and the onShown handler above (REQ-008/S1: resumes
+  // listening without a tap; the wake lock is untouched here — it was never
+  // released while hidden).
   function startListening(generation: number): void {
     invalidateSnapshot();
     tunerListeningState = { kind: "starting" };
@@ -2209,6 +2213,7 @@ export function createSession(
         return;
       }
       invalidateSnapshot();
+      if (!result.ok) listening.stop();
       tunerListeningState = result.ok
         ? { kind: "listening" }
         : {
@@ -2329,6 +2334,7 @@ export function createSession(
             // is sounding or listening at this point) — released the same
             // way stop()'s lead branch releases it.
             listeningOwner = "none";
+            listening.stop();
             const reason = cannotHearReasonOf(result.error.reason);
             leadListeningState = { kind: "cannot-hear", reason };
             leadPhase = { kind: "cannot-hear", reason };

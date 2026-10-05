@@ -16,10 +16,15 @@ export type ListeningStartOutcome =
 export interface Listener {
   // Asks for the microphone now — never before — with echo cancellation,
   // noise suppression and automatic gain control all off (the tuner reads
-  // the raw signal). Idempotent while already listening.
+  // the raw signal). Idempotent while already listening. A start() that a
+  // stop() (or dispose()) overtakes while the microphone is still being asked
+  // for releases the stream it is then given and resolves not-ok ("failed");
+  // a second start() with no stop() between releases its own stream and
+  // resolves ok, leaving the first one's graph as it is.
   start(): Promise<ListeningStartOutcome>;
   // Stops every track, disconnects the source node; nothing is published
-  // afterwards.
+  // afterwards. Also cancels any start() still waiting on the microphone: its
+  // stream is released the moment it arrives, never connected.
   stop(): void;
   currentFrame(): number;
   sampleRate(): number;
