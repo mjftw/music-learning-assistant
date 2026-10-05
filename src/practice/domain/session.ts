@@ -1211,6 +1211,9 @@ export function createSession(
       leadGapCancel = null;
       invalidateSnapshot();
       leadReading = null;
+      // REQ-016 — the first reading after nothing was heard is as detected:
+      // the smoothing restarts, as the tuner's gap restarts its own.
+      leadSmoothing = initialSmoothingState;
       leadPhase = applySilence(leadPhase);
       notifyChange();
     }, LEAD_GAP_MS);

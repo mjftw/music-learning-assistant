@@ -144,3 +144,13 @@ test("practice.session/REQ-016/S9 — a new target starts clean", async () => {
   expect(firstOnD.cents).toBe(-194); // as detected, not smoothed from C4's +6
   expect(f.session.snapshot().lead.heldFraction).toBe(0);
 });
+test("practice.session/REQ-016 — the first reading after silence is as detected", async () => {
+  const { f, judged } = await running();
+  hearSteady(f, 262.5, 0, 500); // +6 ¢, in tune: the hold accumulates
+  expect(f.session.snapshot().lead.heldFraction).toBeGreaterThan(0);
+  letGapPass(f);
+  f.clock.advanceMs(200); // 500 ms with nothing detected
+  hearAt(f, 264.06, 1000); // +16 ¢
+  expect(judged.at(-1)).toMatchObject({ cents: 16, verdict: "sharp" });
+  expect(f.session.snapshot().lead.heldFraction).toBe(0);
+});
