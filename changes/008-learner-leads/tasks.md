@@ -18,7 +18,7 @@ verified:
     at: 2026-10-02T16:34:00Z
 sdd_id: 008-learner-leads
 sdd_context: practice
-sdd_phase: in-progress
+sdd_phase: complete
 ---
 
 # Tasks: Learner leads

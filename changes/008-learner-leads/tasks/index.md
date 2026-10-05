@@ -1,6 +1,6 @@
 # Tasks: 008-learner-leads
 
-Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-learner-leads next` → C008_T029
+Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-learner-leads next` → none
 
 | Task | Status | Depends on | Requirements | Group | Attempts | Outcome |
 |---|---|---|---|---|---|---|
@@ -32,4 +32,4 @@ Generated from each task's frontmatter. Next: `./scripts/task.py changes/008-lea
 | [C008_T026](C008_T026.md) | done | C008_T025 | practice.session/REQ-016 | Converge 1 | 1 | The first lead reading after silence is as detected, not smoothed (converge C2) |
 | [C008_T027](C008_T027.md) | done | — | practice.session/REQ-017 | Converge 1 | 1 | The stave applies each note's opacity once (converge W1) |
 | [C008_T028](C008_T028.md) | done | — | practice.session/REQ-021 | Converge 1 | 1 | test:lead gates the largest gap between readings, not only the average rate (converge W3) |
-| [C008_T029](C008_T029.md) | todo | C008_T026 | practice.session/REQ-015 | Converge 1 | 0 | A second tap while the microphone is being asked for stops the lead run (converge W5) |
+| [C008_T029](C008_T029.md) | done | C008_T026 | practice.session/REQ-015 | Converge 1 | 1 | A second tap while the microphone is being asked for stops the lead run (converge W5) |
