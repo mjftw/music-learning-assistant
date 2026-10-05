@@ -529,15 +529,16 @@ export const StaveView = memo(function StaveView(props: {
             data-testid="stave-note"
             data-note={noteLabel(head.note)}
             data-root={head.isRoot ? "true" : "false"}
-            // cx/cy/rx/fill/opacity mirror the notehead ellipse below —
-            // read-only probes so a test (and `onTargetBox`) can reach the
-            // head's own geometry and styling without `querySelector`;
-            // they carry no visual meaning on a `<g>`.
+            // cx/cy/rx/fill mirror the notehead ellipse below — read-only
+            // probes so a test can reach the head's own geometry and
+            // styling without `querySelector`; they carry no visual meaning
+            // on a `<g>`. The note's opacity is NOT set here: opacity
+            // multiplies down an SVG tree, so it is set once, on the stem and
+            // the ellipse, as it was before the lead run.
             cx={head.x}
             cy={head.y}
             rx={head.rx}
             fill={head.ink}
-            opacity={head.opacity}
           >
             <line
               x1={head.stemX}

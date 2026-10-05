@@ -525,17 +525,10 @@ test("theory.circle-of-fifths/REQ-003/S7 — the stave after a scale change is e
 test("practice.session/REQ-017/S8 — ink behind, faint ahead", () => {
   renderStave({ leadTarget: { runIndex: 4 } });
   const heads = screen.getAllByTestId("stave-note");
-  expect(heads.slice(0, 4).map((h) => h.getAttribute("opacity"))).toEqual([
-    "1",
-    "1",
-    "1",
-    "1",
-  ]);
-  expect(heads.slice(5).map((h) => h.getAttribute("opacity"))).toEqual([
-    "0.3",
-    "0.3",
-    "0.3",
-  ]);
+  const opacityOf = (h: HTMLElement) =>
+    h.querySelector("ellipse")!.getAttribute("opacity");
+  expect(heads.slice(0, 4).map(opacityOf)).toEqual(["1", "1", "1", "1"]);
+  expect(heads.slice(5).map(opacityOf)).toEqual(["0.3", "0.3", "0.3"]);
   expect(screen.getAllByTestId("sounding-halo")).toHaveLength(1);
   expect(Number(heads[4]!.getAttribute("rx"))).toBeGreaterThan(
     Number(heads[3]!.getAttribute("rx")),
@@ -561,4 +554,82 @@ test("practice.session/REQ-017 — onTargetBox reports the target head's centre"
     x: Number(head.getAttribute("cx")),
     y: Number(head.getAttribute("cy")),
   });
+});
+
+// The effective opacity of an element as drawn: the product of the opacity
+// of the element and of every ancestor up to the document (an `opacity`
+// attribute on SVG, a style on HTML; absent = 1). SVG and CSS both multiply
+// nested opacities, so a value set twice would render squared.
+const effectiveOpacityOf = (element: Element): number => {
+  let product = 1;
+  for (
+    let node: Element | null = element;
+    node !== null;
+    node = node.parentElement
+  ) {
+    const attribute = node.getAttribute("opacity");
+    const style = (node as HTMLElement).style?.opacity ?? "";
+    if (attribute !== null && attribute !== "") product *= Number(attribute);
+    if (style !== "") product *= Number(style);
+  }
+  return product;
+};
+
+const renderBluesStave = (
+  extra: Partial<ComponentProps<typeof StaveView>> = {},
+) => {
+  const aMinor: Key = {
+    tonic: { letter: "A", accidental: "natural" },
+    mode: "naturalMinor",
+  };
+  const notes = traversalOf(aMinor, flute(), scaleById("blues"), {
+    direction: "up",
+    octaves: { kind: "count", count: 1 },
+    shape: "scale",
+  }).run;
+  return render(
+    <StaveView
+      key_={aMinor}
+      variant={flute()}
+      notes={notes}
+      staveNamesEnabled={false}
+      soundingRunIndex={null}
+      playing={false}
+      onTapNote={() => {}}
+      tapsEnabled={false}
+      {...extra}
+    />,
+  );
+};
+
+const effectiveOpacities = () =>
+  screen.getAllByTestId("stave-note").map((head) => ({
+    ellipse: effectiveOpacityOf(head.querySelector("ellipse")!),
+    stem: effectiveOpacityOf(head.querySelector("line")!),
+  }));
+
+test("practice.session/REQ-017/S8 — a note's opacity is applied once", () => {
+  // Leading, target 4: ink behind (1), highlighted target (1), faint ahead (0.3).
+  const { unmount } = renderBluesStave({ leadTarget: { runIndex: 4 } });
+  const lead = effectiveOpacities();
+  expect(lead.map((o) => o.ellipse)).toEqual([1, 1, 1, 1, 1, 0.3, 0.3]);
+  expect(lead.map((o) => o.stem)).toEqual([1, 1, 1, 1, 1, 0.3, 0.3]);
+  const accidentals = screen.getAllByTestId("inline-accidental");
+  expect(accidentals.length).toBeGreaterThan(0);
+  for (const accidental of accidentals) {
+    const runIndex = Number(accidental.getAttribute("data-run-index"));
+    expect(effectiveOpacityOf(accidental)).toBe(runIndex > 4 ? 0.3 : 1);
+  }
+  unmount();
+
+  // Play along, note 2 sounding: the others dim to the shipped 0.72.
+  renderBluesStave({ playing: true, soundingRunIndex: 2 });
+  const playing = effectiveOpacities();
+  const dimmed = [0.72, 0.72, 1, 0.72, 0.72, 0.72, 0.72];
+  expect(playing.map((o) => o.ellipse)).toEqual(dimmed);
+  expect(playing.map((o) => o.stem)).toEqual(dimmed);
+  for (const accidental of screen.getAllByTestId("inline-accidental")) {
+    const runIndex = Number(accidental.getAttribute("data-run-index"));
+    expect(effectiveOpacityOf(accidental)).toBe(dimmed[runIndex]);
+  }
 });
