@@ -2010,6 +2010,14 @@ export function createSession(
     })();
   }
 
+  // practice.session/REQ-015, REQ-022 — a finished lead run's card (complete,
+  // or the no-mic card) goes back to the I lead idle state: the phase idle
+  // and listening off, so the cannot-hear reason goes with it.
+  function clearLeadCard(): void {
+    leadPhase = { kind: "idle" };
+    leadListeningState = { kind: "off" };
+  }
+
   // practice.session/REQ-019 — a key, variant, scale or traversal change
   // mid-run restarts the lead run on the new sequence from its first note at
   // once, still listening, with the hold at zero: `TargetAdvanced` emitted
@@ -2025,7 +2033,7 @@ export function createSession(
   // have left behind.
   function restartLeadIfRunning(): void {
     if (leadPhase.kind === "complete") {
-      leadPhase = { kind: "idle" };
+      clearLeadCard();
       return;
     }
     if (leadPhase.kind !== "listening") return;
@@ -2128,6 +2136,17 @@ export function createSession(
       (transport.kind !== "idle" || listeningOwner === "lead")
     ) {
       stop();
+    }
+    // practice.session/REQ-014, REQ-015, REQ-022 — a complete or cannot-hear
+    // card has no run (listeningOwner "none"), so the stop above never
+    // reaches it; a changed mode clears it, in both directions. A `who`
+    // that did not change leaves it (REQ-019: the sheet's other settings
+    // never clear it).
+    if (
+      newSettings.lead.who !== currentSettings.lead.who &&
+      leadPhase.kind !== "idle"
+    ) {
+      clearLeadCard();
     }
     currentSettings = newSettings;
     // stop() above (when called) already rebuilt and cached a snapshot of

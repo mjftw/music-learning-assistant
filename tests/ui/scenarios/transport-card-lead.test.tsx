@@ -295,3 +295,42 @@ test("practice.session/REQ-015/S2 (card) — ■ stops the lead run", async () =
   expect(app.listening.startCalls).toBe(2);
   expect(screen.getByTestId("target-letter").textContent).toBe("C");
 });
+
+test("practice.session/REQ-014/S2 (card) — play along after a finished run is the play-along card", async () => {
+  const app = renderLeadApp(
+    storedCMajor(
+      { who: "me" },
+      { session: { ...storedCMajor().session, loop: false } },
+    ),
+  );
+  await startLeadInApp(app);
+  let t = 0;
+  for (let n = 0; n < 15; n += 1) {
+    const hz = Number(screen.getByTestId("target-hz").textContent);
+    hearSteadyInApp(app, hz, t, t + 1300);
+    silenceInApp(app, 300);
+    t += 1700;
+  }
+  expect(screen.getByTestId("judgement").textContent).toBe("All held");
+  await app.user.click(screen.getByTestId("mode-word-tool"));
+  expect(screen.getByTestId("position-caption").textContent).toBe(
+    "15 notes · C4–C5",
+  );
+  expect(screen.queryByTestId("judgement")).toBeNull();
+  expect(screen.getByTestId("start-circle").textContent).toContain("▶");
+}, 15000);
+
+test("practice.session/REQ-014/S2 (card) — play along after a refused microphone is the play-along card", async () => {
+  const app = renderLeadApp(storedCMajor({ who: "me" }));
+  app.listening.failWith = "refused";
+  await startLeadInApp(app);
+  expect(screen.getByTestId("no-mic-card")).toBeTruthy();
+  await app.user.click(screen.getByTestId("mode-word-tool"));
+  expect(screen.queryByTestId("no-mic-card")).toBeNull();
+  expect(screen.getByTestId("position-caption").textContent).toBe(
+    "15 notes · C4–C5",
+  );
+  await app.user.click(screen.getByTestId("start-circle"));
+  await flushApp();
+  expect(screen.getByTestId("start-circle").textContent).toContain("❚❚");
+});

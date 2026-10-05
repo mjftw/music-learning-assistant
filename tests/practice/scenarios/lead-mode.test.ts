@@ -1,6 +1,11 @@
 import { expect, test } from "vitest";
 import { defaultSessionSettings } from "../../../src/practice/published";
-import { leadFixture, leadSettings, startLead } from "../lead-helpers";
+import {
+  holdThrough,
+  leadFixture,
+  leadSettings,
+  startLead,
+} from "../lead-helpers";
 import { sessionOn } from "../fakes";
 
 test("practice.session/REQ-014/S1 — choosing I lead", () => {
@@ -62,4 +67,53 @@ test("practice.session/REQ-014/S4 — one beat, singular", () => {
   expect(f.session.snapshot().lead.idleCaption).toBe(
     "hold 1 beat · accurate tuning",
   );
+});
+
+test("practice.session/REQ-015/S3 — the complete card goes when the mode changes", async () => {
+  const f = leadFixture({ ...leadSettings(), loop: false });
+  await startLead(f.session);
+  holdThrough(f, 15);
+  expect(f.session.snapshot().lead.phase).toBe("complete");
+
+  f.session.setSettings(defaultSessionSettings);
+  const s = f.session.snapshot();
+  expect(s.lead.phase).toBe("idle");
+  expect(s.lead.completeCaption).toBeNull();
+  expect(s.caption).toBe("15 notes · C4–C5");
+
+  f.session.start();
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(f.session.snapshot().transport.kind).toBe("countingIn");
+});
+
+test("practice.session/REQ-019 — a settings change that leaves who alone keeps the complete card", async () => {
+  const f = leadFixture({ ...leadSettings(), loop: false });
+  await startLead(f.session);
+  holdThrough(f, 15);
+  expect(f.session.snapshot().lead.phase).toBe("complete");
+
+  f.session.setSettings({
+    ...leadSettings({ holdBeats: 4 }),
+    loop: false,
+  });
+  expect(f.session.snapshot().lead.phase).toBe("complete");
+  expect(f.session.snapshot().lead.completeCaption).toBe(
+    "15 of 15 held · C4–C5",
+  );
+});
+
+test("practice.session/REQ-022/S1 — the no-mic card goes when the mode changes", async () => {
+  const f = leadFixture();
+  f.listening.failWith = "refused";
+  await startLead(f.session);
+  expect(f.session.snapshot().lead.phase).toBe("cannot-hear");
+
+  f.session.setSettings(defaultSessionSettings);
+  expect(f.session.snapshot().lead.phase).toBe("idle");
+  expect(f.session.snapshot().lead.listening).toEqual({ kind: "off" });
+
+  f.session.setSettings(leadSettings());
+  expect(f.session.snapshot().lead.phase).toBe("idle");
+  expect(f.session.snapshot().lead.listening).toEqual({ kind: "off" });
 });
