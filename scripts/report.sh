@@ -22,9 +22,9 @@ shopt -s nullglob
 DEC=("$REC"/decisions/D*.md)
 ESC=(); for f in "${DEC[@]}"; do [[ "$(fmget "$f" sdd_verdict)" == escalated ]] && ESC+=("$f"); done
 if [[ -d "$CH/tasks" ]]; then
-  PARKED=$(grep -l '^sdd_phase: parked' "$CH"/tasks/C*_T*.md 2>/dev/null | xargs -rn1 basename | sed 's/\.md$//' | sort | tr '\n' ' ' | sed 's/ *$//')
-  DONE=$(grep -l '^sdd_phase: done' "$CH"/tasks/C*_T*.md 2>/dev/null | wc -l)
-  TODO=$(grep -l '^sdd_phase: todo' "$CH"/tasks/C*_T*.md 2>/dev/null | wc -l)
+  PARKED=$({ grep -l '^sdd_phase: parked' "$CH"/tasks/C*_T*.md 2>/dev/null || true; } | xargs -rn1 basename | sed 's/\.md$//' | sort | tr '\n' ' ' | sed 's/ *$//')
+  DONE=$({ grep -l '^sdd_phase: done' "$CH"/tasks/C*_T*.md 2>/dev/null || true; } | wc -l)
+  TODO=$({ grep -l '^sdd_phase: todo' "$CH"/tasks/C*_T*.md 2>/dev/null || true; } | wc -l)
 else
   PARKED=$(awk '/^### T[0-9]+/{t=$2} /\*\*Status:\*\* *parked/{if(t)print t; t=""}' "$CH/tasks.md" 2>/dev/null | sort -u | tr '\n' ' ' | sed 's/ *$//')
   DONE=$(grep -cE '\*\*Status:\*\* *done' "$CH/tasks.md" 2>/dev/null || true)
