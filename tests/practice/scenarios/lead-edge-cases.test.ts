@@ -96,6 +96,71 @@ test("edge case — the circle tapped again while the microphone is being asked 
   expect(f.wake.acquired).toBe(false);
 });
 
+const settle = async (): Promise<void> => {
+  for (let i = 0; i < 3; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+};
+
+for (const order of [
+  [0, 1],
+  [1, 0],
+] as const) {
+  test(`edge case — start, stop, start while the microphone is being asked for: one run, one microphone (lead, resolved ${order.join(" then ")})`, async () => {
+    const f = leadFixture();
+    f.listening.holdStart = true;
+    const targets: { position: number }[] = [];
+    f.session.onTargetAdvanced((e) => targets.push(e));
+
+    f.session.start();
+    await settle();
+    f.session.stop();
+    f.session.start();
+    await settle();
+    expect(f.listening.startCalls).toBe(2);
+
+    for (const n of order) {
+      f.listening.resolveStart(n);
+      await settle();
+    }
+
+    expect(f.session.snapshot().lead.phase).toBe("listening");
+    expect(f.session.snapshot().lead.target?.position).toBe(1);
+    expect(targets.map((t) => t.position)).toEqual([1]);
+    expect(f.listening.listening).toBe(true);
+
+    f.session.stop();
+    expect(f.listening.listening).toBe(false);
+    expect(f.session.snapshot().lead.phase).toBe("idle");
+  });
+
+  test(`edge case — enter, leave, enter the tuner while the microphone is being asked for: one tuner, one microphone (resolved ${order.join(" then ")})`, async () => {
+    const f = leadFixture();
+    f.listening.holdStart = true;
+
+    f.session.enterTuner();
+    await settle();
+    f.session.leaveTuner();
+    f.session.enterTuner();
+    await settle();
+    expect(f.listening.startCalls).toBe(2);
+
+    for (const n of order) {
+      f.listening.resolveStart(n);
+      await settle();
+    }
+
+    expect(f.session.snapshot().tuner.active).toBe(true);
+    expect(f.session.snapshot().tuner.listening).toEqual({
+      kind: "listening",
+    });
+    expect(f.listening.listening).toBe(true);
+
+    f.session.leaveTuner();
+    expect(f.listening.listening).toBe(false);
+  });
+}
+
 test("edge case — ■ twice", async () => {
   const f = leadFixture();
   await startLead(f.session);

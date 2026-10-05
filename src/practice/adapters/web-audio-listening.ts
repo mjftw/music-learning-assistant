@@ -30,6 +30,7 @@ export function webAudioListening(
 ): ListeningPort & { context(): AudioContext | null } {
   let audioContext: AudioContext | null = null;
   let listener: Listener | null = null;
+  let creating: Promise<ListenerOutcome> | null = null;
   const pitchListeners = new Set<(pitch: PitchDetected) => void>();
   const endedListeners = new Set<(ended: ListeningEnded) => void>();
   // Boundary problems (a malformed pitch report off the worklet's port) are
@@ -57,26 +58,35 @@ export function webAudioListening(
     }
 
     if (listener === null) {
+      // One listener however many requests arrive while it is being built
+      // (start, stop, start): a second createListener() would leave the
+      // first request's microphone on a listener this port's stop() never
+      // reaches (listening.pitch-detection/REQ-001/S3).
+      creating ??= create(audioContext);
       let outcome: ListenerOutcome;
       try {
-        outcome = await create(audioContext);
+        outcome = await creating;
       } catch (cause) {
+        creating = null;
         return {
           ok: false,
           error: { reason: "worklet-failed", detail: String(cause) },
         };
       }
       if (!outcome.ok) {
+        creating = null;
         return { ok: false, error: outcome.error };
       }
-      listener = outcome.listener;
-      listener.onPitch((pitch) => {
-        for (const l of pitchListeners) l(pitch);
-      });
-      listener.onEnded((ended) => {
-        for (const l of endedListeners) l(ended);
-      });
-      listener.onProblem(warnOnce);
+      if (listener === null) {
+        listener = outcome.listener;
+        listener.onPitch((pitch) => {
+          for (const l of pitchListeners) l(pitch);
+        });
+        listener.onEnded((ended) => {
+          for (const l of endedListeners) l(ended);
+        });
+        listener.onProblem(warnOnce);
+      }
     }
 
     // The real Listener.start() is what asks for the microphone

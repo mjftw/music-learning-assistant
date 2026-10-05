@@ -76,6 +76,14 @@ export async function createListener(
   };
 
   let graph: Graph | null = null;
+  // Bumped by every stop() and dispose(): a start() captures it before it
+  // awaits getUserMedia, and a stream that arrives after it has moved was
+  // asked for before a stop() and must not outlive it (REQ-001/S3).
+  let epoch = 0;
+
+  const releaseStream = (stream: MediaStream): void => {
+    for (const t of stream.getTracks()) t.stop();
+  };
 
   // Shared by stop() and the track's own "ended" handler: stops every
   // track, disconnects the source, and clears the port's handler so that
@@ -115,6 +123,7 @@ export async function createListener(
       if (graph !== null) {
         return { ok: true };
       }
+      const requestedAtEpoch = epoch;
 
       let stream: MediaStream;
       try {
@@ -136,9 +145,29 @@ export async function createListener(
         return { ok: false, error: { reason, detail: String(cause) } };
       }
 
+      // A stop() landed while the microphone was being asked for: this
+      // stream belongs to a request that was ended, so it is released here
+      // and a graph a newer request may already have built is left alone.
+      if (epoch !== requestedAtEpoch) {
+        releaseStream(stream);
+        return {
+          ok: false,
+          error: {
+            reason: "failed",
+            detail: "stopped while the microphone was being asked for",
+          },
+        };
+      }
+      // Two start()s with no stop() between, both pending: the first to
+      // arrive owns the graph, the second hands its stream straight back.
+      if (graph !== null) {
+        releaseStream(stream);
+        return { ok: true };
+      }
+
       const track = stream.getAudioTracks()[0];
       if (track === undefined) {
-        for (const t of stream.getTracks()) t.stop();
+        releaseStream(stream);
         return {
           ok: false,
           error: {
@@ -177,6 +206,7 @@ export async function createListener(
       return { ok: true };
     },
     stop: () => {
+      epoch += 1;
       teardown();
     },
     currentFrame: () => Math.round(context.currentTime * context.sampleRate),
@@ -194,6 +224,7 @@ export async function createListener(
       return () => problemListeners.delete(l);
     },
     dispose: () => {
+      epoch += 1;
       teardown();
       pitchListeners.clear();
       endedListeners.clear();

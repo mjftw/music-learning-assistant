@@ -2181,6 +2181,22 @@ export function createSession(
   // wakeLock.acquire() await has settled) and the onShown handler above
   // (REQ-008/S1: resumes listening without a tap; the wake lock is
   // untouched here — it was never released while hidden).
+  // listening.pitch-detection/REQ-001/S3 — whether anything now wants the
+  // microphone: a lead run asking for or holding it, or the tuner asking for
+  // or holding it (a hidden tuner keeps `tunerActive` but is "off" — it wants
+  // nothing until shown again). A superseded request whose microphone opens
+  // after it was superseded releases it only when this is false: a newer
+  // request may be pending, or already running, on the very same microphone,
+  // and a stop() would take that one away (or, in the adapter, discard it).
+  function microphoneWanted(): boolean {
+    return (
+      listeningOwner === "lead" ||
+      (tunerActive &&
+        (tunerListeningState.kind === "starting" ||
+          tunerListeningState.kind === "listening"))
+    );
+  }
+
   function startListening(generation: number): void {
     invalidateSnapshot();
     tunerListeningState = { kind: "starting" };
@@ -2189,7 +2205,7 @@ export function createSession(
     void (async () => {
       const result = await listening.start();
       if (tunerGeneration !== generation) {
-        listening.stop();
+        if (!microphoneWanted()) listening.stop();
         return;
       }
       invalidateSnapshot();
@@ -2274,8 +2290,9 @@ export function createSession(
             // Superseded (a stop() or a second startLead()) while the
             // microphone was being asked for — if it actually opened, hand
             // it straight back rather than leaving it open under nobody's
-            // name.
-            if (result.ok) listening.stop();
+            // name, unless a newer request now wants it (a start, stop,
+            // start: the microphone is that request's, not this one's).
+            if (result.ok && !microphoneWanted()) listening.stop();
             return;
           }
           invalidateSnapshot();

@@ -200,3 +200,121 @@ test("listening.pitch-detection/REQ-006/S3 — failed mid-way", async () => {
   await listener.start();
   expect(getUserMedia).toHaveBeenCalledTimes(2);
 });
+
+// A getUserMedia that stays pending until the test answers it, one request at
+// a time, each granting its own stream with its own track — so the tests can
+// count the live tracks on the streams themselves, whatever the adapter does.
+function heldMediaDevices() {
+  // One entry per granted request, in the order requests were made; a track
+  // exists (and can be live) only once its request has been answered.
+  const tracks: ({ stopped: boolean } | undefined)[] = [];
+  const answers: (() => void)[] = [];
+  const getUserMedia = vi.fn(
+    () =>
+      new Promise<MediaStream>((resolve) => {
+        const n = answers.length;
+        answers.push(() => {
+          const track = {
+            stopped: false,
+            stop() {
+              this.stopped = true;
+            },
+            getSettings: () => ({}),
+            onended: null as null | (() => void),
+          };
+          tracks[n] = track;
+          resolve({
+            getAudioTracks: () => [track],
+            getTracks: () => [track],
+          } as unknown as MediaStream);
+        });
+      }),
+  );
+  return {
+    mediaDevices: { getUserMedia } as unknown as MediaDevices,
+    tracks,
+    // Answers the nth request (0-based) and lets the adapter's continuation run.
+    async resolve(n: number): Promise<void> {
+      answers[n]?.();
+      await Promise.resolve();
+      await Promise.resolve();
+    },
+    live: () => tracks.filter((t) => t !== undefined && !t.stopped).length,
+  };
+}
+
+// listening.pitch-detection/REQ-001/S3 — a stop that overtakes a pending
+// request still releases its stream (convergence 2, W1)
+test("listening.pitch-detection/REQ-001/S3 — a stop that overtakes a pending request still releases its stream (a: start, stop, resolve)", async () => {
+  const held = heldMediaDevices();
+  const listener = okListener(
+    await createListener(fakeContext(), held.mediaDevices),
+  );
+  const heard: number[] = [];
+  listener.onPitch((pitch) => heard.push(pitch.hz));
+  const pending = listener.start();
+  listener.stop();
+  await held.resolve(0);
+  await pending;
+  expect(held.live()).toBe(0);
+  expect(nodeBox.current).toBeUndefined();
+  expect(heard).toEqual([]);
+});
+
+test("listening.pitch-detection/REQ-001/S3 — a stop that overtakes a pending request still releases its stream (b: start A, stop, start B, resolve A then B)", async () => {
+  const held = heldMediaDevices();
+  const context = fakeContext();
+  const listener = okListener(await createListener(context, held.mediaDevices));
+  const heard: number[] = [];
+  listener.onPitch((pitch) => heard.push(pitch.hz));
+  const a = listener.start();
+  listener.stop();
+  const b = listener.start();
+  await held.resolve(0);
+  await a;
+  expect(held.live()).toBe(0);
+  await held.resolve(1);
+  expect(await b).toEqual({ ok: true });
+  expect(held.live()).toBe(1);
+  expect(held.tracks[1]?.stopped).toBe(false);
+  listener.stop();
+  expect(held.live()).toBe(0);
+  context.lastNode.port.onmessage?.({
+    data: { type: "pitch", hz: 440, confidence: 0.95, atFrame: 100 },
+  } as MessageEvent);
+  expect(heard).toEqual([]);
+});
+
+test("listening.pitch-detection/REQ-001/S3 — a stop that overtakes a pending request still releases its stream (c: start A, stop, start B, resolve B then A)", async () => {
+  const held = heldMediaDevices();
+  const listener = okListener(
+    await createListener(fakeContext(), held.mediaDevices),
+  );
+  const a = listener.start();
+  listener.stop();
+  const b = listener.start();
+  await held.resolve(1);
+  expect(await b).toEqual({ ok: true });
+  await held.resolve(0);
+  await a;
+  expect(held.live()).toBe(1);
+  expect(held.tracks[1]?.stopped).toBe(false);
+  listener.stop();
+  expect(held.live()).toBe(0);
+});
+
+test("listening.pitch-detection/REQ-001/S3 — a stop that overtakes a pending request still releases its stream (d: start, start, resolve both)", async () => {
+  const held = heldMediaDevices();
+  const listener = okListener(
+    await createListener(fakeContext(), held.mediaDevices),
+  );
+  const first = listener.start();
+  const second = listener.start();
+  await held.resolve(0);
+  await held.resolve(1);
+  expect(await first).toEqual({ ok: true });
+  expect(await second).toEqual({ ok: true });
+  expect(held.live()).toBe(1);
+  listener.stop();
+  expect(held.live()).toBe(0);
+});
